@@ -1,5 +1,5 @@
 import type { Breakpoint } from '../../../shared/types';
-import { useStore, VIEWPORT_BREAKPOINT } from '../../lib/store';
+import { useActiveBreakpoint, useStore } from '../../lib/store';
 
 export type ValueState = 'set' | 'inherited' | 'computed';
 
@@ -28,8 +28,7 @@ export const BREAKPOINT_LABEL: Record<Breakpoint, string> = { base: 'Base', tabl
 export function useStyleValue(prop: string): StyleValue {
   const sourceInfo = useStore((s) => s.sourceInfo);
   const computed = useStore((s) => s.selection?.computed);
-  const viewport = useStore((s) => s.viewport);
-  const bp = VIEWPORT_BREAKPOINT[viewport];
+  const bp = useActiveBreakpoint();
   if (sourceInfo) {
     for (const level of CHAIN[bp]) {
       const value = sourceInfo.styles[level][prop];

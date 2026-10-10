@@ -55,6 +55,55 @@ test('setText replaces only the text content', () => {
   assert.equal(code.split('\n').length, APP.split('\n').length);
 });
 
+const TEXTS = `export default function T({ name }) {
+  return (
+    <div>
+      <p>  Plain
+        words </p>
+      <p>Line one<br />Line two</p>
+      <p>{"Literal {braces}"}</p>
+      <p>Hi <b>there</b></p>
+      <p>Hi {name}</p>
+      <p />
+      <p></p>
+    </div>
+  );
+}
+`;
+
+function textOf(needle) {
+  const { line, column } = idOf(TEXTS, needle);
+  return h.readText(h.locateElement(TEXTS, 'T.jsx', line, column).element);
+}
+
+test('readText reports plain text and why other content is not editable', () => {
+  assert.deepEqual(textOf('<p>  Plain'), { text: 'Plain words', editable: true, reason: 'plain' });
+  assert.deepEqual(textOf('<p>Line one'), { text: 'Line one\nLine two', editable: true, reason: 'plain' });
+  assert.deepEqual(textOf('<p>{"Literal'), { text: 'Literal {braces}', editable: true, reason: 'plain' });
+  assert.deepEqual(textOf('<p>Hi <b>'), { text: null, editable: false, reason: 'nested' });
+  assert.deepEqual(textOf('<p>Hi {name}'), { text: null, editable: false, reason: 'expression' });
+  assert.deepEqual(textOf('<p />'), { text: '', editable: false, reason: 'self-closing' });
+  assert.deepEqual(textOf('<p></p>'), { text: '', editable: true, reason: 'plain' });
+});
+
+test('encodeText escapes risky characters and turns newlines into <br />', () => {
+  assert.equal(h.encodeText('Hello'), 'Hello');
+  assert.equal(h.encodeText('a < b & {c}'), '{"a < b & {c}"}');
+  assert.equal(h.encodeText(' padded'), '{" padded"}');
+  assert.equal(h.encodeText('one\r\ntwo'), 'one<br />two');
+  assert.equal(h.encodeText('<script>\nok'), '{"<script>"}<br />ok');
+});
+
+test('multiline setText round-trips through readText', () => {
+  const { line, column } = idOf(TEXTS, '<p>  Plain');
+  const code = h.setText(TEXTS, 'T.jsx', line, column, 'First line\nSecond {line}');
+  assert.ok(code.includes('<p>First line<br />{"Second {line}"}</p>'));
+  const el = h.locateElement(code, 'T.jsx', line, column).element;
+  assert.deepEqual(h.readText(el), { text: 'First line\nSecond {line}', editable: true, reason: 'plain' });
+  const nested = idOf(TEXTS, '<p>Hi <b>');
+  assert.throws(() => h.setText(TEXTS, 'T.jsx', nested.line, nested.column, 'x'), /nested elements/);
+});
+
 test('insertElement adds a child to a container on its own line', () => {
   const { line, column } = idOf(APP, '<main');
   const { code, offset } = h.insertElement(APP, 'App.jsx', line, column, '<p data-oc="p-x">New</p>');

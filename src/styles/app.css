@@ -52,3 +52,10 @@
 .legend .marker--inherited {
   margin-left: 10px;
 }
+
+.content-locked {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  line-height: 1.5;
+}

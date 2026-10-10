@@ -1,4 +1,5 @@
 /** Bundle entry used by automated tests to exercise main-process services without Electron. */
+export * from '../shared/canvas';
 export * from '../shared/source/ast';
 export * from '../shared/source/css';
 export * from '../shared/source/jsx';

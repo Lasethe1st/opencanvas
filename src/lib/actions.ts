@@ -1,7 +1,8 @@
 import type { EditCommand, InsertKind, ProjectInfo, TemplateId } from '../../shared/types';
 import { api } from './api';
 import { sendToPreview } from './bridge';
-import { getState, hasUnsaved, initialState, setState, toast, VIEWPORT_BREAKPOINT, type HistoryEntry } from './store';
+import { loadLayout } from './canvas';
+import { activeBreakpoint, getState, hasUnsaved, initialState, setState, toast, type HistoryEntry } from './store';
 
 function errorMessage(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err);
@@ -18,7 +19,9 @@ export async function refreshTree() {
 }
 
 async function loadProject(project: ProjectInfo) {
-  setState({ ...initialState, project, leftWidth: getState().leftWidth, rightWidth: getState().rightWidth });
+  const { leftWidth, rightWidth, leftTab } = getState();
+  setState({ ...initialState, project, leftWidth, rightWidth, leftTab });
+  loadLayout(project);
   await refreshTree();
   for (const warning of project.warnings) toast(warning, 'info');
   const entry = project.entryFile ? 'src/App.jsx' : null;
@@ -73,7 +76,7 @@ export async function closeProject() {
   if (!confirmDiscard()) return;
   await api.closeProject();
   await api.setUnsaved(false);
-  setState({ ...initialState });
+  setState({ ...initialState, leftTab: getState().leftTab });
 }
 
 export async function installDependencies() {
@@ -318,10 +321,10 @@ function afterChange(selectId: string | null, paths: string[]) {
 }
 
 export async function setStyles(styles: Record<string, string>, label?: string) {
-  const { selection, viewport } = getState();
+  const { selection } = getState();
   if (!selection) return;
   const props = Object.keys(styles);
-  await runEdit({ type: 'setStyle', id: selection.id, breakpoint: VIEWPORT_BREAKPOINT[viewport], styles }, label ?? `Set ${props[0]}`);
+  await runEdit({ type: 'setStyle', id: selection.id, breakpoint: activeBreakpoint(), styles }, label ?? `Set ${props[0]}`);
 }
 
 export function setStyle(prop: string, value: string) {

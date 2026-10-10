@@ -3,10 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import { closeProject, openProjectDialog, redo, selectElement, undo } from '../lib/actions';
 import { api } from '../lib/api';
 import { sendToPreview } from '../lib/bridge';
+import { stopInlineEdit } from '../lib/inline-edit';
 import { findPath, hasUnsaved, setState, useStore } from '../lib/store';
-import { viewportSize } from '../lib/viewport';
 import { Menu, MenuItem } from '../ui/primitives.jsx';
-import { Brand, Breadcrumb, Divider, ExportButton, HistoryButtons, InteractToggle, ModeSwitch, ProjectButton, SaveStatus, TopBar as Bar, ViewportSwitch } from '../ui/TopBar.jsx';
+import { Brand, Breadcrumb, Divider, ExportButton, HistoryButtons, InteractToggle, ModeSwitch, ProjectButton, SaveStatus, TopBar as Bar } from '../ui/TopBar.jsx';
 import { ThemeMenu } from './ThemeMenu';
 
 function ProjectMenu() {
@@ -67,22 +67,21 @@ function Crumbs() {
   return <Breadcrumb items={items} onSelect={(item) => selectElement(item.node.id, item.node.uid)} />;
 }
 
+export function setInteract(next: boolean) {
+  if (next) stopInlineEdit(true);
+  setState({ interact: next, tool: 'select' });
+  sendToPreview('mode', { mode: next ? 'interact' : 'select' });
+}
+
 export function TopBar() {
-  const project = useStore((s) => s.project)!;
-  const viewport = useStore((s) => s.viewport);
   const mode = useStore((s) => s.mode);
   const interact = useStore((s) => s.interact);
   const canUndo = useStore((s) => s.past.length > 0);
   const canRedo = useStore((s) => s.future.length > 0);
   const dirty = useStore((s) => hasUnsaved(s));
   const busy = useStore((s) => s.busy);
-  const size = viewportSize(viewport, project.breakpoints);
 
-  const toggleInteract = () => {
-    const next = !interact;
-    setState({ interact: next });
-    sendToPreview('mode', { mode: next ? 'interact' : 'select' });
-  };
+  const toggleInteract = () => setInteract(!interact);
 
   return (
     <Bar
@@ -100,7 +99,6 @@ export function TopBar() {
           {mode === 'visual' && (
             <>
               <InteractToggle active={interact} onClick={toggleInteract} />
-              <ViewportSwitch value={viewport} onChange={(id) => setState({ viewport: id })} width={`${size.width}${size.height ? ` × ${size.height}` : ' px'}`} />
               <Divider />
             </>
           )}

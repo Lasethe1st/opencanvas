@@ -94,8 +94,8 @@ export function CodeView({ hidden }: { hidden: boolean }) {
               editor.onDidChangeCursorPosition((e) => setCursor({ line: e.position.lineNumber, column: e.position.column }));
             }}
             options={{
-              fontSize: 13,
-              fontFamily: "'JetBrains Mono', 'Cascadia Code', Consolas, monospace",
+              fontSize: 12.5,
+              fontFamily: "'Geist Mono Variable', 'Cascadia Code', Consolas, monospace",
               minimap: { enabled: false },
               scrollBeyondLastLine: false,
               tabSize: 2,

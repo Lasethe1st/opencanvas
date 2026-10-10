@@ -285,7 +285,7 @@ export function inspectElement(project: ProjectInfo, id: string): SourceElementI
     const key = attrLiteral(keyAttr ?? null);
     const stylesAbs = safeResolve(project.root, project.stylesFile);
     const css = fs.existsSync(stylesAbs) ? fs.readFileSync(stylesAbs, 'utf8') : '';
-    const { text, editable } = readText(element);
+    const { text, editable, reason } = readText(element);
     return {
       id,
       tag,
@@ -295,6 +295,7 @@ export function inspectElement(project: ProjectInfo, id: string): SourceElementI
       key,
       text,
       textEditable: editable,
+      textReason: reason,
       attributes,
       styles: key ? readElementStyles(css, key, project.breakpoints) : { base: {}, tablet: {}, mobile: {} },
     };

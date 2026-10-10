@@ -1,4 +1,4 @@
-import type { InsertKind } from '../types';
+import type { InsertKind, TextReason } from '../types';
 import {
   applySplices,
   isHostTag,
@@ -122,17 +122,43 @@ export function ensureStyleKey(code: string, filename: string, line: number, col
   return { code: applySplices(code, [splice]), key, tag };
 }
 
-export function readText(element: AstNode): { text: string | null; editable: boolean } {
+const isLineBreak = (node: AstNode) =>
+  node.type === 'JSXElement' &&
+  node.openingElement.name.type === 'JSXIdentifier' &&
+  node.openingElement.name.name === 'br' &&
+  node.openingElement.attributes.length === 0 &&
+  node.children.length === 0;
+
+/**
+ * Plain text content of an element. Text, string literals and bare `<br />` line breaks are editable;
+ * anything else (nested elements, expressions) is reported with a reason.
+ */
+export function readText(element: AstNode): { text: string | null; editable: boolean; reason: TextReason } {
   const children = element.children as AstNode[];
-  if (children.length === 0) return { text: '', editable: !element.openingElement.selfClosing };
+  if (children.length === 0) {
+    const selfClosing = !!element.openingElement.selfClosing;
+    return { text: '', editable: !selfClosing, reason: selfClosing ? 'self-closing' : 'plain' };
+  }
   let text = '';
   for (const child of children) {
-    if (child.type === 'JSXText') text += child.value;
+    if (child.type === 'JSXText') text += child.value.replace(/\s+/g, ' ');
     else if (child.type === 'JSXExpressionContainer' && child.expression.type === 'StringLiteral') text += child.expression.value;
     else if (child.type === 'JSXExpressionContainer' && child.expression.type === 'JSXEmptyExpression') continue;
-    else return { text: null, editable: false };
+    else if (isLineBreak(child)) text += '\n';
+    else if (child.type === 'JSXElement' || child.type === 'JSXFragment') return { text: null, editable: false, reason: 'nested' };
+    else return { text: null, editable: false, reason: 'expression' };
   }
-  return { text: text.replace(/\s+/g, ' ').trim(), editable: true };
+  const lines = text.split('\n').map((l) => l.trim());
+  return { text: lines.join('\n').replace(/^\n+|\n+$/g, ''), editable: true, reason: 'plain' };
+}
+
+/** JSX source for plain text: risky characters become string literals and newlines become `<br />`. */
+export function encodeText(text: string): string {
+  return text
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => (/[{}<>&]/.test(line) || /^\s|\s$/.test(line) ? `{${JSON.stringify(line)}}` : line))
+    .join('<br />');
 }
 
 export function setText(code: string, filename: string, line: number, column: number, text: string): string {
@@ -142,8 +168,7 @@ export function setText(code: string, filename: string, line: number, column: nu
   if (!editable || !element.closingElement) {
     throw new EditError('This element contains nested elements or expressions; edit its text in code view.');
   }
-  const safe = /[{}<>]/.test(text) ? `{${JSON.stringify(text)}}` : text;
-  return applySplices(code, [{ start: element.openingElement.end, end: element.closingElement.start, text: safe }]);
+  return applySplices(code, [{ start: element.openingElement.end, end: element.closingElement.start, text: encodeText(text) }]);
 }
 
 function lineIndent(code: string, offset: number): string {

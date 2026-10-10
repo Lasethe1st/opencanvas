@@ -77,6 +77,9 @@ export type EditCommand =
   | { type: 'setText'; id: string; text: string }
   | { type: 'setAttribute'; id: string; name: string; value: string };
 
+/** Whether an element's text is plain (editable) or why it isn't. */
+export type TextReason = 'plain' | 'nested' | 'expression' | 'self-closing';
+
 /** Information about an element as found in the source file. */
 export interface SourceElementInfo {
   id: string;
@@ -87,6 +90,7 @@ export interface SourceElementInfo {
   key: string | null;
   text: string | null;
   textEditable: boolean;
+  textReason: TextReason;
   attributes: Record<string, string>;
   styles: Record<Breakpoint, Record<string, string>>;
 }

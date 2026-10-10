@@ -6,9 +6,11 @@ import { Inspector } from './components/Inspector';
 import { LeftSidebar } from './components/LeftSidebar';
 import { Onboarding } from './components/Onboarding';
 import { Toasts } from './components/Toasts';
+import { ToolRail } from './components/ToolRail';
 import { TopBar } from './components/TopBar';
 import { refreshSourceInfo, refreshTree, reloadProjectConfig, saveFile, syncBuffersFromDisk } from './lib/actions';
 import { api } from './lib/api';
+import { handleExternalChange } from './lib/inline-edit';
 import { handleShortcut } from './lib/shortcuts';
 import { getState, setState, useStore } from './lib/store';
 
@@ -25,6 +27,7 @@ export default function App() {
     const offStatus = api.onPreviewStatus((status) => setState({ previewStatus: status }));
     const offLog = api.onInstallLog((text) => setState((s) => ({ installLog: (s.installLog + text).slice(-8000) })));
     const offFiles = api.onFilesChanged((paths) => {
+      void handleExternalChange(paths);
       void refreshTree();
       void syncBuffersFromDisk(paths);
       if (paths.some((p) => p === 'package.json' || /^vite\.config\.[cm]?[jt]s$/.test(p))) void reloadProjectConfig();
@@ -66,6 +69,7 @@ export default function App() {
     <div className="shell">
       <TopBar />
       <div className="workspace">
+        {mode === 'visual' && <ToolRail />}
         <LeftSidebar />
         <Canvas hidden={mode !== 'visual'} />
         <CodeView hidden={mode !== 'code'} />

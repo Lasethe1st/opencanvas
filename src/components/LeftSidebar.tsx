@@ -9,9 +9,6 @@ import {
   FolderOpen,
   FolderPlus,
   Image,
-  Layers,
-  PanelLeftClose,
-  PanelLeftOpen,
   Pencil,
   RectangleHorizontal,
   Trash2,
@@ -22,8 +19,9 @@ import type { FileNode } from '../../shared/types';
 import { createFileOrFolder, deletePath, openFile, renamePath, runEdit, selectElement } from '../lib/actions';
 import { sendToPreview } from '../lib/bridge';
 import { findPath, setState, useStore, type TreeNode } from '../lib/store';
-import { Panel, Rail, SearchField, Tree, TreeRow } from '../ui/Panels.jsx';
+import { Panel, SearchField, Tree, TreeRow } from '../ui/Panels.jsx';
 import { IconButton, SectionLabel, Segmented } from '../ui/primitives.jsx';
+import { FramesPanel } from './FramesPanel';
 import { Resizer } from './Resizer';
 
 function fileIcon(name: string) {
@@ -369,50 +367,30 @@ function LayersPanel({ query }: { query: string }) {
 export function LeftSidebar() {
   const tab = useStore((s) => s.leftTab);
   const width = useStore((s) => s.leftWidth);
-  const collapsed = useStore((s) => s.leftCollapsed);
   const [queries, setQueries] = useState({ files: '', layers: '' });
-
-  if (collapsed) {
-    return (
-      <Rail side="left">
-        <IconButton label="Show sidebar" onClick={() => setState({ leftCollapsed: false })}>
-          <PanelLeftOpen size={15} />
-        </IconButton>
-        <IconButton label="Files" onClick={() => setState({ leftCollapsed: false, leftTab: 'files' })}>
-          <Folder size={15} />
-        </IconButton>
-        <IconButton label="Layers" onClick={() => setState({ leftCollapsed: false, leftTab: 'layers' })}>
-          <Layers size={15} />
-        </IconButton>
-      </Rail>
-    );
-  }
 
   return (
     <Panel
       side="left"
       width={width}
       head={
-        <>
-          <Segmented
-            label="Sidebar"
-            value={tab}
-            onChange={(id) => setState({ leftTab: id })}
-            options={[
-              { id: 'files', label: 'Files', text: 'Files' },
-              { id: 'layers', label: 'Layers', text: 'Layers' },
-            ]}
-          />
-          <span style={{ flex: 1 }} />
-          <IconButton size="sm" label="Hide sidebar" onClick={() => setState({ leftCollapsed: true })}>
-            <PanelLeftClose size={14} />
-          </IconButton>
-        </>
+        <Segmented
+          label="Sidebar"
+          value={tab}
+          onChange={(id) => setState({ leftTab: id })}
+          options={[
+            { id: 'layers', label: 'Layers', text: 'Layers' },
+            { id: 'files', label: 'Files', text: 'Files' },
+            { id: 'frames', label: 'Frames', text: 'Frames' },
+          ]}
+        />
       }
       resizer={<Resizer value={width} min={200} max={460} onChange={(v) => setState({ leftWidth: v })} />}
     >
-      <SearchField placeholder={tab === 'files' ? 'Search files' : 'Search layers'} value={queries[tab]} onChange={(v) => setQueries((q) => ({ ...q, [tab]: v }))} />
-      {tab === 'files' ? <FilesPanel query={queries.files} /> : <LayersPanel query={queries.layers} />}
+      {tab !== 'frames' && (
+        <SearchField placeholder={tab === 'files' ? 'Search files' : 'Search layers'} value={queries[tab]} onChange={(v) => setQueries((q) => ({ ...q, [tab]: v }))} />
+      )}
+      {tab === 'files' ? <FilesPanel query={queries.files} /> : tab === 'layers' ? <LayersPanel query={queries.layers} /> : <FramesPanel />}
     </Panel>
   );
 }

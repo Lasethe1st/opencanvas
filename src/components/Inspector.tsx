@@ -1,10 +1,11 @@
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Monitor, PanelRightClose, PanelRightOpen, SlidersHorizontal, Smartphone, Tablet } from 'lucide-react';
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Code2, Monitor, Smartphone, Tablet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { revealInCode, runEdit, setStyle } from '../lib/actions';
-import { setState, useStore, VIEWPORT_BREAKPOINT } from '../lib/store';
+import { activeFrame, setState, useActiveBreakpoint, useStore } from '../lib/store';
 import { BreakpointBanner, InspectorHeader, KeyValue } from '../ui/Inspector.jsx';
-import { Panel, PanelTitle, Rail } from '../ui/Panels.jsx';
-import { Field, IconButton, InputShell, Notice, SelectShell } from '../ui/primitives.jsx';
+import { Panel, PanelTitle } from '../ui/Panels.jsx';
+import { Button, Field, InputShell, Notice, SelectShell } from '../ui/primitives.jsx';
+import { SCOPE_LABEL } from './Canvas';
 import { BoxModel } from './inspector/BoxModel';
 import { ColorInput, CommitInput, CompactInput, CompactSelect, Section, StyleField, StyleInput, StyleSelect, ToggleGroup } from './inspector/fields';
 import { useStyleValue } from './inspector/useStyleValue';
@@ -104,9 +105,16 @@ function ContentSection() {
             }}
           />
         ) : (
-          <p className="muted" style={{ margin: 0 }}>
-            Text contains nested elements or expressions. Edit it in code view.
-          </p>
+          <div className="content-locked">
+            <p className="muted" style={{ margin: 0 }}>
+              {info.textReason === 'expression'
+                ? 'This text comes from a JavaScript expression, so it can only be changed in code.'
+                : 'This text contains other elements, such as links or emphasis. Edit it in code so the markup stays intact.'}
+            </p>
+            <Button size="sm" icon={<Code2 size={13} />} onClick={() => revealInCode(info.file, info.line)}>
+              Open in code
+            </Button>
+          </div>
         ))}
       {tag === 'img' && (
         <>
@@ -279,10 +287,29 @@ function PageSettings() {
         <KeyValue label="Tablet">≤ {project.breakpoints.tablet}px</KeyValue>
         <KeyValue label="Mobile">≤ {project.breakpoints.mobile}px</KeyValue>
         <p className="muted" style={{ margin: 0, lineHeight: 1.5 }}>
-          {project.breakpoints.detected ? 'Detected from the project’s existing media queries.' : 'Defaults. No existing max-width media queries were found.'} Switch the viewport in the top bar to edit breakpoint overrides.
+          {project.breakpoints.detected ? 'Detected from the project’s existing media queries.' : 'Defaults. No existing max-width media queries were found.'} Each frame edits the scope its width falls in; resize a frame or select an element in another frame to change scope.
         </p>
       </Section>
     </>
+  );
+}
+
+function ScopeBanner() {
+  const project = useStore((s) => s.project)!;
+  const frame = useStore((s) => activeFrame(s));
+  const bp = useActiveBreakpoint();
+  const BpIcon = bp === 'tablet' ? Tablet : bp === 'mobile' ? Smartphone : Monitor;
+  const where = frame ? `${frame.name} frame, ${frame.width}px` : 'no frame';
+  return (
+    <BreakpointBanner icon={<BpIcon size={14} />}>
+      {bp === 'base' ? (
+        <>Editing base styles ({where}).</>
+      ) : (
+        <>
+          Editing {bp} overrides (max-width: {bp === 'tablet' ? project.breakpoints.tablet : project.breakpoints.mobile}px) from the {where}. Base styles stay unchanged.
+        </>
+      )}
+    </BreakpointBanner>
   );
 }
 
@@ -290,27 +317,11 @@ export function Inspector() {
   const selection = useStore((s) => s.selection);
   const info = useStore((s) => s.sourceInfo);
   const sourceError = useStore((s) => s.sourceError);
-  const viewport = useStore((s) => s.viewport);
   const project = useStore((s) => s.project)!;
   const width = useStore((s) => s.rightWidth);
-  const collapsed = useStore((s) => s.rightCollapsed);
-  const bp = VIEWPORT_BREAKPOINT[viewport];
-
-  if (collapsed) {
-    return (
-      <Rail side="right">
-        <IconButton label="Show inspector" onClick={() => setState({ rightCollapsed: false })}>
-          <PanelRightOpen size={15} />
-        </IconButton>
-        <IconButton label="Inspector" onClick={() => setState({ rightCollapsed: false })}>
-          <SlidersHorizontal size={15} />
-        </IconButton>
-      </Rail>
-    );
-  }
+  const scope = useActiveBreakpoint();
 
   const disabled = !info || !project.editable;
-  const BpIcon = bp === 'tablet' ? Tablet : bp === 'mobile' ? Smartphone : Monitor;
 
   return (
     <Panel
@@ -320,9 +331,7 @@ export function Inspector() {
       head={
         <>
           <PanelTitle>Inspector</PanelTitle>
-          <IconButton size="sm" label="Hide inspector" onClick={() => setState({ rightCollapsed: true })}>
-            <PanelRightClose size={14} />
-          </IconButton>
+          <span className="scope-tag">{SCOPE_LABEL[scope]}</span>
         </>
       }
       resizer={<Resizer value={width} min={260} max={440} invert onChange={(v) => setState({ rightWidth: v })} />}
@@ -332,11 +341,7 @@ export function Inspector() {
       ) : (
         <>
           <ElementHeader />
-          {bp !== 'base' && (
-            <BreakpointBanner icon={<BpIcon size={14} />}>
-              Editing {viewport} overrides (max-width: {bp === 'tablet' ? project.breakpoints.tablet : project.breakpoints.mobile}px). Base styles stay unchanged.
-            </BreakpointBanner>
-          )}
+          <ScopeBanner />
           {sourceError && <Notice>{sourceError}</Notice>}
           {!sourceError && !info && <div className="empty-note">Reading source…</div>}
           <ContentSection />

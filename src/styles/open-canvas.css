@@ -1,37 +1,11 @@
 /* Styles written by visual edits. Plain CSS: safe to edit by hand. */
 
-[data-oc="main-x9otv"] {
-  background-color: #e2e2e7;
-}
-
-[data-oc="div-hufb4"] {
-  font-size: 14px;
-  margin-bottom: 14px;
-}
-
 [data-oc="div-tyuk7"] {
   letter-spacing: -0.02em;
 }
 
-[data-oc="div-ukpws"] {
-  border-radius: 16px;
-  padding-top: 6px;
-  padding-right: 6px;
-  padding-bottom: 6px;
-  padding-left: 6px;
-}
-
 [data-oc="input-o3u49"] {
-  font-size: 15px;
-}
-
-[data-oc="span-clrpm"] {
-  font-weight: 600;
-}
-
-[data-oc="h1-kgru5"] {
-  font-size: 54px;
-  line-height: 1.04;
+  font-size: 14px;
 }
 
 [data-oc="div-6rmyu"] {
@@ -39,19 +13,10 @@
 }
 
 [data-oc="h1-8i6by"] {
-  font-size: 30px;
+  font-size: 28px;
   letter-spacing: -0.03em;
 }
 
 [data-oc="button-xwrpr"] {
-  height: 38px;
-}
-
-@media (max-width: 640px) {
-  [data-oc="main-x9otv"] {
-    padding-top: 16px;
-    padding-right: 16px;
-    padding-bottom: 16px;
-    padding-left: 16px;
-  }
+  height: 34px;
 }
