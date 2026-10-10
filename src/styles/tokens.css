@@ -1,0 +1,167 @@
+/* OpenCanvas v1 — design tokens. Light is the default; dark applies to any subtree with data-theme='dark'. */
+:root,
+[data-theme='light'] {
+  --font: 'Inter', 'Segoe UI Variable Text', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', 'Cascadia Code', ui-monospace, Consolas, monospace;
+
+  --bg: #f5f5f6;
+  --surface: #ffffff;
+  --surface-2: #fafafb;
+  --surface-3: #f1f1f3;
+  --canvas: #ececef;
+  --canvas-dot: #d9d9de;
+  --line: #e6e6ea;
+  --line-strong: #d4d4da;
+  --fg: #111114;
+  --fg-2: #55555f;
+  --fg-3: #8b8b96;
+  --fg-4: #b4b4bd;
+
+  --accent: #3e63dd;
+  --accent-hover: #3457c7;
+  --accent-fg: #ffffff;
+  --accent-soft: #edf1fe;
+  --accent-line: #c6d2fa;
+  --danger: #d93036;
+  --danger-soft: #fdecec;
+  --success: #1f9d55;
+  --warning: #d97706;
+  --warning-soft: #fff6e6;
+  --warning-fg: #8a4b06;
+
+  --hover: rgba(17, 17, 20, 0.045);
+  --press: rgba(17, 17, 20, 0.08);
+  --inverse: #18181c;
+  --inverse-fg: #f6f6f7;
+  --backdrop: rgba(17, 17, 20, 0.28);
+  --code-bg: #fbfbfc;
+
+  --box-margin: #fdf3e3;
+  --box-padding: #e8f5ec;
+
+  --shadow-sm: 0 1px 2px rgba(17, 17, 20, 0.06);
+  --shadow-md: 0 1px 2px rgba(17, 17, 20, 0.05), 0 6px 16px rgba(17, 17, 20, 0.07);
+  --shadow-lg: 0 2px 4px rgba(17, 17, 20, 0.05), 0 16px 40px rgba(17, 17, 20, 0.12);
+  --frame-shadow: 0 0 0 1px rgba(17, 17, 20, 0.06), 0 8px 30px rgba(17, 17, 20, 0.08);
+
+  --r-sm: 5px;
+  --r: 7px;
+  --r-lg: 10px;
+  --r-xl: 14px;
+
+  --topbar-h: 48px;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  color-scheme: light;
+  font-family: var(--font);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+[data-theme='dark'] {
+  --bg: #0e0e10;
+  --surface: #161619;
+  --surface-2: #1a1a1e;
+  --surface-3: #202025;
+  --canvas: #0a0a0c;
+  --canvas-dot: #1f1f24;
+  --line: #26262c;
+  --line-strong: #34343c;
+  --fg: #f2f2f4;
+  --fg-2: #a6a6b0;
+  --fg-3: #74747f;
+  --fg-4: #4d4d56;
+
+  --accent: #5b7cf0;
+  --accent-hover: #7090f5;
+  --accent-soft: rgba(91, 124, 240, 0.14);
+  --accent-line: rgba(91, 124, 240, 0.4);
+  --danger: #f0565c;
+  --danger-soft: rgba(240, 86, 92, 0.12);
+  --success: #3fbf75;
+  --warning: #f2a33a;
+  --warning-soft: rgba(242, 163, 58, 0.1);
+  --warning-fg: #f6c27a;
+
+  --hover: rgba(255, 255, 255, 0.05);
+  --press: rgba(255, 255, 255, 0.09);
+  --inverse: #f2f2f4;
+  --inverse-fg: #111114;
+  --backdrop: rgba(0, 0, 0, 0.55);
+  --code-bg: #121215;
+
+  --box-margin: rgba(242, 163, 58, 0.08);
+  --box-padding: rgba(63, 191, 117, 0.08);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 18px 48px rgba(0, 0, 0, 0.5);
+  --frame-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 10px 36px rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+input,
+select,
+textarea {
+  background-color: var(--surface);
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border: 3px solid transparent;
+  border-radius: 10px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}

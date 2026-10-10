@@ -1,0 +1,8 @@
+node_modules
+dist
+dist-electron
+.vite
+*.log
+tests/.tmp
+
+tests/dogfood/*.log
