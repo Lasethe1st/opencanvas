@@ -137,6 +137,7 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
         if (activatedByFrame) activatedByFrame = false;
         else if (state.selection) sendToPreview('select', { id: state.selection.id, scroll: false, additive: 'keep' });
       }
+      if (state.camera.zoom !== prev.camera.zoom) sendToPreview('zoom', { zoom: state.camera.zoom });
       if (state.multiSelect !== prev.multiSelect || state.activeFrameId !== prev.activeFrameId) {
         sendMulti(state.multiSelect.map((m) => m.id));
       }
@@ -152,6 +153,7 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
       switch (msg.type) {
         case 'ready': {
           sendToFrame(fid, 'mode', { mode: state.interact ? 'interact' : 'select' });
+          sendToFrame(fid, 'zoom', { zoom: state.camera.zoom });
           const id = state.pendingSelectId ?? state.selection?.id;
           if (id) sendToFrame(fid, 'select', active ? { id, scroll: false, additive: 'keep' } : { id, linked: true });
           if (state.multiSelect.length) sendMulti(state.multiSelect.map((m) => m.id), fid);

@@ -437,3 +437,8 @@ kbd, .kbd,
 .tree-row__toggle::before { content: ''; position: absolute; inset: -4px; }
 .segmented button { min-height: 24px; }
 .source-link { min-height: 24px; display: inline-flex; align-items: center; }
+
+/* Canvas focus: the selected element is the brightest thing; the active frame steps back. */
+.frame-chrome.is-active .frame-chrome__outline {
+  border-color: color-mix(in srgb, var(--select) 35%, transparent);
+}
