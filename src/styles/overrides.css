@@ -299,7 +299,7 @@ body {
 /* Layer tree: tag labels only when they help (hover or selected) */
 .tree-row__meta {
   color: var(--fg-4);
-  font-size: 10.5px;
+  font-size: 11px;
   text-transform: lowercase;
   opacity: 0;
   transition: opacity 0.15s ease-out;
@@ -409,3 +409,25 @@ body {
 @container (max-width: 150px) { .frame-chrome__size { display: none; } }
 .dialog:focus { outline: none; }
 .export-option, .export-report { border-radius: 8px; }
+
+/* Type floor: nothing in the editor renders below 11px. */
+.dock-results__group,
+.dock-hit__detail,
+.ai-option kbd,
+.tag,
+kbd, .kbd,
+.tree-row__meta,
+.frame-chrome__size,
+.frame-chrome__scope,
+.size-tip,
+.state-card__log,
+.frame-row__meta,
+.scope-tag,
+.git-badge,
+.font-option__hint,
+.boxmodel,
+.boxmodel__caption,
+.terminal-tab__badge {
+  font-size: 11px;
+}
+.git-badge { min-width: 15px; height: 15px; line-height: 15px; }
