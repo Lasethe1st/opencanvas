@@ -15,6 +15,8 @@ const targets = [
   { ...common, entryPoints: ['electron/main.ts'], outfile: 'dist-electron/main.cjs', format: 'cjs' },
   { ...common, entryPoints: ['electron/preload.ts'], outfile: 'dist-electron/preload.cjs', format: 'cjs' },
   { ...common, entryPoints: ['electron/preview-server.ts'], outfile: 'dist-electron/preview-server.mjs', format: 'esm' },
+  { ...common, entryPoints: ['electron/next-server.ts'], outfile: 'dist-electron/next-server.mjs', format: 'esm' },
+  { ...common, entryPoints: ['electron/next-oc-loader.ts'], outfile: 'dist-electron/next-oc-loader.cjs', format: 'cjs' },
   { ...common, entryPoints: ['electron/harness.ts'], outfile: 'dist-electron/harness.cjs', format: 'cjs' },
 ];
 

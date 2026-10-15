@@ -4,5 +4,6 @@ dist-electron
 .vite
 *.log
 tests/.tmp
+tests/.cache
 
 tests/dogfood/*.log

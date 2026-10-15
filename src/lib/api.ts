@@ -1,4 +1,5 @@
 import type { OpenCanvasApi } from '../../shared/api';
+import { createBrowserApi } from './browser-api';
 
 declare global {
   interface Window {
@@ -6,4 +7,6 @@ declare global {
   }
 }
 
-export const api: OpenCanvasApi = window.oc;
+export const isBrowserPreview = !window.oc;
+
+export const api: OpenCanvasApi = window.oc ?? createBrowserApi();

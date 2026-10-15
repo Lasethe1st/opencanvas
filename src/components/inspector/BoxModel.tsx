@@ -25,7 +25,7 @@ function SideInput({ group, side, linked, disabled }: { group: 'margin' | 'paddi
   };
   return (
     <BoxSlot side={side} set={value.state === 'set'} title={`${prop}${value.state === 'set' ? ' (set here)' : value.state === 'inherited' ? ' (inherited)' : ''}`}>
-      <CommitInput value={compact(value.value)} disabled={disabled} onCommit={commit} />
+      <CommitInput value={compact(value.value)} disabled={disabled} numeric={{ unit: '' }} onCommit={commit} />
     </BoxSlot>
   );
 }

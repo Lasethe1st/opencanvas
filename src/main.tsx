@@ -8,6 +8,7 @@ import './styles/tokens.css';
 import './styles/ui.css';
 import './styles/app.css';
 import './styles/open-canvas.css';
+import './styles/direction.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -4,7 +4,7 @@ import { IconButton } from './primitives.jsx';
 export function Dialog({ title, onClose, children, ...rest }) {
   return (
     <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
-      <div className="dialog" role="dialog" aria-label={title} {...rest}>
+      <div className="dialog" role="dialog" aria-modal="true" aria-label={title} {...rest}>
         <div className="dialog__head">
           <h2>{title}</h2>
           <IconButton size="sm" label="Close" onClick={onClose}>

@@ -1,12 +1,15 @@
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Code2, Monitor, Smartphone, Tablet } from 'lucide-react';
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Code2, ImageUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { revealInCode, runEdit, setStyle } from '../lib/actions';
-import { activeFrame, setState, useActiveBreakpoint, useStore } from '../lib/store';
-import { BreakpointBanner, InspectorHeader, KeyValue } from '../ui/Inspector.jsx';
+import { RETAGGABLE_TAGS, type StyleState } from '../../shared/types';
+import { chooseImageForSelection, revealInCode, runEdit, setStyle, setTag } from '../lib/actions';
+import { setState, useActiveBreakpoint, useStore } from '../lib/store';
+import { InspectorHeader, KeyValue } from '../ui/Inspector.jsx';
 import { Panel, PanelTitle } from '../ui/Panels.jsx';
-import { Button, Field, InputShell, Notice, SelectShell } from '../ui/primitives.jsx';
+import { Button, Field, InputShell, Notice, Segmented, SelectShell } from '../ui/primitives.jsx';
+import { FrameworkLabel, PackageManagerLabel } from './BrandLogos';
 import { SCOPE_LABEL } from './Canvas';
 import { BoxModel } from './inspector/BoxModel';
+import { FontPicker } from './inspector/FontPicker';
 import { ColorInput, CommitInput, CompactInput, CompactSelect, Section, StyleField, StyleInput, StyleSelect, ToggleGroup } from './inspector/fields';
 import { useStyleValue } from './inspector/useStyleValue';
 import { Resizer } from './Resizer';
@@ -119,6 +122,9 @@ function ContentSection() {
       {tag === 'img' && (
         <>
           <AttributeField name="src" label="Source" placeholder="/image.png or https://…" />
+          <Button size="sm" icon={<ImageUp size={13} />} onClick={() => void chooseImageForSelection()}>
+            Choose image…
+          </Button>
           <AttributeField name="alt" label="Alt text" placeholder="Describe the image" />
           <StyleSelect prop="object-fit" label="Fit" options={['fill', 'contain', 'cover', 'none', 'scale-down']} />
         </>
@@ -141,13 +147,50 @@ function ContentSection() {
   );
 }
 
-function LayoutSection({ disabled }: { disabled: boolean }) {
+function TagSelect({ disabled }: { disabled: boolean }) {
+  const tag = useStore((s) => s.selection!.tag);
+  if (!RETAGGABLE_TAGS.includes(tag)) return null;
+  return (
+    <Field label="Element">
+      <SelectShell>
+        <select aria-label="Element type" value={tag} disabled={disabled} onChange={(e) => void setTag(e.target.value)}>
+          {RETAGGABLE_TAGS.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+      </SelectShell>
+    </Field>
+  );
+}
+
+function StateToggle() {
+  const styleState = useStore((s) => s.styleState);
+  return (
+    <div className="state-toggle">
+      <Segmented
+        label="Style state"
+        value={styleState}
+        onChange={(id: StyleState) => setState({ styleState: id })}
+        options={[
+          { id: 'default', label: 'Default', text: 'Default' },
+          { id: 'hover', label: 'Hover', text: 'Hover' },
+        ]}
+      />
+      {styleState === 'hover' && <span className="muted">Changes apply on mouse-over. Press P to try them.</span>}
+    </div>
+  );
+}
+
+function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: boolean }) {
   const display = useStyleValue('display').value;
   const position = useStyleValue('position').value;
   const isFlex = display === 'flex' || display === 'inline-flex';
   const isGrid = display === 'grid' || display === 'inline-grid';
   return (
     <Section title="Layout">
+      {!grouped && <TagSelect disabled={disabled} />}
       <StyleSelect prop="display" label="Display" options={['block', 'inline', 'inline-block', 'flex', 'inline-flex', 'grid', 'none']} disabled={disabled} />
       <StyleSelect prop="position" label="Position" options={['static', 'relative', 'absolute', 'fixed', 'sticky']} disabled={disabled} />
       {position !== 'static' && position && (
@@ -190,29 +233,10 @@ function LayoutSection({ disabled }: { disabled: boolean }) {
   );
 }
 
-function FontField({ disabled }: { disabled: boolean }) {
-  const value = useStyleValue('font-family');
-  return (
-    <StyleField label="Font" value={value}>
-      <InputShell inherited={value.state !== 'set'} onReset={value.state === 'set' ? () => void setStyle('font-family', '') : undefined}>
-        <CommitInput value={value.value} list="oc-fonts" disabled={disabled} onCommit={(v) => void setStyle('font-family', v)} />
-      </InputShell>
-    </StyleField>
-  );
-}
-
 function TypographySection({ disabled }: { disabled: boolean }) {
   return (
     <Section title="Typography">
-      <datalist id="oc-fonts">
-        <option value="inherit" />
-        <option value="system-ui, sans-serif" />
-        <option value="Inter, system-ui, sans-serif" />
-        <option value="Georgia, serif" />
-        <option value="'Times New Roman', serif" />
-        <option value="ui-monospace, monospace" />
-      </datalist>
-      <FontField disabled={disabled} />
+      <FontPicker disabled={disabled} />
       <div className="grid-2">
         <CompactInput prop="font-size" prefix="Size" disabled={disabled} />
         <CompactInput prop="line-height" prefix="Line" disabled={disabled} />
@@ -250,6 +274,9 @@ function AppearanceSection({ disabled }: { disabled: boolean }) {
       <StyleSelect prop="border-style" label="Border style" options={['none', 'solid', 'dashed', 'dotted', 'double']} disabled={disabled} />
       <ColorInput prop="border-color" label="Border color" disabled={disabled} />
       <StyleInput prop="box-shadow" label="Shadow" placeholder="0 4px 12px rgba(0,0,0,.1)" disabled={disabled} />
+      <StyleInput prop="transform" label="Transform" placeholder="translateY(-2px)" disabled={disabled} />
+      <StyleInput prop="transition" label="Transition" placeholder="all 0.2s ease" disabled={disabled} />
+      <StyleSelect prop="cursor" label="Cursor" options={['auto', 'default', 'pointer', 'text', 'move', 'not-allowed']} disabled={disabled} />
       <StyleSelect prop="visibility" label="Visibility" options={['visible', 'hidden']} disabled={disabled} />
     </Section>
   );
@@ -274,14 +301,23 @@ function PageSettings() {
         <div className="inspector-head__meta">Select an element on the canvas or in Layers to edit it.</div>
       </div>
       <Section title="Project">
-        <KeyValue label="Framework">{project.framework === 'vite-react' ? 'React + Vite' : project.framework}</KeyValue>
+        <KeyValue label="Framework">
+          <FrameworkLabel framework={project.framework} />
+        </KeyValue>
         <KeyValue label="Packages">
-          {project.packageManager}
-          {packages}
+          <PackageManagerLabel manager={project.packageManager} suffix={packages} />
         </KeyValue>
         <KeyValue label="Entry">{project.entryFile ?? '—'}</KeyValue>
         <KeyValue label="Styles">{project.stylesFile}</KeyValue>
-        <KeyValue label="Preview">{status.state === 'running' ? status.url : status.state}</KeyValue>
+        <KeyValue label="Preview">
+          {status.state === 'running' ? (
+            <a className="kv-link" href={status.url} target="_blank" rel="noreferrer" title="Open in your browser">
+              {status.url}
+            </a>
+          ) : (
+            status.state
+          )}
+        </KeyValue>
       </Section>
       <Section title="Breakpoints">
         <KeyValue label="Tablet">≤ {project.breakpoints.tablet}px</KeyValue>
@@ -294,22 +330,22 @@ function PageSettings() {
   );
 }
 
-function ScopeBanner() {
-  const project = useStore((s) => s.project)!;
-  const frame = useStore((s) => activeFrame(s));
-  const bp = useActiveBreakpoint();
-  const BpIcon = bp === 'tablet' ? Tablet : bp === 'mobile' ? Smartphone : Monitor;
-  const where = frame ? `${frame.name} frame, ${frame.width}px` : 'no frame';
+function GroupHeader() {
+  const selection = useStore((s) => s.selection)!;
+  const group = useStore((s) => s.multiSelect);
+  const names = [...group, selection].map((m) => m.name);
   return (
-    <BreakpointBanner icon={<BpIcon size={14} />}>
-      {bp === 'base' ? (
-        <>Editing base styles ({where}).</>
-      ) : (
-        <>
-          Editing {bp} overrides (max-width: {bp === 'tablet' ? project.breakpoints.tablet : project.breakpoints.mobile}px) from the {where}. Base styles stay unchanged.
-        </>
-      )}
-    </BreakpointBanner>
+    <div className="inspector-head">
+      <div className="inspector-head__row">
+        <strong className="inspector-head__title">{names.length} elements</strong>
+        <Button size="sm" variant="ghost" onClick={() => setState({ multiSelect: [] })}>
+          Clear
+        </Button>
+      </div>
+      <div className="inspector-head__meta" title={names.join(', ')}>
+        Style changes apply to all of them. Values shown are from {selection.name}.
+      </div>
+    </div>
   );
 }
 
@@ -320,6 +356,7 @@ export function Inspector() {
   const project = useStore((s) => s.project)!;
   const width = useStore((s) => s.rightWidth);
   const scope = useActiveBreakpoint();
+  const grouped = useStore((s) => s.multiSelect.length > 0);
 
   const disabled = !info || !project.editable;
 
@@ -340,12 +377,12 @@ export function Inspector() {
         <PageSettings />
       ) : (
         <>
-          <ElementHeader />
-          <ScopeBanner />
+          {grouped ? <GroupHeader /> : <ElementHeader />}
+          <StateToggle />
           {sourceError && <Notice>{sourceError}</Notice>}
           {!sourceError && !info && <div className="empty-note">Reading source…</div>}
-          <ContentSection />
-          <LayoutSection disabled={disabled} />
+          {!grouped && <ContentSection />}
+          <LayoutSection disabled={disabled} grouped={grouped} />
           <Section title="Spacing">
             <BoxModel disabled={disabled} />
           </Section>

@@ -1,14 +1,15 @@
 import { FolderOpen, FolderSearch, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { closeProject, openProjectDialog, redo, selectElement, undo } from '../lib/actions';
+import { FRAMEWORK_LABELS } from '../../shared/types';
+import { closeProject, openProjectDialog, selectElement } from '../lib/actions';
 import { api } from '../lib/api';
 import { sendToPreview } from '../lib/bridge';
 import { stopInlineEdit } from '../lib/inline-edit';
 import { findPath, hasUnsaved, setState, useStore } from '../lib/store';
 import { Menu, MenuItem } from '../ui/primitives.jsx';
-import { Brand, Breadcrumb, Divider, ExportButton, HistoryButtons, InteractToggle, ModeSwitch, ProjectButton, SaveStatus, TopBar as Bar } from '../ui/TopBar.jsx';
-import { ThemeMenu } from './ThemeMenu';
-
+import { Brand, Breadcrumb, Divider, ModeSwitch, PreviewButton, ProjectButton, SaveStatus, TopBar as Bar } from '../ui/TopBar.jsx';
+import { openFullPreview } from './FullPreview';
+import { GoLiveButton } from './GoLive';
 function ProjectMenu() {
   const project = useStore((s) => s.project)!;
   const [open, setOpen] = useState(false);
@@ -32,7 +33,7 @@ function ProjectMenu() {
       {open && (
         <Menu style={{ left: 0, top: 'calc(100% + 6px)' }}>
           <div className="menu-title">
-            {project.framework === 'vite-react' ? 'React + Vite' : project.framework} · {project.packageManager}
+            {FRAMEWORK_LABELS[project.framework]} · {project.packageManager}
           </div>
           <MenuItem icon={<FolderSearch size={14} />} onClick={run(() => api.revealProject())}>
             Show in file explorer
@@ -75,13 +76,8 @@ export function setInteract(next: boolean) {
 
 export function TopBar() {
   const mode = useStore((s) => s.mode);
-  const interact = useStore((s) => s.interact);
-  const canUndo = useStore((s) => s.past.length > 0);
-  const canRedo = useStore((s) => s.future.length > 0);
   const dirty = useStore((s) => hasUnsaved(s));
   const busy = useStore((s) => s.busy);
-
-  const toggleInteract = () => setInteract(!interact);
 
   return (
     <Bar
@@ -96,17 +92,11 @@ export function TopBar() {
       center={<Crumbs />}
       end={
         <>
-          {mode === 'visual' && (
-            <>
-              <InteractToggle active={interact} onClick={toggleInteract} />
-              <Divider />
-            </>
-          )}
+          <PreviewButton onClick={openFullPreview} />
+          <Divider />
           <ModeSwitch value={mode} onChange={(id) => setState({ mode: id })} />
           <Divider />
-          <HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={() => void undo()} onRedo={() => void redo()} />
-          <ThemeMenu />
-          <ExportButton onClick={() => setState({ exportOpen: true })} />
+          <GoLiveButton />
         </>
       }
     />

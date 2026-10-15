@@ -13,14 +13,16 @@ const projectRoot = process.env.OC_PROJECT_ROOT!;
 const appRoot = process.env.OC_APP_ROOT!;
 const managed = process.env.OC_MANAGED === '1';
 const cacheDir = process.env.OC_CACHE_DIR;
+const editableRoots: string[] = JSON.parse(process.env.OC_EDITABLE_ROOTS || '["src"]');
 const BRIDGE_ID = '/@open-canvas/bridge.js';
+const EARLY_ERRORS = fs.readFileSync(path.join(appRoot, 'preview-runtime', 'early-errors.js'), 'utf8');
 
 function send(message: Record<string, unknown>) {
   process.stdout.write(`OC_MSG ${JSON.stringify(message)}\n`);
 }
 
 function openCanvasPlugin(): Plugin {
-  const srcDir = path.join(projectRoot, 'src') + path.sep;
+  const roots = editableRoots.map((r) => path.join(projectRoot, r) + path.sep);
   return {
     name: 'open-canvas-source-ids',
     enforce: 'pre',
@@ -36,13 +38,16 @@ function openCanvasPlugin(): Plugin {
       const file = id.split('?')[0];
       if (!/\.(jsx|tsx|js)$/.test(file)) return null;
       const normalized = path.normalize(file);
-      if (!normalized.startsWith(srcDir) || normalized.includes(`${path.sep}node_modules${path.sep}`)) return null;
+      if (!roots.some((r) => normalized.startsWith(r)) || normalized.includes(`${path.sep}node_modules${path.sep}`)) return null;
       const rel = path.relative(projectRoot, normalized).split(path.sep).join('/');
       const result = injectSourceIds(code, file, rel);
       return result.changed ? { code: result.code, map: null } : null;
     },
     transformIndexHtml() {
-      return [{ tag: 'script', attrs: { type: 'module', src: BRIDGE_ID }, injectTo: 'body' }];
+      return [
+        { tag: 'script', children: EARLY_ERRORS, injectTo: 'head-prepend' },
+        { tag: 'script', attrs: { type: 'module', src: BRIDGE_ID }, injectTo: 'body' },
+      ];
     },
   };
 }

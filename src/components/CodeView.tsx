@@ -3,6 +3,7 @@ import { Eye, Save } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { closeFile, saveFile, updateBuffer } from '../lib/actions';
 import { languageFor, monaco } from '../lib/monaco';
+import { plural } from '../lib/plural';
 import { setState, useStore } from '../lib/store';
 import { useTheme } from '../lib/theme';
 import { CodeTab, CodeView as CodeShell } from '../ui/CodeView.jsx';
@@ -114,7 +115,7 @@ export function CodeView({ hidden }: { hidden: boolean }) {
           {activeFile && <span>{dirty ? 'Unsaved changes' : 'Saved'}</span>}
           {problems.count > 0 && (
             <span className="is-error" title={problems.first ?? ''}>
-              {problems.count} syntax error{problems.count > 1 ? 's' : ''}: {problems.first}
+              {plural(problems.count, 'syntax error', 'syntax errors')}: {problems.first}
             </span>
           )}
           <span style={{ marginLeft: 'auto' }}>

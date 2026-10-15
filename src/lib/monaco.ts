@@ -42,11 +42,11 @@ monaco.editor.defineTheme('oc-dark', {
   inherit: true,
   rules: [],
   colors: {
-    'editor.background': '#121215',
+    'editor.background': '#1c1c1c',
     'editor.lineHighlightBackground': '#ffffff08',
-    'editorGutter.background': '#121215',
-    'editorLineNumber.foreground': '#4d4d56',
-    'editorLineNumber.activeForeground': '#a6a6b0',
+    'editorGutter.background': '#1c1c1c',
+    'editorLineNumber.foreground': '#555555',
+    'editorLineNumber.activeForeground': '#b4b4b4',
     'editor.selectionBackground': '#5b7cf038',
   },
 });

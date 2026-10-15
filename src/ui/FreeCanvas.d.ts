@@ -19,6 +19,7 @@ export function Stage(
     overlay?: ReactNode;
     notice?: ReactNode;
     nav?: ReactNode;
+    dock?: ReactNode;
   },
 ): JSX.Element;
 

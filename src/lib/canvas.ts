@@ -20,7 +20,7 @@ import {
 } from '../../shared/canvas';
 import type { ProjectInfo } from '../../shared/types';
 import { reloadFrame } from './bridge';
-import { getState, setState, toast, useStore, type FrameRuntime } from './store';
+import { getState, pageOf, setState, toast, useStore, type FrameRuntime } from './store';
 
 const STORAGE_PREFIX = 'oc-canvas:v1:';
 const HISTORY_LIMIT = 100;
@@ -144,10 +144,16 @@ export function setActiveFrame(id: string) {
   setState({ activeFrameId: id });
 }
 
+/** New frames show the page of the active frame. */
+const activePageId = () => {
+  const s = getState();
+  return s.projectConfig ? pageOf(s.frames.find((f) => f.id === s.activeFrameId) ?? s.frames[0], s)?.id : undefined;
+};
+
 export function addFrame(preset: Exclude<FramePreset, 'custom'>) {
   const { project, frames } = getState();
   const at = placeFrame(rects(), PRESETS[preset]);
-  const frame = presetFrame(preset, at, project?.breakpoints);
+  const frame = { ...presetFrame(preset, at, project?.breakpoints), pageId: activePageId() };
   commitLayout(`Add ${frame.name} frame`, [...frames, frame], frame.id);
   focusRect(displayRect(frame));
 }
@@ -155,7 +161,7 @@ export function addFrame(preset: Exclude<FramePreset, 'custom'>) {
 export function addCustomFrame(width: number, height: number, name = 'Custom') {
   const size = { width: clamp(Math.round(width), MIN_FRAME.width, MAX_FRAME.width), height: clamp(Math.round(height), MIN_FRAME.height, MAX_FRAME.height) };
   const at = placeFrame(rects(), size);
-  const frame: FrameLayout = { id: frameId(), name, ...at, ...size, preset: 'custom', fitPage: false };
+  const frame: FrameLayout = { id: frameId(), name, ...at, ...size, preset: 'custom', fitPage: false, pageId: activePageId() };
   commitLayout(`Add ${name} frame`, [...getState().frames, frame], frame.id);
   focusRect(displayRect(frame));
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { evaluateExpression, stepSize, stepValue } from '../../../shared/numeric';
 import { setStyle } from '../../lib/actions';
 import { Field, InputShell, Section as SectionShell, SelectShell, Swatch, ToggleRow } from '../../ui/primitives.jsx';
 import { BREAKPOINT_LABEL, normalizeValue, shortValue, toHex, useStyleValue, type StyleValue } from './useStyleValue';
@@ -27,7 +28,19 @@ export function StyleField({ label, value, children }: { label: string; value: S
   );
 }
 
-/** Text input that commits on Enter/blur and resyncs when the source value changes. */
+export interface NumericOptions {
+  /** Step by tenths (opacity, line-height). */
+  fine?: boolean;
+  /** Unit added when stepping from an empty or keyword value. */
+  unit?: string;
+}
+
+const STEP_COMMIT_DELAY = 450;
+
+/**
+ * Text input that commits on Enter/blur and resyncs when the source value changes. Numeric inputs also
+ * evaluate arithmetic (`16/2` → `8`) and step with ArrowUp/ArrowDown (Shift ×10, Alt ×0.1).
+ */
 export function CommitInput({
   value,
   onCommit,
@@ -35,6 +48,7 @@ export function CommitInput({
   list,
   id,
   disabled,
+  numeric,
 }: {
   value: string;
   onCommit: (v: string) => void;
@@ -42,11 +56,28 @@ export function CommitInput({
   list?: string;
   id?: string;
   disabled?: boolean;
+  numeric?: NumericOptions;
 }) {
   const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
+  const draftRef = useRef(value);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    setDraft(value);
+    draftRef.current = value;
+  }, [value]);
+  useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
+
+  const update = (next: string) => {
+    draftRef.current = next;
+    setDraft(next);
+  };
+  const resolve = (raw: string) => (numeric ? (evaluateExpression(raw) ?? raw) : raw);
   const commit = () => {
-    if (draft !== value) onCommit(draft);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    const next = resolve(draftRef.current);
+    if (next !== draftRef.current) update(next);
+    if (next !== value) onCommit(next);
   };
   return (
     <input
@@ -56,7 +87,7 @@ export function CommitInput({
       list={list}
       disabled={disabled}
       spellCheck={false}
-      onChange={(e) => setDraft(e.target.value)}
+      onChange={(e) => update(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
@@ -64,12 +95,34 @@ export function CommitInput({
           (e.target as HTMLInputElement).blur();
         }
         if (e.key === 'Escape') {
-          setDraft(value);
+          if (timer.current) clearTimeout(timer.current);
+          timer.current = null;
+          update(value);
           (e.target as HTMLInputElement).blur();
+        }
+        if (numeric && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+          const delta = stepSize(e, numeric.fine) * (e.key === 'ArrowUp' ? 1 : -1);
+          const next = stepValue(resolve(draftRef.current), delta, numeric.unit);
+          if (next === null) return;
+          e.preventDefault();
+          update(next);
+          if (timer.current) clearTimeout(timer.current);
+          timer.current = setTimeout(commit, STEP_COMMIT_DELAY);
         }
       }}
     />
   );
+}
+
+const FINE_PROPS = new Set(['opacity', 'line-height', 'flex-grow', 'flex-shrink']);
+const UNITLESS_PROPS = new Set(['opacity', 'line-height', 'font-weight', 'z-index', 'flex-grow', 'flex-shrink', 'order']);
+const NUMERIC_PROPS =
+  /^(width|height|min-width|min-height|max-width|max-height|top|right|bottom|left|gap|row-gap|column-gap|opacity|z-index|order|flex-grow|flex-shrink|font-size|line-height|letter-spacing|font-weight|border-width|border-radius|outline-width|outline-offset|(margin|padding)(-(top|right|bottom|left))?)$/;
+
+/** Numeric behaviour for a CSS property, or undefined for non-numeric properties. */
+export function numericFor(prop: string): NumericOptions | undefined {
+  if (!NUMERIC_PROPS.test(prop)) return undefined;
+  return { fine: FINE_PROPS.has(prop), unit: UNITLESS_PROPS.has(prop) ? '' : 'px' };
 }
 
 const resetFor = (prop: string, value: StyleValue) => (value.state === 'set' ? () => void setStyle(prop, '') : undefined);
@@ -79,7 +132,7 @@ export function StyleInput({ prop, label, placeholder, disabled }: { prop: strin
   return (
     <StyleField label={label} value={value}>
       <InputShell inherited={value.state !== 'set'} onReset={resetFor(prop, value)}>
-        <CommitInput value={shortValue(value.value)} placeholder={placeholder} disabled={disabled} onCommit={(v) => void setStyle(prop, normalizeValue(prop, v))} />
+        <CommitInput value={shortValue(value.value)} placeholder={placeholder} disabled={disabled} numeric={numericFor(prop)} onCommit={(v) => void setStyle(prop, normalizeValue(prop, v))} />
       </InputShell>
     </StyleField>
   );
@@ -90,7 +143,7 @@ export function CompactInput({ prop, prefix, disabled }: { prop: string; prefix:
   return (
     <span title={`${prop} · ${stateTitle(value)}`} style={{ display: 'contents' }}>
       <InputShell prefix={prefix} inherited={value.state !== 'set'} onReset={resetFor(prop, value)}>
-        <CommitInput value={shortValue(value.value)} disabled={disabled} onCommit={(v) => void setStyle(prop, normalizeValue(prop, v))} />
+        <CommitInput value={shortValue(value.value)} disabled={disabled} numeric={numericFor(prop)} onCommit={(v) => void setStyle(prop, normalizeValue(prop, v))} />
       </InputShell>
     </span>
   );

@@ -28,11 +28,18 @@ export const BREAKPOINT_LABEL: Record<Breakpoint, string> = { base: 'Base', tabl
 export function useStyleValue(prop: string): StyleValue {
   const sourceInfo = useStore((s) => s.sourceInfo);
   const computed = useStore((s) => s.selection?.computed);
+  const styleState = useStore((s) => s.styleState);
   const bp = useActiveBreakpoint();
   if (sourceInfo) {
+    if (styleState === 'hover') {
+      for (const level of CHAIN[bp]) {
+        const value = sourceInfo.hover?.[level][prop];
+        if (value !== undefined) return { value, state: level === bp ? 'set' : 'inherited', from: level };
+      }
+    }
     for (const level of CHAIN[bp]) {
       const value = sourceInfo.styles[level][prop];
-      if (value !== undefined) return { value, state: level === bp ? 'set' : 'inherited', from: level };
+      if (value !== undefined) return { value, state: level === bp && styleState === 'default' ? 'set' : 'inherited', from: level };
     }
   }
   return { value: computed?.[COMPUTED_ALIAS[prop] ?? prop] ?? '', state: 'computed' };

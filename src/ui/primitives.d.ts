@@ -1,6 +1,6 @@
-import type { ButtonHTMLAttributes, CSSProperties, HTMLAttributes, JSX, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, CSSProperties, HTMLAttributes, JSX, ReactNode, Ref } from 'react';
 
-type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & { children?: ReactNode };
+type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & { children?: ReactNode; ref?: Ref<HTMLButtonElement> };
 
 export function Button(props: ButtonProps & { variant?: 'default' | 'primary' | 'ghost' | 'danger'; size?: 'sm'; icon?: ReactNode }): JSX.Element;
 export function IconButton(props: ButtonProps & { label: string; tipSide?: 'top'; active?: boolean; size?: 'sm' }): JSX.Element;

@@ -1,0 +1,44 @@
+.state-layout--dock {
+  max-width: 600px;
+}
+
+/* Too narrow for the list beside a 600px stage: keep the select above it. */
+@container state-page (min-width: 532px) and (max-width: 831px) {
+  .state-layout--dock {
+    display: flex;
+    max-width: 600px;
+  }
+
+  .state-layout--dock .state-switcher {
+    display: none;
+  }
+
+  .state-layout--dock .state-switcher-select {
+    display: block;
+  }
+}
+
+/* 208px list + 24px gap + 600px stage */
+@container state-page (min-width: 832px) {
+  .state-layout--dock {
+    grid-template-columns: 208px 600px;
+  }
+}
+
+.state-stage--dock {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-xl);
+  background-color: var(--canvas);
+  background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* In the app the dock keeps clear of the zoom bar; here it is shown on its own. */
+.state-stage--dock .dock {
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  width: auto;
+  transform: none;
+}

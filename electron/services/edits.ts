@@ -1,20 +1,26 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { ensureGoogleFontLink, isGoogleFamilyParam } from '../../shared/fonts';
 import { parseSourceId } from '../../shared/source/ast';
-import { readElementStyles, setElementStyle } from '../../shared/source/css';
+import { copyElementStyles, readElementStyles, setElementStyle } from '../../shared/source/css';
 import {
   EditError,
   attrLiteral,
   buildSnippet,
+  duplicateElement,
+  unwrapElement,
+  wrapElements,
   ensureStyleKey,
   idAtOffset,
   insertElement,
   locateElement,
   moveElement,
+  normalizeJsxSnippet,
   readAttributes,
   readText,
   removeElement,
   setAttribute,
+  setTagName,
   setText,
 } from '../../shared/source/jsx';
 import type { EditCommand, EditResult, FileChange, ProjectInfo, SourceElementInfo } from '../../shared/types';
@@ -171,7 +177,11 @@ function ensureStylesheet(set: ChangeSet, project: ProjectInfo): string {
   const css = set.read(project.stylesFile);
   if (css === null) set.write(project.stylesFile, '/* Styles written by visual edits. Plain CSS: safe to edit by hand. */\n');
   if (!project.entryFile) {
-    throw new EditError('Could not find the app entry file to import the visual styles stylesheet. Add a module script to index.html.');
+    throw new EditError(
+      project.framework === 'next'
+        ? 'Could not find app/layout or pages/_app to import the visual styles stylesheet. Add one to edit styles visually.'
+        : 'Could not find the app entry file to import the visual styles stylesheet. Add a module script to index.html.',
+    );
   }
   const entry = set.read(project.entryFile) ?? '';
   const stylesName = path.posix.basename(project.stylesFile);
@@ -188,6 +198,15 @@ function ensureStylesheet(set: ChangeSet, project: ProjectInfo): string {
   return set.read(project.stylesFile)!;
 }
 
+/** Unique source locations, last in each file first, so editing one never shifts the ones still to do. */
+function bottomUp(ids: string[]) {
+  const seen = new Set<string>();
+  return ids
+    .filter((id) => !seen.has(id) && seen.add(id))
+    .map(requireId)
+    .sort((a, b) => a.file.localeCompare(b.file) || b.line - a.line || b.column - a.column);
+}
+
 function readSource(set: ChangeSet, file: string): string {
   const code = set.read(file);
   if (code === null) throw new EditError(`Source file not found: ${file}`);
@@ -201,24 +220,43 @@ export function applyEdit(project: ProjectInfo, command: EditCommand): EditResul
     let selectId: string | null | undefined;
     switch (command.type) {
       case 'setStyle': {
-        const { file, line, column } = requireId(command.id);
         const entries = Object.entries(command.styles).map(([p, v]) => [p.trim().toLowerCase(), v.trim()] as const);
         for (const [prop, value] of entries) {
           if (!/^-?[a-z][a-z-]*$/.test(prop)) throw new EditError(`Invalid CSS property: ${prop}`);
           if (/[;{}]/.test(value)) throw new EditError('CSS values cannot contain ";", "{" or "}".');
         }
-        const { code, key } = ensureStyleKey(readSource(set, file), file, line, column);
-        set.write(file, code);
+        const keys: string[] = [];
+        for (const { file, line, column } of bottomUp([command.id, ...(command.extraIds ?? [])])) {
+          const { code, key } = ensureStyleKey(readSource(set, file), file, line, column);
+          set.write(file, code);
+          keys.push(key);
+        }
         let css = ensureStylesheet(set, project);
-        for (const [prop, value] of entries) css = setElementStyle(css, key, command.breakpoint, prop, value, project.breakpoints);
+        for (const key of new Set(keys)) {
+          for (const [prop, value] of entries) {
+            css = setElementStyle(css, key, command.breakpoint, prop, value, project.breakpoints, command.state);
+          }
+        }
         set.write(project.stylesFile, css);
+        if (command.googleFont) {
+          if (!isGoogleFamilyParam(command.googleFont)) throw new EditError(`Invalid Google font: ${command.googleFont}`);
+          const html = set.read('index.html');
+          if (html === null) throw new EditError('Could not find index.html to load the Google font from.');
+          let next: string;
+          try {
+            next = ensureGoogleFontLink(html, command.googleFont);
+          } catch (err) {
+            throw new EditError((err as Error).message);
+          }
+          if (next !== html) set.write('index.html', next);
+        }
         selectId = command.id;
         break;
       }
       case 'insert': {
         if (!command.parentId) throw new EditError('There is no element on the page to insert into.');
         const { file, line, column } = requireId(command.parentId);
-        const snippet = buildSnippet(command.kind);
+        const snippet = buildSnippet(command.kind, command.kind === 'image' ? command.image : undefined);
         const result = insertElement(readSource(set, file), file, line, column, snippet.jsx);
         set.write(file, result.code);
         let css = ensureStylesheet(set, project);
@@ -231,6 +269,13 @@ export function applyEdit(project: ProjectInfo, command: EditCommand): EditResul
         break;
       }
       case 'remove': {
+        if (command.extraIds?.length) {
+          for (const { file, line, column } of bottomUp([command.id, ...command.extraIds])) {
+            set.write(file, removeElement(readSource(set, file), file, line, column).code);
+          }
+          selectId = null;
+          break;
+        }
         const { file, line, column } = requireId(command.id);
         const result = removeElement(readSource(set, file), file, line, column);
         set.write(file, result.code);
@@ -242,6 +287,52 @@ export function applyEdit(project: ProjectInfo, command: EditCommand): EditResul
         const result = moveElement(readSource(set, file), file, line, column, command.direction);
         set.write(file, result.code);
         selectId = idAtOffset(file, result.code, result.offset);
+        break;
+      }
+      case 'duplicate': {
+        const targets = bottomUp([command.id, ...(command.extraIds ?? [])]);
+        const keys: [string, string][] = [];
+        for (const { file, line, column } of targets) {
+          const result = duplicateElement(readSource(set, file), file, line, column);
+          set.write(file, result.code);
+          keys.push(...result.keys);
+          if (targets.length === 1) selectId = idAtOffset(file, result.code, result.offset);
+        }
+        if (keys.length) {
+          let css = ensureStylesheet(set, project);
+          for (const [from, to] of keys) css = copyElementStyles(css, from, to);
+          set.write(project.stylesFile, css);
+        }
+        if (targets.length > 1) selectId = null;
+        break;
+      }
+      case 'group': {
+        const targets = bottomUp([command.id, ...(command.extraIds ?? [])]);
+        const file = targets[0].file;
+        if (targets.some((t) => t.file !== file)) throw new EditError('Elements from different files cannot be grouped.');
+        const result = wrapElements(readSource(set, file), file, targets.map((t) => [t.line, t.column]));
+        set.write(file, result.code);
+        selectId = idAtOffset(file, result.code, result.offset);
+        break;
+      }
+      case 'ungroup': {
+        const { file, line, column } = requireId(command.id);
+        const result = unwrapElement(readSource(set, file), file, line, column);
+        set.write(file, result.code);
+        selectId = idAtOffset(file, result.code, result.offset);
+        break;
+      }
+      case 'insertJsx': {
+        const { file, line, column } = requireId(command.parentId);
+        const result = insertElement(readSource(set, file), file, line, column, normalizeJsxSnippet(command.jsx));
+        set.write(file, result.code);
+        selectId = idAtOffset(file, result.code, result.offset);
+        break;
+      }
+      case 'setTag': {
+        const { file, line, column } = requireId(command.id);
+        set.write(file, setTagName(readSource(set, file), file, line, column, command.tag));
+        selectId = command.id;
         break;
       }
       case 'rename': {
@@ -298,6 +389,7 @@ export function inspectElement(project: ProjectInfo, id: string): SourceElementI
       textReason: reason,
       attributes,
       styles: key ? readElementStyles(css, key, project.breakpoints) : { base: {}, tablet: {}, mobile: {} },
+      hover: key ? readElementStyles(css, key, project.breakpoints, 'hover') : { base: {}, tablet: {}, mobile: {} },
     };
   } catch (err) {
     return { error: (err as Error).message };

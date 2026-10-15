@@ -33,8 +33,20 @@ import {
   type Guide,
 } from '../../shared/canvas';
 import type { Breakpoint } from '../../shared/types';
-import { cancelInstall, insertElement, installDependencies, moveSelected, refreshSourceInfo, removeSelected, restartPreview, revealInCode, selectElement } from '../lib/actions';
-import { frameIdOf, registerFrame, sendLinkedSelect, sendToFrame, sendToPreview } from '../lib/bridge';
+import {
+  cancelInstall,
+  importDroppedFiles,
+  insertElement,
+  insertImages,
+  installDependencies,
+  moveSelected,
+  refreshSourceInfo,
+  removeSelected,
+  restartPreview,
+  revealInCode,
+  selectElement,
+} from '../lib/actions';
+import { frameIdOf, registerFrame, sendLinkedSelect, sendMulti, sendToFrame, sendToPreview } from '../lib/bridge';
 import {
   applyPreset,
   deleteFrame,
@@ -58,7 +70,10 @@ import {
 } from '../lib/canvas';
 import { cancelInlineEdit, commitInlineEdit, dismissInlineNotice, editSelectedText, INLINE_TAGS, requestInlineEdit, stopInlineEdit } from '../lib/inline-edit';
 import { handleShortcut } from '../lib/shortcuts';
-import { getState, setState, useStore, type FrameRuntime, type Selection, type TreeNode } from '../lib/store';
+import { pageUrl, setRouteValues } from '../lib/pages';
+import { routeParams } from '../../shared/source/routes';
+import { Dock } from './Dock';
+import { getState, pageOf, setState, useStore, type FrameRuntime, type Selection, type TreeNode } from '../lib/store';
 import { StateCard } from '../ui/Canvas.jsx';
 import { CanvasNav, FrameChrome, FrameRename, Guides, Minimap, SelectionBar, SizeTip, Stage, WorldFrame } from '../ui/FreeCanvas.jsx';
 import { Button, IconButton, Menu, MenuItem, Notice } from '../ui/primitives.jsx';
@@ -120,7 +135,10 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
         const tree = (state.activeFrameId && state.frameRuntime[state.activeFrameId]?.tree) || [];
         setState({ domTree: tree, hoverUid: null });
         if (activatedByFrame) activatedByFrame = false;
-        else if (state.selection) sendToPreview('select', { id: state.selection.id, scroll: false });
+        else if (state.selection) sendToPreview('select', { id: state.selection.id, scroll: false, additive: 'keep' });
+      }
+      if (state.multiSelect !== prev.multiSelect || state.activeFrameId !== prev.activeFrameId) {
+        sendMulti(state.multiSelect.map((m) => m.id));
       }
     });
 
@@ -135,8 +153,16 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
         case 'ready': {
           sendToFrame(fid, 'mode', { mode: state.interact ? 'interact' : 'select' });
           const id = state.pendingSelectId ?? state.selection?.id;
-          if (id) sendToFrame(fid, 'select', active ? { id, scroll: false } : { id, linked: true });
+          if (id) sendToFrame(fid, 'select', active ? { id, scroll: false, additive: 'keep' } : { id, linked: true });
+          if (state.multiSelect.length) sendMulti(state.multiSelect.map((m) => m.id), fid);
           setRuntime(fid, { ready: true });
+          break;
+        }
+        case 'location': {
+          const path = (msg.payload as { path?: unknown })?.path;
+          if (typeof path === 'string' && path.startsWith('/') && path.length < 300 && !state.visitedPaths.includes(path)) {
+            setState({ visitedPaths: [...state.visitedPaths, path].slice(-50) });
+          }
           break;
         }
         case 'tree': {
@@ -156,9 +182,30 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
           }
           if (!payload) {
             if (state.pendingSelectId && active) return;
-            setState({ selection: null, sourceInfo: null, sourceError: null });
+            setState({ selection: null, sourceInfo: null, sourceError: null, multiSelect: [] });
             sendLinkedSelect(fid, null);
             return;
+          }
+          const prevSel = state.selection;
+          if (msg.additive === 'toggle' && prevSel) {
+            const extras = state.multiSelect;
+            if (prevSel.id === payload.id) {
+              // Shift-clicking the primary again drops it and promotes the last other member.
+              const next = extras[extras.length - 1];
+              if (next) {
+                setState({ multiSelect: extras.slice(0, -1) });
+                sendToFrame(fid, 'select', { id: next.id, uid: next.uid, additive: 'keep' });
+              }
+              return;
+            }
+            if (extras.some((e) => e.id === payload.id)) {
+              setState({ multiSelect: extras.filter((e) => e.id !== payload.id) });
+              sendToFrame(fid, 'select', { id: prevSel.id, uid: prevSel.uid, additive: 'keep' });
+              return;
+            }
+            setState({ multiSelect: [...extras, { id: prevSel.id, uid: prevSel.uid, name: prevSel.name }] });
+          } else if (msg.additive !== 'keep' && (msg.user || prevSel?.id !== payload.id) && state.multiSelect.length) {
+            setState({ multiSelect: [] });
           }
           const changed = state.selection?.id !== payload.id || !active;
           setState({ selection: payload, pendingSelectId: state.pendingSelectId === payload.id ? null : state.pendingSelectId });
@@ -197,6 +244,9 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
         case 'space':
           setSpace(!!msg.payload.down);
           break;
+        case 'filedrag':
+          window.dispatchEvent(new Event('oc-filedrag'));
+          break;
         case 'inlineEditRequest':
           if (msg.payload.eligible) void requestInlineEdit(fid, msg.payload.id, msg.payload.uid, msg.payload.tag);
           break;
@@ -224,7 +274,7 @@ function StatusCard() {
   const project = useStore((s) => s.project)!;
   const installing = useStore((s) => s.installing);
   const installLog = useStore((s) => s.installLog);
-  const vite = project.framework === 'vite-react';
+  const vite = project.canPreview;
 
   if (installing) {
     return (
@@ -241,7 +291,7 @@ function StatusCard() {
     );
   }
   if (status.state === 'error') {
-    const needsInstall = !project.hasNodeModules && !project.managedPreview && vite;
+    const needsInstall = vite && ((!project.hasNodeModules && !project.managedPreview) || project.missingDependencies.length > 0);
     return (
       <StateCard
         icon={<AlertTriangle size={18} />}
@@ -310,6 +360,36 @@ function EmptyPageCard() {
 
 /* ---------- Frame menu ---------- */
 
+/** Shown inside a frame whose page has dynamic segments, until each one has an example value. */
+function RouteValuesForm({ frame, route }: { frame: FrameLayout; route: string }) {
+  const params = routeParams(route);
+  const [values, setValues] = useState<Record<string, string>>(() => ({ ...frame.routeValues }));
+  return (
+    <form
+      className="route-values"
+      onPointerDown={(e) => e.stopPropagation()}
+      onSubmit={(e) => {
+        e.preventDefault();
+        setRouteValues(frame.id, values);
+      }}
+    >
+      <strong>This page needs an example value</strong>
+      <span className="muted">
+        <code>{route}</code> is a dynamic route. Enter {params.length === 1 ? 'a value' : 'values'} to preview it, for example a real slug from your content.
+      </span>
+      {params.map((name) => (
+        <label key={name} className="route-values__field">
+          <span>{name}</span>
+          <input className="input" value={values[name] ?? ''} placeholder={`Example ${name}`} onChange={(e) => setValues((v) => ({ ...v, [name]: e.target.value }))} />
+        </label>
+      ))}
+      <Button type="submit" variant="primary" disabled={params.some((n) => !(values[n] ?? '').trim())}>
+        Preview this page
+      </Button>
+    </form>
+  );
+}
+
 function FrameMenu({ frame, onClose, onRename }: { frame: FrameLayout; onClose: () => void; onRename: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [custom, setCustom] = useState({ width: String(frame.width), height: String(frame.height) });
@@ -344,6 +424,11 @@ function FrameMenu({ frame, onClose, onRename }: { frame: FrameLayout; onClose: 
         <MenuItem icon={<Copy size={14} />} onClick={run(() => duplicateFrame(frame.id))}>
           Duplicate
         </MenuItem>
+        {frame.routeValues && Object.keys(frame.routeValues).length > 0 && (
+          <MenuItem icon={<Pencil size={14} />} onClick={run(() => setRouteValues(frame.id, {}))}>
+            Change example values
+          </MenuItem>
+        )}
         <div className="menu-sep" />
         <div className="menu-title">Size</div>
         {(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((p) => (
@@ -450,6 +535,7 @@ export function Canvas({ hidden }: { hidden: boolean }) {
   const status = useStore((s) => s.previewStatus);
   const project = useStore((s) => s.project)!;
   const frames = useStore((s) => s.frames);
+  const projectConfig = useStore((s) => s.projectConfig);
   const activeFrameId = useStore((s) => s.activeFrameId);
   const camera = useStore((s) => s.camera);
   const runtime = useStore((s) => s.frameRuntime);
@@ -468,8 +554,38 @@ export function Canvas({ hidden }: { hidden: boolean }) {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [minimapOpen, setMinimapOpen] = useState(true);
   const [stage, setStage] = useState({ width: 0, height: 0 });
+  const [fileDrag, setFileDrag] = useState(false);
 
   useBridgeMessages(stageRef);
+
+  // Files dragged from the OS: frames forward 'filedrag' because their documents swallow the drag events,
+  // then an overlay above the frames receives the drop.
+  useEffect(() => {
+    const show = () => getState().previewStatus.state === 'running' && getState().project?.editable && setFileDrag(true);
+    const onEnter = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes('Files') && stageRef.current?.contains(e.target as Node)) show();
+    };
+    const hide = () => setFileDrag(false);
+    window.addEventListener('dragenter', onEnter);
+    window.addEventListener('oc-filedrag', show);
+    window.addEventListener('drop', hide);
+    window.addEventListener('dragend', hide);
+    return () => {
+      window.removeEventListener('dragenter', onEnter);
+      window.removeEventListener('oc-filedrag', show);
+      window.removeEventListener('drop', hide);
+      window.removeEventListener('dragend', hide);
+    };
+  }, []);
+
+  const onFileDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setFileDrag(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (!files.length) return;
+    const result = await importDroppedFiles(files, 'public');
+    if (result) await insertImages(result);
+  };
 
   useLayoutEffect(() => {
     const el = stageRef.current;
@@ -489,8 +605,13 @@ export function Canvas({ hidden }: { hidden: boolean }) {
   // Wheel pans; Ctrl/Cmd+wheel and pinch zoom around the cursor. Needs a non-passive listener.
   useEffect(() => {
     const el = stageRef.current;
-    if (!el) return;
+    const root = el?.parentElement;
+    if (!el || !root) return;
     const onWheel = (e: WheelEvent) => {
+      const target = e.target as Element | null;
+      const inDock = !!target?.closest?.('.dock');
+      // Plain wheel over the dock scrolls its panels; Ctrl+wheel there zooms the canvas instead of the app.
+      if (!(target && el.contains(target)) && !(inDock && (e.ctrlKey || e.metaKey))) return;
       e.preventDefault();
       const box = el.getBoundingClientRect();
       const { camera: cam } = getState();
@@ -503,8 +624,8 @@ export function Canvas({ hidden }: { hidden: boolean }) {
         setCamera({ ...cam, x: cam.x - dx * unit, y: cam.y - dy * unit });
       }
     };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
+    root.addEventListener('wheel', onWheel, { passive: false });
+    return () => root.removeEventListener('wheel', onWheel);
   }, []);
 
   const running = status.state === 'running';
@@ -675,17 +796,23 @@ export function Canvas({ hidden }: { hidden: boolean }) {
         frames.map((f) => {
           const r = rectOf(f);
           const eff = effective(f);
+          const page = pageOf(f, { projectConfig });
+          const src = pageUrl(status.url!, page, f.routeValues);
           return (
             <WorldFrame key={f.id} x={r.x} y={r.y} width={r.width} height={r.height} active={f.id === activeFrame?.id} shadow={showShadow}>
+              {src === null ? (
+                <RouteValuesForm frame={f} route={page!.path} />
+              ) : (
               <iframe
                 ref={(el) => registerFrame(f.id, el)}
-                key={status.url}
-                src={status.url}
+                key={src}
+                src={src}
                 title={`Preview: ${f.name}`}
                 data-frame-id={f.id}
                 style={{ width: eff.width, height: r.height }}
                 sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
               />
+              )}
             </WorldFrame>
           );
         })
@@ -722,6 +849,19 @@ export function Canvas({ hidden }: { hidden: boolean }) {
             </SizeTip>
           )}
           {running && activeFrame && !interact && !manip && !inlineEditing && !panning && <SelectionActions frame={activeFrame} height={rectOf(activeFrame).height} />}
+          {fileDrag && (
+            <div
+              className="stage-drop"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+              }}
+              onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFileDrag(false)}
+              onDrop={(e) => void onFileDrop(e)}
+            >
+              <span className="stage-drop__label">Drop images to add them {getState().selection ? `inside ${getState().selection!.name}` : 'to the page'}</span>
+            </div>
+          )}
         </>
       }
       nav={
@@ -752,6 +892,7 @@ export function Canvas({ hidden }: { hidden: boolean }) {
           }
         />
       }
+      dock={!hidden && <Dock />}
     />
   );
 }

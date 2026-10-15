@@ -57,6 +57,8 @@
       .hover .label { background: rgba(59,130,246,.85); }
       .label.below { top: auto; bottom: -21px; }
       .linked .label, .editing .label { display: none; }
+      .multi { border: 1.5px solid #3b82f6; }
+      .multi.is-linked { border: 1px dashed rgba(59,130,246,.55); }
     </style>
     <div class="box hover"><span class="label"></span></div>
     <div class="box linked"></div>
@@ -64,6 +66,10 @@
   const hoverBox = shadow.querySelector('.hover');
   const linkedBox = shadow.querySelector('.linked');
   const selectBox = shadow.querySelector('.select');
+  // Other elements in a multi-selection (the primary one uses selectBox / linkedBox).
+  let multiIds = [];
+  let multiLinked = false;
+  const multiBoxes = [];
 
   function attachOverlay() {
     if (!host.isConnected) document.documentElement.appendChild(host);
@@ -157,6 +163,17 @@
     const size = selected && selected.isConnected ? selected.getBoundingClientRect() : null;
     place(selectBox, active ? selected : null, selected && size ? `${nameOf(selected)} · ${Math.round(size.width)}×${Math.round(size.height)}` : '');
     selectBox.classList.toggle('editing', !!editing);
+    const els = active ? multiIds.flatMap((id) => [...document.querySelectorAll(`[${ATTR}="${CSS.escape(id)}"]`)]) : [];
+    while (multiBoxes.length < els.length) {
+      const box = document.createElement('div');
+      box.className = 'box multi';
+      shadow.appendChild(box);
+      multiBoxes.push(box);
+    }
+    multiBoxes.forEach((box, i) => {
+      box.classList.toggle('is-linked', multiLinked);
+      place(box, els[i] ?? null, '');
+    });
   }
 
   function target(event) {
@@ -178,14 +195,15 @@
   }
 
   // `user` marks selections made by pointer or keyboard in this frame; only those may make it the active frame.
-  function select(el, notify = true, user = false) {
+  // `additive` is 'toggle' for Shift/Ctrl/Cmd+click, or 'keep' when the editor manages the rest of the group.
+  function select(el, notify = true, user = false, additive) {
     if (editing && editing.el !== el) finishEditing(true);
     selected = el;
     selectedId = el ? el.getAttribute(ATTR) : null;
     linked = null;
     linkedId = null;
     render();
-    if (notify) post('select', el ? describe(el) : null, { user });
+    if (notify) post('select', el ? describe(el) : null, { user, additive });
   }
 
   function setLinked(el) {
@@ -316,7 +334,11 @@
       event.preventDefault();
       event.stopPropagation();
       if (type === 'mousedown' && editing) finishEditing(true);
-      if (type === 'click') select(target(event), true, true);
+      if (type === 'click') {
+        const el = target(event);
+        const additive = el && (event.shiftKey || event.ctrlKey || event.metaKey) ? 'toggle' : undefined;
+        select(el, true, true, additive);
+      }
       else if (type === 'dblclick') requestInlineEdit(target(event));
     }, true);
   }
@@ -346,9 +368,15 @@
     document.execCommand('insertText', false, text);
   }, true);
 
-  for (const type of ['drop', 'dragover']) {
+  const draggingFiles = (event) => !!event.dataTransfer && Array.from(event.dataTransfer.types).includes('Files');
+  for (const type of ['drop', 'dragover', 'dragenter']) {
     document.addEventListener(type, (event) => {
       if (editing) event.preventDefault();
+      else if (mode === 'select' && draggingFiles(event)) {
+        // The editor shows a drop target over the frames; never let the page navigate to the file.
+        event.preventDefault();
+        if (type === 'dragenter') post('filedrag', {});
+      }
     }, true);
   }
 
@@ -375,12 +403,14 @@
       return;
     }
     if (event.key === 'Escape') select(null, true, true);
+    else if (typingTarget(event)) return;
     else if (
-      (meta && /^[zy]$/i.test(event.key)) ||
+      (meta && /^[zydgae/[\]]$/i.test(event.key)) ||
       (meta && ['=', '+', '-', '0'].includes(event.key)) ||
       (event.shiftKey && ['!', '@', '1', '2'].includes(event.key)) ||
-      event.key === 'Delete' ||
-      event.key === 'Backspace'
+      (!meta && !event.altKey && /^[vhpfrtibl/?]$/i.test(event.key)) ||
+      (event.altKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) ||
+      ['Delete', 'Backspace', 'Tab', 'Enter', 'F2'].includes(event.key)
     ) {
       post('key', { key: event.key, code: event.code, meta, shift: event.shiftKey, alt: event.altKey });
       event.preventDefault();
@@ -463,6 +493,227 @@
     scheduleSync();
   }).observe(document.documentElement, { subtree: true, childList: true, attributes: true, characterData: true });
 
+  /* ---------- Bug check ---------- */
+
+  // Errors from before the bridge loaded are collected by a tiny script the preview server puts first in <head>.
+  const runtimeErrors = Array.isArray(window.__ocErrors) ? window.__ocErrors : [];
+  window.__ocErrors = runtimeErrors;
+  const recordError = (entry) => {
+    if (runtimeErrors.length < 50 && !runtimeErrors.some((e) => e.kind === entry.kind && e.message === entry.message)) runtimeErrors.push(entry);
+  };
+  if (!window.__ocErrorsHooked) {
+    window.__ocErrorsHooked = true;
+    window.addEventListener('error', (event) => {
+      const target = event.target;
+      if (target && target !== window && (target.src || target.href)) recordError({ kind: 'resource', message: target.src || target.href, tag: target.tagName.toLowerCase() });
+      else if (event.message) recordError({ kind: 'error', message: event.message, stack: event.error?.stack || `${event.filename}:${event.lineno}` });
+    }, true);
+    window.addEventListener('unhandledrejection', (event) => {
+      const reason = event.reason;
+      recordError({ kind: 'error', message: `Unhandled promise rejection: ${reason?.message || String(reason)}`, stack: reason?.stack || '' });
+    });
+    const consoleError = console.error.bind(console);
+    console.error = (...args) => {
+      recordError({ kind: 'console', message: args.map((a) => (a instanceof Error ? a.message : typeof a === 'string' ? a : (() => { try { return JSON.stringify(a); } catch { return String(a); } })())).join(' ').slice(0, 400) });
+      consoleError(...args);
+    };
+  }
+
+  const visible = (el) => {
+    if (host.contains(el)) return false;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) return false;
+    const cs = getComputedStyle(el);
+    return cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0;
+  };
+  const sourceOf = (el) => (el.hasAttribute(ATTR) ? el : sourceParent(el));
+  const where = (el) => {
+    const src = el && sourceOf(el);
+    return src ? { id: src.getAttribute(ATTR), uid: uidOf(src), name: nameOf(src) } : { id: null, uid: null, name: el ? nameOf(el) : null };
+  };
+  const snippet = (el) => {
+    const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+    return text.length > 40 ? `${text.slice(0, 40)}…` : text;
+  };
+  const accessibleName = (el) =>
+    (el.getAttribute('aria-label') || '').trim() ||
+    (el.getAttribute('aria-labelledby') && document.getElementById(el.getAttribute('aria-labelledby'))?.textContent?.trim()) ||
+    (el.textContent || '').trim() ||
+    (el.getAttribute('title') || '').trim() ||
+    [...el.querySelectorAll('img[alt], svg[aria-label]')].map((i) => i.getAttribute('alt') || i.getAttribute('aria-label')).join(' ').trim();
+
+  function parseColor(value) {
+    const m = /rgba?\(([^)]+)\)/.exec(value);
+    if (!m) return null;
+    const [r, g, b, a = 1] = m[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+    return { r, g, b, a };
+  }
+  const luminance = ({ r, g, b }) => {
+    const ch = (v) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
+  };
+  function backgroundOf(el) {
+    for (let node = el; node; node = node.parentElement) {
+      const cs = getComputedStyle(node);
+      if (cs.backgroundImage && cs.backgroundImage !== 'none') return null;
+      const c = parseColor(cs.backgroundColor);
+      if (c && c.a >= 0.95) return c;
+      if (c && c.a > 0) return null;
+    }
+    return { r: 255, g: 255, b: 255, a: 1 };
+  }
+
+  function audit() {
+    const issues = [];
+    const add = (issue, el) => issues.push({ ...issue, ...where(el) });
+    const width = window.innerWidth;
+
+    const overlay = document.querySelector('vite-error-overlay');
+    if (overlay) {
+      const message = overlay.shadowRoot?.querySelector('.message-body')?.textContent?.trim() || 'The page failed to compile.';
+      const file = overlay.shadowRoot?.querySelector('.file')?.textContent?.trim() || '';
+      add({ rule: 'build-error', severity: 'error', category: 'errors', title: 'The page doesn’t compile', detail: `${file ? `${file}\n` : ''}${message}`.slice(0, 600), fix: 'Open the file named in the message and fix the syntax or import it points to. The page stays blank until it compiles.' });
+    }
+    // Next.js keeps its dev overlay in a <nextjs-portal>; a dialog inside it means a build or runtime error is showing.
+    const nextDialog = document.querySelector('nextjs-portal')?.shadowRoot?.querySelector('[data-nextjs-dialog]');
+    const nextText = nextDialog?.textContent?.trim() || '';
+    if (/failed to compile|build error|module not found/i.test(nextText)) {
+      add({ rule: 'build-error', severity: 'error', category: 'errors', title: 'The page doesn’t compile', detail: nextText.slice(0, 600), fix: 'Open the file named in the message and fix the syntax or import it points to. The page stays blank until it compiles.' });
+    }
+
+    for (const e of runtimeErrors) {
+      if (e.kind === 'resource') {
+        add({ rule: 'failed-resource', severity: 'error', category: 'links', title: `A ${e.tag === 'img' ? 'image' : e.tag === 'script' ? 'script' : 'file'} failed to load`, detail: e.message, fix: 'Check the file exists. Files in public/ are served from the site root, so public/logo.png is "/logo.png".' });
+      } else {
+        const logged = e.kind === 'console';
+        add({ rule: logged ? 'console-error' : 'runtime-error', severity: logged ? 'warning' : 'error', category: 'errors', title: logged ? 'Error logged in the console' : 'JavaScript error', detail: `${e.message}${e.stack ? `\n${String(e.stack).split('\n').slice(0, 4).join('\n')}` : ''}`.slice(0, 700), fix: logged ? 'React logs these for real problems such as missing list keys or invalid props. Read the message and fix the component it names.' : 'Something threw while the page ran, so part of it may not work. The first line of the stack shows the file and line.' });
+      }
+    }
+
+    const seen = new Set(runtimeErrors.filter((e) => e.kind === 'resource').map((e) => e.message));
+    for (const entry of performance.getEntriesByType('resource')) {
+      if (entry.responseStatus >= 400 && !seen.has(entry.name)) {
+        seen.add(entry.name);
+        add({ rule: 'failed-request', severity: 'error', category: 'links', title: `Request failed (${entry.responseStatus})`, detail: entry.name, fix: 'The server answered with an error. Check the URL or path is spelled correctly and the file or API exists.' });
+      }
+    }
+
+    for (const img of document.images) {
+      if (host.contains(img)) continue;
+      if (img.complete && img.naturalWidth === 0 && img.getAttribute('src') && !seen.has(img.src)) {
+        seen.add(img.src);
+        add({ rule: 'broken-image', severity: 'error', category: 'links', title: 'Broken image', detail: img.getAttribute('src'), fix: 'The image file can’t be found. Put it in public/ and reference it as "/file.png", or import it from src/.' }, img);
+      }
+      if (!img.hasAttribute('alt')) add({ rule: 'img-alt', severity: 'warning', category: 'a11y', title: 'Image has no alt text', detail: img.getAttribute('src') || '', fix: 'Add alt="…" describing the image for screen readers, or alt="" if it is purely decorative.' }, img);
+    }
+
+    for (const a of document.querySelectorAll('a')) {
+      if (host.contains(a) || !visible(a)) continue;
+      const href = (a.getAttribute('href') || '').trim();
+      if (!href || href === '#' || /^javascript:/i.test(href)) {
+        add({ rule: 'empty-link', severity: 'warning', category: 'links', title: 'Link goes nowhere', detail: `“${snippet(a) || 'link'}” has ${href ? `href="${href}"` : 'no href'}.`, fix: 'Point it at a page, a section (#id) or a URL. If it runs an action instead, make it a <button>.' }, a);
+      } else if (href.startsWith('#') && href.length > 1 && !document.getElementById(decodeURIComponent(href.slice(1)))) {
+        add({ rule: 'missing-anchor', severity: 'warning', category: 'links', title: 'Link points to a missing section', detail: `${href} — no element has id="${href.slice(1)}".`, fix: `Add id="${href.slice(1)}" to the section it should scroll to, or fix the link.` }, a);
+      }
+    }
+
+    for (const el of document.querySelectorAll('button, a[href], [role="button"]')) {
+      if (host.contains(el) || !visible(el)) continue;
+      if (!accessibleName(el)) add({ rule: 'control-name', severity: 'warning', category: 'a11y', title: `${el.tagName === 'A' ? 'Link' : 'Button'} has no label`, detail: 'It only shows an icon or nothing, so screen readers announce it as just “button”.', fix: 'Add visible text or aria-label="…" describing what it does.' }, el);
+    }
+
+    for (const field of document.querySelectorAll('input, select, textarea')) {
+      if (host.contains(field) || !visible(field) || ['hidden', 'submit', 'button', 'reset', 'image'].includes(field.type)) continue;
+      const labelled = field.getAttribute('aria-label') || field.getAttribute('aria-labelledby') || field.closest('label') || (field.id && document.querySelector(`label[for="${CSS.escape(field.id)}"]`));
+      if (!labelled) add({ rule: 'field-label', severity: 'warning', category: 'a11y', title: 'Form field has no label', detail: field.getAttribute('placeholder') ? `Only a placeholder (“${field.getAttribute('placeholder')}”), which disappears once you type.` : `A ${field.tagName.toLowerCase()} with no label.`, fix: 'Wrap it in a <label> with text, or add aria-label="…".' }, field);
+    }
+
+    const headings = [...document.querySelectorAll('h1, h2, h3, h4, h5, h6')].filter((h) => !host.contains(h) && visible(h));
+    const h1s = headings.filter((h) => h.tagName === 'H1');
+    if (!h1s.length && headings.length) add({ rule: 'no-h1', severity: 'warning', category: 'seo', title: 'Page has no main heading (h1)', fix: 'Make the main page title an <h1>. Search engines and screen readers use it to understand the page.' }, headings[0]);
+    if (h1s.length > 1) add({ rule: 'many-h1', severity: 'info', category: 'seo', title: `${h1s.length} main headings (h1)`, detail: h1s.map(snippet).join(' · '), fix: 'Keep one <h1> for the page title and use <h2> for section titles.' }, h1s[1]);
+    for (let i = 1; i < headings.length; i++) {
+      const prev = Number(headings[i - 1].tagName[1]);
+      const cur = Number(headings[i].tagName[1]);
+      if (cur > prev + 1) {
+        add({ rule: 'heading-order', severity: 'info', category: 'a11y', title: `Heading skips a level (h${prev} → h${cur})`, detail: `“${snippet(headings[i])}”`, fix: `Use <h${prev + 1}> here, and change its size with styles instead of the heading level.` }, headings[i]);
+        break;
+      }
+    }
+
+    let contrastCount = 0;
+    const checked = new Set();
+    for (const el of document.body.querySelectorAll('*')) {
+      if (contrastCount >= 8) break;
+      if (host.contains(el) || checked.has(el)) continue;
+      if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+      if (!visible(el)) continue;
+      checked.add(el);
+      const cs = getComputedStyle(el);
+      const fg = parseColor(cs.color);
+      const bg = backgroundOf(el);
+      if (!fg || !bg || fg.a < 0.95) continue;
+      const [l1, l2] = [luminance(fg), luminance(bg)].sort((x, y) => y - x);
+      const ratio = (l1 + 0.05) / (l2 + 0.05);
+      const size = parseFloat(cs.fontSize);
+      const large = size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700);
+      const min = large ? 3 : 4.5;
+      if (ratio < min) {
+        contrastCount++;
+        add({ rule: 'contrast', severity: 'warning', category: 'a11y', title: 'Text is hard to read', detail: `“${snippet(el)}” has a contrast of ${ratio.toFixed(1)}:1 (needs ${min}:1). Text ${cs.color} on ${`rgb(${bg.r}, ${bg.g}, ${bg.b})`}.`, fix: 'Darken the text or lighten the background (or the reverse in dark designs) until it passes.' }, el);
+      }
+    }
+
+    const doc = document.documentElement;
+    if (doc.scrollWidth > width + 1) {
+      const culprits = [];
+      for (const el of document.body.querySelectorAll('*')) {
+        if (culprits.length >= 3) break;
+        if (host.contains(el) || !visible(el)) continue;
+        const r = el.getBoundingClientRect();
+        if (r.right <= width + 1 && r.left >= -1) continue;
+        if (culprits.some((c) => c.contains(el))) continue;
+        let clipped = false;
+        for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+          const o = getComputedStyle(p).overflowX;
+          if (o === 'hidden' || o === 'auto' || o === 'scroll' || o === 'clip') {
+            clipped = true;
+            break;
+          }
+        }
+        if (!clipped) culprits.push(el);
+      }
+      const detail = `The page is ${doc.scrollWidth}px wide on a ${width}px screen, so it scrolls sideways.`;
+      const fix = 'Give it max-width: 100%, let rows wrap (flex-wrap: wrap), or reduce its fixed width or font size at this breakpoint.';
+      if (!culprits.length) add({ rule: 'overflow', severity: 'error', category: 'layout', title: 'Page scrolls sideways', detail, fix });
+      for (const el of culprits) add({ rule: 'overflow', severity: 'error', category: 'layout', title: 'Element sticks out of the screen', detail: `${detail} “${snippet(el) || nameOf(el)}” reaches ${Math.round(el.getBoundingClientRect().right)}px.`, fix }, el);
+    }
+
+    if (width <= 640) {
+      let small = 0;
+      for (const el of document.querySelectorAll('a[href], button, input, select, textarea, [role="button"]')) {
+        if (small >= 4) break;
+        if (host.contains(el) || !visible(el)) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 24 || r.height < 24) {
+          small++;
+          add({ rule: 'tap-target', severity: 'info', category: 'layout', title: 'Tap target is too small', detail: `“${snippet(el) || accessibleName(el) || nameOf(el)}” is ${Math.round(r.width)}×${Math.round(r.height)}px.`, fix: 'Make it at least 24×24px (44×44px is comfortable) with padding, so it is easy to tap on a phone.' }, el);
+        }
+      }
+    }
+
+    if (!document.title.trim()) add({ rule: 'no-title', severity: 'warning', category: 'seo', title: 'Page has no title', fix: 'Set <title> in index.html. It shows in the browser tab, bookmarks and search results.' });
+    if (!document.querySelector('meta[name="description"]')?.getAttribute('content')?.trim()) add({ rule: 'no-description', severity: 'info', category: 'seo', title: 'No meta description', fix: 'Add <meta name="description" content="…"> to index.html: one or two sentences that appear under your link in search results.' });
+    if (!document.querySelector('meta[name="viewport"]')) add({ rule: 'no-viewport', severity: 'error', category: 'layout', title: 'Missing mobile viewport tag', fix: 'Add <meta name="viewport" content="width=device-width, initial-scale=1"> to index.html, or phones will show a tiny zoomed-out desktop page.' });
+    if (!doc.getAttribute('lang')) add({ rule: 'no-lang', severity: 'info', category: 'a11y', title: 'Page language isn’t set', fix: 'Add lang="en" (or your language) to the <html> tag in index.html so screen readers pronounce it correctly.' });
+    if (!document.querySelector('link[rel~="icon"]')) add({ rule: 'no-favicon', severity: 'info', category: 'seo', title: 'No favicon', fix: 'Add an icon to public/ and link it with <link rel="icon" href="/favicon.svg"> in index.html.' });
+
+    return { width, url: location.href, issues };
+  }
+
   window.addEventListener('message', (event) => {
     if (event.source !== window.parent) return;
     const msg = event.data;
@@ -471,7 +722,7 @@
       case 'select': {
         const el = (msg.uid && byUid.get(msg.uid)?.isConnected && byUid.get(msg.uid)) || byId(msg.id) || null;
         if (msg.linked) setLinked(el);
-        else select(el, true);
+        else select(el, true, false, msg.additive);
         if (el && msg.scroll) scrollWithinPreview(el);
         break;
       }
@@ -484,6 +735,11 @@
         if (editing) finishEditing(true);
         mode = msg.mode;
         hovered = null;
+        render();
+        break;
+      case 'multi':
+        multiIds = Array.isArray(msg.ids) ? msg.ids.filter((id) => typeof id === 'string') : [];
+        multiLinked = !!msg.linked;
         render();
         break;
       case 'sync':
@@ -508,9 +764,44 @@
       case 'reload':
         location.reload();
         break;
+      case 'navigate':
+        if (typeof msg.path === 'string' && msg.path.startsWith('/') && msg.path !== location.pathname) {
+          history.pushState({}, '', msg.path);
+          window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
+        }
+        break;
+      case 'audit': {
+        let report;
+        try {
+          report = audit();
+        } catch (err) {
+          report = { width: window.innerWidth, url: location.href, issues: [], error: String(err?.message || err) };
+        }
+        post('audit', report, { requestId: msg.requestId });
+        break;
+      }
     }
   });
 
+  // Client-side routers change the URL without reloading; report each path so routes that can't be read from code still get listed.
+  let lastPath = location.pathname;
+  const reportLocation = () => {
+    if (location.pathname === lastPath) return;
+    lastPath = location.pathname;
+    post('location', { path: location.pathname });
+    scheduleSync();
+  };
+  for (const method of ['pushState', 'replaceState']) {
+    const original = history[method];
+    history[method] = function (...args) {
+      const result = original.apply(this, args);
+      reportLocation();
+      return result;
+    };
+  }
+  window.addEventListener('popstate', reportLocation);
+
   post('ready', { url: location.href });
+  post('location', { path: location.pathname });
   scheduleSync();
 })();

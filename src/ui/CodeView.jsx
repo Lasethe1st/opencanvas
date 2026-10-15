@@ -16,7 +16,20 @@ export function CodeView({ tabs, actions, editor, status, ...rest }) {
 
 export function CodeTab({ name, title, active, dirty, onSelect, onClose }) {
   return (
-    <div className={cx('code-tab', active && 'is-active')} role="tab" aria-selected={active} title={title} onClick={onSelect}>
+    <div
+      className={cx('code-tab', active && 'is-active')}
+      role="tab"
+      aria-selected={active}
+      tabIndex={0}
+      title={title}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onSelect?.();
+        }
+      }}
+    >
       {name}
       {dirty && <span className="dirty-dot" title="Unsaved" />}
       <button className="icon-btn icon-btn--sm" aria-label={`Close ${title}`} onClick={(e) => { e.stopPropagation(); onClose?.(); }}>

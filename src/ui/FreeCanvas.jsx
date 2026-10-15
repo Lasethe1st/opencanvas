@@ -2,7 +2,7 @@ import { Focus, Link2, Maximize, Minus, MoreHorizontal, Plus, Redo2, ScanSearch,
 import { cx, IconButton } from './primitives.jsx';
 
 /** The infinite surface: a dotted background that pans/zooms with the camera and a transformed world layer. */
-export function Stage({ stageRef, camera, dots, tool, panning, world, chrome, overlay, notice, nav, className, ...rest }) {
+export function Stage({ stageRef, camera, dots, tool, panning, world, chrome, overlay, notice, nav, dock, className, ...rest }) {
   const size = 20 * camera.zoom;
   return (
     <section className={cx('stage', tool === 'hand' && 'is-hand', panning && 'is-panning', className)} aria-label="Canvas" {...rest}>
@@ -24,6 +24,7 @@ export function Stage({ stageRef, camera, dots, tool, panning, world, chrome, ov
       {notice && <div className="stage__notice">{notice}</div>}
       {overlay && <div className="canvas-overlay">{overlay}</div>}
       {nav}
+      {dock}
     </section>
   );
 }

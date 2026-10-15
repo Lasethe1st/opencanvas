@@ -1,4 +1,4 @@
-import type { InsertKind, TextReason } from '../types';
+import { RETAGGABLE_TAGS, type InsertKind, type TextReason } from '../types';
 import {
   applySplices,
   isHostTag,
@@ -200,9 +200,14 @@ export interface InsertSnippet {
   needsPlaceholder?: boolean;
 }
 
-export function buildSnippet(kind: InsertKind): InsertSnippet {
+const attrValue = (v: string) => (/^[^"{}<>&\\]*$/.test(v) ? `"${v}"` : `{${JSON.stringify(v)}}`);
+
+export function buildSnippet(kind: InsertKind, image?: { src: string; alt: string }): InsertSnippet {
   const key = makeKey(kind);
   const k = `data-oc="${key}"`;
+  if (kind === 'image' && image) {
+    return { key, jsx: `<img ${k} src=${attrValue(image.src)} alt=${attrValue(image.alt)} />`, css: { display: 'block', 'max-width': '100%', height: 'auto' } };
+  }
   switch (kind) {
     case 'div':
       return { key, jsx: `<div ${k} data-oc-name="Container">\n</div>`, css: { padding: '24px', 'min-height': '80px', border: '1px dashed #c7c7cc', 'border-radius': '8px' } };
@@ -226,7 +231,128 @@ export function buildSnippet(kind: InsertKind): InsertSnippet {
       return { key, jsx: `<button ${k} type="button">Button</button>`, css: { padding: '10px 18px', border: 'none', 'border-radius': '8px', background: '#111111', color: '#ffffff', 'font-weight': '600', cursor: 'pointer' } };
     case 'link':
       return { key, jsx: `<a ${k} href="#">Link</a>`, css: { color: '#2563eb' } };
+    case 'header':
+      return {
+        key,
+        jsx: `<header ${k} data-oc-name="Header">\n</header>`,
+        css: { display: 'flex', 'align-items': 'center', 'justify-content': 'space-between', gap: '24px', padding: '16px 32px', 'min-height': '64px' },
+      };
+    case 'nav':
+      return {
+        key,
+        jsx: `<nav ${k} data-oc-name="Navigation">\n  <a href="#">Link one</a>\n  <a href="#">Link two</a>\n  <a href="#">Link three</a>\n</nav>`,
+        css: { display: 'flex', 'align-items': 'center', gap: '24px' },
+      };
+    case 'footer':
+      return { key, jsx: `<footer ${k} data-oc-name="Footer">\n  <p>© 2026 Your company</p>\n</footer>`, css: { padding: '48px 32px' } };
+    case 'list':
+      return {
+        key,
+        jsx: `<ul ${k} data-oc-name="List">\n  <li>First item</li>\n  <li>Second item</li>\n  <li>Third item</li>\n</ul>`,
+        css: { margin: '0 0 12px', 'padding-left': '20px', 'line-height': '1.7' },
+      };
+    case 'form':
+      return {
+        key,
+        jsx:
+          `<form ${k} data-oc-name="Form" onSubmit={(event) => event.preventDefault()}>\n` +
+          `  <input type="text" name="name" placeholder="Your name" />\n` +
+          `  <input type="email" name="email" placeholder="Email address" />\n` +
+          `  <textarea name="message" placeholder="Your message" rows={4} />\n` +
+          `  <button type="submit">Send</button>\n` +
+          `</form>`,
+        css: { display: 'grid', gap: '12px', 'max-width': '480px' },
+      };
+    case 'input':
+      return {
+        key,
+        jsx: `<input ${k} type="text" placeholder="Type here" />`,
+        css: { padding: '10px 12px', border: '1px solid #c7c7cc', 'border-radius': '8px', font: 'inherit' },
+      };
+    case 'textarea':
+      return {
+        key,
+        jsx: `<textarea ${k} placeholder="Type a message" rows={4} />`,
+        css: { padding: '10px 12px', border: '1px solid #c7c7cc', 'border-radius': '8px', font: 'inherit', resize: 'vertical' },
+      };
   }
+}
+
+/**
+ * Validates that `jsx` is exactly one JSX element and returns it dedented, ready for `insertElement`.
+ */
+export function normalizeJsxSnippet(jsx: string): string {
+  const text = jsx.replace(/\r\n?/g, '\n').replace(/^\s*\n|\s+$/g, '');
+  if (!text.trim()) throw new EditError('The JSX snippet is empty.');
+  let ast: AstNode;
+  try {
+    ast = parseSource(`const __oc = (\n${text}\n);`, 'snippet.jsx');
+  } catch (err) {
+    throw new EditError(`The JSX snippet doesn't parse: ${(err as Error).message}`);
+  }
+  const body = ast.program.body as AstNode[];
+  const init = body.length === 1 && body[0].type === 'VariableDeclaration' ? body[0].declarations[0]?.init : null;
+  if (!init || init.type !== 'JSXElement') throw new EditError('The snippet must be a single JSX element, such as <section>…</section>.');
+  const lines = text.split('\n');
+  const indents = lines.filter((l) => l.trim()).map((l) => /^[ \t]*/.exec(l)![0].length);
+  const common = Math.min(...indents);
+  return lines.map((l) => l.slice(Math.min(common, /^[ \t]*/.exec(l)![0].length))).join('\n');
+}
+
+export interface OutlineNode {
+  id: string;
+  tag: string;
+  name?: string;
+  key?: string;
+  text?: string;
+  /** True for React components (capitalised tags); they render another file's elements. */
+  component?: boolean;
+  children: OutlineNode[];
+}
+
+/** The JSX element tree of a file, with the source ids edits expect. */
+export function outlineSource(code: string, filename: string, relPath: string): OutlineNode[] {
+  const ast = parseSource(code, filename);
+  const roots: OutlineNode[] = [];
+  const visit = (node: AstNode, into: OutlineNode[]) => {
+    walk(node, (child) => {
+      if (child === node) return;
+      if (child.type !== 'JSXElement') return;
+      const opening = child.openingElement;
+      const tag = jsxTagName(opening.name) ?? '?';
+      const { line, column } = opening.loc.start;
+      const entry: OutlineNode = { id: `${relPath}:${line}:${column}`, tag, children: [] };
+      const name = attrLiteral(findAttr(child, 'data-oc-name'));
+      const key = attrLiteral(findAttr(child, 'data-oc'));
+      if (name) entry.name = name;
+      if (key) entry.key = key;
+      if (!isHostTag(tag)) entry.component = true;
+      const { text } = readText(child);
+      if (text) entry.text = text.length > 80 ? `${text.slice(0, 77)}…` : text;
+      into.push(entry);
+      visit(child, entry.children);
+      return false;
+    });
+  };
+  visit(ast, roots);
+  return roots;
+}
+
+/** Renames an HTML element's tag (opening and closing), keeping attributes and children. */
+export function setTagName(code: string, filename: string, line: number, column: number, tag: string): string {
+  const next = tag.trim().toLowerCase();
+  if (!RETAGGABLE_TAGS.includes(next)) throw new EditError(`<${tag}> isn't a supported element type.`);
+  const { element, tag: current } = locateElement(code, filename, line, column);
+  if (!isHostTag(current) || element.openingElement.name.type !== 'JSXIdentifier') {
+    throw new EditError('Only HTML elements can change their type.');
+  }
+  if (VOID_TAGS.has(current)) throw new EditError(`<${current}> can't be turned into another element.`);
+  if (current === next) return code;
+  const splices: Splice[] = [{ start: element.openingElement.name.start, end: element.openingElement.name.end, text: next }];
+  if (element.closingElement) {
+    splices.push({ start: element.closingElement.name.start, end: element.closingElement.name.end, text: next });
+  }
+  return applySplices(code, splices);
 }
 
 /**
@@ -298,6 +424,85 @@ export function moveElement(code: string, filename: string, line: number, column
   const next = code.slice(0, a.start) + bText + between + aText + code.slice(b.end);
   const offset = direction === 'up' ? a.start : a.start + bText.length + between.length;
   return { code: next, offset };
+}
+
+/**
+ * Inserts a copy of the element right after it. Every literal `data-oc` key inside the copy gets a
+ * fresh key so the copy can be styled independently; `keys` maps old to new for copying CSS rules.
+ */
+export function duplicateElement(code: string, filename: string, line: number, column: number): { code: string; offset: number; keys: [string, string][] } {
+  const { element, parent } = locateElement(code, filename, line, column);
+  if (!isJsxParent(parent)) throw new EditError('The root element of a component cannot be duplicated. Wrap it in a container first.');
+  const keys: [string, string][] = [];
+  const copy = code.slice(element.start, element.end).replace(/(\sdata-oc=")([^"]+)"/g, (_m, pre: string, key: string) => {
+    const next = makeKey(key.replace(/-[a-z0-9]{5}$/, ''));
+    keys.push([key, next]);
+    return `${pre}${next}"`;
+  });
+  const indent = lineIndent(code, element.start);
+  const offset = element.end + 1 + indent.length;
+  return { code: applySplices(code, [{ start: element.end, end: element.end, text: `\n${indent}${copy}` }]), offset, keys };
+}
+
+function reindent(text: string, delta: number): string {
+  return text
+    .split('\n')
+    .map((l, i) => (i === 0 ? l : delta >= 0 ? (l.trim() ? ' '.repeat(delta) + l : l) : l.replace(new RegExp(`^ {0,${-delta}}`), '')))
+    .join('\n');
+}
+
+/**
+ * Wraps one element, or several adjacent siblings, in a new `<div>`. Positions are `[line, column]`.
+ * Returns the offset of the new wrapper and its style key.
+ */
+export function wrapElements(code: string, filename: string, positions: [number, number][]): { code: string; offset: number; key: string } {
+  let ast: AstNode;
+  try {
+    ast = parseSource(code, filename);
+  } catch (err) {
+    throw new EditError(`Could not parse ${filename}: ${(err as Error).message}`);
+  }
+  const found = new Map<string, LocatedElement>();
+  walk(ast, (node, parentNode) => {
+    if (node.type !== 'JSXElement') return;
+    const { line, column } = node.openingElement.loc.start;
+    if (positions.some(([l, c]) => l === line && c === column)) found.set(`${line}:${column}`, { element: node, parent: parentNode, tag: '' });
+  });
+  const located = positions.map(([l, c]) => {
+    const hit = found.get(`${l}:${c}`);
+    if (!hit) throw new EditError('A selected element could not be found in the source. Reselect and try again.');
+    return hit;
+  });
+  const parent = located[0].parent;
+  if (located.length > 1 && (!isJsxParent(parent) || located.some((x) => x.parent !== parent))) {
+    throw new EditError('Only elements that sit next to each other in the same container can be grouped.');
+  }
+  const siblings = (parent?.children ?? []) as AstNode[];
+  const indexes = located.map((x) => siblings.indexOf(x.element)).sort((a, b) => a - b);
+  if (located.length > 1) {
+    const between = siblings.slice(indexes[0], indexes[indexes.length - 1] + 1).filter((n) => !(n.type === 'JSXText' && n.value.trim() === ''));
+    if (between.length !== located.length) throw new EditError('Only elements that sit next to each other in the same container can be grouped.');
+  }
+  const first = located.length > 1 ? siblings[indexes[0]] : located[0].element;
+  const last = located.length > 1 ? siblings[indexes[indexes.length - 1]] : located[0].element;
+  const indent = lineIndent(code, first.start);
+  const inner = reindent(code.slice(first.start, last.end), 2);
+  const key = makeKey('div');
+  const text = `<div data-oc="${key}" data-oc-name="Group">\n${indent}  ${inner}\n${indent}</div>`;
+  return { code: applySplices(code, [{ start: first.start, end: last.end, text }]), offset: first.start, key };
+}
+
+/** Replaces an element with its children (the reverse of grouping). Returns the offset of the first child. */
+export function unwrapElement(code: string, filename: string, line: number, column: number): { code: string; offset: number } {
+  const { element, parent } = locateElement(code, filename, line, column);
+  if (!isJsxParent(parent)) throw new EditError('The root element of a component cannot be ungrouped.');
+  const children = ((element.children ?? []) as AstNode[]).filter((n) => !(n.type === 'JSXText' && n.value.trim() === ''));
+  if (!children.length || children.some((n) => n.type !== 'JSXElement')) throw new EditError('Only containers whose content is all elements can be ungrouped.');
+  const first = children[0];
+  const last = children[children.length - 1];
+  const delta = lineIndent(code, element.start).length - lineIndent(code, first.start).length;
+  const inner = reindent(code.slice(first.start, last.end), delta);
+  return { code: applySplices(code, [{ start: element.start, end: element.end, text: inner }]), offset: element.start };
 }
 
 export function idAtOffset(relPath: string, code: string, offset: number): string {

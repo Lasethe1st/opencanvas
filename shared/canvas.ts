@@ -20,6 +20,10 @@ export interface FrameLayout {
   preset: FramePreset;
   /** Grow the frame to the page height instead of scrolling inside a fixed viewport. */
   fitPage: boolean;
+  /** Project page this frame shows; absent in layouts saved before pages existed (the first page). */
+  pageId?: string;
+  /** Example values for the page's dynamic segments, e.g. { slug: "hello-world" }. */
+  routeValues?: Record<string, string>;
 }
 
 export interface CanvasLayout {
@@ -191,6 +195,13 @@ export function placeFrame(frames: Rect[], size: { width: number; height: number
   return { x: snapToGrid(bounds.x + bounds.width + FRAME_GAP), y: snapToGrid(bounds.y) };
 }
 
+/** A free spot under all existing frames, left-aligned with them; each page starts its own row. */
+export function placeBelow(frames: Rect[]): Point {
+  if (!frames.length) return { x: 0, y: 0 };
+  const bounds = unionRect(frames)!;
+  return { x: snapToGrid(bounds.x), y: snapToGrid(bounds.y + bounds.height + FRAME_GAP * 2) };
+}
+
 let idCounter = 0;
 export function frameId(): string {
   idCounter += 1;
@@ -237,6 +248,10 @@ export function normalizeLayout(raw: unknown, config?: BreakpointConfig): Canvas
       height: clamp(f.height, MIN_FRAME.height, MAX_FRAME.height),
       preset: f.preset && (f.preset === 'custom' || f.preset in PRESETS) ? f.preset : 'custom',
       fitPage: !!f.fitPage,
+      ...(typeof f.pageId === 'string' && f.pageId ? { pageId: f.pageId } : {}),
+      ...(f.routeValues && typeof f.routeValues === 'object'
+        ? { routeValues: Object.fromEntries(Object.entries(f.routeValues).filter(([k, v]) => /^[\w-]+$/.test(k) && typeof v === 'string').map(([k, v]) => [k, (v as string).slice(0, 200)])) }
+        : {}),
     });
   }
   if (!frames.length) return defaultLayout(config);

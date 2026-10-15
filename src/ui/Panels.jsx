@@ -23,20 +23,54 @@ export function SearchField({ value, onChange, placeholder = 'Search' }) {
   return (
     <label className="search">
       <Search size={13} />
-      <input value={value} placeholder={placeholder} onChange={(e) => onChange?.(e.target.value)} />
+      <input value={value} placeholder={placeholder} aria-label={placeholder} onChange={(e) => onChange?.(e.target.value)} />
     </label>
   );
 }
 
 export function Tree({ children }) {
-  return <div className="tree">{children}</div>;
+  const onKeyDown = (e) => {
+    if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || e.altKey || !e.target.classList?.contains('tree-row')) return;
+    const rows = [...e.currentTarget.querySelectorAll('.tree-row[tabindex]')];
+    const next = rows[rows.indexOf(e.target) + (e.key === 'ArrowDown' ? 1 : -1)];
+    if (!next) return;
+    e.preventDefault();
+    next.focus();
+  };
+  return (
+    <div className="tree" role="tree" onKeyDown={onKeyDown}>
+      {children}
+    </div>
+  );
 }
 
 export function TreeRow({ depth = 0, icon, name, meta, active, hovered, expandable, expanded, onToggle, actions, trailing, className, children, ...rest }) {
+  const onKeyDown = (e) => {
+    rest.onKeyDown?.(e);
+    if (e.defaultPrevented || e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      rest.onClick?.(e);
+    } else if (expandable && ((e.key === 'ArrowRight' && !expanded) || (e.key === 'ArrowLeft' && expanded))) {
+      e.preventDefault();
+      onToggle?.();
+    }
+  };
   return (
-    <div className={cx('tree-row', active && 'is-active', hovered && 'is-hovered', className)} style={{ paddingLeft: 4 + depth * 14 }} {...rest}>
+    <div
+      className={cx('tree-row', active && 'is-active', hovered && 'is-hovered', className)}
+      style={{ paddingLeft: 4 + depth * 14 }}
+      role="treeitem"
+      aria-level={depth + 1}
+      aria-expanded={expandable ? !!expanded : undefined}
+      aria-selected={!!active}
+      tabIndex={rest.onClick ? 0 : undefined}
+      {...rest}
+      onKeyDown={onKeyDown}
+    >
       <button
         className="tree-row__toggle"
+        tabIndex={-1}
         style={{ visibility: expandable ? 'visible' : 'hidden' }}
         aria-label={expanded ? 'Collapse' : 'Expand'}
         onClick={(e) => {

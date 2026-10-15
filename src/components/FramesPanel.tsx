@@ -2,10 +2,11 @@ import { Copy, Focus, Link2, Plus, Ruler, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { breakpointFor, PRESETS } from '../../shared/canvas';
 import { addFrame, deleteFrame, displayRect, duplicateFrame, fitFrame, renameFrame, setActiveFrame, setSyncScroll } from '../lib/canvas';
-import { useStore } from '../lib/store';
+import { pageOf, useStore } from '../lib/store';
 import { FrameRow } from '../ui/FramesPanel.jsx';
 import { IconButton, Menu, MenuItem, SectionLabel } from '../ui/primitives.jsx';
 import { SCOPE_LABEL } from './Canvas';
+import { PagesSection } from './PagesSection';
 
 export function FramesPanel() {
   const frames = useStore((s) => s.frames);
@@ -13,11 +14,14 @@ export function FramesPanel() {
   const runtime = useStore((s) => s.frameRuntime);
   const project = useStore((s) => s.project)!;
   const syncScroll = useStore((s) => s.syncScroll);
+  const projectConfig = useStore((s) => s.projectConfig);
+  const multiPage = (projectConfig?.pages.length ?? 0) > 1;
   const [adding, setAdding] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
 
   return (
     <>
+      <PagesSection />
       <SectionLabel
         actions={
           <span style={{ position: 'relative' }}>
@@ -57,7 +61,7 @@ export function FramesPanel() {
               name={f.name}
               size={`${f.width} × ${Math.round(height)}${f.fitPage ? ' fit' : ''}`}
               scope={scope}
-              scopeLabel={SCOPE_LABEL[scope]}
+              scopeLabel={multiPage ? `${SCOPE_LABEL[scope]} · ${pageOf(f, { projectConfig })?.name ?? ''}` : SCOPE_LABEL[scope]}
               active={f.id === activeFrameId}
               onClick={() => setActiveFrame(f.id)}
               onDoubleClick={() => setRenaming(f.id)}
@@ -103,7 +107,7 @@ export function FramesPanel() {
         Sync scrolling between frames
       </label>
       <p className="frame-list__hint">
-        Each frame shows the same page. Styles you change apply to the scope of the frame you edit in: Base above {project.breakpoints.tablet}px, Tablet up to {project.breakpoints.tablet}px, Mobile up to {project.breakpoints.mobile}px.
+        {multiPage ? 'Each frame shows one page; new frames show the page of the selected frame.' : 'Each frame shows the same page.'} Styles you change apply to the scope of the frame you edit in: Base above {project.breakpoints.tablet}px, Tablet up to {project.breakpoints.tablet}px, Mobile up to {project.breakpoints.mobile}px.
       </p>
     </>
   );

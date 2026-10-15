@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { breakpointFor, type Camera, type FrameLayout, type Guide } from '../../shared/canvas';
-import type { Breakpoint, FileChange, FileNode, PreviewStatus, ProjectInfo, SourceElementInfo } from '../../shared/types';
+import type { AiChatItem, AiStatus } from '../../shared/ai';
+import type { PageConfig, ProjectPagesState } from '../../shared/project-config';
+import type { TerminalSession } from '../../shared/terminal';
+import type { AuditReport, Breakpoint, FileChange, GitStatus, FileNode, ImportedProject, McpStatus, PreviewStatus, ProjectInfo, SourceElementInfo, StyleState } from '../../shared/types';
 
 export interface TreeNode {
   id: string;
@@ -8,6 +11,12 @@ export interface TreeNode {
   tag: string;
   name: string;
   children: TreeNode[];
+}
+
+export interface SelectionItem {
+  id: string;
+  uid: string;
+  name: string;
 }
 
 export interface Selection {
@@ -24,6 +33,8 @@ export interface HistoryEntry {
   label: string;
   changes: FileChange[];
   selectId?: string | null;
+  /** In-app AI turn; later changes of the same turn are merged into this entry. */
+  turnId?: string;
 }
 
 export interface LayoutEntry {
@@ -85,6 +96,8 @@ interface State {
   sourceInfo: SourceElementInfo | null;
   sourceError: string | null;
   hoverUid: string | null;
+  /** The other elements of a multi-selection; `selection` is the primary (last clicked) one. */
+  multiSelect: SelectionItem[];
   pendingSelectId: string | null;
   inlineEditing: boolean;
   inlineNotice: InlineNotice | null;
@@ -96,8 +109,42 @@ interface State {
   leftWidth: number;
   rightWidth: number;
   exportOpen: boolean;
+  shortcutsOpen: boolean;
+  settingsOpen: boolean;
+  fullPreview: boolean;
+  gitOpen: boolean;
+  gitStatus: GitStatus | null;
+  auditOpen: boolean;
+  auditRunning: boolean;
+  audit: AuditReport | null;
+  /** Which interaction state inspector style edits target. */
+  styleState: StyleState;
+  mcp: McpStatus | null;
   revealLine: { file: string; line: number } | null;
+  /** Pages and design direction from the project's `.opencanvas/project.json`. */
+  projectConfig: ProjectPagesState | null;
+  /** Open panel of the bottom dock; null when only the bar shows. */
+  dockMode: DockMode | null;
+  /** What the user is asking for, kept while switching dock modes. */
+  dockDraft: string;
+  settingsTab: SettingsTab;
+  aiStatus: AiStatus | null;
+  /** The in-app AI conversation for the open project. */
+  aiChat: AiChatItem[];
+  /** The AI turn that is running, if any. */
+  aiTurnId: string | null;
+  terminalOpen: boolean;
+  terminals: TerminalSession[];
+  activeTerminal: string | null;
+  /** Paths the preview has visited this session, as reported by the bridge. */
+  visitedPaths: string[];
+  /** Shown once after a ZIP import: what OpenCanvas detected. */
+  importSummary: ImportedProject | null;
 }
+
+export type SettingsTab = 'appearance' | 'ai' | 'mcp';
+
+export type DockMode = 'input' | 'variants' | 'search' | 'direction';
 
 export const initialState: State = {
   project: null,
@@ -124,6 +171,7 @@ export const initialState: State = {
   sourceInfo: null,
   sourceError: null,
   hoverUid: null,
+  multiSelect: [],
   pendingSelectId: null,
   inlineEditing: false,
   inlineNotice: null,
@@ -135,8 +183,38 @@ export const initialState: State = {
   leftWidth: 260,
   rightWidth: 300,
   exportOpen: false,
+  shortcutsOpen: false,
+  settingsOpen: false,
+  fullPreview: false,
+  gitOpen: false,
+  gitStatus: null,
+  auditOpen: false,
+  auditRunning: false,
+  audit: null,
+  styleState: 'default',
+  mcp: null,
   revealLine: null,
+  projectConfig: null,
+  dockMode: null,
+  dockDraft: '',
+  settingsTab: 'appearance',
+  aiStatus: null,
+  aiChat: [],
+  aiTurnId: null,
+  terminalOpen: readTerminalOpen(),
+  terminals: [],
+  activeTerminal: null,
+  visitedPaths: [],
+  importSummary: null,
 };
+
+function readTerminalOpen(): boolean {
+  try {
+    return localStorage.getItem('oc-terminal-open') === '1';
+  } catch {
+    return false;
+  }
+}
 
 function readLeftTab(): LeftTab {
   try {
@@ -180,6 +258,12 @@ export function findPath(nodes: TreeNode[], uid: string): TreeNode[] | null {
     if (sub) return [node, ...sub];
   }
   return null;
+}
+
+/** The page a frame shows; frames saved before pages existed belong to the first page. */
+export function pageOf(frame: FrameLayout | null | undefined, state: Pick<State, 'projectConfig'> = getState()): PageConfig | null {
+  const pages = state.projectConfig?.pages ?? [];
+  return (frame?.pageId && pages.find((p) => p.id === frame.pageId)) || pages[0] || null;
 }
 
 export function activeFrame(state: State = getState()): FrameLayout | null {

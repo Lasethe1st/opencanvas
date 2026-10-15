@@ -15,6 +15,10 @@ export function frameIdOf(source: MessageEventSource | null): string | null {
   return null;
 }
 
+export function frameIds(): string[] {
+  return [...frames.keys()];
+}
+
 export function frameElement(id: string): HTMLIFrameElement | null {
   return frames.get(id) ?? null;
 }
@@ -35,6 +39,12 @@ export function sendToPreview(type: string, payload: Record<string, unknown> = {
     else if (type === 'hover') sendToFrame(id, 'hover', { id: payload.id ?? null });
     else sendToFrame(id, type, payload);
   }
+}
+
+/** Outlines the other members of a multi-selection: solid in the active frame, dashed elsewhere. */
+export function sendMulti(ids: string[], only?: string) {
+  const active = getState().activeFrameId;
+  for (const fid of frames.keys()) if (!only || fid === only) sendToFrame(fid, 'multi', { ids, linked: fid !== active });
 }
 
 /** Mirrors a selection made in one frame into all the others. */

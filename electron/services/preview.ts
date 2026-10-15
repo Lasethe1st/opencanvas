@@ -2,6 +2,8 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import type { PreviewStatus, ProjectInfo } from '../../shared/types';
+import { adapterFor, type PreviewLaunch } from '../adapters';
+import { killTree } from './processes';
 
 const MAX_LOG = 20_000;
 
@@ -32,25 +34,27 @@ export class PreviewManager {
   start(project: ProjectInfo): void {
     this.stop();
     this.log = '';
-    if (project.framework !== 'vite-react') {
-      this.setStatus({ state: 'error', error: 'Live preview currently supports React + Vite projects only.', log: '' });
+    const adapter = adapterFor(project.framework);
+    if (!adapter?.supports.preview || !adapter.startPreview) {
+      this.setStatus({ state: 'error', error: 'Live preview supports React + Vite and Next.js projects.', log: '' });
       return;
     }
-    if (!project.hasNodeModules && !project.managedPreview) {
-      this.setStatus({ state: 'error', error: 'Dependencies are not installed. Use "Install dependencies" to run the preview.', log: '' });
-      return;
-    }
-    const managed = project.managedPreview && !project.hasNodeModules;
     const cacheDir = path.join(this.cacheRoot, crypto.createHash('sha1').update(project.root).digest('hex').slice(0, 12));
-    const child = spawn(process.execPath, [path.join(this.appRoot, 'dist-electron', 'preview-server.mjs')], {
+    let launch: PreviewLaunch;
+    try {
+      launch = adapter.startPreview(project, { appRoot: this.appRoot, cacheDir });
+    } catch (err) {
+      this.setStatus({ state: 'error', error: (err as Error).message, log: '' });
+      return;
+    }
+    const child = spawn(process.execPath, [path.join(this.appRoot, 'dist-electron', launch.script)], {
       cwd: project.root,
       env: {
         ...process.env,
+        ...launch.env,
         ELECTRON_RUN_AS_NODE: '1',
         OC_PROJECT_ROOT: project.root,
-        OC_APP_ROOT: this.appRoot,
-        OC_MANAGED: managed ? '1' : '0',
-        OC_CACHE_DIR: cacheDir,
+        OC_EDITABLE_ROOTS: JSON.stringify(project.editableRoots),
         FORCE_COLOR: '0',
       },
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -71,6 +75,7 @@ export class PreviewManager {
             const msg = JSON.parse(line.slice(7));
             if (msg.type === 'ready') this.setStatus({ state: 'running', url: msg.url, log: this.log });
             if (msg.type === 'error') this.setStatus({ state: 'error', error: msg.message, log: this.log });
+            if (msg.type === 'warning') this.append(`Warning: ${msg.message}\n`);
           } catch {
             /* ignore malformed control lines */
           }
@@ -95,7 +100,8 @@ export class PreviewManager {
     if (child && child.exitCode === null) {
       child.stdin?.end();
       setTimeout(() => {
-        if (child.exitCode === null) child.kill();
+        // Next.js starts worker processes of its own, so take the whole tree down.
+        if (child.exitCode === null) process.platform === 'win32' && child.pid ? killTree(child.pid) : child.kill();
       }, 1500);
     }
     if (this.status.state !== 'stopped') this.setStatus({ state: 'stopped' });
@@ -129,6 +135,6 @@ export function cancelInstall() {
   const child = installChild;
   if (!child?.pid) return;
   installCancelled = true;
-  if (process.platform === 'win32') spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true });
+  if (process.platform === 'win32') killTree(child.pid);
   else child.kill('SIGTERM');
 }

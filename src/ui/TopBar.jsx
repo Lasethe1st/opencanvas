@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronRight, Code2, Download, Monitor, MousePointer2, Play, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-react';
-import { Badge, Button, IconButton, Segmented } from './primitives.jsx';
+import { ChevronDown, ChevronRight, Code2, Monitor, MousePointer2, Play, Smartphone, Tablet } from 'lucide-react';
+import { Badge, IconButton, Segmented } from './primitives.jsx';
 
 export const VIEWPORTS = [
   { id: 'desktop', label: 'Desktop', icon: <Monitor size={14} /> },
@@ -10,7 +10,6 @@ export const VIEWPORTS = [
 export function Brand() {
   return (
     <div data-oc="div-tyuk7" className="brand">
-      <span className="brand__mark" aria-hidden />
       OpenCanvas
     </div>
   );
@@ -28,7 +27,7 @@ export function ProjectButton({ name, onClick }) {
 export function SaveStatus({ state }) {
   if (state === 'saving') return <Badge tone="busy">Saving…</Badge>;
   if (state === 'dirty') return <Badge tone="warning">Unsaved changes</Badge>;
-  return <Badge>Saved</Badge>;
+  return null;
 }
 
 export function Breadcrumb({ items, onSelect }) {
@@ -69,32 +68,11 @@ export function ModeSwitch({ value, onChange }) {
   );
 }
 
-export function InteractToggle({ active, onClick }) {
+export function PreviewButton({ onClick }) {
   return (
-    <IconButton label={active ? 'Back to selecting' : 'Preview: interact with the page'} active={active} onClick={onClick}>
-      {active ? <MousePointer2 size={15} /> : <Play size={15} />}
+    <IconButton label="Preview full screen" onClick={onClick}>
+      <Play size={15} />
     </IconButton>
-  );
-}
-
-export function HistoryButtons({ canUndo, canRedo, onUndo, onRedo }) {
-  return (
-    <>
-      <IconButton label="Undo (Ctrl+Z)" disabled={!canUndo} onClick={onUndo}>
-        <Undo2 size={15} />
-      </IconButton>
-      <IconButton label="Redo (Ctrl+Shift+Z)" disabled={!canRedo} onClick={onRedo}>
-        <Redo2 size={15} />
-      </IconButton>
-    </>
-  );
-}
-
-export function ExportButton({ onClick }) {
-  return (
-    <Button variant="primary" icon={<Download size={14} />} onClick={onClick} className="export-btn">
-      Export
-    </Button>
   );
 }
 

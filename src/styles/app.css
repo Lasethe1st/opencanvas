@@ -10,10 +10,6 @@
   outline: none;
 }
 
-.popover__search:focus {
-  border-color: var(--accent-line);
-}
-
 .menu-item.is-danger {
   color: var(--danger);
 }

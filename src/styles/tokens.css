@@ -15,7 +15,7 @@
   --line-strong: #d6d6db;
   --fg: #111113;
   --fg-2: #52525b;
-  --fg-3: #8a8a93;
+  --fg-3: #6b6b74;
   --fg-4: #b6b6bd;
 
   --accent: #18181b;
@@ -26,7 +26,7 @@
   --select: #3b82f6;
   --select-soft: rgba(59, 130, 246, 0.12);
   --guide: #f43f5e;
-  --danger: #d93036;
+  --danger: #c8262c;
   --danger-soft: #fdecec;
   --success: #1f9d55;
   --warning: #d97706;
@@ -69,18 +69,18 @@
 }
 
 [data-theme='dark'] {
-  --bg: #0e0e10;
-  --surface: #151517;
-  --surface-2: #19191c;
-  --surface-3: #1f1f23;
-  --canvas: #0b0b0d;
-  --canvas-dot: #2c2c32;
-  --line: #262629;
-  --line-strong: #333338;
-  --fg: #f2f2f3;
-  --fg-2: #a3a3ab;
-  --fg-3: #74747d;
-  --fg-4: #4b4b53;
+  --bg: #181818;
+  --surface: #202020;
+  --surface-2: #252525;
+  --surface-3: #2b2b2b;
+  --canvas: #141414;
+  --canvas-dot: #2f2f2f;
+  --line: #2e2e2e;
+  --line-strong: #3b3b3b;
+  --fg: #f2f2f2;
+  --fg-2: #b4b4b4;
+  --fg-3: #9a9a9a;
+  --fg-4: #5c5c5c;
 
   --accent: #f2f2f3;
   --accent-hover: #ffffff;
@@ -102,7 +102,7 @@
   --inverse: #f2f2f4;
   --inverse-fg: #111114;
   --backdrop: rgba(0, 0, 0, 0.55);
-  --code-bg: #121215;
+  --code-bg: #1c1c1c;
 
   --box-margin: rgba(242, 163, 58, 0.08);
   --box-padding: rgba(63, 191, 117, 0.08);
@@ -153,8 +153,7 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--select);
-  outline-offset: 1px;
+  outline: none;
 }
 
 ::selection {

@@ -12,7 +12,8 @@ export interface ZipBuild {
   skipped: string[];
 }
 
-export async function buildProjectZip(project: ProjectInfo): Promise<ZipBuild> {
+/** `extra` files are written over the project's (used for a generated .env.example). */
+export async function buildProjectZip(project: ProjectInfo, extra: Record<string, string> = {}): Promise<ZipBuild> {
   const zip = new JSZip();
   const folder = zip.folder(path.basename(project.root))!;
   const files: string[] = [];
@@ -39,11 +40,15 @@ export async function buildProjectZip(project: ProjectInfo): Promise<ZipBuild> {
     }
   };
   visit(project.root);
+  for (const [rel, content] of Object.entries(extra)) {
+    folder.file(rel, content);
+    if (!files.includes(rel)) files.push(rel);
+  }
   const buffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 6 } });
   return { buffer, files, skipped };
 }
 
-export function runInstructions(project: ProjectInfo): string[] {
+export function runInstructions(project: ProjectInfo, envVars: string[] = []): string[] {
   const pm = project.packageManager;
   const run = pm === 'npm' ? 'npm run' : pm;
   let scripts: Record<string, string> = {};
@@ -53,6 +58,7 @@ export function runInstructions(project: ProjectInfo): string[] {
     /* fall back to defaults */
   }
   const steps = [`cd ${path.basename(project.root)}`, `${pm} install`];
+  if (envVars.length) steps.push(`cp .env.example .env   # then set ${envVars.join(', ')}`);
   if (scripts.dev) steps.push(`${run} dev`);
   if (scripts.build) steps.push(`${run} build`);
   return steps;

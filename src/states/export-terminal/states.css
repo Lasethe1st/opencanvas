@@ -1,0 +1,55 @@
+.state-layout--m4 {
+  max-width: 720px;
+}
+
+/* 208px list + 24px gap + 720px stage */
+@container state-page (min-width: 952px) {
+  .state-layout--m4 {
+    grid-template-columns: 208px 720px;
+  }
+}
+
+@container state-page (min-width: 532px) and (max-width: 951px) {
+  .state-layout--m4 {
+    display: flex;
+  }
+
+  .state-layout--m4 .state-switcher {
+    display: none;
+  }
+
+  .state-layout--m4 .state-switcher-select {
+    display: block;
+  }
+}
+
+/* A transform makes the dialog's fixed backdrop fill the stage instead of the page. */
+.state-stage--m4 {
+  position: relative;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  transform: translateZ(0);
+}
+
+.state-stage--m4.is-terminal {
+  height: 480px;
+  min-height: 0;
+}
+
+.state-stage--m4.is-export {
+  height: max(780px, calc(100dvh - 48px));
+}
+
+.state-stage__canvas {
+  flex: 1;
+  background-color: var(--canvas);
+  background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.state-stage--m4.is-export .state-stage__canvas {
+  position: absolute;
+  inset: 0;
+}

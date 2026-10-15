@@ -13,10 +13,22 @@ import {
   RectangleHorizontal,
   Trash2,
   Type,
+  Upload,
 } from 'lucide-react';
-import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { useEffect, useMemo, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import type { FileNode } from '../../shared/types';
-import { createFileOrFolder, deletePath, openFile, renamePath, runEdit, selectElement } from '../lib/actions';
+import {
+  createFileOrFolder,
+  deletePath,
+  importAssets,
+  importDroppedFiles,
+  openFile,
+  renamePath,
+  runEdit,
+  selectElement,
+  selectMany,
+  toggleInSelection,
+} from '../lib/actions';
 import { sendToPreview } from '../lib/bridge';
 import { findPath, setState, useStore, type TreeNode } from '../lib/store';
 import { Panel, SearchField, Tree, TreeRow } from '../ui/Panels.jsx';
@@ -161,6 +173,7 @@ function FileTreeNode({ node, ...props }: TreeProps & { node: FileNode }) {
           onToggle={() => toggle(node.path)}
           onClick={() => toggle(node.path)}
           title={node.path}
+          data-dir={node.path}
           icon={isOpen ? <FolderOpen size={14} className="tree-row__icon" /> : <Folder size={14} className="tree-row__icon" />}
           actions={
             !isRenaming && (
@@ -212,11 +225,34 @@ function FilesPanel({ query }: { query: string }) {
   const [renaming, setRenaming] = useState<string | null>(null);
   const nodes = useMemo(() => filterTree(tree?.children ?? [], query.trim()), [tree, query]);
   const props = { expanded, forceOpen: !!query.trim(), toggle, draft, startDraft: setDraft, endDraft: () => setDraft(null), renaming, setRenaming };
+  const [dropping, setDropping] = useState(false);
+  const hasFiles = (e: ReactDragEvent) => e.dataTransfer.types.includes('Files');
   return (
-    <>
+    <div
+      className={`files-drop${dropping ? ' is-dropping' : ''}`}
+      onDragOver={(e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        setDropping(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropping(false);
+      }}
+      onDrop={(e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        setDropping(false);
+        const dir = (e.target as HTMLElement).closest<HTMLElement>('[data-dir]')?.dataset.dir ?? 'public';
+        void importDroppedFiles(Array.from(e.dataTransfer.files), dir);
+      }}
+    >
       <SectionLabel
         actions={
           <>
+            <IconButton size="sm" label="Import files (SVG, images, fonts…)" onClick={() => void importAssets('public')}>
+              <Upload size={13} />
+            </IconButton>
             <IconButton size="sm" label="New file" onClick={() => setDraft({ kind: 'file', parent: '' })}>
               <FilePlus2 size={13} />
             </IconButton>
@@ -235,18 +271,31 @@ function FilesPanel({ query }: { query: string }) {
         ))}
       </Tree>
       {query.trim() && nodes.length === 0 && <div className="empty-note">No files match “{query.trim()}”.</div>}
-    </>
+      <div className="files-drop__hint">{dropping ? 'Drop to copy into the project' : 'Drag files here to import them into public/'}</div>
+    </div>
   );
 }
 
 /* ---------- Layers ---------- */
 
-function LayerNode({ node, depth, expanded, forceOpen, toggle }: { node: TreeNode; depth: number; expanded: Set<string>; forceOpen: boolean; toggle: (uid: string) => void }) {
+type LayerProps = { depth: number; expanded: Set<string>; forceOpen: boolean; toggle: (uid: string) => void; onSelect: (node: TreeNode, e: ReactMouseEvent) => void };
+
+function LayerNode({ node, ...props }: LayerProps & { node: TreeNode }) {
+  const { depth, expanded, forceOpen, toggle, onSelect } = props;
   const selectedUid = useStore((s) => s.selection?.uid);
+  const inGroup = useStore((s) => s.multiSelect.some((m) => m.uid === node.uid || m.id === node.id));
+  const grouped = useStore((s) => s.multiSelect.length > 0);
   const hoverUid = useStore((s) => s.hoverUid);
   const [renaming, setRenaming] = useState(false);
   const isOpen = forceOpen || expanded.has(node.uid);
-  const isSelected = selectedUid === node.uid;
+  const isPrimary = selectedUid === node.uid;
+  const isSelected = isPrimary || inGroup;
+  useEffect(() => {
+    if (!isPrimary) return;
+    const start = () => setRenaming(true);
+    window.addEventListener('oc-rename-layer', start);
+    return () => window.removeEventListener('oc-rename-layer', start);
+  }, [isPrimary]);
 
   const commitRename = (value: string) => {
     setRenaming(false);
@@ -264,14 +313,16 @@ function LayerNode({ node, depth, expanded, forceOpen, toggle }: { node: TreeNod
         expandable={node.children.length > 0}
         expanded={isOpen}
         onToggle={() => toggle(node.uid)}
-        onClick={() => selectElement(node.id, node.uid)}
-        onDoubleClick={() => setRenaming(true)}
+        aria-selected={isSelected}
+        onClick={(e) => onSelect(node, e)}
+        onDoubleClick={(e) => !e.shiftKey && !e.ctrlKey && !e.metaKey && setRenaming(true)}
         onMouseEnter={() => sendToPreview('hover', { id: node.id, uid: node.uid })}
         onMouseLeave={() => sendToPreview('hover', { id: null })}
         icon={layerIcon(node.tag)}
-        meta={node.tag}
+        meta={/^h[1-6]$/.test(node.tag) ? node.tag.toUpperCase() : node.tag}
         actions={
-          isSelected &&
+          isPrimary &&
+          !grouped &&
           !renaming && (
             <>
               <IconButton size="sm" label="Move up (Alt+↑)" onClick={move('up')}>
@@ -301,7 +352,7 @@ function LayerNode({ node, depth, expanded, forceOpen, toggle }: { node: TreeNod
           <span className="tree-row__name">{node.name}</span>
         )}
       </TreeRow>
-      {isOpen && node.children.map((child) => <LayerNode key={child.uid} node={child} depth={depth + 1} expanded={expanded} forceOpen={forceOpen} toggle={toggle} />)}
+      {isOpen && node.children.map((child) => <LayerNode key={child.uid} node={child} {...props} depth={depth + 1} />)}
     </>
   );
 }
@@ -347,6 +398,30 @@ function LayersPanel({ query }: { query: string }) {
       return next;
     });
 
+  const forceOpen = !!query.trim();
+  const onSelect = (node: TreeNode, e: ReactMouseEvent) => {
+    const item = { id: node.id, uid: node.uid, name: node.name };
+    if (e.ctrlKey || e.metaKey) return toggleInSelection(item);
+    if (e.shiftKey && selection) {
+      const visible: TreeNode[] = [];
+      const walk = (list: TreeNode[]) => {
+        for (const n of list) {
+          visible.push(n);
+          if (forceOpen || expanded.has(n.uid)) walk(n.children);
+        }
+      };
+      walk(nodes);
+      const from = visible.findIndex((n) => n.uid === selection.uid);
+      const to = visible.findIndex((n) => n.uid === node.uid);
+      if (from >= 0 && to >= 0) {
+        const range = from <= to ? visible.slice(from, to + 1) : visible.slice(to, from + 1).reverse();
+        return selectMany(range.map((n) => ({ id: n.id, uid: n.uid, name: n.name })));
+      }
+    }
+    setState({ multiSelect: [] });
+    selectElement(node.id, node.uid);
+  };
+
   return (
     <>
       <SectionLabel>Elements</SectionLabel>
@@ -355,7 +430,7 @@ function LayersPanel({ query }: { query: string }) {
       ) : (
         <Tree>
           {nodes.map((node) => (
-            <LayerNode key={node.uid} node={node} depth={0} expanded={expanded} forceOpen={!!query.trim()} toggle={toggle} />
+            <LayerNode key={node.uid} node={node} depth={0} expanded={expanded} forceOpen={forceOpen} toggle={toggle} onSelect={onSelect} />
           ))}
         </Tree>
       )}

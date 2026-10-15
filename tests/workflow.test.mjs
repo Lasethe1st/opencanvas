@@ -70,6 +70,37 @@ test('style edit updates JSX + CSS, and undo/redo restore exact files', () => {
   assert.equal(read(project, 'src/components/Hero.jsx'), hero);
 });
 
+test('choosing a Google font links it from index.html in the same undo step', () => {
+  const project = makeProject('landing');
+  const htmlBefore = read(project, 'index.html');
+  const id = idFor(project, 'src/components/Hero.jsx', '<h1');
+
+  const res = h.applyEdit(project, {
+    type: 'setStyle',
+    id,
+    breakpoint: 'base',
+    styles: { 'font-family': "'Playfair Display', serif" },
+    googleFont: 'Playfair Display:wght@400..900',
+  });
+  assert.equal(res.ok, true, res.error);
+  assert.ok(res.changes.some((c) => c.path === 'index.html'));
+  const html = read(project, 'index.html');
+  assert.ok(html.includes('href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..900&display=swap" data-oc-fonts'));
+  assert.match(read(project, 'src/open-canvas.css'), /font-family: 'Playfair Display', serif;/);
+
+  const again = h.applyEdit(project, { type: 'setStyle', id, breakpoint: 'tablet', styles: { 'font-family': 'Inter, sans-serif' }, googleFont: 'Inter:wght@100..900' });
+  assert.equal(again.ok, true, again.error);
+  assert.deepEqual(h.linkedGoogleFamilies(read(project, 'index.html')), ['Playfair Display', 'Inter']);
+
+  assert.equal(h.revertChanges(project.root, again.changes, 'undo').ok, true);
+  assert.equal(h.revertChanges(project.root, res.changes, 'undo').ok, true);
+  assert.equal(read(project, 'index.html'), htmlBefore);
+
+  const bad = h.applyEdit(project, { type: 'setStyle', id, breakpoint: 'base', styles: { 'font-family': 'x' }, googleFont: 'Evil"><script>' });
+  assert.equal(bad.ok, false);
+  assert.equal(read(project, 'index.html'), htmlBefore);
+});
+
 test('undo refuses when the file changed outside the history step', () => {
   const project = makeProject('blank');
   const id = idFor(project, 'src/App.jsx', '<main');
@@ -79,6 +110,115 @@ test('undo refuses when the file changed outside the history step', () => {
   const undo = h.revertChanges(project.root, res.changes, 'undo');
   assert.equal(undo.ok, false);
   assert.match(read(project, 'src/App.jsx'), /user edit/);
+});
+
+test('importing an SVG copies it into public/, is undoable, and can be inserted as an <img>', () => {
+  const project = makeProject('blank');
+  const src = path.join(TMP, `logo-${Date.now()}.svg`);
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>';
+  fs.writeFileSync(src, svg);
+  const png = path.join(TMP, `photo ${Date.now()}.png`);
+  fs.writeFileSync(png, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+
+  const first = h.importFiles(project.root, [src], 'public');
+  assert.equal(first.undoable, true);
+  assert.equal(first.files.length, 1);
+  assert.match(first.files[0], /^public\/logo-\d+\.svg$/);
+  assert.equal(read(project, first.files[0]), svg);
+  const again = h.importFiles(project.root, [src], 'public');
+  assert.notEqual(again.files[0], first.files[0], 'a second import gets a unique name');
+
+  const mixed = h.importFiles(project.root, [src, png], 'public');
+  assert.equal(mixed.undoable, false);
+  assert.deepEqual(mixed.changes, []);
+  assert.match(mixed.files[1], /^public\/photo-\d+\.png$/, 'spaces are sanitized');
+  assert.throws(() => h.importFiles(project.root, [TMP], 'public'), /not a file/);
+  assert.throws(() => h.importFiles(project.root, [src], '../outside'));
+
+  const root = idFor(project, 'src/App.jsx', '<main');
+  const url = first.files[0].slice('public'.length);
+  const img = h.applyEdit(project, { type: 'insert', parentId: root, kind: 'image', image: { src: url, alt: 'Logo "mark"' } });
+  assert.equal(img.ok, true, img.error);
+  const app = read(project, 'src/App.jsx');
+  assert.ok(app.includes(`src="${url}"`));
+  assert.ok(app.includes('alt={"Logo \\"mark\\""}'));
+  h.parseSource(app, 'App.jsx');
+
+  assert.equal(h.revertChanges(project.root, [...first.changes, ...img.changes], 'undo').ok, true);
+  assert.ok(!fs.existsSync(path.join(project.root, first.files[0])), 'undo removes the imported SVG');
+  assert.ok(!read(project, 'src/App.jsx').includes(url));
+});
+
+test('style and delete edits apply to every selected element', () => {
+  const project = makeProject('blank');
+  const root = idFor(project, 'src/App.jsx', '<main');
+  for (const kind of ['heading', 'paragraph', 'button']) assert.equal(h.applyEdit(project, { type: 'insert', parentId: root, kind }).ok, true);
+  const ids = ['<h', '<p', '<button'].map((needle) => idFor(project, 'src/App.jsx', needle));
+
+  const styled = h.applyEdit(project, { type: 'setStyle', id: ids[0], extraIds: ids.slice(1), breakpoint: 'base', styles: { color: 'red' } });
+  assert.equal(styled.ok, true, styled.error);
+  const app = read(project, 'src/App.jsx');
+  h.parseSource(app, 'App.jsx');
+  const keys = [...app.matchAll(/data-oc="([^"]+)"/g)].map((m) => m[1]);
+  assert.ok(keys.length >= 3);
+  const css = read(project, project.stylesFile);
+  for (const key of keys.slice(-3)) assert.match(css, new RegExp(`\\[data-oc="${key}"\\] \\{[^}]*\\n  color: red;`));
+
+  const freshIds = ['<h', '<p', '<button'].map((needle) => idFor(project, 'src/App.jsx', needle));
+  const removed = h.applyEdit(project, { type: 'remove', id: freshIds[1], extraIds: [freshIds[0], freshIds[2]] });
+  assert.equal(removed.ok, true, removed.error);
+  const after = read(project, 'src/App.jsx');
+  assert.ok(!/<h\d|<p[ >]|<button/.test(after), 'all three elements were removed');
+  h.parseSource(after, 'App.jsx');
+  assert.equal(h.revertChanges(project.root, [...removed.changes], 'undo').ok, true);
+  assert.equal(read(project, 'src/App.jsx'), app);
+});
+
+test('duplicate copies the element with fresh style keys; group and ungroup wrap and unwrap', () => {
+  const project = makeProject('blank');
+  const root = idFor(project, 'src/App.jsx', '<main');
+  const section = h.applyEdit(project, { type: 'insert', parentId: root, kind: 'section' });
+  assert.equal(section.ok, true, section.error);
+  const original = read(project, 'src/App.jsx');
+  const cssBefore = read(project, project.stylesFile);
+
+  const dup = h.applyEdit(project, { type: 'duplicate', id: section.selectId });
+  assert.equal(dup.ok, true, dup.error);
+  let app = read(project, 'src/App.jsx');
+  h.parseSource(app, 'App.jsx');
+  const keys = [...app.matchAll(/<section data-oc="([^"]+)"/g)].map((m) => m[1]);
+  assert.equal(keys.length, 2);
+  assert.notEqual(keys[0], keys[1], 'the copy has its own style key');
+  const css = read(project, project.stylesFile);
+  for (const key of keys) assert.match(css, new RegExp(`\\[data-oc="${key}"\\] \\{\\n  padding: 64px 32px;`));
+  assert.ok(dup.selectId.startsWith('src/App.jsx:') && dup.selectId !== section.selectId, 'the copy is selected');
+  assert.equal(h.inspectElement(project, dup.selectId).tag, 'section');
+
+  const heads = ['<section', '<section data-oc="' + keys[1]].map((needle) => idFor(project, 'src/App.jsx', needle));
+  const group = h.applyEdit(project, { type: 'group', id: heads[0], extraIds: [heads[1]] });
+  assert.equal(group.ok, true, group.error);
+  app = read(project, 'src/App.jsx');
+  h.parseSource(app, 'App.jsx');
+  assert.match(app, /<div data-oc="div-[a-z0-9]+" data-oc-name="Group">\n\s+<section[\s\S]*<\/section>\n\s+<section[\s\S]*<\/section>\n\s+<\/div>/);
+  assert.equal(h.inspectElement(project, group.selectId).tag, 'div');
+
+  const ungroup = h.applyEdit(project, { type: 'ungroup', id: group.selectId });
+  assert.equal(ungroup.ok, true, ungroup.error);
+  const unwrapped = read(project, 'src/App.jsx');
+  h.parseSource(unwrapped, 'App.jsx');
+  assert.ok(!unwrapped.includes('data-oc-name="Group"'));
+  assert.equal((unwrapped.match(/<section /g) ?? []).length, 2);
+
+  const notAdjacent = h.applyEdit(project, { type: 'insert', parentId: root, kind: 'heading' });
+  assert.equal(notAdjacent.ok, true);
+  const first = idFor(project, 'src/App.jsx', '<section');
+  const bad = h.applyEdit(project, { type: 'group', id: first, extraIds: [notAdjacent.selectId] });
+  assert.equal(bad.ok, false);
+  assert.match(bad.error, /next to each other/);
+
+  for (const change of [notAdjacent, ungroup, group, dup]) assert.equal(h.revertChanges(project.root, change.changes, 'undo').ok, true);
+  assert.equal(read(project, 'src/App.jsx'), original);
+  assert.equal(read(project, project.stylesFile), cssBefore);
 });
 
 test('insert, text, rename, move, attribute and remove on a blank page', () => {

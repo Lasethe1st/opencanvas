@@ -1,10 +1,10 @@
 import postcss, { type AtRule, type Root, type Rule } from 'postcss';
-import type { Breakpoint, BreakpointConfig } from '../types';
+import type { Breakpoint, BreakpointConfig, StyleState } from '../types';
 
 export const DEFAULT_BREAKPOINTS: BreakpointConfig = { tablet: 1024, mobile: 640, detected: false };
 
-export function selectorFor(key: string): string {
-  return `[data-oc="${key}"]`;
+export function selectorFor(key: string, state: StyleState = 'default'): string {
+  return `[data-oc="${key}"]${state === 'hover' ? ':hover' : ''}`;
 }
 
 function mediaParams(bp: Breakpoint, config: BreakpointConfig): string | null {
@@ -34,7 +34,7 @@ function findRule(container: Root | AtRule, selector: string): Rule | null {
   return found;
 }
 
-export function readElementStyles(css: string, key: string, config: BreakpointConfig): Record<Breakpoint, Record<string, string>> {
+export function readElementStyles(css: string, key: string, config: BreakpointConfig, state: StyleState = 'default'): Record<Breakpoint, Record<string, string>> {
   const result: Record<Breakpoint, Record<string, string>> = { base: {}, tablet: {}, mobile: {} };
   let root: Root;
   try {
@@ -42,7 +42,7 @@ export function readElementStyles(css: string, key: string, config: BreakpointCo
   } catch {
     return result;
   }
-  const selector = selectorFor(key);
+  const selector = selectorFor(key, state);
   for (const bp of ['base', 'tablet', 'mobile'] as Breakpoint[]) {
     const params = mediaParams(bp, config);
     const container = params ? findMedia(root, params) : root;
@@ -63,9 +63,10 @@ export function setElementStyle(
   prop: string,
   value: string,
   config: BreakpointConfig,
+  state: StyleState = 'default',
 ): string {
   const root = postcss.parse(css);
-  const selector = selectorFor(key);
+  const selector = selectorFor(key, state);
   const params = mediaParams(bp, config);
   let container: Root | AtRule | null = params ? findMedia(root, params) : root;
 
@@ -134,6 +135,20 @@ export function setElementStyle(
   }
   rule.raws.semicolon = true;
   return root.toString();
+}
+
+/** Copies every rule for `from` (base and media queries) to `to`, right after the original. */
+export function copyElementStyles(css: string, from: string, to: string): string {
+  const root = postcss.parse(css);
+  const states: StyleState[] = ['default', 'hover'];
+  let copied = false;
+  root.walkRules((rule) => {
+    const state = states.find((s) => rule.selector.trim() === selectorFor(from, s));
+    if (!state) return;
+    rule.after(rule.clone({ selector: selectorFor(to, state) }));
+    copied = true;
+  });
+  return copied ? root.toString() : css;
 }
 
 /** Picks the project's own max-width breakpoints when they look like tablet/mobile sizes. */

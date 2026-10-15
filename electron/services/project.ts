@@ -1,11 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { detectBreakpoints } from '../../shared/source/css';
-import type { FileNode, Framework, PackageManager, ProjectInfo } from '../../shared/types';
+import { FRAMEWORK_LABELS, type FileNode, type Framework, type PackageManager, type ProjectInfo, type ProjectSummary } from '../../shared/types';
+import { ADAPTERS, type DetectContext } from '../adapters';
 
 export const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.vite', '.next', '.cache', '.turbo', 'coverage', 'out']);
-
-const MANAGED_DEPS = new Set(['react', 'react-dom', 'vite', '@vitejs/plugin-react']);
 
 export class ProjectError extends Error {}
 
@@ -38,15 +37,6 @@ function detectPackageManager(root: string): PackageManager {
   return 'npm';
 }
 
-function findEntry(root: string): string | null {
-  const html = path.join(root, 'index.html');
-  if (!fs.existsSync(html)) return null;
-  const match = /<script[^>]*type=["']module["'][^>]*src=["']\/?([^"']+)["']/i.exec(fs.readFileSync(html, 'utf8'));
-  if (!match) return null;
-  const rel = match[1].replace(/^\.\//, '');
-  return fs.existsSync(path.join(root, rel)) ? rel : null;
-}
-
 function collectCss(dir: string, out: string[], depth = 0): void {
   if (depth > 6 || !fs.existsSync(dir)) return;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -57,6 +47,23 @@ function collectCss(dir: string, out: string[], depth = 0): void {
   }
 }
 
+export function detectContext(root: string, pkg: Record<string, any>): DetectContext {
+  return {
+    root,
+    pkg,
+    deps: { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) },
+    hasNodeModules: fs.existsSync(path.join(root, 'node_modules')),
+    exists: (rel) => fs.existsSync(path.join(root, rel)),
+    read: (rel) => {
+      try {
+        return fs.readFileSync(path.join(root, rel), 'utf8');
+      } catch {
+        return null;
+      }
+    },
+  };
+}
+
 export function detectProject(root: string): ProjectInfo {
   const pkgPath = path.join(root, 'package.json');
   if (!fs.existsSync(pkgPath)) {
@@ -64,32 +71,23 @@ export function detectProject(root: string): ProjectInfo {
   }
   const pkg = readJson(pkgPath);
   if (!pkg) throw new ProjectError('package.json could not be parsed.');
-  const deps: Record<string, string> = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
-  const warnings: string[] = [];
+  const ctx = detectContext(root, pkg);
+  const { deps, hasNodeModules } = ctx;
 
-  let framework: Framework = 'unknown';
-  if (deps.next) framework = 'next';
-  else if (deps.vite && deps.react) framework = 'vite-react';
-  else if (deps['react-scripts']) framework = 'cra';
+  const adapter = ADAPTERS.find((a) => a.detect(ctx)) ?? null;
+  const framework: Framework = adapter?.id ?? 'unknown';
+  const details = adapter
+    ? adapter.details(ctx)
+    : { entryFile: null, stylesFile: 'src/open-canvas.css', managedPreview: false, editableRoots: [], warnings: ['No supported framework detected. React + Vite and Next.js projects can be previewed and edited visually.'] };
+  const warnings = [...details.warnings];
 
-  const hasNodeModules = fs.existsSync(path.join(root, 'node_modules'));
-  const managedPreview = framework === 'vite-react' && Object.keys(deps).every((d) => MANAGED_DEPS.has(d));
-  const entryFile = framework === 'vite-react' ? findEntry(root) : null;
-
-  if (framework === 'next') warnings.push('Next.js projects are detected but not yet supported for preview or visual editing. You can browse and edit files in code view.');
-  if (framework === 'cra') warnings.push('Create React App projects are not supported for preview yet. You can browse and edit files in code view.');
-  if (framework === 'unknown') warnings.push('No supported framework detected. Only React + Vite projects can be previewed and edited visually.');
-  if (framework === 'vite-react' && !entryFile) warnings.push('Could not find the module entry script in index.html; styles file import must be added manually.');
   const missingDependencies = hasNodeModules ? Object.keys(deps).filter((d) => !fs.existsSync(path.join(root, 'node_modules', ...d.split('/'), 'package.json'))) : [];
-  if (framework === 'vite-react' && !hasNodeModules && !managedPreview) {
-    warnings.push('Dependencies are not installed. Install them to start the preview.');
-  }
   if (missingDependencies.length) {
     warnings.push(`Some dependencies are not installed (${missingDependencies.join(', ')}). Install dependencies to use them in the preview.`);
   }
 
   const css: string[] = [];
-  collectCss(path.join(root, 'src'), css);
+  for (const dir of details.editableRoots.length ? details.editableRoots : ['src']) collectCss(path.join(root, dir), css);
 
   return {
     root,
@@ -98,13 +96,47 @@ export function detectProject(root: string): ProjectInfo {
     packageManager: detectPackageManager(root),
     hasNodeModules,
     missingDependencies,
-    managedPreview,
-    entryFile,
-    stylesFile: 'src/open-canvas.css',
-    editable: framework === 'vite-react',
+    managedPreview: details.managedPreview,
+    entryFile: details.entryFile,
+    stylesFile: details.stylesFile,
+    canPreview: !!adapter?.supports.preview,
+    editable: !!adapter?.supports.visualEdit,
+    editableRoots: details.editableRoots,
     warnings,
     breakpoints: detectBreakpoints(css),
   };
+}
+
+export function projectSummary(info: ProjectInfo): ProjectSummary {
+  const ctx = detectContext(info.root, readJson(path.join(info.root, 'package.json')) ?? {});
+  const { deps } = ctx;
+  let router: string | null = null;
+  if (info.framework === 'next') router = ctx.exists('app') || ctx.exists('src/app') ? 'Next.js App Router' : 'Next.js Pages Router';
+  else if (deps['react-router'] || deps['react-router-dom']) router = 'React Router';
+  else if (info.entryFile && ctx.read(`${path.posix.dirname(info.entryFile)}/routes.jsx`)?.startsWith('// Managed by OpenCanvas')) router = 'OpenCanvas pages';
+
+  const css: string[] = [];
+  for (const dir of info.editableRoots.length ? info.editableRoots : ['src']) collectCss(path.join(info.root, dir), css);
+  const tailwind =
+    !!deps.tailwindcss ||
+    ['js', 'cjs', 'mjs', 'ts'].some((ext) => ctx.exists(`tailwind.config.${ext}`)) ||
+    css.some((c) => /@import\s+["']tailwindcss["']|@tailwind\s+base/.test(c));
+
+  const roots = info.editableRoots.map((r) => `${r}/`).join(', ');
+  return {
+    framework: FRAMEWORK_LABELS[info.framework],
+    packageManager: info.packageManager,
+    router,
+    tailwind,
+    shadcn: ctx.exists('components.json'),
+    scripts: Object.keys(ctx.pkg.scripts ?? {}),
+    editing: info.editable ? `Visual editing works on JSX in ${roots}.` : (info.warnings[0] ?? 'This project opens in code view only.'),
+  };
+}
+
+/** Whether a project-relative file sits in one of the folders whose JSX gets source ids. */
+export function isEditablePath(info: Pick<ProjectInfo, 'editableRoots'>, rel: string): boolean {
+  return info.editableRoots.some((r) => rel.startsWith(`${r}/`)) && !rel.includes('/node_modules/');
 }
 
 export function listTree(root: string): FileNode {
@@ -119,6 +151,17 @@ export function listTree(root: string): FileNode {
     });
   };
   return { name: path.basename(root), path: '', type: 'dir', children: build(root, 0) };
+}
+
+/** The nearest folder at or above `start` that has a package.json. */
+export function findProjectRoot(start: string): string {
+  let dir = fs.existsSync(start) && fs.statSync(start).isFile() ? path.dirname(start) : start;
+  for (;;) {
+    if (fs.existsSync(path.join(dir, 'package.json'))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) throw new ProjectError('That file isn’t inside a project. OpenCanvas looks for a folder with a package.json.');
+    dir = parent;
+  }
 }
 
 export function slugify(name: string): string {
