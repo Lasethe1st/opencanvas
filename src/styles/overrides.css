@@ -504,3 +504,38 @@ kbd, .kbd,
 .inspector-more__body { display: flex; flex-direction: column; gap: 8px; }
 .inspector-head__source { margin-left: 2px; color: var(--fg-3); }
 .inspector-head__source:hover { color: var(--fg); }
+
+/* Full-bleed canvas: the stage fills everything under the top bar; chrome floats over it as cards. */
+.topbar {
+  margin: 8px 8px 0;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.workspace--bleed { background: transparent; }
+.workspace--bleed > .workspace__center {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
+.workspace--bleed > :not(.workspace__center) { position: relative; z-index: 2; }
+.workspace--bleed > .workspace__center + * { margin-left: auto; }
+.workspace--bleed .stage { border-radius: 0; border: none; }
+.workspace--bleed > div:first-child > .tool-rail,
+.workspace--bleed > .panel { border-radius: 12px; }
+.shell:has(.workspace--bleed) { grid-template-rows: calc(var(--topbar-h) + 8px) minmax(0, 1fr); }
+.shell:has(.workspace--bleed) .workspace { margin-top: 0; }
+
+/* Bottom chrome stays inside the visible (uncovered) part of the stage. */
+.workspace--bleed .canvas-nav { right: calc(var(--inset-r, 0px) + 12px); }
+.workspace--bleed .dock {
+  left: max(calc(var(--inset-l, 0px) + 16px), calc(var(--inset-l, 0px) + (100% - var(--inset-l, 0px) - var(--inset-r, 0px) - 560px) / 2));
+  right: calc(var(--inset-r, 0px) + 312px);
+  width: auto;
+  max-width: 560px;
+  transform: none;
+}
