@@ -72,13 +72,21 @@ export function ProjectIcon({ src, name }) {
   );
 }
 
+/** Keep the last two folders so the row stays one line; the full path is in the tooltip. */
+function shortPath(path) {
+  if (typeof path !== 'string') return path;
+  const sep = path.includes('\\') ? '\\' : '/';
+  const parts = path.split(sep).filter(Boolean);
+  return parts.length > 3 ? `…${sep}${parts.slice(-2).join(sep)}` : path;
+}
+
 export function RecentItem({ icon, name, path, meta, active, ...rest }) {
   return (
-    <button className={cx('recent-item', active && 'is-active')} aria-description={path} {...rest}>
+    <button className={cx('recent-item', active && 'is-active')} title={path} aria-description={path} {...rest}>
       {icon}
       <span className="recent-item__text">
         <strong>{name}</strong>
-        <span title={path}>{path}</span>
+        <span className="recent-item__path">{shortPath(path)}</span>
       </span>
       {meta && <span className="recent-item__meta">{meta}</span>}
     </button>

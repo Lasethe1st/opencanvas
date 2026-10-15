@@ -144,8 +144,6 @@
 
 .recent-item__text span {
   color: var(--fg-3);
-  white-space: normal;
-  overflow-wrap: anywhere;
 }
 
 .empty-note {
@@ -244,5 +242,5 @@ body {
 }
 
 .inspector-empty svg {
-  color: var(--fg-4);
+  color: var(--fg-3);
 }
