@@ -1,4 +1,4 @@
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Code2, ImageUp, MousePointerClick } from 'lucide-react';
+import { Columns3, Crosshair, EyeOff, LayoutGrid, Minus, Move, Square, TextCursor, AlignCenter, AlignJustify, AlignLeft, AlignRight, Code2, ImageUp, MousePointerClick } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { RETAGGABLE_TAGS, type StyleState } from '../../shared/types';
 import { chooseImageForSelection, revealInCode, runEdit, setStyle, setTag } from '../lib/actions';
@@ -194,8 +194,32 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
   return (
     <Section title="Layout">
       {!grouped && <TagSelect disabled={disabled} />}
-      <StyleSelect prop="display" label="Display" options={['block', 'inline', 'inline-block', 'flex', 'inline-flex', 'grid', 'none']} disabled={disabled} />
-      <StyleSelect prop="position" label="Position" options={['static', 'relative', 'absolute', 'fixed', 'sticky']} disabled={disabled} />
+      <ToggleGroup
+        prop="display"
+        label="Display"
+        exclusive
+        disabled={disabled}
+        extra={['inline-block', 'inline-flex', 'inline-grid', 'contents']}
+        options={[
+          { value: 'block', icon: <Square size={13} />, title: 'Block' },
+          { value: 'flex', icon: <Columns3 size={13} />, title: 'Flex' },
+          { value: 'grid', icon: <LayoutGrid size={13} />, title: 'Grid' },
+          { value: 'inline', icon: <TextCursor size={13} />, title: 'Inline' },
+          { value: 'none', icon: <EyeOff size={13} />, title: 'Hidden (none)' },
+        ]}
+      />
+      <ToggleGroup
+        prop="position"
+        label="Position"
+        exclusive
+        disabled={disabled}
+        extra={['fixed', 'sticky']}
+        options={[
+          { value: 'static', icon: <Minus size={13} />, title: 'Static' },
+          { value: 'relative', icon: <Move size={13} />, title: 'Relative' },
+          { value: 'absolute', icon: <Crosshair size={13} />, title: 'Absolute' },
+        ]}
+      />
       <div className="grid-2">
         <CompactInput prop="width" prefix="W" disabled={disabled} />
         <CompactInput prop="height" prefix="H" disabled={disabled} />

@@ -233,8 +233,50 @@ export function ColorInput({ prop, label, disabled }: { prop: string; label: str
   );
 }
 
-export function ToggleGroup({ prop, label, options, disabled }: { prop: string; label: string; options: { value: string; icon: ReactNode; title: string }[]; disabled?: boolean }) {
+export function ToggleGroup({
+  prop,
+  label,
+  options,
+  disabled,
+  extra,
+  exclusive,
+}: {
+  prop: string;
+  label: string;
+  options: { value: string; icon: ReactNode; title: string }[];
+  disabled?: boolean;
+  /** Less common values, offered in a small overflow select after the icons. */
+  extra?: string[];
+  /** Clicking the active icon keeps it (no reset); for props that always have a value. */
+  exclusive?: boolean;
+}) {
   const value = useStyleValue(prop);
+  if (extra?.length) {
+    const inExtra = extra.includes(value.value);
+    return (
+      <div className="field">
+        <span className="field__label" title={stateTitle(value)}>
+          {value.state !== 'computed' && <span className={`marker marker--${value.state}`} />}
+          {label}
+        </span>
+        <fieldset disabled={disabled} className="fieldset-reset toggle-more">
+          <ToggleRow options={options} value={value.value} onChange={(v) => void setStyle(prop, !exclusive && value.state === 'set' && value.value === v ? '' : v)} />
+          <span className={`toggle-more__select${inExtra ? ' is-active' : ''}`}>
+            <select aria-label={`More ${label.toLowerCase()} values`} title="More values" value={inExtra ? value.value : ''} onChange={(e) => e.target.value && void setStyle(prop, e.target.value)}>
+              <option value="" disabled>
+                …
+              </option>
+              {extra.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+          </span>
+        </fieldset>
+      </div>
+    );
+  }
   return (
     <div className="field">
       <span className="field__label" title={stateTitle(value)}>
