@@ -1,4 +1,4 @@
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Code2, ImageUp } from 'lucide-react';
+import { Columns3, Crosshair, EyeOff, LayoutGrid, Minus, Move, Square, TextCursor, AlignCenter, AlignJustify, AlignLeft, AlignRight, Code2, ImageUp, MousePointerClick } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { RETAGGABLE_TAGS, type StyleState } from '../../shared/types';
 import { chooseImageForSelection, revealInCode, runEdit, setStyle, setTag } from '../lib/actions';
@@ -10,11 +10,13 @@ import { FrameworkLabel, PackageManagerLabel } from './BrandLogos';
 import { SCOPE_LABEL } from './Canvas';
 import { BoxModel } from './inspector/BoxModel';
 import { FontPicker } from './inspector/FontPicker';
-import { ColorInput, CommitInput, CompactInput, CompactSelect, Section, StyleField, StyleInput, StyleSelect, ToggleGroup } from './inspector/fields';
+import { ColorInput, CommitInput, CompactInput, CompactSelect, More, Section, StyleField, StyleInput, StyleSelect, ToggleGroup } from './inspector/fields';
 import { useStyleValue } from './inspector/useStyleValue';
 import { Resizer } from './Resizer';
 
 const TEXT_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'button', 'label', 'li', 'strong', 'em', 'small', 'summary', 'blockquote', 'figcaption', 'td', 'th']);
+/** Elements that never render text of their own: no Typography section. */
+const NO_TEXT_TAGS = new Set(['img', 'video', 'picture', 'svg', 'canvas', 'iframe', 'hr', 'br', 'audio']);
 const FONT_WEIGHTS = ['100', '200', '300', '400', '500', '600', '700', '800', '900'];
 
 function ElementHeader() {
@@ -188,28 +190,46 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
   const position = useStyleValue('position').value;
   const isFlex = display === 'flex' || display === 'inline-flex';
   const isGrid = display === 'grid' || display === 'inline-grid';
+  const positioned = !!position && position !== 'static';
   return (
     <Section title="Layout">
       {!grouped && <TagSelect disabled={disabled} />}
-      <StyleSelect prop="display" label="Display" options={['block', 'inline', 'inline-block', 'flex', 'inline-flex', 'grid', 'none']} disabled={disabled} />
-      <StyleSelect prop="position" label="Position" options={['static', 'relative', 'absolute', 'fixed', 'sticky']} disabled={disabled} />
-      {position !== 'static' && position && (
-        <div className="grid-2">
-          <CompactInput prop="top" prefix="T" disabled={disabled} />
-          <CompactInput prop="right" prefix="R" disabled={disabled} />
-          <CompactInput prop="bottom" prefix="B" disabled={disabled} />
-          <CompactInput prop="left" prefix="L" disabled={disabled} />
-        </div>
-      )}
+      <ToggleGroup
+        prop="display"
+        label="Display"
+        exclusive
+        disabled={disabled}
+        extra={['inline-block', 'inline-flex', 'inline-grid', 'contents']}
+        options={[
+          { value: 'block', icon: <Square size={13} />, title: 'Block' },
+          { value: 'flex', icon: <Columns3 size={13} />, title: 'Flex' },
+          { value: 'grid', icon: <LayoutGrid size={13} />, title: 'Grid' },
+          { value: 'inline', icon: <TextCursor size={13} />, title: 'Inline' },
+          { value: 'none', icon: <EyeOff size={13} />, title: 'Hidden (none)' },
+        ]}
+      />
+      <ToggleGroup
+        prop="position"
+        label="Position"
+        exclusive
+        disabled={disabled}
+        extra={['fixed', 'sticky']}
+        options={[
+          { value: 'static', icon: <Minus size={13} />, title: 'Static' },
+          { value: 'relative', icon: <Move size={13} />, title: 'Relative' },
+          { value: 'absolute', icon: <Crosshair size={13} />, title: 'Absolute' },
+        ]}
+      />
       <div className="grid-2">
         <CompactInput prop="width" prefix="W" disabled={disabled} />
         <CompactInput prop="height" prefix="H" disabled={disabled} />
-        <CompactInput prop="min-width" prefix="Min W" disabled={disabled} />
-        <CompactInput prop="min-height" prefix="Min H" disabled={disabled} />
-        <CompactInput prop="max-width" prefix="Max W" disabled={disabled} />
-        <CompactInput prop="max-height" prefix="Max H" disabled={disabled} />
+        {positioned && (
+          <>
+            <CompactInput prop="left" prefix="X" disabled={disabled} />
+            <CompactInput prop="top" prefix="Y" disabled={disabled} />
+          </>
+        )}
       </div>
-      <StyleSelect prop="overflow" label="Overflow" options={['visible', 'hidden', 'auto', 'scroll', 'clip']} disabled={disabled} />
       {isFlex && (
         <>
           <StyleSelect prop="flex-direction" label="Direction" options={['row', 'row-reverse', 'column', 'column-reverse']} disabled={disabled} />
@@ -229,6 +249,21 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
           <StyleInput prop="grid-template-rows" label="Rows" placeholder="auto" disabled={disabled} />
         </>
       )}
+      <More label="Size limits & overflow">
+        <div className="grid-2">
+          <CompactInput prop="min-width" prefix="Min W" disabled={disabled} />
+          <CompactInput prop="min-height" prefix="Min H" disabled={disabled} />
+          <CompactInput prop="max-width" prefix="Max W" disabled={disabled} />
+          <CompactInput prop="max-height" prefix="Max H" disabled={disabled} />
+          {positioned && (
+            <>
+              <CompactInput prop="right" prefix="R" disabled={disabled} />
+              <CompactInput prop="bottom" prefix="B" disabled={disabled} />
+            </>
+          )}
+        </div>
+        <StyleSelect prop="overflow" label="Overflow" options={['visible', 'hidden', 'auto', 'scroll', 'clip']} disabled={disabled} />
+      </More>
     </Section>
   );
 }
@@ -239,8 +274,6 @@ function TypographySection({ disabled }: { disabled: boolean }) {
       <FontPicker disabled={disabled} />
       <div className="grid-2">
         <CompactInput prop="font-size" prefix="Size" disabled={disabled} />
-        <CompactInput prop="line-height" prefix="Line" disabled={disabled} />
-        <CompactInput prop="letter-spacing" prefix="Spacing" disabled={disabled} />
         <CompactSelect prop="font-weight" prefix="Weight" options={FONT_WEIGHTS} disabled={disabled} />
       </div>
       <ToggleGroup
@@ -254,30 +287,40 @@ function TypographySection({ disabled }: { disabled: boolean }) {
           { value: 'justify', icon: <AlignJustify size={13} />, title: 'Justify' },
         ]}
       />
-      <StyleSelect prop="text-decoration" label="Decoration" options={['none', 'underline', 'line-through', 'overline']} disabled={disabled} />
-      <StyleSelect prop="text-transform" label="Transform" options={['none', 'uppercase', 'lowercase', 'capitalize']} disabled={disabled} />
       <ColorInput prop="color" label="Color" disabled={disabled} />
+      <More>
+        <div className="grid-2">
+          <CompactInput prop="line-height" prefix="Line" disabled={disabled} />
+          <CompactInput prop="letter-spacing" prefix="Spacing" disabled={disabled} />
+        </div>
+        <StyleSelect prop="text-decoration" label="Decoration" options={['none', 'underline', 'line-through', 'overline']} disabled={disabled} />
+        <StyleSelect prop="text-transform" label="Transform" options={['none', 'uppercase', 'lowercase', 'capitalize']} disabled={disabled} />
+      </More>
     </Section>
   );
 }
 
-function AppearanceSection({ disabled }: { disabled: boolean }) {
+function AppearanceSection({ disabled, isMedia }: { disabled: boolean; isMedia: boolean }) {
   return (
     <Section title="Appearance">
-      <ColorInput prop="background-color" label="Background" disabled={disabled} />
-      <StyleInput prop="background-image" label="Bg image" placeholder="url(/bg.jpg)" disabled={disabled} />
-      <StyleInput prop="opacity" label="Opacity" placeholder="1" disabled={disabled} />
+      <ColorInput prop="background-color" label="Fill" disabled={disabled} />
       <div className="grid-2">
-        <CompactInput prop="border-width" prefix="Border" disabled={disabled} />
         <CompactInput prop="border-radius" prefix="Radius" disabled={disabled} />
+        <CompactInput prop="opacity" prefix="Opacity" disabled={disabled} />
       </div>
-      <StyleSelect prop="border-style" label="Border style" options={['none', 'solid', 'dashed', 'dotted', 'double']} disabled={disabled} />
-      <ColorInput prop="border-color" label="Border color" disabled={disabled} />
-      <StyleInput prop="box-shadow" label="Shadow" placeholder="0 4px 12px rgba(0,0,0,.1)" disabled={disabled} />
-      <StyleInput prop="transform" label="Transform" placeholder="translateY(-2px)" disabled={disabled} />
-      <StyleInput prop="transition" label="Transition" placeholder="all 0.2s ease" disabled={disabled} />
-      <StyleSelect prop="cursor" label="Cursor" options={['auto', 'default', 'pointer', 'text', 'move', 'not-allowed']} disabled={disabled} />
-      <StyleSelect prop="visibility" label="Visibility" options={['visible', 'hidden']} disabled={disabled} />
+      <More label="Border, effects & more">
+        <div className="grid-2">
+          <CompactInput prop="border-width" prefix="Border" disabled={disabled} />
+          <CompactSelect prop="border-style" prefix="Style" options={['none', 'solid', 'dashed', 'dotted', 'double']} disabled={disabled} />
+        </div>
+        <ColorInput prop="border-color" label="Border color" disabled={disabled} />
+        {!isMedia && <StyleInput prop="background-image" label="Bg image" placeholder="url(/bg.jpg)" disabled={disabled} />}
+        <StyleInput prop="box-shadow" label="Shadow" placeholder="0 4px 12px rgba(0,0,0,.1)" disabled={disabled} />
+        <StyleInput prop="transform" label="Transform" placeholder="translateY(-2px)" disabled={disabled} />
+        <StyleInput prop="transition" label="Transition" placeholder="all 0.2s ease" disabled={disabled} />
+        <StyleSelect prop="cursor" label="Cursor" options={['auto', 'default', 'pointer', 'text', 'move', 'not-allowed']} disabled={disabled} />
+        <StyleSelect prop="visibility" label="Visibility" options={['visible', 'hidden']} disabled={disabled} />
+      </More>
     </Section>
   );
 }
@@ -298,7 +341,10 @@ function PageSettings() {
         <div className="inspector-head__row">
           <strong className="inspector-head__title">Page</strong>
         </div>
-        <div className="inspector-head__meta">Select an element on the canvas or in Layers to edit it.</div>
+        <div className="inspector-head__meta inspector-empty">
+          <MousePointerClick size={20} aria-hidden="true" />
+          <span>Select an element on the canvas or in Layers to edit it.</span>
+        </div>
       </div>
       <Section title="Project">
         <KeyValue label="Framework">
@@ -386,8 +432,8 @@ export function Inspector() {
           <Section title="Spacing">
             <BoxModel disabled={disabled} />
           </Section>
-          <TypographySection disabled={disabled} />
-          <AppearanceSection disabled={disabled} />
+          {(grouped || !NO_TEXT_TAGS.has(selection.tag)) && <TypographySection disabled={disabled} />}
+          <AppearanceSection disabled={disabled} isMedia={!grouped && NO_TEXT_TAGS.has(selection.tag)} />
           <p className="empty-note legend">
             <span className="marker marker--set" /> set at this breakpoint <span className="marker marker--inherited" /> inherited
             <br />

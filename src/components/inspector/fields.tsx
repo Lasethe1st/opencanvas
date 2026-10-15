@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { evaluateExpression, stepSize, stepValue } from '../../../shared/numeric';
 import { setStyle } from '../../lib/actions';
 import { Field, InputShell, Section as SectionShell, SelectShell, Swatch, ToggleRow } from '../../ui/primitives.jsx';
@@ -10,6 +11,20 @@ export function Section({ title, children, defaultOpen = true }: { title: string
     <SectionShell title={title} open={open} onToggle={() => setOpen((o) => !o)}>
       {children}
     </SectionShell>
+  );
+}
+
+/** Collapsed-by-default group for the less common controls in a section. */
+export function More({ label = 'More', children }: { label?: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`inspector-more${open ? ' is-open' : ''}`}>
+      <button type="button" className="inspector-more__toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <ChevronRight size={12} className="inspector-more__chevron" aria-hidden="true" />
+        {label}
+      </button>
+      {open && <div className="inspector-more__body">{children}</div>}
+    </div>
   );
 }
 
@@ -218,8 +233,50 @@ export function ColorInput({ prop, label, disabled }: { prop: string; label: str
   );
 }
 
-export function ToggleGroup({ prop, label, options, disabled }: { prop: string; label: string; options: { value: string; icon: ReactNode; title: string }[]; disabled?: boolean }) {
+export function ToggleGroup({
+  prop,
+  label,
+  options,
+  disabled,
+  extra,
+  exclusive,
+}: {
+  prop: string;
+  label: string;
+  options: { value: string; icon: ReactNode; title: string }[];
+  disabled?: boolean;
+  /** Less common values, offered in a small overflow select after the icons. */
+  extra?: string[];
+  /** Clicking the active icon keeps it (no reset); for props that always have a value. */
+  exclusive?: boolean;
+}) {
   const value = useStyleValue(prop);
+  if (extra?.length) {
+    const inExtra = extra.includes(value.value);
+    return (
+      <div className="field">
+        <span className="field__label" title={stateTitle(value)}>
+          {value.state !== 'computed' && <span className={`marker marker--${value.state}`} />}
+          {label}
+        </span>
+        <fieldset disabled={disabled} className="fieldset-reset toggle-more">
+          <ToggleRow options={options} value={value.value} onChange={(v) => void setStyle(prop, !exclusive && value.state === 'set' && value.value === v ? '' : v)} />
+          <span className={`toggle-more__select${inExtra ? ' is-active' : ''}`}>
+            <select aria-label={`More ${label.toLowerCase()} values`} title="More values" value={inExtra ? value.value : ''} onChange={(e) => e.target.value && void setStyle(prop, e.target.value)}>
+              <option value="" disabled>
+                …
+              </option>
+              {extra.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+          </span>
+        </fieldset>
+      </div>
+    );
+  }
   return (
     <div className="field">
       <span className="field__label" title={stateTitle(value)}>

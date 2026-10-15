@@ -1,11 +1,12 @@
 import { forwardRef } from 'react';
 import { cx } from './primitives.jsx';
 
-export function StartScreen({ corner, search, actions, recent, children }) {
+export function StartScreen({ corner, greeting, search, actions, recent, children }) {
   return (
     <div className="start">
       <div className="start__corner">{corner}</div>
       <div className="start__inner">
+        {greeting && <h1 className="start__greeting">{greeting}</h1>}
         {search}
         <div className="start-actions">{actions}</div>
         {recent}
@@ -71,13 +72,21 @@ export function ProjectIcon({ src, name }) {
   );
 }
 
+/** Keep the last two folders so the row stays one line; the full path is in the tooltip. */
+function shortPath(path) {
+  if (typeof path !== 'string') return path;
+  const sep = path.includes('\\') ? '\\' : '/';
+  const parts = path.split(sep).filter(Boolean);
+  return parts.length > 3 ? `…${sep}${parts.slice(-2).join(sep)}` : path;
+}
+
 export function RecentItem({ icon, name, path, meta, active, ...rest }) {
   return (
-    <button className={cx('recent-item', active && 'is-active')} {...rest}>
+    <button className={cx('recent-item', active && 'is-active')} title={path} aria-description={path} {...rest}>
       {icon}
       <span className="recent-item__text">
         <strong>{name}</strong>
-        <span>{path}</span>
+        <span className="recent-item__path">{shortPath(path)}</span>
       </span>
       {meta && <span className="recent-item__meta">{meta}</span>}
     </button>

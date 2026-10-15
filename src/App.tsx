@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Canvas } from './components/Canvas';
 import { BugCheckPanel } from './components/BugCheck';
 import { CodeView } from './components/CodeView';
@@ -110,6 +110,8 @@ export default function App() {
     };
   }, []);
 
+  const workspaceRef = useFloatingInsets(mode === 'visual' && !!project, !!project);
+
   if (!project) {
     return (
       <>
@@ -122,7 +124,7 @@ export default function App() {
   return (
     <div className="shell">
       <TopBar />
-      <div className="workspace">
+      <div className={`workspace${mode === 'visual' ? ' workspace--bleed' : ''}`} ref={workspaceRef}>
         <ToolRail />
         {gitOpen ? <GitPanel /> : <LeftSidebar />}
         <div className="workspace__center">
@@ -140,4 +142,50 @@ export default function App() {
       <Toasts />
     </div>
   );
+}
+
+/**
+ * In the full-bleed canvas the side chrome floats over the stage. Publish how much of each edge it covers
+ * as --inset-l / --inset-r on the canvas area, so fit-to-frames and the bottom chrome can stay clear of it.
+ */
+function useFloatingInsets(active: boolean, mounted: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const ws = ref.current;
+    if (!ws) return;
+    const center = ws.querySelector<HTMLElement>('.workspace__center');
+    if (!center) return;
+    const update = () => {
+      if (!active) {
+        center.style.removeProperty('--inset-l');
+        center.style.removeProperty('--inset-r');
+        return;
+      }
+      const box = center.getBoundingClientRect();
+      let left = 0;
+      let right = 0;
+      for (const el of ws.querySelectorAll<HTMLElement>('.tool-rail, .workspace > .panel')) {
+        const r = el.getBoundingClientRect();
+        if (!r.width) continue;
+        if (r.left + r.width / 2 < box.left + box.width / 2) left = Math.max(left, r.right - box.left);
+        else right = Math.max(right, box.right - r.left);
+      }
+      center.style.setProperty('--inset-l', `${Math.round(left)}px`);
+      center.style.setProperty('--inset-r', `${Math.round(right)}px`);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(ws);
+    for (const el of ws.children) ro.observe(el);
+    const mo = new MutationObserver(() => {
+      for (const el of ws.children) ro.observe(el);
+      update();
+    });
+    mo.observe(ws, { childList: true });
+    return () => {
+      ro.disconnect();
+      mo.disconnect();
+    };
+  }, [active, mounted]);
+  return ref;
 }

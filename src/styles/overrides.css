@@ -1,0 +1,575 @@
+/*
+ * Design polish layer (loaded last). Keeps src/ui untouched so it can be
+ * re-exported from Open Canvas Light without conflicts.
+ * Direction: one radius scale, one accent, visible focus, more breathing room,
+ * gentle motion.
+ */
+
+/* 1. Corners: one radius scale */
+:root,
+:root[data-theme],
+[data-theme='dark'] {
+  --r-sm: 6px;
+  --r: 8px;
+  --r-lg: 12px;
+  --r-xl: 12px;
+  --r-pill: 999px;
+  --control-h: 32px;
+}
+
+.tag {
+  border-radius: var(--r-pill);
+}
+
+.minimap,
+.canvas-nav__bar,
+.recent-item {
+  border-radius: var(--r-lg);
+}
+
+/* 2. Visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+/* 3. One accent color (light and dark) */
+:root,
+[data-theme='light'] {
+  --accent: var(--select);
+  --accent-hover: #2563eb;
+  --accent-fg: #ffffff;
+  --accent-soft: var(--select-soft);
+  --accent-line: rgba(59, 130, 246, 0.35);
+  --box-margin: rgba(59, 130, 246, 0.05);
+  --box-padding: rgba(59, 130, 246, 0.1);
+}
+
+[data-theme='dark'] {
+  --accent: var(--select);
+  --accent-hover: #6aa1f8;
+  --accent-fg: #ffffff;
+  --accent-soft: var(--select-soft);
+  --accent-line: rgba(79, 143, 247, 0.4);
+  --box-margin: rgba(79, 143, 247, 0.06);
+  --box-padding: rgba(79, 143, 247, 0.12);
+}
+
+/* Start screen pills: neutral, with only "Start new project" in the accent */
+.action-pill.action-pill--violet[class],
+.action-pill.action-pill--green[class],
+.action-pill.action-pill--amber[class] {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--fg);
+}
+
+.action-pill.action-pill--violet[class] .action-pill__icon,
+.action-pill.action-pill--green[class] .action-pill__icon,
+.action-pill.action-pill--amber[class] .action-pill__icon {
+  color: var(--fg-3);
+}
+
+@media (hover: hover) {
+  .action-pill.action-pill--violet[class]:hover,
+  .action-pill.action-pill--green[class]:hover,
+  .action-pill.action-pill--amber[class]:hover {
+    border-color: var(--line-strong);
+    background: var(--hover);
+  }
+}
+
+.action-pill--blue {
+  --tone: var(--accent);
+}
+
+.action-pill.action-pill--blue[class] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.action-pill.action-pill--blue[class] .action-pill__icon {
+  color: inherit;
+}
+
+/* 4. Breathing room: group inspector sections with space, not dividers */
+.section {
+  border-bottom: none;
+}
+
+.section__head {
+  padding: 16px 16px 8px;
+}
+
+.section__body {
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.field input,
+.field select {
+  font-variant-numeric: tabular-nums;
+}
+
+.tool-rail__sep {
+  height: 8px;
+  background: transparent;
+}
+
+/* 5. Start screen: centered, quieter paths */
+.start__inner {
+  justify-content: center;
+  min-height: 100%;
+  width: 100%;
+  max-width: 696px; /* 640px of content plus 28px side padding */
+  padding-top: 120px;
+  gap: 16px;
+}
+
+.start-actions {
+  gap: 12px;
+  margin-top: 0;
+}
+
+.start__inner .recent {
+  margin-top: 24px;
+}
+
+@media (hover: hover) {
+  .recent-item:hover {
+    background: var(--hover);
+  }
+}
+
+.recent-item__text span {
+  color: var(--fg-3);
+}
+
+.empty-note {
+  padding: 32px 16px;
+  text-align: center;
+}
+
+/* Gentle press motion, buttons only */
+@media (prefers-reduced-motion: no-preference) {
+  .tool-btn,
+  .icon-btn,
+  .action-pill,
+  .btn {
+    transition:
+      background-color 0.15s ease-out,
+      border-color 0.15s ease-out,
+      scale 0.15s ease-out;
+  }
+
+  .tool-btn:active:not(:disabled),
+  .icon-btn:active:not(:disabled),
+  .action-pill:active:not(:disabled),
+  .btn:active:not(:disabled) {
+    transform: none;
+    scale: 0.96;
+  }
+}
+
+.recent-item {
+  transition: background-color 0.15s ease-out;
+}
+
+/* Keep scrolling inside menus and panels */
+.popover,
+.font-menu__list,
+.panel__body,
+.settings-page__content,
+.dialog__body {
+  overscroll-behavior: contain;
+}
+
+/* On touch screens, don't leave a tapped control highlighted */
+@media (hover: none) {
+  .tool-btn:hover:not(.is-active),
+  .icon-btn:hover,
+  .recent-item:hover {
+    background: transparent;
+  }
+
+  .action-pill.action-pill--violet[class]:hover,
+  .action-pill.action-pill--green[class]:hover,
+  .action-pill.action-pill--amber[class]:hover {
+    background: var(--surface);
+  }
+}
+
+/* Consistent 16px edge inset for panel and inspector headers */
+.panel__head {
+  padding: 0 8px 0 16px;
+}
+
+.inspector-head {
+  padding: 16px 16px 12px;
+}
+
+/* Typography hierarchy */
+body {
+  font-size: 13px;
+}
+
+/* Start screen greeting */
+.start__greeting {
+  margin: 0 0 8px;
+  color: var(--fg);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+/* Logo mark in the top bar */
+.brand__mark {
+  display: block;
+  flex: none;
+}
+
+/* Friendly empty inspector */
+.inspector-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 8px 8px;
+  color: var(--fg-3);
+  text-align: center;
+}
+
+.inspector-empty svg {
+  color: var(--fg-3);
+}
+
+/* ---------------------------------------------------------------
+ * Editor
+ * ------------------------------------------------------------- */
+
+/* Top bar: calmer, hairline only */
+.topbar {
+  border-bottom-color: var(--line);
+}
+
+/* Segmented controls (Layers/Files/Frames, Visual/Code, Default/Hover):
+   soft track, raised active tab, no boxed border */
+.segmented {
+  gap: 2px;
+  padding: 2px;
+  border: none;
+  border-radius: 10px;
+  background: var(--surface-3);
+}
+
+.segmented button {
+  height: 28px;
+  border-radius: var(--r);
+}
+
+.segmented button.is-active {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--fg);
+}
+
+/* Panel headers: one hairline, 16px inset */
+.panel__head {
+  height: 44px;
+}
+
+.panel__title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Inspector section titles: quieter, clearer hierarchy */
+.section__head {
+  color: var(--fg-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.section + .section {
+  margin-top: 4px;
+}
+
+/* Layer tree: tag labels only when they help (hover or selected) */
+.tree-row__meta {
+  color: var(--fg-4);
+  font-size: 11px;
+  text-transform: lowercase;
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+
+.tree-row.is-hovered .tree-row__meta,
+.tree-row.is-active .tree-row__meta,
+.tree-row:focus-within .tree-row__meta {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .tree-row:hover .tree-row__meta {
+    opacity: 1;
+  }
+}
+
+.tree-row {
+  border-radius: 8px;
+}
+
+/* Tool rail: spacing instead of separator lines */
+.tool-rail {
+  gap: 4px;
+  width: 48px;
+}
+
+.tool-rail__sep {
+  width: 0;
+  height: 8px;
+  margin: 0;
+  border: none;
+  background: transparent;
+}
+
+.tool-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r);
+}
+
+/* Floating chrome: one height, radius, shadow and 16px inset */
+.dock,
+.canvas-nav__bar,
+.canvas-nav__minimap,
+.selection-bar {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.dock {
+  bottom: 16px;
+}
+
+.canvas-nav {
+  right: 16px;
+  bottom: 16px;
+}
+
+.canvas-nav__bar {
+  min-height: 40px;
+  padding: 4px;
+}
+
+/* Box model widget: calm tint, nested radii */
+.boxmodel {
+  border-style: solid;
+  border-color: var(--line);
+  border-radius: var(--r-lg);
+}
+
+.boxmodel__padding {
+  border-color: var(--accent-line);
+  border-radius: var(--r);
+}
+
+/* Floating side panels */
+.workspace { padding: 8px; gap: 8px; background: var(--bg); box-sizing: border-box; min-height: 0; }
+.workspace > div:first-child > .tool-rail,
+.workspace > .panel {
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  height: auto;
+  align-self: stretch;
+}
+.workspace__center { border-radius: var(--r-lg); }
+.topbar { background: var(--bg); border-bottom: 0 !important; box-shadow: none; }
+
+/* Bottom chrome: dock centered, zoom pill stacked under minimap at bottom right */
+.workspace__center { overflow: hidden; }
+.canvas-nav { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.canvas-nav__bar { border-radius: var(--r-pill); }
+.dock { left: 16px; right: 312px; max-width: 560px; }
+@container stage (min-width: 1160px) {
+  .dock { left: 50%; right: auto; width: min(560px, calc(100% - 496px)); transform: translateX(-50%); }
+}
+
+/* Frame labels never run past their frame: narrow frames drop size + scope, name truncates. */
+.frame-chrome { container-type: inline-size; }
+.frame-chrome__label { max-width: max(100%, 96px); min-width: 0; overflow: hidden; }
+.frame-chrome__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frame-chrome__size { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@container (max-width: 220px) { .frame-chrome__scope { display: none; } }
+@container (max-width: 150px) { .frame-chrome__size { display: none; } }
+.dialog:focus { outline: none; }
+.export-option, .export-report { border-radius: 8px; }
+
+/* Type floor: nothing in the editor renders below 11px. */
+.dock-results__group,
+.dock-hit__detail,
+.ai-option kbd,
+.tag,
+kbd, .kbd,
+.tree-row__meta,
+.frame-chrome__size,
+.frame-chrome__scope,
+.size-tip,
+.state-card__log,
+.frame-row__meta,
+.scope-tag,
+.git-badge,
+.font-option__hint,
+.boxmodel,
+.boxmodel__caption,
+.terminal-tab__badge {
+  font-size: 11px;
+}
+.git-badge { min-width: 15px; height: 15px; line-height: 15px; }
+
+/* Hit areas: everything clickable is at least 24×24. */
+.tree-row__toggle { position: relative; }
+.tree-row__toggle::before { content: ''; position: absolute; inset: -4px; }
+.segmented button { min-height: 24px; }
+.source-link { min-height: 24px; display: inline-flex; align-items: center; }
+
+/* Canvas focus: the selected element is the brightest thing; the active frame steps back. */
+.frame-chrome.is-active .frame-chrome__outline {
+  border-color: color-mix(in srgb, var(--select) 18%, var(--line));
+}
+
+/* Code view + terminal: same 28px pill tabs and 16px insets as the rest of the editor. */
+.code-tabs {
+  align-items: center;
+  gap: 4px;
+  height: 44px;
+  padding: 0 8px 0 16px;
+  border-bottom: none;
+  background: var(--surface);
+}
+.code-tab {
+  height: 28px;
+  padding: 0 8px 0 12px;
+  border-right: none;
+  border-radius: 8px;
+}
+.code-tab:hover { background: var(--hover); }
+.code-tab.is-active {
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.06));
+}
+.code-tab.is-active::after { display: none; }
+.code-tabs__actions { padding: 0 8px 0 0; }
+.code-status { padding: 0 16px; background: var(--surface); }
+.terminal-panel__bar {
+  height: 44px;
+  padding: 0 16px;
+  border-bottom: none;
+}
+.terminal-panel__tabs { gap: 4px; }
+.terminal-tab {
+  height: 28px;
+  border-radius: 8px;
+}
+.terminal-tab.is-active {
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.06));
+}
+
+/* Simpler inspector: the less common controls fold behind a chevron; source link is a quiet icon. */
+.inspector-more { display: flex; flex-direction: column; gap: 8px; }
+.inspector-more__toggle {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 6px 0 2px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--fg-3);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.inspector-more__toggle:hover { background: var(--hover); color: var(--fg-2); }
+.inspector-more__chevron { transition: transform 0.15s ease-out; }
+.inspector-more.is-open .inspector-more__chevron { transform: rotate(90deg); }
+.inspector-more__body { display: flex; flex-direction: column; gap: 8px; }
+.inspector-head__source { margin-left: 2px; color: var(--fg-3); }
+.inspector-head__source:hover { color: var(--fg); }
+
+/* Full-bleed canvas: the stage fills everything under the top bar; chrome floats over it as cards. */
+.topbar {
+  margin: 8px 8px 0;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.workspace--bleed { background: transparent; }
+.workspace--bleed > .workspace__center {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
+.workspace--bleed > :not(.workspace__center) { position: relative; z-index: 2; }
+.workspace--bleed > .workspace__center + * { margin-left: auto; }
+.workspace--bleed .stage { border-radius: 0; border: none; }
+.workspace--bleed > div:first-child > .tool-rail,
+.workspace--bleed > .panel { border-radius: 12px; }
+.shell:has(.workspace--bleed) { grid-template-rows: calc(var(--topbar-h) + 8px) minmax(0, 1fr); }
+.shell:has(.workspace--bleed) .workspace { margin-top: 0; }
+
+/* Bottom chrome stays inside the visible (uncovered) part of the stage. */
+.workspace--bleed .canvas-nav { right: calc(var(--inset-r, 0px) + 12px); }
+.workspace--bleed .dock {
+  left: max(calc(var(--inset-l, 0px) + 16px), calc(var(--inset-l, 0px) + (100% - var(--inset-l, 0px) - var(--inset-r, 0px) - 560px) / 2));
+  right: calc(var(--inset-r, 0px) + 312px);
+  width: auto;
+  max-width: 560px;
+  transform: none;
+}
+
+/* Layer right-click menu */
+.layer-menu { position: fixed; z-index: 200; }
+.layer-menu .popover { min-width: 200px; padding: 4px; border-radius: 12px; box-shadow: var(--shadow-md, var(--shadow-lg)); }
+.layer-menu .menu-item { height: 28px; border-radius: 8px; }
+.layer-menu .menu-item__hint { margin-left: auto; color: var(--fg-4); font-size: 11px; }
+.layer-menu__sep { height: 1px; margin: 4px 6px; background: var(--line); }
+.layer-menu .layer-menu__danger, .layer-menu .layer-menu__danger svg { color: var(--danger); }
+.layer-menu .layer-menu__danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+
+/* Inspector: no hairlines between groups; spacing does the grouping. */
+.panel--right .panel__body > *,
+.panel--right .section {
+  border-top: none !important;
+  border-bottom: none !important;
+}
+.panel--right .section + .section { margin-top: 8px; }
+
+/* Minimap: compact and neutral; only the viewport box is blue. */
+.minimap__frame,
+.minimap__frame.is-active { fill: var(--surface-3); stroke: var(--line-strong); }
+.minimap__frame.is-active { fill: color-mix(in srgb, var(--fg) 14%, transparent); }
+.minimap__view { fill: color-mix(in srgb, var(--select) 8%, transparent); stroke: var(--select); stroke-width: 1.25; }
+.canvas-nav__minimap { background: var(--surface); }
+
+/* Icon toggles with an overflow select for rare values */
+.toggle-more { display: flex; gap: 4px; align-items: center; min-width: 0; }
+.toggle-more .toggle-row { flex: 1; min-width: 0; }
+.toggle-more .toggle-row button { min-height: 24px; }
+.toggle-more__select { position: relative; flex: none; width: 28px; height: 24px; border-radius: 6px; color: var(--fg-3); }
+.toggle-more__select::after { content: '⋯'; position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.toggle-more__select:hover { background: var(--hover); }
+.toggle-more__select.is-active { background: var(--accent-soft); color: var(--fg); }
+.toggle-more__select select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }

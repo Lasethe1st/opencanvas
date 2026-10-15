@@ -246,9 +246,40 @@ export function focusRect(rect: Rect, maxZoom = 1) {
   setCamera(fitCamera(rect, stage, 72, maxZoom));
 }
 
+/** Frame labels render at a fixed screen size, so a narrow frame's label can run past its right edge. */
+const FRAME_LABEL_W = 110;
+const FIT_INSET = 24;
+
+/** Screen px of the stage covered by floating side panels (published by App as CSS vars). */
+function stageInsets() {
+  const el = typeof document !== 'undefined' ? document.querySelector<HTMLElement>('.workspace__center') : null;
+  if (!el) return { left: 0, right: 0 };
+  const cs = getComputedStyle(el);
+  return { left: parseFloat(cs.getPropertyValue('--inset-l')) || 0, right: parseFloat(cs.getPropertyValue('--inset-r')) || 0 };
+}
+
 export function fitAll() {
-  const bounds = unionRect(rects());
-  if (bounds) focusRect(bounds);
+  const all = rects();
+  const bounds = unionRect(all);
+  if (!bounds || !stage.width) return;
+  const inset = stageInsets();
+  const view = { width: Math.max(stage.width - inset.left - inset.right, 80), height: stage.height };
+  const rightmost = all.reduce((a, r) => (r.x + r.width > a.x + a.width ? r : a), all[0]);
+  let cam = fitCamera(bounds, view, 72, 1);
+  // Keep the rightmost frame label (fixed screen width) at least 24px clear of the card edge.
+  for (let i = 0; i < 3; i++) {
+    const labelEnd = rightmost.x * cam.zoom + cam.x + Math.max(rightmost.width * cam.zoom, FRAME_LABEL_W);
+    const over = labelEnd - (view.width - FIT_INSET);
+    if (over <= 0) break;
+    const leftRoom = bounds.x * cam.zoom + cam.x - FIT_INSET;
+    if (leftRoom >= over) {
+      cam = { ...cam, x: cam.x - over };
+      break;
+    }
+    const zoom = cam.zoom * Math.max(0.5, (view.width - FIT_INSET * 2 - FRAME_LABEL_W) / (bounds.width * cam.zoom));
+    cam = { zoom, x: FIT_INSET - bounds.x * zoom, y: (view.height - bounds.height * zoom) / 2 - bounds.y * zoom };
+  }
+  setCamera({ ...cam, x: cam.x + inset.left });
 }
 
 export function fitFrame(id: string) {

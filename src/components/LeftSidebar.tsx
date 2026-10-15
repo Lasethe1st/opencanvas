@@ -1,6 +1,7 @@
 import {
   ArrowDown,
   ArrowUp,
+  Copy,
   Box,
   File,
   FileCode2,
@@ -15,7 +16,7 @@ import {
   Type,
   Upload,
 } from 'lucide-react';
-import { useEffect, useMemo, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import type { FileNode } from '../../shared/types';
 import {
   createFileOrFolder,
@@ -23,6 +24,8 @@ import {
   importAssets,
   importDroppedFiles,
   openFile,
+  duplicateSelected,
+  removeSelected,
   renamePath,
   runEdit,
   selectElement,
@@ -32,7 +35,8 @@ import {
 import { sendToPreview } from '../lib/bridge';
 import { findPath, setState, useStore, type TreeNode } from '../lib/store';
 import { Panel, SearchField, Tree, TreeRow } from '../ui/Panels.jsx';
-import { IconButton, SectionLabel, Segmented } from '../ui/primitives.jsx';
+import { IconButton, Menu, MenuItem, SectionLabel, Segmented } from '../ui/primitives.jsx';
+import { createPortal } from 'react-dom';
 import { FramesPanel } from './FramesPanel';
 import { Resizer } from './Resizer';
 
@@ -286,7 +290,9 @@ function LayerNode({ node, ...props }: LayerProps & { node: TreeNode }) {
   const inGroup = useStore((s) => s.multiSelect.some((m) => m.uid === node.uid || m.id === node.id));
   const grouped = useStore((s) => s.multiSelect.length > 0);
   const hoverUid = useStore((s) => s.hoverUid);
+  const editable = useStore((s) => !!s.project?.editable);
   const [renaming, setRenaming] = useState(false);
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   const isOpen = forceOpen || expanded.has(node.uid);
   const isPrimary = selectedUid === node.uid;
   const isSelected = isPrimary || inGroup;
@@ -318,8 +324,18 @@ function LayerNode({ node, ...props }: LayerProps & { node: TreeNode }) {
         onDoubleClick={(e) => !e.shiftKey && !e.ctrlKey && !e.metaKey && setRenaming(true)}
         onMouseEnter={() => sendToPreview('hover', { id: node.id, uid: node.uid })}
         onMouseLeave={() => sendToPreview('hover', { id: null })}
+        onContextMenu={(e: ReactMouseEvent<HTMLElement>) => {
+          e.preventDefault();
+          if (!isSelected) {
+            setState({ multiSelect: [] });
+            selectElement(node.id, node.uid);
+          }
+          const r = e.currentTarget.getBoundingClientRect();
+          // Keyboard-opened menus (Shift+F10 / Menu key) report 0,0: anchor them to the row instead.
+          setMenuAt(e.clientX || e.clientY ? { x: e.clientX, y: e.clientY } : { x: r.left + 24, y: r.bottom });
+        }}
         icon={layerIcon(node.tag)}
-        meta={/^h[1-6]$/.test(node.tag) ? node.tag.toUpperCase() : node.tag}
+        meta={node.tag.toLowerCase()}
         actions={
           isPrimary &&
           !grouped &&
@@ -352,8 +368,76 @@ function LayerNode({ node, ...props }: LayerProps & { node: TreeNode }) {
           <span className="tree-row__name">{node.name}</span>
         )}
       </TreeRow>
+      {menuAt && (
+        <LayerMenu
+          at={menuAt}
+          editable={editable}
+          onClose={() => setMenuAt(null)}
+          onRename={() => setRenaming(true)}
+        />
+      )}
       {isOpen && node.children.map((child) => <LayerNode key={child.uid} node={child} {...props} depth={depth + 1} />)}
     </>
+  );
+}
+
+const MOD_KEY = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
+
+/**
+ * Right-click menu for a layer row. Only actions the editor can actually perform are listed:
+ * there is no hide or lock state in the store yet, so those are left out.
+ */
+function LayerMenu({ at, editable, onClose, onRename }: { at: { x: number; y: number }; editable: boolean; onClose: () => void; onRename: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState(at);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setPos({ x: Math.min(at.x, window.innerWidth - r.width - 8), y: Math.min(at.y, window.innerHeight - r.height - 8) });
+    el.querySelector<HTMLButtonElement>('.menu-item:not(:disabled)')?.focus();
+    const away = (e: Event) => !el.contains(e.target as Node) && onClose();
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      e.preventDefault();
+      const items = [...el.querySelectorAll<HTMLButtonElement>('.menu-item:not(:disabled)')];
+      const i = items.indexOf(document.activeElement as HTMLButtonElement);
+      items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus();
+    };
+    window.addEventListener('pointerdown', away, true);
+    window.addEventListener('keydown', key, true);
+    window.addEventListener('blur', onClose);
+    return () => {
+      window.removeEventListener('pointerdown', away, true);
+      window.removeEventListener('keydown', key, true);
+      window.removeEventListener('blur', onClose);
+    };
+  }, []);
+  const run = (fn: () => void) => () => {
+    onClose();
+    fn();
+  };
+  return createPortal(
+    <div ref={ref} className="layer-menu" style={{ left: pos.x, top: pos.y }}>
+      <Menu style={{ position: 'static' }} aria-label="Layer actions">
+      <MenuItem icon={<Pencil size={14} />} hint="F2" disabled={!editable} onClick={run(onRename)}>
+        Rename
+      </MenuItem>
+      <MenuItem icon={<Copy size={14} />} hint={`${MOD_KEY}+D`} disabled={!editable} onClick={run(() => void duplicateSelected())}>
+        Duplicate
+      </MenuItem>
+      <div className="layer-menu__sep" role="separator" />
+      <MenuItem icon={<Trash2 size={14} />} hint="Del" className="menu-item layer-menu__danger" disabled={!editable} onClick={run(() => void removeSelected())}>
+        Delete
+      </MenuItem>
+      </Menu>
+    </div>,
+    document.body,
   );
 }
 

@@ -49,20 +49,28 @@
     <style>
       .box { position: fixed; box-sizing: border-box; pointer-events: none; display: none; border-radius: 1px; }
       .hover { border: 1px solid rgba(59,130,246,.7); }
-      .select { border: 2px solid #3b82f6; }
+      :host { --k: 1; }
+      .select { border: calc(1.5px * var(--k)) solid #3b82f6; }
+      .handle { position: absolute; width: calc(7px * var(--k)); height: calc(7px * var(--k)); box-sizing: border-box; background: #fff; border: calc(1.5px * var(--k)) solid #3b82f6; border-radius: calc(1.5px * var(--k)); }
+      .handle { --o: calc(-4.25px * var(--k)); }
+      .handle.tl { left: var(--o); top: var(--o); } .handle.tr { right: var(--o); top: var(--o); }
+      .handle.bl { left: var(--o); bottom: var(--o); } .handle.br { right: var(--o); bottom: var(--o); }
+      .editing .handle { display: none; }
       .linked { border: 1px dashed rgba(59,130,246,.55); }
       .editing { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.18); }
       .label { position: absolute; left: -2px; top: -21px; font: 500 11px/1 Inter, system-ui, sans-serif; color: #fff;
         background: #3b82f6; padding: 4px 6px; border-radius: 4px; white-space: nowrap; }
       .hover .label { background: rgba(59,130,246,.85); }
       .label.below { top: auto; bottom: -21px; }
+      .label { transform: scale(var(--k)); transform-origin: left bottom; }
+      .label.below { transform-origin: left top; }
       .linked .label, .editing .label { display: none; }
       .multi { border: 1.5px solid #3b82f6; }
       .multi.is-linked { border: 1px dashed rgba(59,130,246,.55); }
     </style>
     <div class="box hover"><span class="label"></span></div>
     <div class="box linked"></div>
-    <div class="box select"><span class="label"></span></div>`;
+    <div class="box select"><span class="label"></span><i class="handle tl"></i><i class="handle tr"></i><i class="handle bl"></i><i class="handle br"></i></div>`;
   const hoverBox = shadow.querySelector('.hover');
   const linkedBox = shadow.querySelector('.linked');
   const selectBox = shadow.querySelector('.select');
@@ -742,6 +750,12 @@
         multiLinked = !!msg.linked;
         render();
         break;
+      case 'zoom': {
+        // The frame is CSS-scaled on the canvas; keep the selection stroke and handles a constant screen size.
+        const z = Number(msg.zoom);
+        if (z > 0) host.style.setProperty('--k', String(Math.min(1 / z, 10)));
+        break;
+      }
       case 'sync':
         scheduleSync();
         break;

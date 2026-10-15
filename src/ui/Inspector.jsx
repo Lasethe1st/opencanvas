@@ -1,5 +1,5 @@
 import { Code2, Link2, Link2Off } from 'lucide-react';
-import { Button } from './primitives.jsx';
+import { Button, IconButton } from './primitives.jsx';
 
 export function InspectorHeader({ name, tag, parent, source, onRename, onSource }) {
   return (
@@ -7,16 +7,17 @@ export function InspectorHeader({ name, tag, parent, source, onRename, onSource 
       <div className="inspector-head__row">
         <input data-oc="input-o3u49" className="inspector-head__name" defaultValue={name} key={name} aria-label="Layer name" onBlur={(e) => onRename?.(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
         <span className="tag">&lt;{tag}&gt;</span>
-      </div>
-      <div className="inspector-head__meta">
-        {parent && <span>in {parent}</span>}
         {source && (
-          <button className="source-link" onClick={onSource} title="Open in code view">
-            <Code2 size={11} />
-            {source}
-          </button>
+          <IconButton size="sm" label={`Open ${source} in code`} tipSide="bottom" className="inspector-head__source" onClick={onSource}>
+            <Code2 size={14} />
+          </IconButton>
         )}
       </div>
+      {parent && (
+        <div className="inspector-head__meta">
+          <span>in {parent}</span>
+        </div>
+      )}
     </div>
   );
 }

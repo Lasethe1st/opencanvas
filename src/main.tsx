@@ -9,6 +9,7 @@ import './styles/ui.css';
 import './styles/app.css';
 import './styles/open-canvas.css';
 import './styles/direction.css';
+import './styles/overrides.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -63,5 +63,8 @@ export function toHex(color: string): string {
 }
 
 export function shortValue(value: string): string {
-  return value.replace(/rgba\(0, 0, 0, 0\)/, 'transparent');
+  return value
+    .replace(/rgba\(0, 0, 0, 0\)/, 'transparent')
+    // Computed lengths like 679.703px read better as 679.7px.
+    .replace(/(-?\d+\.\d{2,})px/g, (_, n: string) => `${Number(Number(n).toFixed(1))}px`);
 }

@@ -137,6 +137,7 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
         if (activatedByFrame) activatedByFrame = false;
         else if (state.selection) sendToPreview('select', { id: state.selection.id, scroll: false, additive: 'keep' });
       }
+      if (state.camera.zoom !== prev.camera.zoom) sendToPreview('zoom', { zoom: state.camera.zoom });
       if (state.multiSelect !== prev.multiSelect || state.activeFrameId !== prev.activeFrameId) {
         sendMulti(state.multiSelect.map((m) => m.id));
       }
@@ -152,6 +153,7 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
       switch (msg.type) {
         case 'ready': {
           sendToFrame(fid, 'mode', { mode: state.interact ? 'interact' : 'select' });
+          sendToFrame(fid, 'zoom', { zoom: state.camera.zoom });
           const id = state.pendingSelectId ?? state.selection?.id;
           if (id) sendToFrame(fid, 'select', active ? { id, scroll: false, additive: 'keep' } : { id, linked: true });
           if (state.multiSelect.length) sendMulti(state.multiSelect.map((m) => m.id), fid);
@@ -478,7 +480,9 @@ function SelectionActions({ frame, height }: { frame: FrameLayout; height: numbe
   if (r.y + r.height < 0 || r.y > height) return null;
   const top = worldToScreen(camera, { x: frame.x + Math.max(r.x, 0), y: frame.y + Math.max(r.y, 0) });
   const bottom = worldToScreen(camera, { x: 0, y: frame.y + Math.min(r.y + r.height, height) });
-  const below = top.y < 64;
+  const frameTop = worldToScreen(camera, { x: 0, y: frame.y }).y;
+  // Flip below when the bar would collide with the canvas edge or the frame's label above it.
+  const below = top.y < 64 || top.y - 40 < frameTop + 4;
   const canEditText = INLINE_TAGS.has(selection.tag) && !!sourceInfo?.textEditable && editable;
   return (
     <SelectionBar x={top.x} y={below ? bottom.y + 8 : top.y - 40} below={below}>
@@ -882,6 +886,8 @@ export function Canvas({ hidden }: { hidden: boolean }) {
           onToggleMinimap={() => setMinimapOpen((v) => !v)}
           minimap={
             <Minimap
+              width={120}
+              height={76}
               frames={frames.map((f) => ({ id: f.id, ...rectOf(f), active: f.id === activeFrame?.id }))}
               view={viewWorld}
               onNavigate={(p) => {
