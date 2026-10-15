@@ -478,7 +478,9 @@ function SelectionActions({ frame, height }: { frame: FrameLayout; height: numbe
   if (r.y + r.height < 0 || r.y > height) return null;
   const top = worldToScreen(camera, { x: frame.x + Math.max(r.x, 0), y: frame.y + Math.max(r.y, 0) });
   const bottom = worldToScreen(camera, { x: 0, y: frame.y + Math.min(r.y + r.height, height) });
-  const below = top.y < 64;
+  const frameTop = worldToScreen(camera, { x: 0, y: frame.y }).y;
+  // Flip below when the bar would collide with the canvas edge or the frame's label above it.
+  const below = top.y < 64 || top.y - 40 < frameTop + 4;
   const canEditText = INLINE_TAGS.has(selection.tag) && !!sourceInfo?.textEditable && editable;
   return (
     <SelectionBar x={top.x} y={below ? bottom.y + 8 : top.y - 40} below={below}>
