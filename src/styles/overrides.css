@@ -548,3 +548,11 @@ kbd, .kbd,
 .layer-menu__sep { height: 1px; margin: 4px 6px; background: var(--line); }
 .layer-menu .layer-menu__danger, .layer-menu .layer-menu__danger svg { color: var(--danger); }
 .layer-menu .layer-menu__danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+
+/* Inspector: no hairlines between groups; spacing does the grouping. */
+.panel--right .panel__body > *,
+.panel--right .section {
+  border-top: none !important;
+  border-bottom: none !important;
+}
+.panel--right .section + .section { margin-top: 8px; }
