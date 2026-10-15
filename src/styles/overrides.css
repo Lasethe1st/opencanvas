@@ -390,3 +390,12 @@ body {
 }
 .workspace__center { border-radius: var(--r-lg); }
 .topbar { background: var(--bg); border-bottom: 0 !important; box-shadow: none; }
+
+/* Bottom chrome: dock centered, zoom pill stacked under minimap at bottom right */
+.workspace__center { overflow: hidden; }
+.canvas-nav { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.canvas-nav__bar { border-radius: var(--r-pill); }
+.dock { left: 16px; right: 312px; max-width: 560px; }
+@container stage (min-width: 1160px) {
+  .dock { left: 50%; right: auto; width: min(560px, calc(100% - 496px)); transform: translateX(-50%); }
+}
