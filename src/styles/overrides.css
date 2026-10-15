@@ -70,19 +70,20 @@
   color: var(--fg-3);
 }
 
-.action-pill.action-pill--violet[class]:hover,
-.action-pill.action-pill--green[class]:hover,
-.action-pill.action-pill--amber[class]:hover {
-  border-color: var(--line-strong);
-  background: var(--hover);
+@media (hover: hover) {
+  .action-pill.action-pill--violet[class]:hover,
+  .action-pill.action-pill--green[class]:hover,
+  .action-pill.action-pill--amber[class]:hover {
+    border-color: var(--line-strong);
+    background: var(--hover);
+  }
 }
 
 .action-pill--blue {
   --tone: var(--accent);
 }
 
-.action-pill.action-pill--blue[class],
-.action-pill.action-pill--blue[class]:hover {
+.action-pill.action-pill--blue[class] {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-fg);
@@ -120,17 +121,31 @@
 .start__inner {
   justify-content: center;
   min-height: 100%;
-  max-width: 560px;
-  padding-top: 48px;
-  gap: 24px;
+  width: 100%;
+  max-width: 696px; /* 640px of content plus 28px side padding */
+  padding-top: 120px;
+  gap: 16px;
 }
 
-.recent-item:hover {
-  background: var(--hover);
+.start-actions {
+  gap: 12px;
+  margin-top: 0;
+}
+
+.start__inner .recent {
+  margin-top: 24px;
+}
+
+@media (hover: hover) {
+  .recent-item:hover {
+    background: var(--hover);
+  }
 }
 
 .recent-item__text span {
-  color: var(--fg-4);
+  color: var(--fg-3);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .empty-note {
@@ -138,21 +153,62 @@
   text-align: center;
 }
 
-/* Gentle motion */
+/* Gentle press motion, buttons only */
 @media (prefers-reduced-motion: no-preference) {
   .tool-btn,
   .icon-btn,
   .action-pill,
-  .recent-item {
+  .btn {
     transition:
-      background-color 0.15s var(--ease),
-      border-color 0.15s var(--ease),
-      transform 0.1s var(--ease);
+      background-color 0.15s ease-out,
+      border-color 0.15s ease-out,
+      scale 0.15s ease-out;
   }
 
-  button:active:not(:disabled) {
-    transform: scale(0.97);
+  .tool-btn:active:not(:disabled),
+  .icon-btn:active:not(:disabled),
+  .action-pill:active:not(:disabled),
+  .btn:active:not(:disabled) {
+    transform: none;
+    scale: 0.96;
   }
+}
+
+.recent-item {
+  transition: background-color 0.15s ease-out;
+}
+
+/* Keep scrolling inside menus and panels */
+.popover,
+.font-menu__list,
+.panel__body,
+.settings-page__content,
+.dialog__body {
+  overscroll-behavior: contain;
+}
+
+/* On touch screens, don't leave a tapped control highlighted */
+@media (hover: none) {
+  .tool-btn:hover:not(.is-active),
+  .icon-btn:hover,
+  .recent-item:hover {
+    background: transparent;
+  }
+
+  .action-pill.action-pill--violet[class]:hover,
+  .action-pill.action-pill--green[class]:hover,
+  .action-pill.action-pill--amber[class]:hover {
+    background: var(--surface);
+  }
+}
+
+/* Consistent 16px edge inset for panel and inspector headers */
+.panel__head {
+  padding: 0 8px 0 16px;
+}
+
+.inspector-head {
+  padding: 16px 16px 12px;
 }
 
 /* Typography hierarchy */
