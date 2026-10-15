@@ -886,6 +886,8 @@ export function Canvas({ hidden }: { hidden: boolean }) {
           onToggleMinimap={() => setMinimapOpen((v) => !v)}
           minimap={
             <Minimap
+              width={120}
+              height={76}
               frames={frames.map((f) => ({ id: f.id, ...rectOf(f), active: f.id === activeFrame?.id }))}
               view={viewWorld}
               onNavigate={(p) => {

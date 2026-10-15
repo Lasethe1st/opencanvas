@@ -556,3 +556,10 @@ kbd, .kbd,
   border-bottom: none !important;
 }
 .panel--right .section + .section { margin-top: 8px; }
+
+/* Minimap: compact and neutral; only the viewport box is blue. */
+.minimap__frame,
+.minimap__frame.is-active { fill: var(--surface-3); stroke: var(--line-strong); }
+.minimap__frame.is-active { fill: color-mix(in srgb, var(--fg) 14%, transparent); }
+.minimap__view { fill: color-mix(in srgb, var(--select) 8%, transparent); stroke: var(--select); stroke-width: 1.25; }
+.canvas-nav__minimap { background: var(--surface); }
