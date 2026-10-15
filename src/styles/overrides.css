@@ -378,14 +378,15 @@ body {
 }
 
 /* Floating side panels */
-.workspace { padding: 8px; gap: 8px; background: var(--canvas-bg, var(--bg-2, rgb(246,246,247))); box-sizing: border-box; min-height: 0; }
+.workspace { padding: 8px; gap: 8px; background: var(--bg); box-sizing: border-box; min-height: 0; }
 .workspace > div:first-child > .tool-rail,
 .workspace > .panel {
   border: 1px solid var(--line) !important;
   border-radius: var(--r-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
   height: auto;
   align-self: stretch;
 }
-.workspace__center { border-radius: var(--r-lg); overflow: hidden; }
+.workspace__center { border-radius: var(--r-lg); }
+.topbar { background: var(--bg); border-bottom: 0 !important; box-shadow: none; }
