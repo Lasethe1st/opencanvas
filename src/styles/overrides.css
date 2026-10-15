@@ -431,3 +431,9 @@ kbd, .kbd,
   font-size: 11px;
 }
 .git-badge { min-width: 15px; height: 15px; line-height: 15px; }
+
+/* Hit areas: everything clickable is at least 24×24. */
+.tree-row__toggle { position: relative; }
+.tree-row__toggle::before { content: ''; position: absolute; inset: -4px; }
+.segmented button { min-height: 24px; }
+.source-link { min-height: 24px; display: inline-flex; align-items: center; }
