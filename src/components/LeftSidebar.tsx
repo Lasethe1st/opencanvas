@@ -319,7 +319,7 @@ function LayerNode({ node, ...props }: LayerProps & { node: TreeNode }) {
         onMouseEnter={() => sendToPreview('hover', { id: node.id, uid: node.uid })}
         onMouseLeave={() => sendToPreview('hover', { id: null })}
         icon={layerIcon(node.tag)}
-        meta={/^h[1-6]$/.test(node.tag) ? node.tag.toUpperCase() : node.tag}
+        meta={node.tag.toLowerCase()}
         actions={
           isPrimary &&
           !grouped &&

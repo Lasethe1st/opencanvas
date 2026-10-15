@@ -318,7 +318,7 @@ body {
 }
 
 .tree-row {
-  border-radius: var(--r);
+  border-radius: 8px;
 }
 
 /* Tool rail: spacing instead of separator lines */

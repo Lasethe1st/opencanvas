@@ -232,14 +232,14 @@ export function ToolRail() {
           </ToolButton>
           {withFlyout(
             'text',
-            <ToolButton label="Text" shortcut="T inserts a paragraph" disabled={!canInsert} active={open === 'text'} onClick={() => toggle('text')}>
+            <ToolButton label="Text" shortcut="T" disabled={!canInsert} active={open === 'text'} onClick={() => toggle('text')}>
               <Type size={16} />
             </ToolButton>,
             <ToolFlyout title={`Insert into ${target}`}>
               <InsertList kinds={['heading', 'paragraph', 'link']} onDone={close} />
             </ToolFlyout>,
           )}
-          <ToolButton label="Image (choose a file)" shortcut="I" disabled={!canInsert} onClick={() => void insertImageFromDisk()}>
+          <ToolButton label="Image" shortcut="I" disabled={!canInsert} onClick={() => void insertImageFromDisk()}>
             <Image size={16} />
           </ToolButton>
           <ToolButton label="Button" shortcut="B" disabled={!canInsert} onClick={() => void insertElement('button')}>
