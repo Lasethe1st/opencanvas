@@ -9,8 +9,12 @@ export const VIEWPORTS = [
 
 export function Brand() {
   return (
-    <div data-oc="div-tyuk7" className="brand">
-      OpenCanvas
+    <div data-oc="div-tyuk7" className="brand" title="OpenCanvas">
+      <svg className="brand__mark" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+        <rect x="1" y="1" width="18" height="18" rx="6" fill="var(--accent)" />
+        <rect x="6" y="6" width="8" height="8" rx="2.5" fill="none" stroke="var(--accent-fg)" strokeWidth="1.75" />
+      </svg>
+      <span className="sr-only">OpenCanvas</span>
     </div>
   );
 }

@@ -30,6 +30,12 @@ function timeAgo(ms: number) {
   return new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+function greeting(): string {
+  const hour = new Date().getHours();
+  const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  return `${part}. What are we building?`;
+}
+
 export function Onboarding() {
   const busy = useStore((s) => s.busy);
   const [templates, setTemplates] = useState<TemplateMeta[]>([]);
@@ -118,6 +124,7 @@ export function Onboarding() {
 
   return (
     <StartScreen
+      greeting={greeting()}
       search={
         <SearchPill
           ref={searchRef}

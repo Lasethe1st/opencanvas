@@ -1,4 +1,4 @@
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Code2, ImageUp } from 'lucide-react';
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Code2, ImageUp, MousePointerClick } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { RETAGGABLE_TAGS, type StyleState } from '../../shared/types';
 import { chooseImageForSelection, revealInCode, runEdit, setStyle, setTag } from '../lib/actions';
@@ -298,7 +298,10 @@ function PageSettings() {
         <div className="inspector-head__row">
           <strong className="inspector-head__title">Page</strong>
         </div>
-        <div className="inspector-head__meta">Select an element on the canvas or in Layers to edit it.</div>
+        <div className="inspector-head__meta inspector-empty">
+          <MousePointerClick size={20} aria-hidden="true" />
+          <span>Select an element on the canvas or in Layers to edit it.</span>
+        </div>
       </div>
       <Section title="Project">
         <KeyValue label="Framework">

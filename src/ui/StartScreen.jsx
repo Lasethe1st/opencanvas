@@ -1,11 +1,12 @@
 import { forwardRef } from 'react';
 import { cx } from './primitives.jsx';
 
-export function StartScreen({ corner, search, actions, recent, children }) {
+export function StartScreen({ corner, greeting, search, actions, recent, children }) {
   return (
     <div className="start">
       <div className="start__corner">{corner}</div>
       <div className="start__inner">
+        {greeting && <h1 className="start__greeting">{greeting}</h1>}
         {search}
         <div className="start-actions">{actions}</div>
         {recent}
@@ -73,11 +74,11 @@ export function ProjectIcon({ src, name }) {
 
 export function RecentItem({ icon, name, path, meta, active, ...rest }) {
   return (
-    <button className={cx('recent-item', active && 'is-active')} {...rest}>
+    <button className={cx('recent-item', active && 'is-active')} aria-description={path} {...rest}>
       {icon}
       <span className="recent-item__text">
         <strong>{name}</strong>
-        <span>{path}</span>
+        <span title={path}>{path}</span>
       </span>
       {meta && <span className="recent-item__meta">{meta}</span>}
     </button>

@@ -3,7 +3,8 @@ import type { ButtonHTMLAttributes, ForwardRefExoticComponent, InputHTMLAttribut
 type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'title'>;
 type TitledButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'>;
 
-export function StartScreen(props: { corner?: ReactNode; search?: ReactNode; actions?: ReactNode; recent?: ReactNode; children?: ReactNode }): JSX.Element;
+export function StartScreen(props: { corner?: ReactNode;
+  greeting?: ReactNode; search?: ReactNode; actions?: ReactNode; recent?: ReactNode; children?: ReactNode }): JSX.Element;
 export const SearchPill: ForwardRefExoticComponent<InputHTMLAttributes<HTMLInputElement> & { hint?: ReactNode } & RefAttributes<HTMLInputElement>>;
 export function ActionPill(props: ButtonHTMLAttributes<HTMLButtonElement> & { icon: ReactNode; tone?: 'blue' | 'violet' | 'green' | 'amber' }): JSX.Element;
 export function GithubMark(props: { size?: number }): JSX.Element;
