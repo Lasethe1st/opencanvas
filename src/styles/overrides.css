@@ -442,3 +442,41 @@ kbd, .kbd,
 .frame-chrome.is-active .frame-chrome__outline {
   border-color: color-mix(in srgb, var(--select) 35%, transparent);
 }
+
+/* Code view + terminal: same 28px pill tabs and 16px insets as the rest of the editor. */
+.code-tabs {
+  align-items: center;
+  gap: 4px;
+  height: 44px;
+  padding: 0 8px 0 16px;
+  border-bottom: none;
+  background: var(--surface);
+}
+.code-tab {
+  height: 28px;
+  padding: 0 8px 0 12px;
+  border-right: none;
+  border-radius: 8px;
+}
+.code-tab:hover { background: var(--hover); }
+.code-tab.is-active {
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.06));
+}
+.code-tab.is-active::after { display: none; }
+.code-tabs__actions { padding: 0 8px 0 0; }
+.code-status { padding: 0 16px; background: var(--surface); }
+.terminal-panel__bar {
+  height: 44px;
+  padding: 0 16px;
+  border-bottom: none;
+}
+.terminal-panel__tabs { gap: 4px; }
+.terminal-tab {
+  height: 28px;
+  border-radius: 8px;
+}
+.terminal-tab.is-active {
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.06));
+}
