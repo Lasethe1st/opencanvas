@@ -1,0 +1,161 @@
+/*
+ * Design polish layer (loaded last). Keeps src/ui untouched so it can be
+ * re-exported from Open Canvas Light without conflicts.
+ * Direction: one radius scale, one accent, visible focus, more breathing room,
+ * gentle motion.
+ */
+
+/* 1. Corners: one radius scale */
+:root,
+:root[data-theme],
+[data-theme='dark'] {
+  --r-sm: 6px;
+  --r: 8px;
+  --r-lg: 12px;
+  --r-xl: 12px;
+  --r-pill: 999px;
+  --control-h: 32px;
+}
+
+.tag {
+  border-radius: var(--r-pill);
+}
+
+.minimap,
+.canvas-nav__bar,
+.recent-item {
+  border-radius: var(--r-lg);
+}
+
+/* 2. Visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+/* 3. One accent color (light and dark) */
+:root,
+[data-theme='light'] {
+  --accent: var(--select);
+  --accent-hover: #2563eb;
+  --accent-fg: #ffffff;
+  --accent-soft: var(--select-soft);
+  --accent-line: rgba(59, 130, 246, 0.35);
+  --box-margin: rgba(59, 130, 246, 0.05);
+  --box-padding: rgba(59, 130, 246, 0.1);
+}
+
+[data-theme='dark'] {
+  --accent: var(--select);
+  --accent-hover: #6aa1f8;
+  --accent-fg: #ffffff;
+  --accent-soft: var(--select-soft);
+  --accent-line: rgba(79, 143, 247, 0.4);
+  --box-margin: rgba(79, 143, 247, 0.06);
+  --box-padding: rgba(79, 143, 247, 0.12);
+}
+
+/* Start screen pills: neutral, with only "Start new project" in the accent */
+.action-pill.action-pill--violet[class],
+.action-pill.action-pill--green[class],
+.action-pill.action-pill--amber[class] {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--fg);
+}
+
+.action-pill.action-pill--violet[class] .action-pill__icon,
+.action-pill.action-pill--green[class] .action-pill__icon,
+.action-pill.action-pill--amber[class] .action-pill__icon {
+  color: var(--fg-3);
+}
+
+.action-pill.action-pill--violet[class]:hover,
+.action-pill.action-pill--green[class]:hover,
+.action-pill.action-pill--amber[class]:hover {
+  border-color: var(--line-strong);
+  background: var(--hover);
+}
+
+.action-pill--blue {
+  --tone: var(--accent);
+}
+
+.action-pill.action-pill--blue[class],
+.action-pill.action-pill--blue[class]:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.action-pill.action-pill--blue[class] .action-pill__icon {
+  color: inherit;
+}
+
+/* 4. Breathing room: group inspector sections with space, not dividers */
+.section {
+  border-bottom: none;
+}
+
+.section__head {
+  padding: 16px 16px 8px;
+}
+
+.section__body {
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.field input,
+.field select {
+  font-variant-numeric: tabular-nums;
+}
+
+.tool-rail__sep {
+  height: 8px;
+  background: transparent;
+}
+
+/* 5. Start screen: centered, quieter paths */
+.start__inner {
+  justify-content: center;
+  min-height: 100%;
+  max-width: 560px;
+  padding-top: 48px;
+  gap: 24px;
+}
+
+.recent-item:hover {
+  background: var(--hover);
+}
+
+.recent-item__text span {
+  color: var(--fg-4);
+}
+
+.empty-note {
+  padding: 32px 16px;
+  text-align: center;
+}
+
+/* Gentle motion */
+@media (prefers-reduced-motion: no-preference) {
+  .tool-btn,
+  .icon-btn,
+  .action-pill,
+  .recent-item {
+    transition:
+      background-color 0.15s var(--ease),
+      border-color 0.15s var(--ease),
+      transform 0.1s var(--ease);
+  }
+
+  button:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+/* Typography hierarchy */
+body {
+  font-size: 13px;
+}
