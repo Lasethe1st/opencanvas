@@ -399,3 +399,11 @@ body {
 @container stage (min-width: 1160px) {
   .dock { left: 50%; right: auto; width: min(560px, calc(100% - 496px)); transform: translateX(-50%); }
 }
+
+/* Frame labels never run past their frame: narrow frames drop size + scope, name truncates. */
+.frame-chrome { container-type: inline-size; }
+.frame-chrome__label { max-width: max(100%, 96px); min-width: 0; overflow: hidden; }
+.frame-chrome__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frame-chrome__size { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@container (max-width: 220px) { .frame-chrome__scope { display: none; } }
+@container (max-width: 150px) { .frame-chrome__size { display: none; } }
