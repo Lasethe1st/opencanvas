@@ -539,3 +539,12 @@ kbd, .kbd,
   max-width: 560px;
   transform: none;
 }
+
+/* Layer right-click menu */
+.layer-menu { position: fixed; z-index: 200; }
+.layer-menu .popover { min-width: 200px; padding: 4px; border-radius: 12px; box-shadow: var(--shadow-md, var(--shadow-lg)); }
+.layer-menu .menu-item { height: 28px; border-radius: 8px; }
+.layer-menu .menu-item__hint { margin-left: auto; color: var(--fg-4); font-size: 11px; }
+.layer-menu__sep { height: 1px; margin: 4px 6px; background: var(--line); }
+.layer-menu .layer-menu__danger, .layer-menu .layer-menu__danger svg { color: var(--danger); }
+.layer-menu .layer-menu__danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 10%, transparent); }
