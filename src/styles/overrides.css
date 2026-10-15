@@ -407,3 +407,5 @@ body {
 .frame-chrome__size { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @container (max-width: 220px) { .frame-chrome__scope { display: none; } }
 @container (max-width: 150px) { .frame-chrome__size { display: none; } }
+.dialog:focus { outline: none; }
+.export-option, .export-report { border-radius: 8px; }

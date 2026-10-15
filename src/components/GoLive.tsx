@@ -46,6 +46,8 @@ export function GoLiveButton() {
 
   const pick = (fn: () => void) => () => {
     setMenu(false);
+    // The menu item is about to unmount; park focus on the trigger so dialogs return focus there.
+    ref.current?.querySelector<HTMLButtonElement>('.split-btn__more')?.focus();
     fn();
   };
 
