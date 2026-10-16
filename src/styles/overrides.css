@@ -722,3 +722,10 @@ kbd, .kbd,
 .workspace > .panel > .panel__head { padding-inline: 12px; }
 .workspace > .panel > .panel__body { padding-bottom: 8px; }
 .workspace > div:first-child > .tool-rail { padding-block: 10px; }
+
+/* Short controls stay rounded rectangles (not capsules) under the squircle boost. */
+.tree-row,
+.menu-item,
+.layer-menu .menu-item,
+.btn,
+.dock__mode { border-radius: var(--r-sm); }
