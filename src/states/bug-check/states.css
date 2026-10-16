@@ -48,7 +48,7 @@
   overflow-y: auto;
   scrollbar-width: none;
   padding: 6px;
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   background: rgb(20 20 20 / 0.92);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
   font: 13px/1 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -75,7 +75,7 @@
   all: unset;
   flex: none;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--r);
   font: inherit;
   color: rgb(255 255 255 / 0.6);
   cursor: pointer;

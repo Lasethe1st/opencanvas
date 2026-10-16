@@ -16,6 +16,7 @@ import {
   Type,
   Upload,
 } from 'lucide-react';
+import { setPanelHidden } from '../lib/panels';
 import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import type { FileNode } from '../../shared/types';
 import {
@@ -526,12 +527,15 @@ function LayersPanel({ query }: { query: string }) {
 export function LeftSidebar() {
   const tab = useStore((s) => s.leftTab);
   const width = useStore((s) => s.leftWidth);
+  const hiddenPanel = useStore((s) => s.panelsHidden.left);
   const [queries, setQueries] = useState({ files: '', layers: '' });
 
   return (
     <Panel
       side="left"
       width={width}
+      hidden={hiddenPanel}
+      onCollapse={() => setPanelHidden('left', true)}
       head={
         <Segmented
           label="Sidebar"

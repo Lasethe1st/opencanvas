@@ -2,6 +2,7 @@ import { Columns3, Crosshair, EyeOff, LayoutGrid, Minus, Move, Square, TextCurso
 import { useEffect, useState } from 'react';
 import { RETAGGABLE_TAGS, type StyleState } from '../../shared/types';
 import { chooseImageForSelection, revealInCode, runEdit, setStyle, setTag } from '../lib/actions';
+import { setPanelHidden } from '../lib/panels';
 import { setState, useActiveBreakpoint, useStore } from '../lib/store';
 import { InspectorHeader, KeyValue } from '../ui/Inspector.jsx';
 import { Panel, PanelTitle } from '../ui/Panels.jsx';
@@ -10,7 +11,7 @@ import { FrameworkLabel, PackageManagerLabel } from './BrandLogos';
 import { SCOPE_LABEL } from './Canvas';
 import { BoxModel } from './inspector/BoxModel';
 import { FontPicker } from './inspector/FontPicker';
-import { ColorInput, CommitInput, CompactInput, CompactSelect, More, Section, StyleField, StyleInput, StyleSelect, ToggleGroup } from './inspector/fields';
+import { AlignGrid, ColorInput, CommitInput, CompactInput, CompactSelect, More, Section, StyleField, StyleInput, StyleSelect, ToggleGroup } from './inspector/fields';
 import { useStyleValue } from './inspector/useStyleValue';
 import { Resizer } from './Resizer';
 
@@ -238,8 +239,14 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
       )}
       {(isFlex || isGrid) && (
         <>
-          <StyleSelect prop="justify-content" label="Justify" options={['normal', 'flex-start', 'center', 'flex-end', 'space-between', 'space-around', 'space-evenly', 'start', 'end']} disabled={disabled} />
-          <StyleSelect prop="align-items" label="Align" options={['normal', 'stretch', 'flex-start', 'center', 'flex-end', 'baseline', 'start', 'end']} disabled={disabled} />
+          {isFlex ? (
+            <AlignGrid disabled={disabled} />
+          ) : (
+            <>
+              <StyleSelect prop="justify-content" label="Justify" options={['normal', 'flex-start', 'center', 'flex-end', 'space-between', 'space-around', 'space-evenly', 'start', 'end']} disabled={disabled} />
+              <StyleSelect prop="align-items" label="Align" options={['normal', 'stretch', 'flex-start', 'center', 'flex-end', 'baseline', 'start', 'end']} disabled={disabled} />
+            </>
+          )}
           <StyleInput prop="gap" label="Gap" placeholder="16px" disabled={disabled} />
         </>
       )}
@@ -405,11 +412,14 @@ export function Inspector() {
   const grouped = useStore((s) => s.multiSelect.length > 0);
 
   const disabled = !info || !project.editable;
+  const hiddenPanel = useStore((s) => s.panelsHidden.right);
 
   return (
     <Panel
       side="right"
       width={width}
+      hidden={hiddenPanel}
+      onCollapse={() => setPanelHidden('right', true)}
       aria-label="Inspector"
       head={
         <>
