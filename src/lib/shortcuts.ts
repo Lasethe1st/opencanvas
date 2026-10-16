@@ -1,3 +1,4 @@
+import { togglePanels } from './panels';
 import type { InsertKind } from '../../shared/types';
 import { setInteract } from '../components/TopBar';
 import {
@@ -126,6 +127,10 @@ export function handleShortcut(key: string, meta: boolean, shift: boolean, alt =
     return true;
   }
   if (!visual) return false;
+  if (meta && !alt && !shift && key === '\\') {
+    togglePanels();
+    return true;
+  }
   if (plain && !shift && lower === 'p') {
     setInteract(!interact);
     return true;
