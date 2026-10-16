@@ -110,6 +110,8 @@ interface State {
   rightWidth: number;
   exportOpen: boolean;
   shortcutsOpen: boolean;
+  /** Side panels dismissed for focus mode (persisted per project). */
+  panelsHidden: { left: boolean; right: boolean };
   settingsOpen: boolean;
   fullPreview: boolean;
   gitOpen: boolean;
@@ -184,6 +186,7 @@ export const initialState: State = {
   rightWidth: 300,
   exportOpen: false,
   shortcutsOpen: false,
+  panelsHidden: { left: false, right: false },
   settingsOpen: false,
   fullPreview: false,
   gitOpen: false,

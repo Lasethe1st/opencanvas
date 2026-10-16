@@ -1,3 +1,4 @@
+import { PanelLeftOpen, PanelRightOpen } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Canvas } from './components/Canvas';
 import { BugCheckPanel } from './components/BugCheck';
@@ -20,6 +21,7 @@ import { api } from './lib/api';
 import { handleExternalChange } from './lib/inline-edit';
 import { loadProjectConfig, touchesConfig } from './lib/pages';
 import { handleShortcut } from './lib/shortcuts';
+import { loadPanels, setPanelHidden } from './lib/panels';
 import { getState, setState, useStore } from './lib/store';
 import { initTerminals, toggleTerminal } from './lib/terminal';
 import { TerminalPanel } from './components/TerminalPanel';
@@ -110,6 +112,13 @@ export default function App() {
     };
   }, []);
 
+  const projectRoot = project?.root;
+  useEffect(() => {
+    if (projectRoot) loadPanels();
+  }, [projectRoot]);
+  const panelsHidden = useStore((s) => s.panelsHidden);
+  const focus = mode === 'visual' && panelsHidden.left && panelsHidden.right;
+
   const workspaceRef = useFloatingInsets(mode === 'visual' && !!project, !!project);
 
   if (!project) {
@@ -124,7 +133,7 @@ export default function App() {
   return (
     <div className="shell">
       <TopBar />
-      <div className={`workspace${mode === 'visual' ? ' workspace--bleed' : ''}`} ref={workspaceRef}>
+      <div className={`workspace${mode === 'visual' ? ' workspace--bleed' : ''}${focus ? ' is-focus' : ''}`} ref={workspaceRef}>
         <ToolRail />
         {gitOpen ? <GitPanel /> : <LeftSidebar />}
         <div className="workspace__center">
@@ -134,6 +143,16 @@ export default function App() {
         </div>
         {auditOpen ? <BugCheckPanel /> : mode === 'visual' && <Inspector />}
         <SettingsPage />
+        {mode === 'visual' && panelsHidden.left && (
+          <button type="button" className="panel-tab panel-tab--left" aria-label="Show panel" data-tip="Show panel" data-tip-side="right" onClick={() => setPanelHidden('left', false)}>
+            <PanelLeftOpen size={14} />
+          </button>
+        )}
+        {mode === 'visual' && panelsHidden.right && (
+          <button type="button" className="panel-tab panel-tab--right" aria-label="Show panel" data-tip="Show panel" data-tip-side="left" onClick={() => setPanelHidden('right', false)}>
+            <PanelRightOpen size={14} />
+          </button>
+        )}
       </div>
       <FullPreview />
       <ExportDialog />
