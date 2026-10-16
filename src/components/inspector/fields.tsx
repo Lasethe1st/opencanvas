@@ -387,7 +387,7 @@ export function AlignGrid({ disabled }: { disabled?: boolean }) {
             </span>
           </button>
           {resets && (
-            <button type="button" className="align-grid__reset" title="Reset alignment" disabled={disabled} onClick={() => void setStyles({ 'justify-content': '', 'align-items': '' }, 'Reset alignment')}>
+            <button type="button" className="align-grid__reset" aria-label="Reset alignment" title="Reset alignment" disabled={disabled} onClick={() => void setStyles({ 'justify-content': '', 'align-items': '' }, 'Reset alignment')}>
               ×
             </button>
           )}
