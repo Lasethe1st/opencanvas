@@ -2,6 +2,7 @@ import { Columns3, Crosshair, EyeOff, LayoutGrid, Minus, Move, Square, TextCurso
 import { useEffect, useState } from 'react';
 import { RETAGGABLE_TAGS, type StyleState } from '../../shared/types';
 import { chooseImageForSelection, revealInCode, runEdit, setStyle, setTag } from '../lib/actions';
+import { setPanelHidden } from '../lib/panels';
 import { setState, useActiveBreakpoint, useStore } from '../lib/store';
 import { InspectorHeader, KeyValue } from '../ui/Inspector.jsx';
 import { Panel, PanelTitle } from '../ui/Panels.jsx';
@@ -411,11 +412,14 @@ export function Inspector() {
   const grouped = useStore((s) => s.multiSelect.length > 0);
 
   const disabled = !info || !project.editable;
+  const hiddenPanel = useStore((s) => s.panelsHidden.right);
 
   return (
     <Panel
       side="right"
       width={width}
+      hidden={hiddenPanel}
+      onCollapse={() => setPanelHidden('right', true)}
       aria-label="Inspector"
       head={
         <>
