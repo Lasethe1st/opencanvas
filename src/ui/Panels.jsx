@@ -9,7 +9,7 @@ export function Panel({ side, width, head, children, resizer, hidden, onCollapse
         <div className="panel__head">
           {head}
           {onCollapse && (
-            <button type="button" className="icon-btn icon-btn--sm panel__collapse" aria-label="Hide panel" data-tip="Hide panels  Ctrl+\\" data-tip-side={side === 'left' ? 'right' : 'left'} onClick={onCollapse}>
+            <button type="button" className="icon-btn icon-btn--sm panel__collapse" aria-label="Hide panel" data-tip="Hide panel" data-tip-side={side === 'left' ? 'right' : 'left'} onClick={onCollapse}>
               <Icon size={14} />
             </button>
           )}

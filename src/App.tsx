@@ -144,12 +144,12 @@ export default function App() {
         {auditOpen ? <BugCheckPanel /> : mode === 'visual' && <Inspector />}
         <SettingsPage />
         {mode === 'visual' && panelsHidden.left && (
-          <button type="button" className="panel-tab panel-tab--left" aria-label="Show layers panel" data-tip="Show panels  Ctrl+\\" data-tip-side="right" onClick={() => setPanelHidden('left', false)}>
+          <button type="button" className="panel-tab panel-tab--left" aria-label="Show panel" data-tip="Show panel" data-tip-side="right" onClick={() => setPanelHidden('left', false)}>
             <PanelLeftOpen size={14} />
           </button>
         )}
         {mode === 'visual' && panelsHidden.right && (
-          <button type="button" className="panel-tab panel-tab--right" aria-label="Show inspector panel" data-tip="Show panels  Ctrl+\\" data-tip-side="left" onClick={() => setPanelHidden('right', false)}>
+          <button type="button" className="panel-tab panel-tab--right" aria-label="Show panel" data-tip="Show panel" data-tip-side="left" onClick={() => setPanelHidden('right', false)}>
             <PanelRightOpen size={14} />
           </button>
         )}
