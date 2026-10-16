@@ -710,5 +710,5 @@ kbd, .kbd,
   .workspace__center,
   [data-tip]:hover::after,
   kbd { corner-shape: superellipse(2); }
-  .search-pill__hint, .canvas-nav__bar, kbd, .kbd { corner-shape: round; }
+  .search-pill__hint, .canvas-nav__bar, kbd, .kbd, .tag { corner-shape: round; }
 }

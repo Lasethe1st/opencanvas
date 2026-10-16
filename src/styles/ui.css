@@ -3642,7 +3642,7 @@ kbd,
   place-items: center;
   width: 36px;
   height: 36px;
-  border-radius: var(--r-lg);
+  border-radius: var(--r-sm);
   background: var(--surface-3);
   color: var(--fg-2);
 }
