@@ -1,7 +1,8 @@
+import type React from 'react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { evaluateExpression, stepSize, stepValue } from '../../../shared/numeric';
-import { setStyle } from '../../lib/actions';
+import { setStyle, setStyles } from '../../lib/actions';
 import { Field, InputShell, Section as SectionShell, SelectShell, Swatch, ToggleRow } from '../../ui/primitives.jsx';
 import { BREAKPOINT_LABEL, normalizeValue, shortValue, toHex, useStyleValue, type StyleValue } from './useStyleValue';
 
@@ -287,5 +288,111 @@ export function ToggleGroup({
         <ToggleRow options={options} value={value.value} onChange={(v) => void setStyle(prop, value.state === 'set' && value.value === v ? '' : v)} />
       </fieldset>
     </div>
+  );
+}
+
+const AXIS = ['flex-start', 'center', 'flex-end'] as const;
+const POS_Y = ['Top', 'Middle', 'Bottom'];
+const POS_X = ['left', 'center', 'right'];
+const axisIndex = (v: string) => (/(^|-)start$|^normal$|^stretch$|^baseline$|^left$/.test(v) ? 0 : v === 'center' ? 1 : /(^|-)end$|^right$/.test(v) ? 2 : -1);
+
+/**
+ * 3×3 alignment grid for flex containers: one click sets justify-content and align-items, mapped to the
+ * flex direction. A toggle switches the main axis to space-between.
+ */
+export function AlignGrid({ disabled }: { disabled?: boolean }) {
+  const dir = useStyleValue('flex-direction').value || 'row';
+  const justify = useStyleValue('justify-content');
+  const align = useStyleValue('align-items');
+  const column = dir.startsWith('column');
+  const reverse = dir.endsWith('reverse');
+  const distribute = justify.value === 'space-between';
+  const flip = (i: number) => (reverse && i >= 0 ? 2 - i : i);
+  const main = distribute ? 1 : flip(axisIndex(justify.value));
+  const cross = axisIndex(align.value);
+  const [x, y] = column ? [cross, main] : [main, cross];
+  const active = x >= 0 && y >= 0 ? y * 3 + x : -1;
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [focus, setFocus] = useState(Math.max(active, 0));
+  useEffect(() => setFocus(Math.max(active, 0)), [active]);
+
+  const pick = (i: number) => {
+    const cx = i % 3;
+    const cy = Math.floor(i / 3);
+    const [m, c] = column ? [cy, cx] : [cx, cy];
+    void setStyles({ 'justify-content': distribute ? 'space-between' : AXIS[flip(m)], 'align-items': AXIS[c] }, 'Set alignment');
+  };
+  const onKey = (e: React.KeyboardEvent, i: number) => {
+    const d = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 }[e.key];
+    if (d === undefined) return;
+    e.preventDefault();
+    let n = i + d;
+    if (d === -1 && i % 3 === 0) n = i + 2;
+    if (d === 1 && i % 3 === 2) n = i - 2;
+    n = (n + 9) % 9;
+    setFocus(n);
+    refs.current[n]?.focus();
+    pick(n);
+  };
+  const resets = justify.state === 'set' || align.state === 'set';
+
+  return (
+    <StyleField label="Align" value={justify.state === 'set' ? justify : align}>
+      <div className="align-grid-row">
+        <div className={`align-grid${column ? ' is-column' : ''}`} role="radiogroup" aria-label="Alignment">
+          {Array.from({ length: 9 }, (_, i) => {
+            const on = distribute ? (column ? i % 3 === x : Math.floor(i / 3) === y) : i === active;
+            const label = `${POS_Y[Math.floor(i / 3)]} ${POS_X[i % 3]}`.replace('Middle center', 'Center');
+            return (
+              <button
+                key={i}
+                ref={(el) => void (refs.current[i] = el)}
+                type="button"
+                role="radio"
+                aria-label={label}
+                aria-checked={i === active}
+                title={label}
+                tabIndex={i === focus ? 0 : -1}
+                disabled={disabled}
+                className={`align-grid__cell${on ? ' is-active' : ''}`}
+                onClick={() => pick(i)}
+                onKeyDown={(e) => onKey(e, i)}
+              >
+                {on ? (
+                  <span className="align-grid__bars" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                ) : (
+                  <span className="align-grid__dot" aria-hidden="true" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <div className="align-grid__side">
+          <button
+            type="button"
+            className={`align-grid__toggle${distribute ? ' is-active' : ''}`}
+            aria-pressed={distribute}
+            title="Distribute (space-between)"
+            disabled={disabled}
+            onClick={() => void setStyles({ 'justify-content': distribute ? AXIS[flip(Math.max(column ? y : x, 0))] : 'space-between' }, distribute ? 'Pack items' : 'Distribute items')}
+          >
+            <span className={`align-grid__dist${column ? ' is-column' : ''}`} aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+          </button>
+          {resets && (
+            <button type="button" className="align-grid__reset" title="Reset alignment" disabled={disabled} onClick={() => void setStyles({ 'justify-content': '', 'align-items': '' }, 'Reset alignment')}>
+              ×
+            </button>
+          )}
+        </div>
+      </div>
+    </StyleField>
   );
 }

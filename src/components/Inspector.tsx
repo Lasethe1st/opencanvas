@@ -10,7 +10,7 @@ import { FrameworkLabel, PackageManagerLabel } from './BrandLogos';
 import { SCOPE_LABEL } from './Canvas';
 import { BoxModel } from './inspector/BoxModel';
 import { FontPicker } from './inspector/FontPicker';
-import { ColorInput, CommitInput, CompactInput, CompactSelect, More, Section, StyleField, StyleInput, StyleSelect, ToggleGroup } from './inspector/fields';
+import { AlignGrid, ColorInput, CommitInput, CompactInput, CompactSelect, More, Section, StyleField, StyleInput, StyleSelect, ToggleGroup } from './inspector/fields';
 import { useStyleValue } from './inspector/useStyleValue';
 import { Resizer } from './Resizer';
 
@@ -238,8 +238,14 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
       )}
       {(isFlex || isGrid) && (
         <>
-          <StyleSelect prop="justify-content" label="Justify" options={['normal', 'flex-start', 'center', 'flex-end', 'space-between', 'space-around', 'space-evenly', 'start', 'end']} disabled={disabled} />
-          <StyleSelect prop="align-items" label="Align" options={['normal', 'stretch', 'flex-start', 'center', 'flex-end', 'baseline', 'start', 'end']} disabled={disabled} />
+          {isFlex ? (
+            <AlignGrid disabled={disabled} />
+          ) : (
+            <>
+              <StyleSelect prop="justify-content" label="Justify" options={['normal', 'flex-start', 'center', 'flex-end', 'space-between', 'space-around', 'space-evenly', 'start', 'end']} disabled={disabled} />
+              <StyleSelect prop="align-items" label="Align" options={['normal', 'stretch', 'flex-start', 'center', 'flex-end', 'baseline', 'start', 'end']} disabled={disabled} />
+            </>
+          )}
           <StyleInput prop="gap" label="Gap" placeholder="16px" disabled={disabled} />
         </>
       )}
