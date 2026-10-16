@@ -13,6 +13,7 @@
   --r: 10px;
   --r-lg: 14px;
   --r-xl: 18px;
+  --r-panel: 20px;
   --r-pill: 999px;
   --control-h: 32px;
 }
@@ -580,7 +581,7 @@ kbd, .kbd,
 
 /* Squircles: only token-radius surfaces get the shape, with a compensated radius. Round things stay round. */
 @supports (corner-shape: squircle) {
-  :root, :root[data-theme] { --r-sm: calc(8px * 1.4); --r: calc(10px * 1.4); --r-lg: calc(14px * 1.841); --r-xl: calc(18px * 1.841); }
+  :root, :root[data-theme] { --r-sm: calc(8px * 1.4); --r: calc(10px * 1.4); --r-lg: calc(14px * 1.841); --r-xl: calc(18px * 1.841); --r-panel: calc(20px * 1.841); }
   .ai-card,
   .ai-card__command,
   .ai-card__text input,
@@ -712,3 +713,12 @@ kbd, .kbd,
   kbd { corner-shape: superellipse(2); }
   .search-pill__hint, .canvas-nav__bar, kbd, .kbd, .tag { corner-shape: round; }
 }
+
+/* Floating sidebars and tool rail: larger squircle panel radius. Content keeps clear of the deeper corners. */
+.workspace > div:first-child > .tool-rail,
+.workspace > .panel,
+.workspace--bleed > div:first-child > .tool-rail,
+.workspace--bleed > .panel { border-radius: var(--r-panel); }
+.workspace > .panel > .panel__head { padding-inline: 12px; }
+.workspace > .panel > .panel__body { padding-bottom: 8px; }
+.workspace > div:first-child > .tool-rail { padding-block: 10px; }
