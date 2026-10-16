@@ -580,7 +580,7 @@ kbd, .kbd,
 
 /* Squircles: only token-radius surfaces get the shape, with a compensated radius. Round things stay round. */
 @supports (corner-shape: squircle) {
-  :root { --r-sm: calc(8px * 1.841); --r: calc(10px * 1.841); --r-lg: calc(14px * 1.841); --r-xl: calc(18px * 1.841); }
+  :root, :root[data-theme] { --r-sm: calc(8px * 1.841); --r: calc(10px * 1.841); --r-lg: calc(14px * 1.841); --r-xl: calc(18px * 1.841); }
   .ai-card,
   .ai-card__command,
   .ai-card__text input,
@@ -642,7 +642,6 @@ kbd, .kbd,
   .input__reset,
   .inspector-head__name,
   .inspector-more__toggle,
-  .kbd,
   .layer-menu .menu-item,
   .layer-menu .popover,
   .legend .marker,
@@ -711,4 +710,5 @@ kbd, .kbd,
   .workspace__center,
   [data-tip]:hover::after,
   kbd { corner-shape: superellipse(2); }
+  .search-pill__hint, .canvas-nav__bar, kbd, .kbd { corner-shape: round; }
 }
