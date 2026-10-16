@@ -9,10 +9,10 @@
 :root,
 :root[data-theme],
 [data-theme='dark'] {
-  --r-sm: 6px;
-  --r: 8px;
-  --r-lg: 12px;
-  --r-xl: 12px;
+  --r-sm: 8px;
+  --r: 10px;
+  --r-lg: 14px;
+  --r-xl: 16px;
   --r-pill: 999px;
   --control-h: 32px;
 }
@@ -260,7 +260,7 @@ body {
   gap: 2px;
   padding: 2px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--r-lg);
   background: var(--surface-3);
 }
 
@@ -318,7 +318,7 @@ body {
 }
 
 .tree-row {
-  border-radius: 8px;
+  border-radius: var(--r);
 }
 
 /* Tool rail: spacing instead of separator lines */
@@ -408,7 +408,7 @@ body {
 @container (max-width: 220px) { .frame-chrome__scope { display: none; } }
 @container (max-width: 150px) { .frame-chrome__size { display: none; } }
 .dialog:focus { outline: none; }
-.export-option, .export-report { border-radius: 8px; }
+.export-option, .export-report { border-radius: var(--r); }
 
 /* Type floor: nothing in the editor renders below 11px. */
 .dock-results__group,
@@ -456,7 +456,7 @@ kbd, .kbd,
   height: 28px;
   padding: 0 8px 0 12px;
   border-right: none;
-  border-radius: 8px;
+  border-radius: var(--r);
 }
 .code-tab:hover { background: var(--hover); }
 .code-tab.is-active {
@@ -474,7 +474,7 @@ kbd, .kbd,
 .terminal-panel__tabs { gap: 4px; }
 .terminal-tab {
   height: 28px;
-  border-radius: 8px;
+  border-radius: var(--r);
 }
 .terminal-tab.is-active {
   background: var(--surface-2);
@@ -491,7 +491,7 @@ kbd, .kbd,
   min-height: 24px;
   padding: 0 6px 0 2px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--r);
   background: none;
   color: var(--fg-3);
   font: inherit;
@@ -509,7 +509,7 @@ kbd, .kbd,
 .topbar {
   margin: 8px 8px 0;
   border: 1px solid var(--line) !important;
-  border-radius: 12px;
+  border-radius: var(--r-lg);
   background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
@@ -526,7 +526,7 @@ kbd, .kbd,
 .workspace--bleed > .workspace__center + * { margin-left: auto; }
 .workspace--bleed .stage { border-radius: 0; border: none; }
 .workspace--bleed > div:first-child > .tool-rail,
-.workspace--bleed > .panel { border-radius: 12px; }
+.workspace--bleed > .panel { border-radius: var(--r-lg); }
 .shell:has(.workspace--bleed) { grid-template-rows: calc(var(--topbar-h) + 8px) minmax(0, 1fr); }
 .shell:has(.workspace--bleed) .workspace { margin-top: 0; }
 
@@ -542,8 +542,8 @@ kbd, .kbd,
 
 /* Layer right-click menu */
 .layer-menu { position: fixed; z-index: 200; }
-.layer-menu .popover { min-width: 200px; padding: 4px; border-radius: 12px; box-shadow: var(--shadow-md, var(--shadow-lg)); }
-.layer-menu .menu-item { height: 28px; border-radius: 8px; }
+.layer-menu .popover { min-width: 200px; padding: 4px; border-radius: var(--r-lg); box-shadow: var(--shadow-md, var(--shadow-lg)); }
+.layer-menu .menu-item { height: 28px; border-radius: var(--r); }
 .layer-menu .menu-item__hint { margin-left: auto; color: var(--fg-4); font-size: 11px; }
 .layer-menu__sep { height: 1px; margin: 4px 6px; background: var(--line); }
 .layer-menu .layer-menu__danger, .layer-menu .layer-menu__danger svg { color: var(--danger); }
@@ -568,7 +568,7 @@ kbd, .kbd,
 .toggle-more { display: flex; gap: 4px; align-items: center; min-width: 0; }
 .toggle-more .toggle-row { flex: 1; min-width: 0; }
 .toggle-more .toggle-row button { min-height: 24px; }
-.toggle-more__select { position: relative; flex: none; width: 28px; height: 24px; border-radius: 6px; color: var(--fg-3); }
+.toggle-more__select { position: relative; flex: none; width: 28px; height: 24px; border-radius: var(--r); color: var(--fg-3); }
 .toggle-more__select::after { content: '⋯'; position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 .toggle-more__select:hover { background: var(--hover); }
 .toggle-more__select.is-active { background: var(--accent-soft); color: var(--fg); }
@@ -577,13 +577,138 @@ kbd, .kbd,
 /* Squircle corners (progressive enhancement, after jespervos.com/craft/squircles).
    Radius tokens are scaled by ~1.841 so the squircle sits inside the circular corner it
    replaces; unsupported browsers keep the plain border-radius. Pills stay round. */
+
+/* Squircles: only token-radius surfaces get the shape, with a compensated radius. Round things stay round. */
 @supports (corner-shape: squircle) {
-  :root {
-    --r-sm: calc(6px * 1.841);
-    --r: calc(8px * 1.841);
-    --r-lg: calc(12px * 1.841);
-    --r-xl: calc(12px * 1.841);
-  }
-  *:not([style*="border-radius: 50%"]) { corner-shape: superellipse(2); }
-  .action-pill, .canvas-nav__bar, [class*="pill"], [class*="avatar"], .badge, .dot { corner-shape: round; }
+  :root { --r-sm: calc(8px * 1.841); --r: calc(10px * 1.841); --r-lg: calc(14px * 1.841); --r-xl: calc(16px * 1.841); }
+  .ai-card,
+  .ai-card__command,
+  .ai-card__text input,
+  .ai-chat__model,
+  .ai-composer,
+  .ai-error,
+  .ai-msg--user,
+  .ai-option,
+  .ai-option kbd,
+  .ai-provider,
+  .ai-tool__show,
+  .audit-issue__detail.is-code,
+  .audit-issue__head,
+  .audit-summary__item,
+  .box-slot input,
+  .boxmodel,
+  .boxmodel__content,
+  .boxmodel__padding,
+  .bp-banner,
+  .btn,
+  .canvas-nav__bar,
+  .canvas-nav__minimap,
+  .canvas-nav__zoom,
+  .code-block,
+  .code-tab,
+  .crumbs,
+  .crumbs button,
+  .dialog,
+  .direction-pad,
+  .dock,
+  .dock-hit,
+  .dock-input,
+  .dock-search,
+  .dock__mode,
+  .dock__modes,
+  .dock__prompt,
+  .ds-summary,
+  .ds-summary__swatch,
+  .export-option,
+  .export-option__icon,
+  .export-report,
+  .files-drop,
+  .font-choice__trigger,
+  .font-option,
+  .frame-chrome__handle--se::after,
+  .frame-chrome__rename,
+  .frame-chrome__scope,
+  .frame-menu__num,
+  .frame-row,
+  .full-preview__stage iframe.is-device,
+  .git-tabs,
+  .git-tabs button,
+  .golive__prompt,
+  .icon-btn,
+  .icon-btn--sm,
+  .icon-pack,
+  .import-summary,
+  .input,
+  .input__reset,
+  .inspector-head__name,
+  .inspector-more__toggle,
+  .kbd,
+  .layer-menu .menu-item,
+  .layer-menu .popover,
+  .legend .marker,
+  .menu-item,
+  .minimap,
+  .notice,
+  .popover,
+  .popover__search,
+  .project-btn,
+  .project-icon,
+  .provider,
+  .recent-item,
+  .recent__empty,
+  .ref-card,
+  .ref-card__note,
+  .ref-card__role,
+  .ref-card__thumb,
+  .refs__add input,
+  .savee,
+  .savee-tile__add,
+  .savee-tile__colors,
+  .savee-tile__thumb,
+  .savee__board,
+  .savee__search,
+  .scope-tag,
+  .search,
+  .segmented,
+  .segmented button,
+  .selection-bar,
+  .settings-page__back,
+  .settings-page__tab,
+  .setup__input,
+  .shortcuts kbd,
+  .size-tip,
+  .start-dialog__ai,
+  .start-dialog__input,
+  .state-card,
+  .state-card__icon,
+  .state-card__log,
+  .state-stage--dock,
+  .state-stage--m4,
+  .state-switcher,
+  .state-switcher button,
+  .swatch,
+  .tag,
+  .template-card,
+  .terminal-tab,
+  .terminal-tab__badge,
+  .terminal-tab__main,
+  .terminal-tab__rename,
+  .textarea,
+  .theme-option,
+  .toast,
+  .toggle-more__select,
+  .toggle-row,
+  .toggle-row button,
+  .tool-btn,
+  .topbar,
+  .tree-row,
+  .tree-row__input,
+  .tree-row__toggle,
+  .workspace > .panel,
+  .workspace > div:first-child > .tool-rail,
+  .workspace--bleed > .panel,
+  .workspace--bleed > div:first-child > .tool-rail,
+  .workspace__center,
+  [data-tip]:hover::after,
+  kbd { corner-shape: superellipse(2); }
 }
