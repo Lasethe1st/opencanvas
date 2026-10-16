@@ -573,3 +573,17 @@ kbd, .kbd,
 .toggle-more__select:hover { background: var(--hover); }
 .toggle-more__select.is-active { background: var(--accent-soft); color: var(--fg); }
 .toggle-more__select select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+
+/* Squircle corners (progressive enhancement, after jespervos.com/craft/squircles).
+   Radius tokens are scaled by ~1.841 so the squircle sits inside the circular corner it
+   replaces; unsupported browsers keep the plain border-radius. Pills stay round. */
+@supports (corner-shape: squircle) {
+  :root {
+    --r-sm: calc(6px * 1.841);
+    --r: calc(8px * 1.841);
+    --r-lg: calc(12px * 1.841);
+    --r-xl: calc(12px * 1.841);
+  }
+  *:not([style*="border-radius: 50%"]) { corner-shape: superellipse(2); }
+  .action-pill, .canvas-nav__bar, [class*="pill"], [class*="avatar"], .badge, .dot { corner-shape: round; }
+}
