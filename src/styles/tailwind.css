@@ -1,0 +1,92 @@
+/* Tailwind for new, shadcn-based components.
+   - No preflight: the existing app CSS (tokens.css, ui.css, …) keeps owning resets, so older screens do not shift.
+   - Utilities are generated only for the folders listed in @source, so class names elsewhere cannot collide with them.
+   - Colours, radii and fonts map onto the existing tokens, so light/dark keep working through [data-theme]. */
+@import 'tailwindcss/theme.css';
+@import 'tailwindcss/utilities.css' source(none);
+
+@source '../components/ui';
+@source '../components/home';
+@source '../components/Onboarding.tsx';
+
+/* Scoped stand-in for Tailwind's preflight. Everything inside an element marked data-tw (the new shadcn-based
+   screens, plus their portalled dialogs and menus) gets a modern reset. :where() keeps specificity at zero, so the
+   utilities below and any component class always win, and nothing outside [data-tw] is touched. */
+:where([data-tw], [data-tw] *, [data-tw] *::before, [data-tw] *::after) {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0 solid;
+}
+:where([data-tw] button, [data-tw] input, [data-tw] textarea, [data-tw] select) {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background: transparent;
+  border-radius: 0;
+  text-transform: none;
+}
+:where([data-tw] h1, [data-tw] h2, [data-tw] h3, [data-tw] h4) {
+  font-size: inherit;
+  font-weight: inherit;
+}
+:where([data-tw] button) {
+  cursor: pointer;
+  text-align: inherit;
+}
+:where([data-tw] button:disabled) {
+  cursor: default;
+}
+:where([data-tw] ::placeholder) {
+  opacity: 1;
+}
+
+/* The app already owns --shadow-sm/md/lg (tokens.css). Clearing Tailwind's shadow namespace stops its defaults from
+   being emitted at :root and overriding them. Components read the app tokens directly: shadow-[var(--shadow-md)]. */
+@theme {
+  --shadow-*: initial;
+}
+
+@theme inline {
+  /* The app's root font-size is 12.5px, so Tailwind's rem scale is replaced by px values. */
+  --spacing: 4px;
+  --text-xs: 12px;
+  --text-sm: 12.5px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --text-4xl: 38px;
+
+  --font-sans: var(--font);
+  --font-mono: var(--mono);
+
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--fg);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--fg);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-fg);
+  --color-secondary: var(--surface-3);
+  --color-secondary-foreground: var(--fg);
+  --color-muted: var(--surface-3);
+  --color-muted-foreground: var(--fg-3);
+  --color-accent: var(--hover);
+  --color-accent-foreground: var(--fg);
+  --color-destructive: var(--danger);
+  --color-border: var(--line);
+  /* Form-control borders need 3:1 against their surface (WCAG 1.4.11). --line-strong measures 1.45:1, so controls
+     here use a mix of the foreground instead: 3.5:1 in light, 4.7:1 in dark. */
+  --color-input: color-mix(in srgb, var(--fg) 50%, var(--surface));
+  --color-ring: var(--select);
+  --color-overlay: var(--backdrop);
+
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+
+}

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 const browserPreview: Plugin = {
   name: 'oc-browser-preview',
@@ -23,7 +24,8 @@ const browserPreview: Plugin = {
 export default defineConfig({
   root: 'src',
   base: './',
-  plugins: [react(), browserPreview],
+  plugins: [react(), tailwindcss(), browserPreview],
+  resolve: { alias: { '@': resolve(__dirname, 'src') } },
   build: {
     outDir: '../dist',
     emptyOutDir: true,
