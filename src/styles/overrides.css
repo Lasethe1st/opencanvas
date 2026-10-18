@@ -537,7 +537,7 @@ kbd, .kbd,
   pointer-events: auto;
 }
 .topbar__side--end { justify-self: end; padding: 0 8px; }
-@media (max-width: 760px) { .topbar > div:nth-child(2) { display: none; } }
+@media (max-width: 760px) { .topbar { grid-template-columns: auto minmax(0, 1fr); } .topbar > div:nth-child(2) { display: none; } }
 .workspace--bleed { background: transparent; }
 .workspace--bleed > .workspace__center {
   position: absolute;
