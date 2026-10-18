@@ -1,5 +1,6 @@
-import { ArrowLeft, Copy, Keyboard, KeyRound, Monitor, Moon, Palette, Plug, RefreshCw, Settings as SettingsIcon, Sparkles, Sun } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Copy, Keyboard, KeyRound, Monitor, Moon, Palette, Plug, RefreshCw, Settings as SettingsIcon, Sparkles, Sun, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { McpStatus, ThemePreference } from '../../shared/types';
 import { api } from '../lib/api';
 import { plural } from '../lib/plural';
@@ -36,6 +37,15 @@ export function SettingsPage() {
   const tab = useStore((s) => s.settingsTab);
   const setTab = (id: SettingsTab) => setState({ settingsTab: id });
   const close = () => setState({ settingsOpen: false });
+  const dialog = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    // Move focus into the dialog, and give it back to the Settings button on close.
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dialog.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
+    return () => opener?.focus();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -46,33 +56,36 @@ export function SettingsPage() {
 
   if (!open) return null;
   const current = TABS.find((t) => t.id === tab)!;
-  return (
-    <section className="settings-page" aria-label="Settings">
-      <nav className="settings-page__nav" role="tablist" aria-label="Settings sections" aria-orientation="vertical">
-        <button className="settings-page__back" onClick={close}>
-          <ArrowLeft size={14} />
-          Back to editor
-        </button>
-        <h1 className="settings-page__title">Settings</h1>
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button key={id} role="tab" aria-selected={tab === id} className={`settings-page__tab${tab === id ? ' is-active' : ''}`} onClick={() => setTab(id)}>
-            <Icon size={15} />
-            {label}
+  // Portaled to <body>: the workspace restyles its direct children, which pushed this page off to the side.
+  return createPortal(
+    <div className="settings-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
+      <section ref={dialog} className="settings-page" role="dialog" aria-modal="true" aria-label="Settings">
+        <nav className="settings-page__nav" role="tablist" aria-label="Settings sections" aria-orientation="vertical">
+          <h1 className="settings-page__title">Settings</h1>
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <button key={id} role="tab" aria-selected={tab === id} className={`settings-page__tab${tab === id ? ' is-active' : ''}`} onClick={() => setTab(id)}>
+              <Icon size={15} />
+              {label}
+            </button>
+          ))}
+          <button className="settings-page__tab" onClick={() => setState({ shortcutsOpen: true })}>
+            <Keyboard size={15} />
+            Keyboard shortcuts
           </button>
-        ))}
-        <button className="settings-page__tab" onClick={() => setState({ shortcutsOpen: true })}>
-          <Keyboard size={15} />
-          Keyboard shortcuts
-        </button>
-      </nav>
-      <div className="settings-page__content" role="tabpanel" aria-label={current.label}>
-        <div className="settings-page__inner">
-          <h2>{current.label}</h2>
-          <p className="settings-page__lead">{current.lead}</p>
-          {tab === 'appearance' ? <AppearanceSettings /> : tab === 'ai' ? <AiSettingsPanel /> : <McpSettings />}
+        </nav>
+        <div className="settings-page__content" role="tabpanel" aria-label={current.label}>
+          <button className="settings-page__close" aria-label="Close settings" onClick={close}>
+            <X size={16} />
+          </button>
+          <div className="settings-page__inner">
+            <h2>{current.label}</h2>
+            <p className="settings-page__lead">{current.lead}</p>
+            {tab === 'appearance' ? <AppearanceSettings /> : tab === 'ai' ? <AiSettingsPanel /> : <McpSettings />}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>,
+    document.body,
   );
 }
 

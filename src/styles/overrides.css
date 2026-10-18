@@ -534,12 +534,18 @@ kbd, .kbd,
 /* Bottom chrome stays inside the visible (uncovered) part of the stage. */
 .workspace--bleed .canvas-nav { right: calc(var(--inset-r, 0px) + 12px); }
 .workspace--bleed .dock {
-  left: max(calc(var(--inset-l, 0px) + 16px), calc(var(--inset-l, 0px) + (100% - var(--inset-l, 0px) - var(--inset-r, 0px) - 560px) / 2));
-  right: calc(var(--inset-r, 0px) + 312px);
-  width: auto;
-  max-width: 560px;
+  /* Centred in the part of the stage the side panels leave uncovered. */
+  --dock-room: calc(100% - var(--inset-l, 0px) - var(--inset-r, 0px));
+  --dock-w: min(560px, calc(var(--dock-room) - 32px));
+  left: calc(var(--inset-l, 0px) + (var(--dock-room) - var(--dock-w)) / 2);
+  right: auto;
+  width: var(--dock-w);
+  max-width: none;
+  margin: 0;
   transform: none;
 }
+/* Too narrow for the dock and the zoom controls side by side: the zoom controls sit above the dock bar. */
+.workspace--bleed .workspace__center[data-nav-stacked] .canvas-nav { bottom: 68px; }
 
 /* Layer right-click menu */
 .layer-menu { position: fixed; z-index: 200; }
@@ -672,7 +678,7 @@ kbd, .kbd,
   .segmented,
   .segmented button,
   .selection-bar,
-  .settings-page__back,
+  .settings-page__close,
   .settings-page__tab,
   .setup__input,
   .shortcuts kbd,

@@ -178,6 +178,7 @@ function useFloatingInsets(active: boolean, mounted: boolean) {
       if (!active) {
         center.style.removeProperty('--inset-l');
         center.style.removeProperty('--inset-r');
+        center.removeAttribute('data-nav-stacked');
         return;
       }
       const box = center.getBoundingClientRect();
@@ -191,6 +192,8 @@ function useFloatingInsets(active: boolean, mounted: boolean) {
       }
       center.style.setProperty('--inset-l', `${Math.round(left)}px`);
       center.style.setProperty('--inset-r', `${Math.round(right)}px`);
+      // A 560px dock plus the zoom controls (about 274px) on each side of it needs this much room.
+      center.toggleAttribute('data-nav-stacked', box.width - left - right < 560 + 2 * (274 + 28));
     };
     update();
     const ro = new ResizeObserver(update);

@@ -675,7 +675,7 @@ try {
   const chooseTheme = async (label) => {
     await openSettings('Appearance');
     await page.getByRole('radiogroup', { name: 'Theme' }).getByRole('radio', { name: label }).click();
-    await page.getByRole('button', { name: 'Back to editor' }).click();
+    await page.getByRole('button', { name: 'Close settings' }).click();
     await page.locator('.settings-page').waitFor({ state: 'detached' });
   };
   await chooseTheme('Dark');
