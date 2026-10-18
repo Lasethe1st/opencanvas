@@ -59,6 +59,19 @@ export function MorphPill({
   const [body, setBody] = useState<HTMLDivElement | null>(null);
   const [railH, setRailH] = useState<number | null>(null);
   const [bodyH, setBodyH] = useState(0);
+  // On narrow windows the expanded pill shrinks to fit, keeping 16px of margin on both sides.
+  const [avail, setAvail] = useState(Infinity);
+  const rootRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const parent = rootRef.current?.offsetParent;
+    if (!(parent instanceof HTMLElement)) return;
+    const measure = () => setAvail(parent.clientWidth - 32);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, []);
+  const width = Math.max(RAIL_WIDTH, Math.min(expandedWidth, avail));
 
   // Keep the last item's content mounted until the pill has finished collapsing.
   const [shownId, setShownId] = useState<string | null>(active);
@@ -115,6 +128,7 @@ export function MorphPill({
 
   return (
     <div
+      ref={rootRef}
       data-tw=""
       data-slot="morph-pill"
       data-state={open ? 'expanded' : 'compact'}
@@ -124,7 +138,7 @@ export function MorphPill({
         'motion-safe:transition-[width,height] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]',
         className,
       )}
-      style={{ width: open ? expandedWidth : RAIL_WIDTH, height, borderRadius: RADIUS }}
+      style={{ width: open ? width : RAIL_WIDTH, height, borderRadius: RADIUS }}
     >
       <div className="flex h-full items-start">
         <nav ref={railRef} aria-label={label} className="flex shrink-0 flex-col items-center gap-1 p-1.5" style={{ width: RAIL_WIDTH }}>
@@ -149,7 +163,7 @@ export function MorphPill({
                       <item.icon strokeWidth={2} />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="right">{item.label}</TooltipContent>
+                  <TooltipContent side={document.dir === 'rtl' ? 'left' : 'right'}>{item.label}</TooltipContent>
                 </Tooltip>
               </div>
             );
@@ -166,7 +180,7 @@ export function MorphPill({
           {shown && (
             <section ref={panelRef} id={panelId} aria-label={shown.label} key={shown.id}>
               {/* Fixed inner width, so the text does not re-wrap while the pill is still growing. */}
-              <div ref={setBody} className="p-4" style={{ width: expandedWidth - RAIL_WIDTH }}>
+              <div ref={setBody} className="p-4" style={{ width: width - RAIL_WIDTH }}>
                 <Enter visible={open}>
                   <h2 className="mb-3 flex items-center gap-2 ps-1 text-base font-medium">
                     <shown.icon strokeWidth={2} />

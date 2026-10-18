@@ -1,5 +1,5 @@
 import { ArrowUp } from "lucide-react";
-import { useEffect, useId, useRef, type KeyboardEvent } from "react";
+import { useId, type KeyboardEvent } from "react";
 import {
   InputGroup,
   InputGroupAddon,
@@ -7,8 +7,6 @@ import {
   InputGroupText,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
-
-const MAX_HEIGHT = 240;
 
 /** The large "what are we building?" box. Enter continues, Shift+Enter adds a line. */
 export function HomePrompt({
@@ -22,16 +20,7 @@ export function HomePrompt({
   onSubmit: () => void;
   disabled?: boolean;
 }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
   const hintId = useId();
-
-  // Grow with the text, up to a limit.
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-    node.style.height = "auto";
-    node.style.height = `${Math.min(node.scrollHeight, MAX_HEIGHT)}px`;
-  }, [value]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
@@ -42,13 +31,12 @@ export function HomePrompt({
   return (
     <InputGroup className="rounded-xl shadow-[var(--shadow-md)]">
       <InputGroupTextarea
-        ref={ref}
         autoFocus
         rows={2}
         aria-label="What do you want to build?"
         aria-describedby={hintId}
         placeholder="A landing page for a coffee roaster, with a shop and a story section"
-        className="min-h-[72px] leading-relaxed"
+        className="field-sizing-content min-h-[72px] max-h-60 leading-relaxed"
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}

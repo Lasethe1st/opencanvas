@@ -28,7 +28,7 @@ export function ThemeMenu() {
           <Icon strokeWidth={2} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="right" align="end" className="min-w-[160px]">
+      <DropdownMenuContent side={document.dir === 'rtl' ? 'left' : 'right'} align="end" className="min-w-[160px]">
         <DropdownMenuRadioGroup
           value={preference}
           onValueChange={(value) =>
