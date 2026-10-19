@@ -17,15 +17,16 @@ const OPTIONS: { id: ThemePreference; label: string; icon: typeof Sun }[] = [
 ];
 
 /** System / Light / Dark. The choice is shared with the workspace and saved locally. */
-export function ThemeMenu() {
+export function ThemeMenu({ className, children }: { className?: string; children?: React.ReactNode }) {
   const { preference, resolved } = useTheme();
   const Icon =
     preference === "system" ? Monitor : resolved === "dark" ? Moon : Sun;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="size-10 rounded-full [&_svg]:size-5" aria-label="Theme">
-          <Icon strokeWidth={2} />
+        <Button variant="ghost" className={className} aria-label="Theme">
+          <Icon />
+          {children}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side={document.dir === 'rtl' ? 'left' : 'right'} align="end" className="min-w-[160px]">

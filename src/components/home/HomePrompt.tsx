@@ -4,7 +4,6 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-  InputGroupText,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
 
@@ -29,34 +28,29 @@ export function HomePrompt({
   };
 
   return (
-    <InputGroup className="rounded-xl shadow-[var(--shadow-md)]">
-      <InputGroupTextarea
-        autoFocus
-        rows={2}
-        aria-label="What do you want to build?"
-        aria-describedby={hintId}
-        placeholder="A landing page for a coffee roaster, with a shop and a story section"
-        className="field-sizing-content min-h-[72px] max-h-60 leading-relaxed"
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={onKeyDown}
-      />
-      <InputGroupAddon align="block-end" className="justify-between">
-        <InputGroupText id={hintId} className="text-pretty">
-          Next, you’ll choose a visual direction.
-        </InputGroupText>
-        <InputGroupButton
-          variant="default"
-          size="icon"
-          className="rounded-full"
-          aria-label="Continue"
-          disabled={!value.trim() || disabled}
-          onClick={onSubmit}
-        >
-          <ArrowUp strokeWidth={2} />
-        </InputGroupButton>
-      </InputGroupAddon>
-    </InputGroup>
+    <div className="w-full">
+      <InputGroup className="rounded-[8px] shadow-[var(--shadow-sm)]">
+        <InputGroupTextarea
+          autoFocus
+          rows={1}
+          aria-label="What do you want to build?"
+          aria-describedby={hintId}
+          placeholder="Describe your project"
+          className="field-sizing-content max-h-60 min-h-11 px-3.5 py-2.5 leading-6"
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+        />
+        <InputGroupAddon align="inline-end" className="self-end pb-1.5 pe-1.5">
+          <InputGroupButton variant="default" size="icon" className="rounded-[4px]" aria-label="Continue" disabled={!value.trim() || disabled} onClick={onSubmit}>
+            <ArrowUp strokeWidth={2} />
+          </InputGroupButton>
+        </InputGroupAddon>
+      </InputGroup>
+      <p id={hintId} className="mt-2 ps-1 text-sm text-muted-foreground text-pretty">
+        Next, you’ll choose a visual direction.
+      </p>
+    </div>
   );
 }

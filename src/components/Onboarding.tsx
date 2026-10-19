@@ -7,8 +7,8 @@ import { ProjectSetup } from './ProjectSetup';
 import { GithubMark } from '../ui/StartScreen.jsx';
 import { GithubPanel, NewProjectPanel, OpenPanel, RecentPanel, SearchPanel, TemplatesPanel } from './home/HomePanels';
 import { HomePrompt } from './home/HomePrompt';
+import { HomeSidebar, type SidebarItem } from './home/HomeSidebar';
 import { ThemeMenu } from './home/ThemeMenu';
-import { MorphPill, type MorphPillItem } from '@/components/ui/morph-pill';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 type PanelId = 'new' | 'github' | 'templates' | 'open' | 'recent' | 'search';
@@ -57,7 +57,7 @@ export function Onboarding() {
 
   const onActiveChange = useCallback((id: string | null) => setActive(id as PanelId | null), []);
 
-  const items: MorphPillItem[] = useMemo(
+  const items: SidebarItem[] = useMemo(
     () => [
       {
         id: 'new',
@@ -111,9 +111,20 @@ export function Onboarding() {
   return (
     <LucideProvider strokeWidth={1.5} absoluteStrokeWidth>
       <TooltipProvider>
-        <div data-tw="" className="relative flex h-full bg-background text-foreground">
-          <MorphPill label="Home" items={items} active={active} onActiveChange={onActiveChange} busy={busy} expandedWidth={372} footer={<ThemeMenu />} className="absolute start-4 top-4 z-10" />
-          <main className="flex min-w-0 flex-1 flex-col items-center overflow-y-auto ps-[84px] pe-4 pb-16 pt-[24vh] min-[900px]:pe-[84px]">
+        <div data-tw="" className="flex h-full bg-background text-foreground">
+          <HomeSidebar
+            label="Home"
+            items={items}
+            active={active}
+            onActiveChange={onActiveChange}
+            busy={busy}
+            footer={(collapsed) => (
+              <ThemeMenu className={collapsed ? 'size-9 [&_svg]:size-[18px]' : 'h-9 w-full justify-start gap-3 px-[9px] [&_svg]:size-[18px]'}>
+                {!collapsed && 'Theme'}
+              </ThemeMenu>
+            )}
+          />
+          <main className="flex min-w-0 flex-1 flex-col items-center overflow-y-auto px-8 pb-16 pt-[24vh]">
             <div className="flex w-full max-w-[680px] flex-col items-center gap-8">
               <h1 className="text-balance text-center text-4xl font-semibold leading-[1.1] tracking-[-0.02em]">{greeting()}</h1>
               <HomePrompt

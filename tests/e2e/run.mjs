@@ -43,9 +43,9 @@ async function importPhase(projectDir) {
     await app2.evaluate(({ dialog }, dir) => {
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
     }, projectDir);
-    await p.getByLabel('Search projects').waitFor();
-    await p.getByRole('button', { name: 'Open folder / file' }).click();
-    await p.getByRole('menuitem', { name: 'Open folder…' }).click();
+    await p.getByRole('button', { name: 'Start new project' }).waitFor();
+    await p.getByRole('button', { name: 'Open folder or file' }).click();
+    await p.getByRole('button', { name: 'Open folder', exact: true }).click();
     await f.locator('h2').waitFor({ timeout: 60000 });
     ok('imported project previewed with its own node_modules and vite.config.js');
 
@@ -184,24 +184,25 @@ async function mockOpenAi() {
 
 try {
   step('Launch and onboarding');
-  await page.getByLabel('Search projects').waitFor();
-  for (const name of ['Start new project', 'Import from GitHub', 'Use templates', 'Open folder / file']) await page.getByRole('button', { name }).waitFor();
+  for (const name of ['Start new project', 'Import from GitHub', 'Use a template', 'Open folder or file', 'Recent files', 'Search']) await page.getByRole('button', { name }).waitFor();
+  await page.getByRole('button', { name: 'Recent files' }).click();
   await page.getByText('Projects you open or create will show up here.').waitFor();
   await shot('01-onboarding');
-  ok('start page shows search, the four quick actions and an empty recent list');
+  await page.keyboard.press('Escape');
+  ok('start page shows the sidebar actions and an empty recent list');
 
+  await page.getByRole('button', { name: 'Search' }).click();
   await page.getByLabel('Search projects').fill('github.com/octo/hello-world');
   await page.getByRole('button', { name: /Import octo\/hello-world/ }).waitFor();
   await page.getByLabel('Search projects').press('Enter');
-  await waitFor(async () => (await page.getByLabel('Repository').inputValue()) === 'octo/hello-world', 'GitHub dialog prefilled from search');
+  await waitFor(async () => (await page.getByLabel('Repository').inputValue()) === 'octo/hello-world', 'GitHub panel prefilled from search');
   await shot('01b-import-github');
   await page.keyboard.press('Escape');
-  await page.getByLabel('Search projects').fill('');
-  await page.getByRole('button', { name: 'Use templates' }).click();
-  await page.getByRole('option', { name: /Landing/ }).waitFor();
+  await page.getByRole('button', { name: 'Use a template' }).click();
+  await page.getByRole('radio', { name: /Landing/ }).waitFor();
   await shot('01c-templates');
   await page.keyboard.press('Escape');
-  ok('search suggests a GitHub import; templates open in a dialog');
+  ok('search suggests a GitHub import; templates open in the sidebar');
 
   step('Create a blank project');
   await page.getByRole('button', { name: 'Start new project' }).click();
@@ -839,14 +840,14 @@ try {
   step('Import the exported ZIP from the start page');
   await page.locator('.project-btn').click();
   await page.getByRole('menuitem', { name: 'Close project' }).click();
-  await page.getByLabel('Search projects').waitFor();
+  await page.getByRole('button', { name: 'Start new project' }).waitFor();
   await waitFor(() => !alive(leftOpen.pid) && !alive(childPid), `shell ${leftOpen.pid} and child ${childPid} ended with the project`);
   ok('closing the project ended every terminal process');
   await app.evaluate(({ dialog }, file) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] });
   }, zipPath);
-  await page.getByRole('button', { name: 'Open folder / file' }).click();
-  await page.getByRole('menuitem', { name: 'Import ZIP…' }).click();
+  await page.getByRole('button', { name: 'Open folder or file' }).click();
+  await page.getByRole('button', { name: 'Import .zip' }).click();
   const summary = page.getByRole('dialog', { name: 'Project imported' });
   await summary.waitFor({ timeout: 30000 });
   assert.equal(await summary.locator('.import-summary__row', { hasText: 'Framework' }).locator('dd').textContent(), 'React + Vite');
