@@ -529,6 +529,7 @@ kbd, .kbd,
 .topbar__side {
   height: 100%;
   justify-self: start;
+  max-width: var(--pill-l-max, none);
   padding: 0 8px 0 12px;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
@@ -536,7 +537,12 @@ kbd, .kbd,
   box-shadow: var(--shadow-sm);
   pointer-events: auto;
 }
-.topbar__side--end { justify-self: end; padding: 0 8px; }
+.topbar .project-btn { max-width: 100%; }
+.topbar .project-btn__name { min-width: 0; }
+.topbar__side--end { justify-self: end; max-width: var(--pill-r-max, none); padding: 0 8px; }
+/* A narrow inspector: drop the dividers and tighten the gaps so the pill still fits above it. */
+.shell[data-pill-tight] .topbar__side--end { gap: 2px; padding: 0 4px; }
+.shell[data-pill-tight] .topbar__side--end .divider { display: none; }
 @media (max-width: 760px) { .topbar { grid-template-columns: auto minmax(0, 1fr); } .topbar > div:nth-child(2) { display: none; } }
 .workspace--bleed { background: transparent; }
 .workspace--bleed > .workspace__center {

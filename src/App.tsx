@@ -174,7 +174,26 @@ function useFloatingInsets(active: boolean, mounted: boolean) {
     if (!ws) return;
     const center = ws.querySelector<HTMLElement>('.workspace__center');
     if (!center) return;
+    const shell = ws.parentElement;
     const update = () => {
+      // The top bar's two pills never grow wider than the side panel beneath each of them.
+      if (shell) {
+        const box = ws.getBoundingClientRect();
+        let leftPanel = 0;
+        let rightPanel = 0;
+        for (const el of ws.querySelectorAll<HTMLElement>(':scope > .panel')) {
+          const r = el.getBoundingClientRect();
+          if (!r.width) continue;
+          if (r.left + r.width / 2 < box.left + box.width / 2) leftPanel = Math.max(leftPanel, r.width);
+          else rightPanel = Math.max(rightPanel, r.width);
+        }
+        for (const [name, width] of [['--pill-l-max', leftPanel], ['--pill-r-max', rightPanel]] as const) {
+          if (width) shell.style.setProperty(name, `${Math.floor(width)}px`);
+          else shell.style.removeProperty(name);
+        }
+        // Below this the right pill's controls no longer fit at their normal spacing.
+        shell.toggleAttribute('data-pill-tight', !!rightPanel && rightPanel < 340);
+      }
       if (!active) {
         center.style.removeProperty('--inset-l');
         center.style.removeProperty('--inset-r');
@@ -207,6 +226,9 @@ function useFloatingInsets(active: boolean, mounted: boolean) {
     return () => {
       ro.disconnect();
       mo.disconnect();
+      shell?.style.removeProperty('--pill-l-max');
+      shell?.style.removeProperty('--pill-r-max');
+      shell?.removeAttribute('data-pill-tight');
     };
   }, [active, mounted]);
   return ref;
