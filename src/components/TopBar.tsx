@@ -7,7 +7,8 @@ import { sendToPreview } from '../lib/bridge';
 import { stopInlineEdit } from '../lib/inline-edit';
 import { findPath, hasUnsaved, setState, useStore } from '../lib/store';
 import { Menu, MenuItem } from '../ui/primitives.jsx';
-import { Brand, Breadcrumb, Divider, ModeSwitch, PreviewButton, ProjectButton, SaveStatus, TopBar as Bar } from '../ui/TopBar.jsx';
+import { Brand, Breadcrumb, Divider, ModeSwitch, PanelsButton, PreviewButton, ProjectButton, SaveStatus, TopBar as Bar } from '../ui/TopBar.jsx';
+import { togglePanels } from '../lib/panels';
 import { openFullPreview } from './FullPreview';
 import { GoLiveButton } from './GoLive';
 function ProjectMenu() {
@@ -78,6 +79,7 @@ export function TopBar() {
   const mode = useStore((s) => s.mode);
   const dirty = useStore((s) => hasUnsaved(s));
   const busy = useStore((s) => s.busy);
+  const panelsHidden = useStore((s) => s.panelsHidden.left && s.panelsHidden.right);
 
   return (
     <Bar
@@ -93,6 +95,7 @@ export function TopBar() {
       end={
         <>
           <PreviewButton onClick={openFullPreview} />
+          <PanelsButton hidden={panelsHidden} onClick={togglePanels} />
           <Divider />
           <ModeSwitch value={mode} onChange={(id) => setState({ mode: id })} />
           <Divider />

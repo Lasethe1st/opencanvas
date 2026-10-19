@@ -16,7 +16,6 @@ import {
   Type,
   Upload,
 } from 'lucide-react';
-import { setPanelHidden } from '../lib/panels';
 import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import type { FileNode } from '../../shared/types';
 import {
@@ -535,7 +534,6 @@ export function LeftSidebar() {
       side="left"
       width={width}
       hidden={hiddenPanel}
-      onCollapse={() => setPanelHidden('left', true)}
       head={
         <Segmented
           label="Sidebar"

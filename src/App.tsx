@@ -1,4 +1,3 @@
-import { PanelLeftOpen, PanelRightOpen } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Canvas } from './components/Canvas';
 import { BugCheckPanel } from './components/BugCheck';
@@ -21,7 +20,7 @@ import { api } from './lib/api';
 import { handleExternalChange } from './lib/inline-edit';
 import { loadProjectConfig, touchesConfig } from './lib/pages';
 import { handleShortcut } from './lib/shortcuts';
-import { loadPanels, setPanelHidden } from './lib/panels';
+import { loadPanels } from './lib/panels';
 import { getState, setState, useStore } from './lib/store';
 import { initTerminals, toggleTerminal } from './lib/terminal';
 import { TerminalPanel } from './components/TerminalPanel';
@@ -143,16 +142,6 @@ export default function App() {
         </div>
         {auditOpen ? <BugCheckPanel /> : mode === 'visual' && <Inspector />}
         <SettingsPage />
-        {mode === 'visual' && panelsHidden.left && (
-          <button type="button" className="panel-tab panel-tab--left" aria-label="Show panel" data-tip="Show panel" data-tip-side="right" onClick={() => setPanelHidden('left', false)}>
-            <PanelLeftOpen size={14} />
-          </button>
-        )}
-        {mode === 'visual' && panelsHidden.right && (
-          <button type="button" className="panel-tab panel-tab--right" aria-label="Show panel" data-tip="Show panel" data-tip-side="left" onClick={() => setPanelHidden('right', false)}>
-            <PanelRightOpen size={14} />
-          </button>
-        )}
       </div>
       <FullPreview />
       <ExportDialog />
