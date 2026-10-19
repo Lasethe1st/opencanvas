@@ -11,11 +11,11 @@ import { Button } from '../ui/primitives.jsx';
 import { DirectionEditor, DirectionSection, uploadPaths, type DirectionDraft } from './direction/DirectionEditor';
 
 /** "Get help from AI": collect a direction, create the project with it, then hand the brief to the in-app AI or the user's own agent. */
-export function ProjectSetup({ location, onBack }: { location: string; onBack: () => void }) {
+export function ProjectSetup({ location, initialRequest = '', onBack }: { location: string; initialRequest?: string; onBack: () => void }) {
   const busy = useStore((s) => s.busy);
   const aiReady = useStore((s) => !!s.aiStatus?.ready);
   const [name, setName] = useState('');
-  const [request, setRequest] = useState('');
+  const [request, setRequest] = useState(initialRequest);
   const [draft, setDraft] = useState<DirectionDraft>({ direction: defaultDirection(), pending: {} });
 
   const generate = async () => {

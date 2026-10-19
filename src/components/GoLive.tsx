@@ -53,8 +53,8 @@ export function GoLiveButton() {
 
   return (
     <div ref={ref} className="split-btn">
-      <Button variant="primary" onClick={() => setOpen(true)}>
-        Go live
+      <Button variant="primary" aria-label="Go live" data-tip="Go live" onClick={() => setOpen(true)}>
+        <Rocket size={15} />
       </Button>
       <Button variant="primary" className="split-btn__more" aria-label="More publish options" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((v) => !v)}>
         <ChevronDown size={13} />

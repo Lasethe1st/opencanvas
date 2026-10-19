@@ -1,18 +1,12 @@
-import { ChevronDown, ChevronRight, PanelLeftClose, PanelRightClose, Search } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { cx } from './primitives.jsx';
 
-export function Panel({ side, width, head, children, resizer, hidden, onCollapse, ...rest }) {
-  const Icon = side === 'left' ? PanelLeftClose : PanelRightClose;
+export function Panel({ side, width, head, children, resizer, hidden, ...rest }) {
   return (
     <aside className={cx('panel', `panel--${side}`, hidden && 'is-hidden')} style={{ width }} aria-hidden={hidden || undefined} inert={hidden ? '' : undefined} {...rest}>
       {head && (
         <div className="panel__head">
           {head}
-          {onCollapse && (
-            <button type="button" className="icon-btn icon-btn--sm panel__collapse" aria-label="Hide panel" data-tip="Hide panel" data-tip-side={side === 'left' ? 'right' : 'left'} onClick={onCollapse}>
-              <Icon size={14} />
-            </button>
-          )}
         </div>
       )}
       <div className="panel__body">{children}</div>

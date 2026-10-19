@@ -514,6 +514,36 @@ kbd, .kbd,
   background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
+/* The top bar is two floating pills, one per side, with the breadcrumb between them on the plain background. */
+.topbar {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  padding: 0;
+  border: 0 !important;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+.topbar > * { min-width: 0; }
+.topbar > div:nth-child(2) { display: flex; justify-content: center; max-width: 30vw; overflow: hidden; }
+.topbar__side {
+  height: 100%;
+  justify-self: start;
+  max-width: var(--pill-l-max, none);
+  padding: 0 8px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  pointer-events: auto;
+}
+.topbar .project-btn { max-width: 100%; }
+.topbar .project-btn__name { min-width: 0; }
+.topbar__side--end { justify-self: end; max-width: var(--pill-r-max, none); padding: 0 8px; }
+/* Icon-only controls: every button is a square, so the pill stays compact. */
+.topbar .segmented button { position: relative; width: 32px; padding: 0; }
+.topbar .split-btn > .btn:first-child { position: relative; padding: 0 10px; }
+@media (max-width: 760px) { .topbar { grid-template-columns: auto minmax(0, 1fr); } .topbar > div:nth-child(2) { display: none; } }
 .workspace--bleed { background: transparent; }
 .workspace--bleed > .workspace__center {
   position: absolute;
@@ -528,18 +558,26 @@ kbd, .kbd,
 .workspace--bleed .stage { border-radius: 0; border: none; }
 .workspace--bleed > div:first-child > .tool-rail,
 .workspace--bleed > .panel { border-radius: var(--r-lg); }
-.shell:has(.workspace--bleed) { grid-template-rows: calc(var(--topbar-h) + 8px) minmax(0, 1fr); }
-.shell:has(.workspace--bleed) .workspace { margin-top: 0; }
+/* The canvas runs under the header, so the strip behind the two pills is the canvas itself. */
+.shell:has(.workspace--bleed) { position: relative; grid-template-rows: minmax(0, 1fr); }
+.shell:has(.workspace--bleed) > .topbar { position: absolute; inset: 8px 8px auto; height: var(--topbar-h); margin: 0; }
+.shell:has(.workspace--bleed) .workspace { margin-top: 0; padding-top: calc(var(--topbar-h) + 16px); }
 
 /* Bottom chrome stays inside the visible (uncovered) part of the stage. */
 .workspace--bleed .canvas-nav { right: calc(var(--inset-r, 0px) + 12px); }
 .workspace--bleed .dock {
-  left: max(calc(var(--inset-l, 0px) + 16px), calc(var(--inset-l, 0px) + (100% - var(--inset-l, 0px) - var(--inset-r, 0px) - 560px) / 2));
-  right: calc(var(--inset-r, 0px) + 312px);
-  width: auto;
-  max-width: 560px;
+  /* Centred in the part of the stage the side panels leave uncovered. */
+  --dock-room: calc(100% - var(--inset-l, 0px) - var(--inset-r, 0px));
+  --dock-w: min(560px, calc(var(--dock-room) - 32px));
+  left: calc(var(--inset-l, 0px) + (var(--dock-room) - var(--dock-w)) / 2);
+  right: auto;
+  width: var(--dock-w);
+  max-width: none;
+  margin: 0;
   transform: none;
 }
+/* Too narrow for the dock and the zoom controls side by side: the zoom controls sit above the dock bar. */
+.workspace--bleed .workspace__center[data-nav-stacked] .canvas-nav { bottom: 68px; }
 
 /* Layer right-click menu */
 .layer-menu { position: fixed; z-index: 200; }
@@ -672,7 +710,7 @@ kbd, .kbd,
   .segmented,
   .segmented button,
   .selection-bar,
-  .settings-page__back,
+  .settings-page__close,
   .settings-page__tab,
   .setup__input,
   .shortcuts kbd,
@@ -756,19 +794,10 @@ kbd, .kbd,
 .workspace > .panel.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; transition: transform 150ms ease-out, opacity 150ms ease-out, visibility 0s linear 150ms; }
 .workspace > .panel--left.is-hidden { transform: translateX(-16px); }
 .workspace > .panel--right.is-hidden { transform: translateX(16px); }
-.panel__head:has(.panel__collapse) { display: flex; align-items: center; gap: 6px; }
 .panel__head > :first-child { flex: 1; min-width: 0; }
-.panel__collapse { flex: none; margin-left: auto; color: var(--fg-3); }
-.panel-tab, .workspace--bleed > .panel-tab { position: absolute; top: 50%; z-index: 3; display: grid; place-items: center; width: 20px; height: 48px; margin-top: -24px; padding: 0; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); color: var(--fg-3); box-shadow: var(--shadow-sm); cursor: pointer; animation: panel-tab-in 150ms ease-out; }
-.panel-tab:hover { color: var(--fg); background: var(--hover); }
-.panel-tab:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
-.workspace > .panel-tab--left { left: calc(var(--rail-w, 48px) + 20px); }
-.workspace > .panel-tab--right { margin-left: 0; right: 12px; }
-@keyframes panel-tab-in { from { opacity: 0; } }
 .workspace.is-focus .dock, .workspace.is-focus .canvas-nav { opacity: 0.4; transition: opacity 150ms ease-out; }
 .workspace.is-focus .dock:hover, .workspace.is-focus .dock:focus-within, .workspace.is-focus .canvas-nav:hover, .workspace.is-focus .canvas-nav:focus-within { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   .workspace > .panel, .workspace > .panel.is-hidden, .workspace.is-focus .dock, .workspace.is-focus .canvas-nav { transition: none; }
   .workspace > .panel.is-hidden { transform: none; }
-  .panel-tab { animation: none; }
 }

@@ -1,4 +1,3 @@
-import { PanelLeftOpen, PanelRightOpen } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Canvas } from './components/Canvas';
 import { BugCheckPanel } from './components/BugCheck';
@@ -21,7 +20,7 @@ import { api } from './lib/api';
 import { handleExternalChange } from './lib/inline-edit';
 import { loadProjectConfig, touchesConfig } from './lib/pages';
 import { handleShortcut } from './lib/shortcuts';
-import { loadPanels, setPanelHidden } from './lib/panels';
+import { loadPanels } from './lib/panels';
 import { getState, setState, useStore } from './lib/store';
 import { initTerminals, toggleTerminal } from './lib/terminal';
 import { TerminalPanel } from './components/TerminalPanel';
@@ -143,16 +142,6 @@ export default function App() {
         </div>
         {auditOpen ? <BugCheckPanel /> : mode === 'visual' && <Inspector />}
         <SettingsPage />
-        {mode === 'visual' && panelsHidden.left && (
-          <button type="button" className="panel-tab panel-tab--left" aria-label="Show panel" data-tip="Show panel" data-tip-side="right" onClick={() => setPanelHidden('left', false)}>
-            <PanelLeftOpen size={14} />
-          </button>
-        )}
-        {mode === 'visual' && panelsHidden.right && (
-          <button type="button" className="panel-tab panel-tab--right" aria-label="Show panel" data-tip="Show panel" data-tip-side="left" onClick={() => setPanelHidden('right', false)}>
-            <PanelRightOpen size={14} />
-          </button>
-        )}
       </div>
       <FullPreview />
       <ExportDialog />
@@ -174,10 +163,28 @@ function useFloatingInsets(active: boolean, mounted: boolean) {
     if (!ws) return;
     const center = ws.querySelector<HTMLElement>('.workspace__center');
     if (!center) return;
+    const shell = ws.parentElement;
     const update = () => {
+      // The top bar's two pills never grow wider than the side panel beneath each of them.
+      if (shell) {
+        const box = ws.getBoundingClientRect();
+        let leftPanel = 0;
+        let rightPanel = 0;
+        for (const el of ws.querySelectorAll<HTMLElement>(':scope > .panel')) {
+          const r = el.getBoundingClientRect();
+          if (!r.width) continue;
+          if (r.left + r.width / 2 < box.left + box.width / 2) leftPanel = Math.max(leftPanel, r.width);
+          else rightPanel = Math.max(rightPanel, r.width);
+        }
+        for (const [name, width] of [['--pill-l-max', leftPanel], ['--pill-r-max', rightPanel]] as const) {
+          if (width) shell.style.setProperty(name, `${Math.floor(width)}px`);
+          else shell.style.removeProperty(name);
+        }
+      }
       if (!active) {
         center.style.removeProperty('--inset-l');
         center.style.removeProperty('--inset-r');
+        center.removeAttribute('data-nav-stacked');
         return;
       }
       const box = center.getBoundingClientRect();
@@ -191,6 +198,8 @@ function useFloatingInsets(active: boolean, mounted: boolean) {
       }
       center.style.setProperty('--inset-l', `${Math.round(left)}px`);
       center.style.setProperty('--inset-r', `${Math.round(right)}px`);
+      // A 560px dock plus the zoom controls (about 274px) on each side of it needs this much room.
+      center.toggleAttribute('data-nav-stacked', box.width - left - right < 560 + 2 * (274 + 28));
     };
     update();
     const ro = new ResizeObserver(update);
@@ -204,6 +213,8 @@ function useFloatingInsets(active: boolean, mounted: boolean) {
     return () => {
       ro.disconnect();
       mo.disconnect();
+      shell?.style.removeProperty('--pill-l-max');
+      shell?.style.removeProperty('--pill-r-max');
     };
   }, [active, mounted]);
   return ref;

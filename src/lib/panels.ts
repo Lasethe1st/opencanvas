@@ -1,6 +1,5 @@
 import { getState, setState } from './store';
 
-type Side = 'left' | 'right';
 const PREFIX = 'oc-panels:';
 const key = () => {
   const root = getState().project?.root;
@@ -38,10 +37,6 @@ function apply(next: { left: boolean; right: boolean }) {
   } catch {
     /* storage full or blocked */
   }
-}
-
-export function setPanelHidden(side: Side, hidden: boolean) {
-  apply({ ...getState().panelsHidden, [side]: hidden });
 }
 
 /** Ctrl+\\: hide both panels, or bring both back when any is hidden. */

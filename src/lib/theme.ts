@@ -20,9 +20,21 @@ function resolve(pref: ThemePreference): ResolvedTheme {
   return pref === 'system' ? (media.matches ? 'dark' : 'light') : pref;
 }
 
+/** Switch themes without every color transition firing at once. */
+function setThemeAttribute(value: string) {
+  const root = document.documentElement;
+  if (root.dataset.theme === value) return;
+  const style = document.createElement('style');
+  style.textContent = '*,*::before,*::after{transition:none!important}';
+  document.head.appendChild(style);
+  root.dataset.theme = value;
+  void getComputedStyle(root).opacity; // flush styles while transitions are off
+  requestAnimationFrame(() => requestAnimationFrame(() => style.remove()));
+}
+
 function apply() {
   snapshot = { preference, resolved: resolve(preference) };
-  document.documentElement.dataset.theme = snapshot.resolved;
+  setThemeAttribute(snapshot.resolved);
   listeners.forEach((listener) => listener());
 }
 

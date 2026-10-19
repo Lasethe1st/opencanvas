@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, Code2, Monitor, MousePointer2, Play, Smartphone, Tablet } from 'lucide-react';
+import { ChevronDown, ChevronRight, Code2, Maximize2, Minimize2, Monitor, MousePointer2, Play, Smartphone, Tablet } from 'lucide-react';
 import { Badge, IconButton, Segmented } from './primitives.jsx';
 
 export const VIEWPORTS = [
@@ -63,8 +63,8 @@ export function ModeSwitch({ value, onChange }) {
     <Segmented
       label="Editor mode"
       options={[
-        { id: 'visual', label: 'Visual', text: 'Visual', icon: <MousePointer2 size={13} /> },
-        { id: 'code', label: 'Code', text: 'Code', icon: <Code2 size={13} /> },
+        { id: 'visual', label: 'Visual', icon: <MousePointer2 size={15} /> },
+        { id: 'code', label: 'Code', icon: <Code2 size={15} /> },
       ]}
       value={value}
       onChange={onChange}
@@ -76,6 +76,15 @@ export function PreviewButton({ onClick }) {
   return (
     <IconButton label="Preview full screen" onClick={onClick}>
       <Play size={15} />
+    </IconButton>
+  );
+}
+
+/** One control for both side panels: expand the canvas to full screen, or bring the panels back. */
+export function PanelsButton({ hidden, onClick }) {
+  return (
+    <IconButton label={hidden ? 'Show panels' : 'Hide panels'} aria-pressed={hidden} onClick={onClick}>
+      {hidden ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
     </IconButton>
   );
 }

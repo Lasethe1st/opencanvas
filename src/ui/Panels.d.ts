@@ -1,6 +1,6 @@
 import type { HTMLAttributes, JSX, PointerEventHandler, ReactNode } from 'react';
 
-export function Panel(props: HTMLAttributes<HTMLElement> & { side: 'left' | 'right'; width?: number; head?: ReactNode; resizer?: ReactNode; onCollapse?: () => void }): JSX.Element;
+export function Panel(props: HTMLAttributes<HTMLElement> & { side: 'left' | 'right'; width?: number; head?: ReactNode; resizer?: ReactNode; hidden?: boolean }): JSX.Element;
 export function PanelTitle(props: { children?: ReactNode }): JSX.Element;
 export function Rail(props: { side: 'left' | 'right'; children?: ReactNode }): JSX.Element;
 export function SearchField(props: { value?: string; onChange?: (value: string) => void; placeholder?: string }): JSX.Element;
