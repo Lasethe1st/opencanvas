@@ -63,8 +63,8 @@ export function ModeSwitch({ value, onChange }) {
     <Segmented
       label="Editor mode"
       options={[
-        { id: 'visual', label: 'Visual', text: 'Visual', icon: <MousePointer2 size={13} /> },
-        { id: 'code', label: 'Code', text: 'Code', icon: <Code2 size={13} /> },
+        { id: 'visual', label: 'Visual', icon: <MousePointer2 size={15} /> },
+        { id: 'code', label: 'Code', icon: <Code2 size={15} /> },
       ]}
       value={value}
       onChange={onChange}

@@ -191,8 +191,6 @@ function useFloatingInsets(active: boolean, mounted: boolean) {
           if (width) shell.style.setProperty(name, `${Math.floor(width)}px`);
           else shell.style.removeProperty(name);
         }
-        // Below this the right pill's controls no longer fit at their normal spacing.
-        shell.toggleAttribute('data-pill-tight', !!rightPanel && rightPanel < 340);
       }
       if (!active) {
         center.style.removeProperty('--inset-l');
@@ -228,7 +226,6 @@ function useFloatingInsets(active: boolean, mounted: boolean) {
       mo.disconnect();
       shell?.style.removeProperty('--pill-l-max');
       shell?.style.removeProperty('--pill-r-max');
-      shell?.removeAttribute('data-pill-tight');
     };
   }, [active, mounted]);
   return ref;

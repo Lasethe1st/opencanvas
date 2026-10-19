@@ -540,9 +540,9 @@ kbd, .kbd,
 .topbar .project-btn { max-width: 100%; }
 .topbar .project-btn__name { min-width: 0; }
 .topbar__side--end { justify-self: end; max-width: var(--pill-r-max, none); padding: 0 8px; }
-/* A narrow inspector: drop the dividers and tighten the gaps so the pill still fits above it. */
-.shell[data-pill-tight] .topbar__side--end { gap: 2px; padding: 0 4px; }
-.shell[data-pill-tight] .topbar__side--end .divider { display: none; }
+/* Icon-only controls: every button is a square, so the pill stays compact. */
+.topbar .segmented button { position: relative; width: 32px; padding: 0; }
+.topbar .split-btn > .btn:first-child { position: relative; padding: 0 10px; }
 @media (max-width: 760px) { .topbar { grid-template-columns: auto minmax(0, 1fr); } .topbar > div:nth-child(2) { display: none; } }
 .workspace--bleed { background: transparent; }
 .workspace--bleed > .workspace__center {
