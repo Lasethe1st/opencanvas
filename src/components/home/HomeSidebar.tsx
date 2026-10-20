@@ -1,4 +1,4 @@
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type ComponentType, type KeyboardEvent, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -9,8 +9,10 @@ export interface SidebarItem {
   id: string;
   label: string;
   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
-  /** Shown under the item while it is open. */
-  content: ReactNode;
+  /** Shown under the item while it is open. Without it the item is a plain action. */
+  content?: ReactNode;
+  /** A plain action: runs when the item is chosen. */
+  onSelect?: () => void;
   /** Draw a divider above this item. */
   dividerBefore?: boolean;
 }
@@ -35,7 +37,7 @@ export function HomeSidebar({
   items,
   active,
   onActiveChange,
-  footer,
+  onSearch,
   busy,
 }: {
   label: string;
@@ -43,7 +45,8 @@ export function HomeSidebar({
   /** The open item's id, or null. */
   active: string | null;
   onActiveChange: (id: string | null) => void;
-  footer?: (collapsed: boolean) => ReactNode;
+  /** The search icon at the top: opens the search overlay. */
+  onSearch: () => void;
   /** While true, Escape does not close the open item. */
   busy?: boolean;
 }) {
@@ -92,21 +95,28 @@ export function HomeSidebar({
       className="flex h-full shrink-0 flex-col overflow-hidden border-e border-border bg-card motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]"
       style={{ width: collapsed ? COLLAPSED : EXPANDED }}
     >
-      <div className="flex h-12 shrink-0 items-center gap-2 px-2.5">
+      <div className={cn('flex shrink-0 gap-1 p-2.5', collapsed ? 'flex-col items-center' : 'h-14 items-center')}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" className="size-9 shrink-0 [&_svg]:size-[18px]" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} aria-controls={regionId} onClick={toggle}>
+            <Button variant="ghost" className="size-9 shrink-0 [&_svg]:size-[18px]" aria-label="Search" onClick={onSearch}>
+              <Search strokeWidth={2} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side={document.dir === 'rtl' ? 'left' : 'right'}>Search</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" className={cn('size-9 shrink-0 [&_svg]:size-[18px]', !collapsed && 'ms-auto')} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} aria-controls={regionId} onClick={toggle}>
               {collapsed ? <PanelLeftOpen strokeWidth={2} /> : <PanelLeftClose strokeWidth={2} />}
             </Button>
           </TooltipTrigger>
           <TooltipContent side={document.dir === 'rtl' ? 'left' : 'right'}>{collapsed ? 'Expand sidebar' : 'Collapse sidebar'}</TooltipContent>
         </Tooltip>
-        {!collapsed && <span className="truncate text-sm font-semibold tracking-[-0.01em]">Open Canvas</span>}
       </div>
 
-      <nav id={regionId} aria-label={label} className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden overscroll-contain px-2.5 pb-2">
+      <nav id={regionId} aria-label={label} className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden overscroll-contain px-2.5 pb-3">
         {items.map((item) => {
-          const isActive = item.id === active && !collapsed;
+          const isActive = !!item.content && item.id === active && !collapsed;
           const button = (
             <Button
               ref={(node) => {
@@ -114,9 +124,9 @@ export function HomeSidebar({
               }}
               variant="ghost"
               aria-label={collapsed ? item.label : undefined}
-              aria-expanded={isActive}
+              aria-expanded={item.content ? isActive : undefined}
               className={cn('h-9 w-full justify-start gap-3 px-[9px] [&_svg]:size-[18px] [&_svg]:shrink-0', isActive && 'bg-secondary')}
-              onClick={() => onActiveChange(item.id === active ? null : item.id)}
+              onClick={() => (item.content ? onActiveChange(item.id === active ? null : item.id) : item.onSelect?.())}
             >
               <item.icon strokeWidth={2} />
               {!collapsed && <span className="truncate">{item.label}</span>}
@@ -143,7 +153,6 @@ export function HomeSidebar({
         })}
       </nav>
 
-      {footer && <div className="shrink-0 border-t border-border p-2.5">{footer(collapsed)}</div>}
     </aside>
   );
 }

@@ -1,6 +1,7 @@
-import { FileText, FolderOpen, Search, Sparkles } from 'lucide-react';
-import { useMemo, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
+import { ArrowLeft, ChevronRight, FileText, FolderOpen, LayoutTemplate, MessageSquare, Search, Sparkles } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import type { RecentProject, TemplateId, TemplateMeta } from '../../../shared/types';
+import type { HomeChat } from '../../lib/home-chats';
 import { createProject, importFromGithub, importZip, openFileFromDisk, openProjectDialog, openRecent } from '../../lib/actions';
 import { GithubMark, ProjectIcon } from '../../ui/StartScreen.jsx';
 import { ProjectRow, ProjectRowSkeletons } from './ProjectRow';
@@ -185,29 +186,152 @@ export function RecentPanel({ recent }: { recent: RecentProject[] | null }) {
   );
 }
 
-export function SearchPanel({ recent, onGithub }: { recent: RecentProject[] | null; onGithub: (repo: string) => void }) {
+export function RecentChatsPanel({ chats, onPick }: { chats: HomeChat[]; onPick: (chat: HomeChat) => void }) {
+  if (!chats.length)
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>No chats yet</EmptyTitle>
+          <EmptyDescription>Describe a project in the box and it will show up here.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  return (
+    <div className="flex flex-col gap-0.5">
+      {chats.map((chat) => (
+        <ProjectRow key={chat.id} icon={<MessageSquare className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={chat.text} detail={timeAgo(chat.at)} path={chat.text} onClick={() => onPick(chat)} />
+      ))}
+    </div>
+  );
+}
+
+export type NewView = 'start' | 'templates' | 'github' | 'open';
+
+const MORE_WAYS: { id: Exclude<NewView, 'start'>; label: string; icon: ComponentType<{ className?: string }> }[] = [
+  { id: 'templates', label: 'Use a template', icon: LayoutTemplate },
+  { id: 'github', label: 'Import from GitHub', icon: GithubIconSmall },
+  { id: 'open', label: 'Open folder or file', icon: FolderOpen },
+];
+
+function GithubIconSmall({ className }: { className?: string }) {
+  return (
+    <span className={className} aria-hidden>
+      <GithubMark size={16} />
+    </span>
+  );
+}
+
+/** "New project": the quick start, with the other ways to begin one step further in. */
+export function NewProjectFlow({
+  view,
+  onView,
+  repoDraft,
+  location,
+  busy,
+  templates,
+  onSetup,
+}: {
+  view: NewView;
+  onView: (view: NewView) => void;
+  repoDraft: string;
+  location: string;
+  busy: boolean;
+  templates: TemplateMeta[];
+  onSetup: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  // Moving between steps moves focus to the new step's first field.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => ref.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus({ preventScroll: true }));
+    return () => cancelAnimationFrame(frame);
+  }, [view]);
+
+  if (view === 'start')
+    return (
+      <div ref={ref} className="flex flex-col gap-3">
+        <NewProjectPanel location={location} busy={busy} onSetup={onSetup} />
+        <div className="flex flex-col gap-0.5 border-t border-border pt-2">
+          <p className="mb-1 ps-1 text-xs text-muted-foreground">Other ways to start</p>
+          {MORE_WAYS.map(({ id, label, icon: Icon }) => (
+            <Button key={id} variant="ghost" className="h-9 justify-start gap-3 px-2 [&_svg]:size-4" onClick={() => onView(id)}>
+              <Icon />
+              {label}
+              <ChevronRight className="ms-auto text-muted-foreground" />
+            </Button>
+          ))}
+        </div>
+      </div>
+    );
+  const title = MORE_WAYS.find((w) => w.id === view)!.label;
+  return (
+    <div ref={ref} className="flex flex-col gap-2">
+      <Button variant="ghost" className="h-8 justify-start gap-2 px-2 [&_svg]:size-4" onClick={() => onView('start')}>
+        <ArrowLeft />
+        <span className="truncate">{title}</span>
+      </Button>
+      {view === 'templates' ? <TemplatesPanel templates={templates} location={location} busy={busy} /> : view === 'github' ? <GithubPanel key={repoDraft} initial={repoDraft} location={location} busy={busy} /> : <OpenPanel />}
+    </div>
+  );
+}
+
+type SearchRow = { key: string; kind: 'repo' | 'project' | 'chat'; run: () => void; render: (active: boolean, hover: () => void) => ReactNode };
+
+export function SearchPanel({ recent, chats, onGithub, onChat, onDone }: { recent: RecentProject[] | null; chats: HomeChat[]; onGithub: (repo: string) => void; onChat: (chat: HomeChat) => void; onDone: () => void }) {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const repo = githubRepo(query);
-  const matches = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const list = recent ?? [];
-    return q ? list.filter((p) => p.name.toLowerCase().includes(q) || p.root.toLowerCase().includes(q)) : list;
-  }, [recent, query]);
-  const rows = repo ? matches.length + 1 : matches.length;
-  const activeRow = Math.min(active, Math.max(0, rows - 1));
-  const searching = !!query.trim();
+  const q = query.trim().toLowerCase();
+  const projects = useMemo(() => (recent ?? []).filter((p) => !q || p.name.toLowerCase().includes(q) || p.root.toLowerCase().includes(q)), [recent, q]);
+  const matchedChats = useMemo(() => chats.filter((c) => !q || c.text.toLowerCase().includes(q)), [chats, q]);
 
+  const rows: SearchRow[] = [];
+  if (repo)
+    rows.push({
+      key: 'repo',
+      kind: 'repo',
+      run: () => onGithub(repo),
+      render: (isActive, hover) => (
+        <ProjectRow
+          icon={
+            <span className="project-icon project-icon--github">
+              <GithubMark size={15} />
+            </span>
+          }
+          name={`Import ${repo}`}
+          path="Clone from GitHub into your projects folder"
+          detail="Clone from GitHub into your projects folder"
+          hint="Enter"
+          active={isActive}
+          onMouseEnter={hover}
+          onClick={() => onGithub(repo)}
+        />
+      ),
+    });
+  for (const p of projects)
+    rows.push({
+      key: p.root,
+      kind: 'project',
+      run: () => void openRecent(p.root),
+      render: (isActive, hover) => <ProjectRow icon={<ProjectIcon src={p.icon} name={p.name} />} name={p.name} detail={`Project · ${timeAgo(p.openedAt)}`} path={p.root} active={isActive} onMouseEnter={hover} onClick={() => void openRecent(p.root)} />,
+    });
+  for (const c of matchedChats)
+    rows.push({
+      key: c.id,
+      kind: 'chat',
+      run: () => onChat(c),
+      render: (isActive, hover) => <ProjectRow icon={<MessageSquare className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={c.text} detail={`Chat · ${timeAgo(c.at)}`} path={c.text} active={isActive} onMouseEnter={hover} onClick={() => onChat(c)} />,
+    });
+
+  const activeRow = Math.min(active, Math.max(0, rows.length - 1));
   const run = (index: number) => {
-    if (repo && index === 0) return onGithub(repo);
-    const project = matches[repo ? index - 1 : index];
-    if (project) void openRecent(project.root);
+    rows[index]?.run();
+    onDone();
   };
   const onKey = (e: ReactKeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
-      if (rows) setActive((activeRow + (e.key === 'ArrowDown' ? 1 : rows - 1)) % rows);
-    } else if (e.key === 'Enter' && searching && rows) {
+      if (rows.length) setActive((activeRow + (e.key === 'ArrowDown' ? 1 : rows.length - 1)) % rows.length);
+    } else if (e.key === 'Enter' && rows.length) {
       e.preventDefault();
       run(activeRow);
     } else if (e.key === 'Escape' && query) {
@@ -219,21 +343,29 @@ export function SearchPanel({ recent, onGithub }: { recent: RecentProject[] | nu
 
   return (
     <div className="flex flex-col gap-2">
-      <InputGroup>
+      <InputGroup className="h-10">
         <InputGroupAddon>
           <Search aria-hidden />
         </InputGroupAddon>
-        <InputGroupInput data-autofocus aria-label="Search projects" placeholder="Search projects or paste a repo" value={query} onChange={(e) => { setQuery(e.target.value); setActive(0); }} onKeyDown={onKey} />
+        <InputGroupInput data-autofocus aria-label="Search projects and chats" placeholder="Search projects and chats" value={query} onChange={(e) => { setQuery(e.target.value); setActive(0); }} onKeyDown={onKey} />
       </InputGroup>
-      {recent !== null && rows === 0 ? (
+      {recent !== null && rows.length === 0 ? (
         <Empty>
           <EmptyHeader>
-            <EmptyTitle>{searching ? 'No results' : 'No projects yet'}</EmptyTitle>
-            <EmptyDescription>{searching ? `No projects match “${query.trim()}”.` : 'Projects you open or create will show up here.'}</EmptyDescription>
+            <EmptyTitle>{q ? 'No results' : 'Nothing here yet'}</EmptyTitle>
+            <EmptyDescription>{q ? `Nothing matches “${query.trim()}”.` : 'Projects and chats you start will show up here.'}</EmptyDescription>
           </EmptyHeader>
         </Empty>
+      ) : recent === null ? (
+        <ProjectRowSkeletons />
       ) : (
-        <RecentList recent={recent} matches={matches} repo={repo} activeRow={activeRow} showActive={searching} onHover={(i) => searching && setActive(i)} onRun={run} />
+        <div className="flex flex-col gap-0.5">
+          {rows.map((row, i) => (
+            <div key={row.key} onClickCapture={onDone}>
+              {row.render(!!q && i === activeRow, () => q && setActive(i))}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

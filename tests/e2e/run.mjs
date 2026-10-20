@@ -43,7 +43,7 @@ async function importPhase(projectDir) {
     await app2.evaluate(({ dialog }, dir) => {
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
     }, projectDir);
-    await p.getByRole('button', { name: 'Start new project' }).waitFor();
+    await p.getByRole('button', { name: 'New project' }).click();
     await p.getByRole('button', { name: 'Open folder or file' }).click();
     await p.getByRole('button', { name: 'Open folder', exact: true }).click();
     await f.locator('h2').waitFor({ timeout: 60000 });
@@ -184,28 +184,29 @@ async function mockOpenAi() {
 
 try {
   step('Launch and onboarding');
-  for (const name of ['Start new project', 'Import from GitHub', 'Use a template', 'Open folder or file', 'Recent files', 'Search']) await page.getByRole('button', { name }).waitFor();
-  await page.getByRole('button', { name: 'Recent files' }).click();
+  for (const name of ['Search', 'New chat', 'New project', 'Recent chats', 'All projects']) await page.getByRole('button', { name }).waitFor();
+  await page.getByRole('button', { name: 'All projects' }).click();
   await page.getByText('Projects you open or create will show up here.').waitFor();
   await shot('01-onboarding');
   await page.keyboard.press('Escape');
-  ok('start page shows the sidebar actions and an empty recent list');
+  ok('start page shows the five sidebar items and an empty project list');
 
   await page.getByRole('button', { name: 'Search' }).click();
-  await page.getByLabel('Search projects').fill('github.com/octo/hello-world');
+  await page.getByLabel('Search projects and chats').fill('github.com/octo/hello-world');
   await page.getByRole('button', { name: /Import octo\/hello-world/ }).waitFor();
-  await page.getByLabel('Search projects').press('Enter');
-  await waitFor(async () => (await page.getByLabel('Repository').inputValue()) === 'octo/hello-world', 'GitHub panel prefilled from search');
+  await page.getByLabel('Search projects and chats').press('Enter');
+  await waitFor(async () => (await page.getByLabel('Repository').inputValue()) === 'octo/hello-world', 'GitHub step prefilled from search');
   await shot('01b-import-github');
   await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'New project' }).click();
   await page.getByRole('button', { name: 'Use a template' }).click();
   await page.getByRole('radio', { name: /Landing/ }).waitFor();
   await shot('01c-templates');
   await page.keyboard.press('Escape');
-  ok('search suggests a GitHub import; templates open in the sidebar');
+  ok('search opens over the page and suggests a GitHub import; templates open in the sidebar');
 
   step('Create a blank project');
-  await page.getByRole('button', { name: 'Start new project' }).click();
+  await page.getByRole('button', { name: 'New project' }).click();
   await page.getByPlaceholder('Project name').fill('E2E Site');
   await page.getByRole('button', { name: 'Create project' }).click();
   await page.getByText('This page is empty').waitFor({ timeout: 60000 });
@@ -840,12 +841,13 @@ try {
   step('Import the exported ZIP from the start page');
   await page.locator('.project-btn').click();
   await page.getByRole('menuitem', { name: 'Close project' }).click();
-  await page.getByRole('button', { name: 'Start new project' }).waitFor();
+  await page.getByRole('button', { name: 'New chat' }).waitFor();
   await waitFor(() => !alive(leftOpen.pid) && !alive(childPid), `shell ${leftOpen.pid} and child ${childPid} ended with the project`);
   ok('closing the project ended every terminal process');
   await app.evaluate(({ dialog }, file) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] });
   }, zipPath);
+  await page.getByRole('button', { name: 'New project' }).click();
   await page.getByRole('button', { name: 'Open folder or file' }).click();
   await page.getByRole('button', { name: 'Import .zip' }).click();
   const summary = page.getByRole('dialog', { name: 'Project imported' });

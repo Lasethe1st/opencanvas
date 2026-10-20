@@ -33,6 +33,7 @@ export function HomePrompt({
         <InputGroupTextarea
           autoFocus
           rows={1}
+          data-home-prompt=""
           aria-label="What do you want to build?"
           aria-describedby={hintId}
           placeholder="Describe your project"
