@@ -65,10 +65,6 @@
   transform: scale(0.96);
 }
 
-.split-btn > .btn:active:not(:disabled) {
-  transform: none;
-}
-
 .btn:disabled {
   opacity: 0.45;
   cursor: default;
@@ -1643,27 +1639,6 @@ kbd,
   width: 6px;
   height: 6px;
   pointer-events: none;
-}
-.split-btn {
-  position: relative;
-  display: inline-flex;
-}
-.split-btn > .btn {
-  height: auto;
-  padding: 4px 10px;
-  font-size: 12px;
-  line-height: 16px;
-}
-.split-btn > .btn:first-child {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.split-btn > .split-btn__more {
-  padding: 4px 5px;
-  box-shadow: 0 1px 0 #000;
-  border-left: 1px solid color-mix(in oklab, var(--accent-fg) 18%, transparent);
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
 }
 .full-preview {
   position: fixed;

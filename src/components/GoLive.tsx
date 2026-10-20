@@ -1,11 +1,11 @@
-import { Check, ChevronDown, Download, ExternalLink, Rocket, TriangleAlert } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Check, ExternalLink, TriangleAlert } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { GitStatus } from '../../shared/types';
 import { refreshTree, syncBuffersFromDisk } from '../lib/actions';
 import { api } from '../lib/api';
-import { hasUnsaved, setState, useStore } from '../lib/store';
+import { hasUnsaved, useStore } from '../lib/store';
 import { Dialog } from '../ui/Overlays.jsx';
-import { Button, Menu, MenuItem, Spinner } from '../ui/primitives.jsx';
+import { Button, Spinner } from '../ui/primitives.jsx';
 import { GithubMark } from '../ui/StartScreen.jsx';
 import { errorText, IdentityForm } from './GitMenu';
 
@@ -15,6 +15,7 @@ type Steps = Record<StepId, { state: StepState; detail?: ReactNode }>;
 
 const IDLE: Steps = { save: { state: 'idle' }, github: { state: 'idle' }, vercel: { state: 'idle' } };
 const liveKey = (root: string) => `oc-live:${root}`;
+const publishedKey = (root: string) => `oc-published:${root}`;
 const repoSlug = (remote: string | null) => remote?.replace(/^https:\/\/github\.com\/|^git@github\.com:/, '').replace(/\.git$/, '') ?? null;
 const hostOf = (url: string) => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
@@ -27,54 +28,31 @@ function VercelMark({ size = 12 }: { size?: number }) {
 }
 
 export function GoLiveButton() {
+  const project = useStore((s) => s.project)!;
   const [open, setOpen] = useState(false);
-  const [menu, setMenu] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!menu) return;
-    const close = (e: PointerEvent | KeyboardEvent) => {
-      if (e instanceof KeyboardEvent ? e.key === 'Escape' : !ref.current?.contains(e.target as Node)) setMenu(false);
-    };
-    window.addEventListener('pointerdown', close);
-    window.addEventListener('keydown', close);
-    return () => {
-      window.removeEventListener('pointerdown', close);
-      window.removeEventListener('keydown', close);
-    };
-  }, [menu]);
-
-  const pick = (fn: () => void) => () => {
-    setMenu(false);
-    // The menu item is about to unmount; park focus on the trigger so dialogs return focus there.
-    ref.current?.querySelector<HTMLButtonElement>('.split-btn__more')?.focus();
-    fn();
-  };
+  const [published, setPublished] = useState(
+    () => localStorage.getItem(publishedKey(project.root)) === 'true' || !!localStorage.getItem(liveKey(project.root)),
+  );
 
   return (
-    <div ref={ref} className="split-btn">
-      <Button variant="primary" aria-label="Go live" data-tip="Go live" onClick={() => setOpen(true)}>
-        <Rocket size={15} />
+    <div className="publish-action">
+      <Button variant="primary" aria-label={published ? 'Update' : 'Publish'} onClick={() => setOpen(true)}>
+        {published ? 'Update' : 'Publish'}
       </Button>
-      <Button variant="primary" className="split-btn__more" aria-label="More publish options" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((v) => !v)}>
-        <ChevronDown size={13} />
-      </Button>
-      {menu && (
-        <Menu style={{ right: 0, top: 'calc(100% + 6px)', minWidth: 190 }}>
-          <MenuItem icon={<Rocket size={14} />} onClick={pick(() => setOpen(true))}>
-            Go live…
-          </MenuItem>
-          <MenuItem icon={<Download size={14} />} hint="Ctrl+Shift+E" onClick={pick(() => setState({ exportOpen: true }))}>
-            Export…
-          </MenuItem>
-        </Menu>
+      {open && (
+        <GoLiveDialog
+          onClose={() => setOpen(false)}
+          onPublished={() => {
+            localStorage.setItem(publishedKey(project.root), 'true');
+            setPublished(true);
+          }}
+        />
       )}
-      {open && <GoLiveDialog onClose={() => setOpen(false)} />}
     </div>
   );
 }
 
-function GoLiveDialog({ onClose }: { onClose: () => void }) {
+function GoLiveDialog({ onClose, onPublished }: { onClose: () => void; onPublished: () => void }) {
   const project = useStore((s) => s.project)!;
   const unsaved = useStore((s) => hasUnsaved(s));
   const [status, setStatus] = useState<GitStatus | null>(null);
@@ -83,6 +61,9 @@ function GoLiveDialog({ onClose }: { onClose: () => void }) {
   const [message, setMessage] = useState('');
   const [repoName, setRepoName] = useState(project.name.replace(/\s+/g, '-').toLowerCase());
   const [isPrivate, setPrivate] = useState(true);
+  const [published, setPublished] = useState(
+    () => localStorage.getItem(publishedKey(project.root)) === 'true' || !!localStorage.getItem(liveKey(project.root)),
+  );
   const [importUrl, setImportUrl] = useState<string | null>(null);
   const [visitedVercel, setVisitedVercel] = useState(false);
   const [live, setLive] = useState<string | null>(() => localStorage.getItem(liveKey(project.root)));
@@ -132,6 +113,8 @@ function GoLiveDialog({ onClose }: { onClose: () => void }) {
       set('vercel', 'running', 'Vercel is building your site…');
       const result = await api.publish.vercel();
       if (result.status === 'live') {
+        setPublished(true);
+        onPublished();
         if (result.url) {
           localStorage.setItem(liveKey(project.root), result.url);
           setLive(result.url);
@@ -152,15 +135,16 @@ function GoLiveDialog({ onClose }: { onClose: () => void }) {
 
   const remote = repoSlug(status?.remote ?? null);
   const needsIdentity = status && status.installed && !status.identity;
+  const actionLabel = published ? 'Update' : 'Publish';
 
   return (
     <Dialog
-      title="Go live"
+      title={actionLabel}
       className="dialog start-dialog golive"
       onClose={running ? undefined : onClose}
       onKeyDown={(e: { key: string }) => e.key === 'Escape' && !running && onClose()}
     >
-      <p className="start-dialog__lead">Publish {project.name} in three steps. After this, every push updates the live site.</p>
+      <p className="start-dialog__lead">{actionLabel} {project.name} in three steps. After this, every push updates the live site.</p>
 
       {status && !status.installed ? (
         <p className="golive__note golive__note--warn">Git isn’t installed. Install it from git-scm.com, then restart OpenCanvas.</p>
@@ -228,8 +212,8 @@ function GoLiveDialog({ onClose }: { onClose: () => void }) {
           <span className="start-dialog__where">
             {unsaved ? 'Some open files have unsaved edits. Save them (Ctrl+S) to include them.' : live && steps.vercel.state !== 'done' ? `Live at ${hostOf(live)}` : ''}
           </span>
-          <Button variant="primary" icon={<Rocket size={14} />} disabled={running || !status} onClick={() => void run()}>
-            {running ? 'Publishing…' : steps.vercel.state === 'done' || steps.vercel.state === 'prompt' ? 'Go live again' : 'Go live'}
+          <Button className="golive__publish-button" variant="primary" disabled={running || !status} onClick={() => void run()}>
+            {running ? `${actionLabel === 'Update' ? 'Updating' : 'Publishing'}…` : steps.vercel.state === 'done' || steps.vercel.state === 'prompt' ? `${actionLabel} again` : actionLabel}
           </Button>
         </div>
       )}

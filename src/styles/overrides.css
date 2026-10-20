@@ -261,13 +261,16 @@ body {
   gap: 2px;
   padding: 2px;
   border: none;
-  border-radius: var(--r-lg);
+  border-radius: 999px;
   background: var(--surface-3);
+  box-shadow: inset 0 0 0 1px var(--line);
+  corner-shape: round;
 }
 
 .segmented button {
   height: 28px;
-  border-radius: var(--r);
+  border-radius: 999px;
+  corner-shape: round;
 }
 
 .segmented button.is-active {
@@ -279,6 +282,17 @@ body {
 /* Panel headers: one hairline, 16px inset */
 .panel__head {
   height: 44px;
+  align-items: center;
+}
+
+.panel__head > .segmented {
+  align-self: center;
+  min-width: 0;
+  height: 32px;
+}
+
+.panel__head > .segmented button {
+  min-width: 0;
 }
 
 .panel__title {
@@ -542,7 +556,7 @@ kbd, .kbd,
 .topbar__side--end { justify-self: end; max-width: var(--pill-r-max, none); padding: 0 8px; }
 /* Icon-only controls: every button is a square, so the pill stays compact. */
 .topbar .segmented button { position: relative; width: 32px; padding: 0; }
-.topbar .split-btn > .btn:first-child { position: relative; padding: 0 10px; }
+.publish-action { display: inline-flex; }
 @media (max-width: 760px) { .topbar { grid-template-columns: auto minmax(0, 1fr); } .topbar > div:nth-child(2) { display: none; } }
 .workspace--bleed { background: transparent; }
 .workspace--bleed > .workspace__center {
@@ -793,6 +807,28 @@ kbd, .kbd,
 .workspace > .panel { transition: transform 150ms ease-out, opacity 150ms ease-out, visibility 0s linear 0s; }
 .workspace > .panel.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; transition: transform 150ms ease-out, opacity 150ms ease-out, visibility 0s linear 150ms; }
 .workspace > .panel--left.is-hidden { transform: translateX(-16px); }
+
+.segmented {
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: none;
+  corner-shape: round;
+}
+.segmented button {
+  height: 26px;
+  min-height: 26px;
+  border-radius: 999px;
+  corner-shape: round;
+}
+.publish-action > .btn,
+.golive__publish-button {
+  height: 32px;
+  padding-inline: 14px;
+  border-radius: 999px;
+  corner-shape: round;
+}
 .workspace > .panel--right.is-hidden { transform: translateX(16px); }
 .panel__head > :first-child { flex: 1; min-width: 0; }
 .workspace.is-focus .dock, .workspace.is-focus .canvas-nav { opacity: 0.4; transition: opacity 150ms ease-out; }

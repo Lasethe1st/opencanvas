@@ -1,4 +1,4 @@
-import { FolderKanban, History, LucideProvider, MessageSquarePlus, Plus } from 'lucide-react';
+import { History, Inbox, LucideProvider, MessageCircle, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { RecentProject, TemplateMeta } from '../../shared/types';
 import { api } from '../lib/api';
@@ -70,7 +70,7 @@ export function Onboarding() {
       {
         id: 'chat',
         label: 'New chat',
-        icon: MessageSquarePlus,
+        icon: MessageCircle,
         onSelect: () => {
           setActive(null);
           setPrompt('');
@@ -97,7 +97,7 @@ export function Onboarding() {
         ),
       },
       { id: 'chats', label: 'Recent chats', icon: History, content: <RecentChatsPanel chats={chats} onPick={pickChat} /> },
-      { id: 'projects', label: 'All projects', icon: FolderKanban, content: <RecentPanel recent={recent} /> },
+      { id: 'projects', label: 'All projects', icon: Inbox, content: <RecentPanel recent={recent} /> },
     ],
     [newView, repoDraft, location, busy, templates, chats, recent, pickChat],
   );
@@ -121,7 +121,7 @@ export function Onboarding() {
           <HomeSidebar label="Home" items={items} active={active} onActiveChange={onActiveChange} busy={busy} onSearch={() => setSearchOpen(true)} />
           <main className="flex min-w-0 flex-1 flex-col items-center overflow-y-auto px-8 pb-16 pt-[24vh]">
             <div className="flex w-full max-w-[680px] flex-col items-center gap-8">
-              <h1 className="text-balance text-center text-4xl font-semibold leading-[1.1] tracking-[-0.02em]">{greeting()}</h1>
+              <h1 className="font-geist text-balance text-center text-2xl font-medium leading-[1.1] tracking-[-0.02em]">{greeting()}</h1>
               <HomePrompt
                 value={prompt}
                 onChange={setPrompt}

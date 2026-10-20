@@ -60,6 +60,7 @@
   --text-4xl: 38px;
 
   --font-sans: var(--font);
+  --font-geist: 'Geist Variable', 'Geist', var(--font);
   --font-mono: var(--mono);
 
   --color-background: var(--bg);

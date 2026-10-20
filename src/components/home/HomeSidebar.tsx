@@ -1,4 +1,4 @@
-import { PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
+import { PanelLeft, PanelRight, Search } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type ComponentType, type KeyboardEvent, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -17,7 +17,7 @@ export interface SidebarItem {
   dividerBefore?: boolean;
 }
 
-const EXPANDED = 288;
+const EXPANDED = 256;
 const COLLAPSED = 56;
 const STORAGE_KEY = 'oc-home-sidebar';
 
@@ -98,19 +98,19 @@ export function HomeSidebar({
       <div className={cn('flex shrink-0 gap-1 p-2.5', collapsed ? 'flex-col items-center' : 'h-14 items-center')}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" className="size-9 shrink-0 [&_svg]:size-[18px]" aria-label="Search" onClick={onSearch}>
+            <Button variant="ghost" className="size-9 shrink-0 rounded-[8px] [&_svg]:size-[18px]" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} aria-controls={regionId} onClick={toggle}>
+              {collapsed ? <PanelLeft strokeWidth={2} /> : <PanelRight strokeWidth={2} />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side={document.dir === 'rtl' ? 'left' : 'right'}>{collapsed ? 'Expand sidebar' : 'Collapse sidebar'}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" className={cn('size-9 shrink-0 rounded-[8px] [&_svg]:size-[18px]', !collapsed && 'ms-auto')} aria-label="Search" onClick={onSearch}>
               <Search strokeWidth={2} />
             </Button>
           </TooltipTrigger>
           <TooltipContent side={document.dir === 'rtl' ? 'left' : 'right'}>Search</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" className={cn('size-9 shrink-0 [&_svg]:size-[18px]', !collapsed && 'ms-auto')} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} aria-controls={regionId} onClick={toggle}>
-              {collapsed ? <PanelLeftOpen strokeWidth={2} /> : <PanelLeftClose strokeWidth={2} />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side={document.dir === 'rtl' ? 'left' : 'right'}>{collapsed ? 'Expand sidebar' : 'Collapse sidebar'}</TooltipContent>
         </Tooltip>
       </div>
 
@@ -125,11 +125,11 @@ export function HomeSidebar({
               variant="ghost"
               aria-label={collapsed ? item.label : undefined}
               aria-expanded={item.content ? isActive : undefined}
-              className={cn('h-9 w-full justify-start gap-3 px-[9px] [&_svg]:size-[18px] [&_svg]:shrink-0', isActive && 'bg-secondary')}
+              className={cn('h-auto w-full justify-start gap-2 rounded-[8px] px-[9px] py-2 [&_svg]:size-[18px] [&_svg]:shrink-0', isActive && 'bg-secondary text-foreground [&_svg]:text-foreground')}
               onClick={() => (item.content ? onActiveChange(item.id === active ? null : item.id) : item.onSelect?.())}
             >
               <item.icon strokeWidth={2} />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && <span className="truncate text-[11.5px] font-normal">{item.label}</span>}
             </Button>
           );
           return (
