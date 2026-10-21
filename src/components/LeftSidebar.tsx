@@ -1,21 +1,22 @@
 import {
   ArrowDown,
   ArrowUp,
-  Copy,
   Box,
-  File,
-  FileCode2,
-  FilePlus2,
+  ButtonCentered,
+  Copy,
+  Document,
+  DocumentAdd,
+  DocumentBlank,
+  Edit,
   Folder,
+  FolderAdd,
   FolderOpen,
-  FolderPlus,
+  Icon,
   Image,
-  Pencil,
-  RectangleHorizontal,
-  Trash2,
-  Type,
+  TextCreation,
+  TrashCan,
   Upload,
-} from 'lucide-react';
+} from '@/components/lime/icon';
 import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import type { FileNode } from '../../shared/types';
 import {
@@ -39,18 +40,19 @@ import { IconButton, Menu, MenuItem, SectionLabel, Segmented } from '../ui/primi
 import { createPortal } from 'react-dom';
 import { FramesPanel } from './FramesPanel';
 import { Resizer } from './Resizer';
+import { Input } from '@/components/lime/ui/input';
 
 function fileIcon(name: string) {
-  if (/\.(jsx|tsx|js|ts|mjs|cjs)$/.test(name)) return <FileCode2 size={14} className="tree-row__icon" />;
-  if (/\.(png|jpe?g|gif|svg|webp|ico)$/.test(name)) return <Image size={14} className="tree-row__icon" />;
-  return <File size={14} className="tree-row__icon" />;
+  if (/\.(jsx|tsx|js|ts|mjs|cjs)$/.test(name)) return <Icon icon={Document} size={16} className="tree-row__icon" />;
+  if (/\.(png|jpe?g|gif|svg|webp|ico)$/.test(name)) return <Icon icon={Image} size={16} className="tree-row__icon" />;
+  return <Icon icon={DocumentBlank} size={16} className="tree-row__icon" />;
 }
 
 function layerIcon(tag: string) {
-  if (/^h[1-6]$|^p$|^span$|^label$/.test(tag)) return <Type size={13} className="tree-row__icon" />;
-  if (tag === 'img') return <Image size={13} className="tree-row__icon" />;
-  if (tag === 'button' || tag === 'a') return <RectangleHorizontal size={13} className="tree-row__icon" />;
-  return <Box size={13} className="tree-row__icon" />;
+  if (/^h[1-6]$|^p$|^span$|^label$/.test(tag)) return <Icon icon={TextCreation} size={16} className="tree-row__icon" />;
+  if (tag === 'img') return <Icon icon={Image} size={16} className="tree-row__icon" />;
+  if (tag === 'button' || tag === 'a') return <Icon icon={ButtonCentered} size={16} className="tree-row__icon" />;
+  return <Icon icon={Box} size={16} className="tree-row__icon" />;
 }
 
 const stop = (fn: () => void) => (e: ReactMouseEvent) => {
@@ -85,9 +87,10 @@ function NewEntryRow({ draft, depth, onDone }: { draft: Draft; depth: number; on
     if (created) onDone();
   };
   return (
-    <TreeRow depth={depth} icon={draft.kind === 'file' ? <File size={14} className="tree-row__icon" /> : <Folder size={14} className="tree-row__icon" />}>
-      <input
-        className="tree-row__input"
+    <TreeRow depth={depth} icon={draft.kind === 'file' ? <Icon icon={DocumentBlank} size={16} className="tree-row__icon" /> : <Icon icon={Folder} size={16} className="tree-row__icon" />}>
+      <Input
+        className="min-w-0 flex-1"
+        size="sm"
         autoFocus
         aria-label={draft.kind === 'file' ? 'New file name' : 'New folder name'}
         placeholder={draft.kind === 'file' ? 'Card.jsx' : 'components'}
@@ -112,16 +115,18 @@ function RenameInput({ node, onDone }: { node: FileNode; onDone: () => void }) {
     if (ok) onDone();
   };
   return (
-    <input
-      className="tree-row__input"
+    <Input
+      className="min-w-0 flex-1"
+      size="sm"
       autoFocus
       aria-label={`Rename ${node.path}`}
       defaultValue={node.name}
       disabled={busy}
       onClick={(e) => e.stopPropagation()}
       onFocus={(e) => {
+        const el = e.currentTarget;
         const dot = node.type === 'file' ? node.name.lastIndexOf('.') : -1;
-        e.currentTarget.setSelectionRange(0, dot > 0 ? dot : node.name.length);
+        el.setSelectionRange(0, dot > 0 ? dot : node.name.length);
       }}
       onBlur={(e) => void commit(e.target.value)}
       onKeyDown={(e) => {
@@ -154,10 +159,10 @@ function FileTreeNode({ node, ...props }: TreeProps & { node: FileNode }) {
   const entryActions = !isRenaming && (
     <>
       <IconButton size="sm" label={`Rename ${node.path}`} onClick={stop(() => setRenaming(node.path))}>
-        <Pencil size={12} />
+        <Icon icon={Edit} size={12} />
       </IconButton>
       <IconButton size="sm" label={`Delete ${node.path}`} onClick={stop(() => void deletePath(node.path, node.type === 'dir'))}>
-        <Trash2 size={12} />
+        <Icon icon={TrashCan} size={12} />
       </IconButton>
     </>
   );
@@ -178,15 +183,15 @@ function FileTreeNode({ node, ...props }: TreeProps & { node: FileNode }) {
           onClick={() => toggle(node.path)}
           title={node.path}
           data-dir={node.path}
-          icon={isOpen ? <FolderOpen size={14} className="tree-row__icon" /> : <Folder size={14} className="tree-row__icon" />}
+          icon={isOpen ? <Icon icon={FolderOpen} size={16} className="tree-row__icon" /> : <Icon icon={Folder} size={16} className="tree-row__icon" />}
           actions={
             !isRenaming && (
               <>
                 <IconButton size="sm" label={`New file in ${node.path}`} onClick={begin('file')}>
-                  <FilePlus2 size={12} />
+                  <Icon icon={DocumentAdd} size={12} />
                 </IconButton>
                 <IconButton size="sm" label={`New folder in ${node.path}`} onClick={begin('folder')}>
-                  <FolderPlus size={12} />
+                  <Icon icon={FolderAdd} size={12} />
                 </IconButton>
                 {entryActions}
               </>
@@ -255,13 +260,13 @@ function FilesPanel({ query }: { query: string }) {
         actions={
           <>
             <IconButton size="sm" label="Import files (SVG, images, fonts…)" onClick={() => void importAssets('public')}>
-              <Upload size={13} />
+              <Icon icon={Upload} size={16} />
             </IconButton>
             <IconButton size="sm" label="New file" onClick={() => setDraft({ kind: 'file', parent: '' })}>
-              <FilePlus2 size={13} />
+              <Icon icon={DocumentAdd} size={16} />
             </IconButton>
             <IconButton size="sm" label="New folder" onClick={() => setDraft({ kind: 'folder', parent: '' })}>
-              <FolderPlus size={13} />
+              <Icon icon={FolderAdd} size={16} />
             </IconButton>
           </>
         }
@@ -342,18 +347,19 @@ function LayerNode({ node, ...props }: LayerProps & { node: TreeNode }) {
           !renaming && (
             <>
               <IconButton size="sm" label="Move up (Alt+↑)" onClick={move('up')}>
-                <ArrowUp size={12} />
+                <Icon icon={ArrowUp} size={12} />
               </IconButton>
               <IconButton size="sm" label="Move down (Alt+↓)" onClick={move('down')}>
-                <ArrowDown size={12} />
+                <Icon icon={ArrowDown} size={12} />
               </IconButton>
             </>
           )
         }
       >
         {renaming ? (
-          <input
-            className="tree-row__input"
+          <Input
+            className="min-w-0 flex-1"
+            size="sm"
             autoFocus
             aria-label={`Rename layer ${node.name}`}
             defaultValue={node.name}
@@ -423,16 +429,16 @@ function LayerMenu({ at, editable, onClose, onRename }: { at: { x: number; y: nu
     fn();
   };
   return createPortal(
-    <div ref={ref} className="layer-menu" style={{ left: pos.x, top: pos.y }}>
-      <Menu style={{ position: 'static' }} aria-label="Layer actions">
-      <MenuItem icon={<Pencil size={14} />} hint="F2" disabled={!editable} onClick={run(onRename)}>
+    <div ref={ref} className="layer-menu fixed z-(--z-popover) start-(--menu-x) top-(--menu-y)" style={{ '--menu-x': `${pos.x}px`, '--menu-y': `${pos.y}px` } as React.CSSProperties}>
+      <Menu className="static" aria-label="Layer actions">
+      <MenuItem icon={<Icon icon={Edit} size={16} />} hint="F2" disabled={!editable} onClick={run(onRename)}>
         Rename
       </MenuItem>
-      <MenuItem icon={<Copy size={14} />} hint={`${MOD_KEY}+D`} disabled={!editable} onClick={run(() => void duplicateSelected())}>
+      <MenuItem icon={<Icon icon={Copy} size={16} />} hint={`${MOD_KEY}+D`} disabled={!editable} onClick={run(() => void duplicateSelected())}>
         Duplicate
       </MenuItem>
       <div className="layer-menu__sep" role="separator" />
-      <MenuItem icon={<Trash2 size={14} />} hint="Del" className="menu-item layer-menu__danger" disabled={!editable} onClick={run(() => void removeSelected())}>
+      <MenuItem icon={<Icon icon={TrashCan} size={16} />} hint="Del" className="menu-item layer-menu__danger" disabled={!editable} onClick={run(() => void removeSelected())}>
         Delete
       </MenuItem>
       </Menu>

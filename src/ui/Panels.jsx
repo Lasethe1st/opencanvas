@@ -1,34 +1,47 @@
-import { ChevronDown, ChevronRight, Search } from 'lucide-react';
-import { cx } from './primitives.jsx';
+import { ChevronDown, ChevronRight, Icon, Search } from '@/components/lime/icon';
+import { Button } from '@/components/lime/ui/button';
+import { Field, FieldLabel } from '@/components/lime/ui/field';
+import { Input } from '@/components/lime/ui/input';
+import { cn } from '@/lib/lime/utils';
 
 export function Panel({ side, width, head, children, resizer, hidden, ...rest }) {
+  const w = typeof width === 'number' ? `${width}px` : width;
   return (
-    <aside className={cx('panel', `panel--${side}`, hidden && 'is-hidden')} style={{ width }} aria-hidden={hidden || undefined} inert={hidden ? '' : undefined} {...rest}>
-      {head && (
-        <div className="panel__head">
-          {head}
-        </div>
+    <aside
+      className={cn(
+        'flex h-full w-(--panel-w) shrink-0 flex-col border-line bg-surface text-fg',
+        side === 'left' ? 'border-e' : 'border-s',
+        hidden && 'pointer-events-none invisible',
       )}
-      <div className="panel__body">{children}</div>
+      style={{ '--panel-w': w }}
+      aria-hidden={hidden || undefined}
+      inert={hidden ? '' : undefined}
+      {...rest}
+    >
+      {head && <div className="flex h-14 shrink-0 items-center gap-2 border-b border-line px-3">{head}</div>}
+      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
       {resizer}
     </aside>
   );
 }
 
 export function PanelTitle({ children }) {
-  return <span className="panel__title">{children}</span>;
+  return <span className="text-sm font-semibold text-fg">{children}</span>;
 }
 
 export function Rail({ side, children }) {
-  return <div className={cx('rail', `rail--${side}`)}>{children}</div>;
+  return <div className={cn('flex flex-col', side === 'left' ? 'items-start' : 'items-end')}>{children}</div>;
 }
 
 export function SearchField({ value, onChange, placeholder = 'Search' }) {
   return (
-    <label className="search">
-      <Search size={13} />
-      <input value={value} placeholder={placeholder} aria-label={placeholder} onChange={(e) => onChange?.(e.target.value)} />
-    </label>
+    <Field name="panelSearch" className="px-2 py-2">
+      <FieldLabel className="sr-only">{placeholder}</FieldLabel>
+      <div className="flex items-center gap-2">
+        <Icon icon={Search} size={16} className="shrink-0 text-fg-3" />
+        <Input className="min-w-0 flex-1" value={value} placeholder={placeholder} aria-label={placeholder} onChange={(e) => onChange?.(e.target.value)} />
+      </div>
+    </Field>
   );
 }
 
@@ -42,7 +55,7 @@ export function Tree({ children }) {
     next.focus();
   };
   return (
-    <div className="tree" role="tree" onKeyDown={onKeyDown}>
+    <div className="tree flex flex-col" role="tree" onKeyDown={onKeyDown}>
       {children}
     </div>
   );
@@ -62,8 +75,13 @@ export function TreeRow({ depth = 0, icon, name, meta, active, hovered, expandab
   };
   return (
     <div
-      className={cx('tree-row', active && 'is-active', hovered && 'is-hovered', className)}
-      style={{ paddingLeft: 4 + depth * 14 }}
+      className={cn(
+        'tree-row group flex min-h-9 items-center gap-1 rounded-md pe-1 text-sm text-fg hover:bg-surface-2 focus-visible:-outline-offset-2 ps-(--tree-depth)',
+        active && 'bg-accent-wash',
+        hovered && 'bg-surface-2',
+        className,
+      )}
+      style={{ '--tree-depth': `${4 + depth * 14}px` }}
       role="treeitem"
       aria-level={depth + 1}
       aria-expanded={expandable ? !!expanded : undefined}
@@ -72,27 +90,36 @@ export function TreeRow({ depth = 0, icon, name, meta, active, hovered, expandab
       {...rest}
       onKeyDown={onKeyDown}
     >
-      <button
-        className="tree-row__toggle"
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className={cn(!expandable && 'invisible')}
         tabIndex={-1}
-        style={{ visibility: expandable ? 'visible' : 'hidden' }}
         aria-label={expanded ? 'Collapse' : 'Expand'}
         onClick={(e) => {
           e.stopPropagation();
           onToggle?.();
         }}
       >
-        {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-      </button>
+        <Icon icon={expanded ? ChevronDown : ChevronRight} size={12} />
+      </Button>
       {icon}
-      {children ?? <span className="tree-row__name">{name}</span>}
+      {children ?? <span className="min-w-0 flex-1 truncate">{name}</span>}
       {trailing}
-      {meta && <span className="tree-row__meta">{meta}</span>}
-      {actions && <span className="tree-row__actions">{actions}</span>}
+      {meta && <span className="shrink-0 text-xs text-fg-3">{meta}</span>}
+      {actions && <span className="ms-auto flex opacity-0 group-hover:opacity-100 focus-within:opacity-100">{actions}</span>}
     </div>
   );
 }
 
 export function Resizer({ onPointerDown, dragging }) {
-  return <div className={cx('panel__resizer', dragging && 'is-dragging')} onPointerDown={onPointerDown} role="separator" aria-orientation="vertical" />;
+  return (
+    <div
+      className={cn('panel__resizer absolute inset-y-0 w-1 cursor-col-resize', dragging && 'is-dragging')}
+      onPointerDown={onPointerDown}
+      role="separator"
+      aria-orientation="vertical"
+    />
+  );
 }

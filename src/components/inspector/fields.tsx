@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Icon } from '@/components/lime/icon';
 import { evaluateExpression, stepSize, stepValue } from '../../../shared/numeric';
 import { setStyle, setStyles } from '../../lib/actions';
 import { Field, InputShell, Section as SectionShell, SelectShell, Swatch, ToggleRow } from '../../ui/primitives.jsx';
@@ -21,7 +21,7 @@ export function More({ label = 'More', children }: { label?: string; children: R
   return (
     <div className={`inspector-more${open ? ' is-open' : ''}`}>
       <button type="button" className="inspector-more__toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <ChevronRight size={12} className="inspector-more__chevron" aria-hidden="true" />
+        <Icon icon={ChevronRight} size={12} className="inspector-more__chevron" />
         {label}
       </button>
       {open && <div className="inspector-more__body">{children}</div>}

@@ -1,15 +1,27 @@
-import { ArrowLeft, ChevronRight, FileText, FolderOpen, LayoutTemplate, MessageSquare, Search, Sparkles } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import type { RecentProject, TemplateId, TemplateMeta } from '../../../shared/types';
 import type { HomeChat } from '../../lib/home-chats';
 import { createProject, importFromGithub, importZip, openFileFromDisk, openProjectDialog, openRecent } from '../../lib/actions';
-import { GithubMark, ProjectIcon } from '../../ui/StartScreen.jsx';
 import { ProjectRow, ProjectRowSkeletons } from './ProjectRow';
-import { Button } from '@/components/ui/button';
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import {
+  AiGenerate,
+  ArrowLeft,
+  Chat,
+  Document,
+  FolderOpen,
+  Icon,
+  LogoGithub,
+  Search,
+  Template,
+  type LimeIcon,
+} from '@/components/lime/icon';
+import { Button } from '@/components/lime/ui/button';
+import { Empty, EmptyDescription, EmptyTitle } from '@/components/lime/ui/empty';
+import { Field, FieldDescription, FieldLabel } from '@/components/lime/ui/field';
+import { Input } from '@/components/lime/ui/input';
+import { List, ListItem, ListIcon } from '@/components/lime/ui/list';
+import { Radio, RadioGroup } from '@/components/lime/ui/radio';
+import { Separator } from '@/components/lime/ui/separator';
 
 const GITHUB_REPO = /^(?:(?:https?:\/\/)?(?:www\.)?github\.com\/|git@github\.com:)?([\w.-]+\/[\w.-]+?)(?:\.git)?\/?$/i;
 
@@ -32,14 +44,29 @@ function timeAgo(ms: number) {
 }
 
 function Lead({ children }: { children: ReactNode }) {
-  return <p className="mb-3 ps-1 text-sm text-muted-foreground">{children}</p>;
+  return <p className="mb-3 text-sm text-fg-2">{children}</p>;
 }
 
 function Foot({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-3 truncate ps-1 text-xs text-muted-foreground" title={typeof children === 'string' ? children : undefined}>
+    <p className="mt-3 truncate text-sm text-fg-2" title={typeof children === 'string' ? children : undefined}>
       {children}
     </p>
+  );
+}
+
+function ProjectMark({ src, name }: { src?: string | null; name: string }) {
+  if (src) {
+    return (
+      <span className="inline-flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2" aria-hidden>
+        <img src={src} alt="" draggable={false} className="size-5 object-contain" />
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-2 text-sm font-medium text-fg" aria-hidden>
+      {(name.trim()[0] ?? '?').toUpperCase()}
+    </span>
   );
 }
 
@@ -47,26 +74,33 @@ export function NewProjectPanel({ location, busy, onSetup }: { location: string;
   const [name, setName] = useState('');
   const create = () => void createProject('blank', name.trim() || 'Untitled project');
   return (
-    <div className="flex flex-col gap-2">
+    <form
+      className="flex flex-col gap-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        create();
+      }}
+    >
       <Lead>A React + Vite app with an empty page, ready for your first section.</Lead>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={onSetup}
-        className="flex w-full items-start gap-3 rounded-lg border border-border bg-muted/50 p-3 text-start transition-colors duration-150 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
-      >
-        <Sparkles className="mt-0.5 shrink-0" aria-hidden />
-        <span className="grid gap-0.5">
-          <strong className="text-sm font-medium">Get help from AI</strong>
-          <span className="text-xs text-muted-foreground">Set a visual direction, fonts and references first, then hand the brief to your agent.</span>
-        </span>
-      </button>
-      <Input data-autofocus aria-label="Project name" placeholder="Project name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} />
-      <Button disabled={busy} onClick={create}>
-        {busy ? 'Creating…' : 'Create project'}
+      <List variant="plain">
+        <ListItem
+          leading={<ListIcon icon={AiGenerate} tone="accent" />}
+          title="Get help from AI"
+          description="Set a visual direction, fonts and references first, then hand the brief to your agent."
+          onClick={onSetup}
+          disabled={busy}
+          chevron
+        />
+      </List>
+      <Field name="projectName">
+        <FieldLabel>Project name</FieldLabel>
+        <Input data-autofocus placeholder="Untitled project" value={name} onChange={(e) => setName(e.target.value)} />
+      </Field>
+      <Button type="submit" pending={busy || undefined} disabled={busy}>
+        Create project
       </Button>
       {location && <Foot>Saved to {location}</Foot>}
-    </div>
+    </form>
   );
 }
 
@@ -77,15 +111,23 @@ export function GithubPanel({ initial, location, busy }: { initial: string; loca
     await importFromGithub(repo.trim());
   };
   return (
-    <div className="flex flex-col gap-2">
+    <form
+      className="flex flex-col gap-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit();
+      }}
+    >
       <Lead>Clone a React project and open it. Private repositories use your GitHub sign-in.</Lead>
-      <Input data-autofocus aria-label="Repository" placeholder="owner/repo or github.com URL" value={repo} disabled={busy} onChange={(e) => setRepo(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void submit()} />
-      <Button disabled={busy || !repo.trim()} onClick={() => void submit()}>
-        <GithubMark size={14} />
-        {busy ? 'Cloning…' : 'Import repository'}
+      <Field name="repo">
+        <FieldLabel>Repository</FieldLabel>
+        <Input data-autofocus placeholder="owner/repo or github.com/owner/repo" value={repo} disabled={busy} onChange={(e) => setRepo(e.target.value)} />
+      </Field>
+      <Button type="submit" icon={<Icon icon={LogoGithub} size={16} />} pending={busy || undefined} disabled={busy || !repo.trim()}>
+        Import repository
       </Button>
       {location && <Foot>Cloned into {location}</Foot>}
-    </div>
+    </form>
   );
 }
 
@@ -96,49 +138,51 @@ export function TemplatesPanel({ templates, location, busy }: { templates: Templ
   const meta = choices.find((t) => t.id === selected);
   const create = () => void createProject(selected, name.trim() || (meta?.name ?? 'My site'));
   return (
-    <div className="flex flex-col gap-2">
+    <form
+      className="flex flex-col gap-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        create();
+      }}
+    >
       <Lead>Start from a ready-made page. It’s regular React code you own.</Lead>
-      <div role="radiogroup" aria-label="Template" className="flex flex-col gap-1">
+      <RadioGroup aria-label="Template" value={selected} onValueChange={(v) => setSelected(v as TemplateId)} className="gap-2">
         {choices.map((t) => (
-          <button
+          <label
             key={t.id}
-            type="button"
-            role="radio"
-            aria-checked={selected === t.id}
-            onClick={() => setSelected(t.id)}
-            onDoubleClick={create}
-            className={cn(
-              'rounded-lg border p-2.5 text-start transition-colors duration-150 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-              selected === t.id ? 'border-ring bg-accent' : 'border-border',
-            )}
+            className="flex cursor-pointer items-start gap-3 rounded-panel border border-line bg-surface p-3 has-data-checked:border-accent-line has-data-checked:bg-accent-wash"
           >
-            <strong className="block text-sm font-medium">{t.name}</strong>
-            <span className="block text-xs text-muted-foreground">{t.description}</span>
-          </button>
+            <Radio value={t.id} className="mt-0.5" />
+            <span className="grid min-w-0 gap-0.5">
+              <span className="text-sm font-medium text-fg">{t.name}</span>
+              <span className="text-sm text-fg-2">{t.description}</span>
+            </span>
+          </label>
         ))}
-      </div>
-      <Input aria-label="Project name" data-autofocus placeholder={`Project name (${meta?.name ?? ''})`} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} />
-      <Button disabled={busy} onClick={create}>
-        {busy ? 'Creating…' : `Use ${meta?.name ?? 'template'}`}
+      </RadioGroup>
+      <Field name="templateName">
+        <FieldLabel>Project name</FieldLabel>
+        <Input data-autofocus placeholder={meta?.name ?? 'My site'} value={name} onChange={(e) => setName(e.target.value)} />
+      </Field>
+      <Button type="submit" pending={busy || undefined} disabled={busy}>
+        Use {meta?.name ?? 'template'}
       </Button>
       {location && <Foot>Saved to {location}</Foot>}
-    </div>
+    </form>
   );
 }
 
 export function OpenPanel() {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2">
       <Lead>Open an existing project or a single file.</Lead>
-      <Button variant="outline" className="justify-start" data-autofocus onClick={() => void openProjectDialog()}>
-        <FolderOpen data-icon="inline-start" />
+      <Button variant="outline" className="w-full justify-start" data-autofocus icon={<Icon icon={FolderOpen} size={16} />} onClick={() => void openProjectDialog()}>
         Open folder
       </Button>
-      <Button variant="outline" className="justify-start" onClick={() => void openFileFromDisk()}>
-        <FileText data-icon="inline-start" />
+      <Button variant="outline" className="w-full justify-start" icon={<Icon icon={Document} size={16} />} onClick={() => void openFileFromDisk()}>
         Open file
       </Button>
-      <Button variant="outline" className="justify-start" onClick={() => void importZip()}>
+      <Button variant="outline" className="w-full justify-start" onClick={() => void importZip()}>
         Import .zip
       </Button>
     </div>
@@ -148,38 +192,41 @@ export function OpenPanel() {
 function RecentList({ recent, matches, repo, activeRow, showActive, onHover, onRun }: { recent: RecentProject[] | null; matches: RecentProject[]; repo: string | null; activeRow: number; showActive: boolean; onHover: (i: number) => void; onRun: (i: number) => void }) {
   if (recent === null) return <ProjectRowSkeletons />;
   return (
-    <div className="flex flex-col gap-0.5">
+    <List variant="plain">
       {repo && (
         <ProjectRow
-          icon={
-            <span className="project-icon project-icon--github">
-              <GithubMark size={15} />
-            </span>
-          }
+          icon={<ListIcon icon={LogoGithub} tone={showActive && activeRow === 0 ? 'accent' : 'neutral'} />}
           name={`Import ${repo}`}
           path="Clone from GitHub into your projects folder"
           detail="Clone from GitHub into your projects folder"
           hint="Enter"
-          active={showActive && activeRow === 0}
           onMouseEnter={() => onHover(0)}
           onClick={() => onRun(0)}
         />
       )}
       {matches.map((p, i) => {
         const index = repo ? i + 1 : i;
-        return <ProjectRow key={p.root} icon={<ProjectIcon src={p.icon} name={p.name} />} name={p.name} detail={timeAgo(p.openedAt)} path={p.root} active={showActive && activeRow === index} onMouseEnter={() => onHover(index)} onClick={() => onRun(index)} />;
+        return (
+          <ProjectRow
+            key={p.root}
+            icon={<ProjectMark src={p.icon} name={p.name} />}
+            name={p.name}
+            detail={timeAgo(p.openedAt)}
+            path={p.root}
+            onMouseEnter={() => onHover(index)}
+            onClick={() => onRun(index)}
+          />
+        );
       })}
-    </div>
+    </List>
   );
 }
 
 export function RecentPanel({ recent }: { recent: RecentProject[] | null }) {
   return recent && recent.length === 0 ? (
-    <Empty>
-      <EmptyHeader>
-        <EmptyTitle>No projects yet</EmptyTitle>
-        <EmptyDescription>Projects you open or create will show up here.</EmptyDescription>
-      </EmptyHeader>
+    <Empty className="px-2 py-6">
+      <EmptyTitle>No projects yet</EmptyTitle>
+      <EmptyDescription>Projects you open or create will show up here.</EmptyDescription>
     </Empty>
   ) : (
     <RecentList recent={recent} matches={recent ?? []} repo={null} activeRow={0} showActive={false} onHover={() => {}} onRun={(i) => recent?.[i] && void openRecent(recent[i].root)} />
@@ -189,37 +236,34 @@ export function RecentPanel({ recent }: { recent: RecentProject[] | null }) {
 export function RecentChatsPanel({ chats, onPick }: { chats: HomeChat[]; onPick: (chat: HomeChat) => void }) {
   if (!chats.length)
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyTitle>No chats yet</EmptyTitle>
-          <EmptyDescription>Describe a project in the box and it will show up here.</EmptyDescription>
-        </EmptyHeader>
+      <Empty className="px-2 py-6">
+        <EmptyTitle>No chats yet</EmptyTitle>
+        <EmptyDescription>Describe a project in the box and it will show up here.</EmptyDescription>
       </Empty>
     );
   return (
-    <div className="flex flex-col gap-0.5">
+    <List variant="plain">
       {chats.map((chat) => (
-        <ProjectRow key={chat.id} icon={<MessageSquare className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={chat.text} detail={timeAgo(chat.at)} path={chat.text} onClick={() => onPick(chat)} />
+        <ListItem
+          key={chat.id}
+          leading={<ListIcon icon={Chat} />}
+          title={chat.text}
+          description={timeAgo(chat.at)}
+          onClick={() => onPick(chat)}
+          chevron={false}
+        />
       ))}
-    </div>
+    </List>
   );
 }
 
 export type NewView = 'start' | 'templates' | 'github' | 'open';
 
-const MORE_WAYS: { id: Exclude<NewView, 'start'>; label: string; icon: ComponentType<{ className?: string }> }[] = [
-  { id: 'templates', label: 'Use a template', icon: LayoutTemplate },
-  { id: 'github', label: 'Import from GitHub', icon: GithubIconSmall },
+const MORE_WAYS: { id: Exclude<NewView, 'start'>; label: string; icon: LimeIcon }[] = [
+  { id: 'templates', label: 'Use a template', icon: Template },
+  { id: 'github', label: 'Import from GitHub', icon: LogoGithub },
   { id: 'open', label: 'Open folder or file', icon: FolderOpen },
 ];
-
-function GithubIconSmall({ className }: { className?: string }) {
-  return (
-    <span className={className} aria-hidden>
-      <GithubMark size={16} />
-    </span>
-  );
-}
 
 /** "New project": the quick start, with the other ways to begin one step further in. */
 export function NewProjectFlow({
@@ -240,7 +284,6 @@ export function NewProjectFlow({
   onSetup: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  // Moving between steps moves focus to the new step's first field.
   useEffect(() => {
     const frame = requestAnimationFrame(() => ref.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus({ preventScroll: true }));
     return () => cancelAnimationFrame(frame);
@@ -250,24 +293,22 @@ export function NewProjectFlow({
     return (
       <div ref={ref} className="flex flex-col gap-3">
         <NewProjectPanel location={location} busy={busy} onSetup={onSetup} />
-        <div className="flex flex-col gap-0.5 border-t border-border pt-2">
-          <p className="mb-1 ps-1 text-xs text-muted-foreground">Other ways to start</p>
-          {MORE_WAYS.map(({ id, label, icon: Icon }) => (
-            <Button key={id} variant="ghost" className="h-9 justify-start gap-3 px-2 [&_svg]:size-4" onClick={() => onView(id)}>
-              <Icon />
-              {label}
-              <ChevronRight className="ms-auto text-muted-foreground" />
-            </Button>
-          ))}
+        <Separator />
+        <div className="flex flex-col gap-1">
+          <h2 className="text-lg font-semibold text-fg">Other ways to start</h2>
+          <List variant="plain">
+            {MORE_WAYS.map(({ id, label, icon }) => (
+              <ListItem key={id} leading={<ListIcon icon={icon} />} title={label} onClick={() => onView(id)} chevron />
+            ))}
+          </List>
         </div>
       </div>
     );
   const title = MORE_WAYS.find((w) => w.id === view)!.label;
   return (
     <div ref={ref} className="flex flex-col gap-2">
-      <Button variant="ghost" className="h-8 justify-start gap-2 px-2 [&_svg]:size-4" onClick={() => onView('start')}>
-        <ArrowLeft />
-        <span className="truncate">{title}</span>
+      <Button variant="ghost" className="w-full justify-start" icon={<Icon icon={ArrowLeft} size={16} />} onClick={() => onView('start')}>
+        {title}
       </Button>
       {view === 'templates' ? <TemplatesPanel templates={templates} location={location} busy={busy} /> : view === 'github' ? <GithubPanel key={repoDraft} initial={repoDraft} location={location} busy={busy} /> : <OpenPanel />}
     </div>
@@ -292,16 +333,11 @@ export function SearchPanel({ recent, chats, onGithub, onChat, onDone }: { recen
       run: () => onGithub(repo),
       render: (isActive, hover) => (
         <ProjectRow
-          icon={
-            <span className="project-icon project-icon--github">
-              <GithubMark size={15} />
-            </span>
-          }
+          icon={<ListIcon icon={LogoGithub} tone={isActive ? 'accent' : 'neutral'} />}
           name={`Import ${repo}`}
           path="Clone from GitHub into your projects folder"
           detail="Clone from GitHub into your projects folder"
           hint="Enter"
-          active={isActive}
           onMouseEnter={hover}
           onClick={() => onGithub(repo)}
         />
@@ -312,14 +348,32 @@ export function SearchPanel({ recent, chats, onGithub, onChat, onDone }: { recen
       key: p.root,
       kind: 'project',
       run: () => void openRecent(p.root),
-      render: (isActive, hover) => <ProjectRow icon={<ProjectIcon src={p.icon} name={p.name} />} name={p.name} detail={`Project · ${timeAgo(p.openedAt)}`} path={p.root} active={isActive} onMouseEnter={hover} onClick={() => void openRecent(p.root)} />,
+      render: (isActive, hover) => (
+        <ProjectRow
+          icon={<ProjectMark src={p.icon} name={p.name} />}
+          name={p.name}
+          detail={`Project · ${timeAgo(p.openedAt)}`}
+          path={p.root}
+          onMouseEnter={hover}
+          onClick={() => void openRecent(p.root)}
+        />
+      ),
     });
   for (const c of matchedChats)
     rows.push({
       key: c.id,
       kind: 'chat',
       run: () => onChat(c),
-      render: (isActive, hover) => <ProjectRow icon={<MessageSquare className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={c.text} detail={`Chat · ${timeAgo(c.at)}`} path={c.text} active={isActive} onMouseEnter={hover} onClick={() => onChat(c)} />,
+      render: (isActive, hover) => (
+        <ProjectRow
+          icon={<ListIcon icon={Chat} tone={isActive ? 'accent' : 'neutral'} />}
+          name={c.text}
+          detail={`Chat · ${timeAgo(c.at)}`}
+          path={c.text}
+          onMouseEnter={hover}
+          onClick={() => onChat(c)}
+        />
+      ),
     });
 
   const activeRow = Math.min(active, Math.max(0, rows.length - 1));
@@ -342,30 +396,39 @@ export function SearchPanel({ recent, chats, onGithub, onChat, onDone }: { recen
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <InputGroup className="h-10">
-        <InputGroupAddon>
-          <Search aria-hidden />
-        </InputGroupAddon>
-        <InputGroupInput data-autofocus aria-label="Search projects and chats" placeholder="Search projects and chats" value={query} onChange={(e) => { setQuery(e.target.value); setActive(0); }} onKeyDown={onKey} />
-      </InputGroup>
+    <div className="flex flex-col gap-3">
+      <Field name="search">
+        <FieldLabel className="sr-only">Search projects and chats</FieldLabel>
+        <div className="flex items-center gap-2">
+          <Icon icon={Search} size={16} className="shrink-0 text-fg-3" />
+          <Input
+            data-autofocus
+            aria-label="Search projects and chats"
+            placeholder="Search projects and chats"
+            className="min-w-0 flex-1"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setActive(0);
+            }}
+            onKeyDown={onKey}
+          />
+        </div>
+        <FieldDescription>Projects, chats, or a GitHub owner/repo.</FieldDescription>
+      </Field>
       {recent !== null && rows.length === 0 ? (
-        <Empty>
-          <EmptyHeader>
-            <EmptyTitle>{q ? 'No results' : 'Nothing here yet'}</EmptyTitle>
-            <EmptyDescription>{q ? `Nothing matches “${query.trim()}”.` : 'Projects and chats you start will show up here.'}</EmptyDescription>
-          </EmptyHeader>
+        <Empty className="px-2 py-6">
+          <EmptyTitle>{q ? 'No results' : 'Nothing here yet'}</EmptyTitle>
+          <EmptyDescription>{q ? `Nothing matches “${query.trim()}”.` : 'Projects and chats you start will show up here.'}</EmptyDescription>
         </Empty>
       ) : recent === null ? (
         <ProjectRowSkeletons />
       ) : (
-        <div className="flex flex-col gap-0.5">
+        <List variant="plain" onClickCapture={onDone}>
           {rows.map((row, i) => (
-            <div key={row.key} onClickCapture={onDone}>
-              {row.render(!!q && i === activeRow, () => q && setActive(i))}
-            </div>
+            <Fragment key={row.key}>{row.render(!!q && i === activeRow, () => q && setActive(i))}</Fragment>
           ))}
-        </div>
+        </List>
       )}
     </div>
   );

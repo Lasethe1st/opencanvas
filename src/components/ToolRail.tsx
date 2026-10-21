@@ -1,27 +1,3 @@
-import {
-  ClipboardList,
-  List,
-  MessageSquareText,
-  Navigation,
-  PanelBottom,
-  PanelTop,
-  TextCursorInput,
-  Columns3,
-  Frame,
-  Hand,
-  Heading,
-  Image,
-  LayoutGrid,
-  LayoutTemplate,
-  Link,
-  MousePointer2,
-  Pilcrow,
-  Plus,
-  RectangleHorizontal,
-  Ruler,
-  Square,
-  Type,
-} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { PRESETS } from '../../shared/canvas';
 import type { InsertKind } from '../../shared/types';
@@ -35,24 +11,49 @@ import { GitMenu } from './GitMenu';
 import { SettingsButton } from './Settings';
 import { TerminalButton } from './TerminalPanel';
 import { setInteract } from './TopBar';
+import {
+  Box,
+  ButtonCentered,
+  Column,
+  Cursor,
+  DocumentAdd,
+  Draggable,
+  Grid,
+  Heading,
+  Icon,
+  Image,
+  Link,
+  ListGlyph,
+  Paragraph,
+  Plus,
+  Ruler,
+  SquareOutline,
+  StringText,
+  Template,
+  TextCreation,
+  TextLongParagraph,
+  type LimeIcon,
+} from '@/components/lime/icon';
+import { Field, FieldLabel } from '@/components/lime/ui/field';
+import { Input } from '@/components/lime/ui/input';
 
-const ELEMENTS: { kind: InsertKind; label: string; hint: string; icon: typeof Square; keywords: string }[] = [
-  { kind: 'div', label: 'Container', hint: 'div', icon: Square, keywords: 'div box container wrapper' },
-  { kind: 'section', label: 'Section', hint: 'section', icon: LayoutTemplate, keywords: 'section block area' },
-  { kind: 'flex', label: 'Flex row', hint: 'display: flex', icon: Columns3, keywords: 'flex row stack layout horizontal' },
-  { kind: 'grid', label: 'Grid', hint: 'display: grid', icon: LayoutGrid, keywords: 'grid columns layout cards' },
+const ELEMENTS: { kind: InsertKind; label: string; hint: string; icon: LimeIcon; keywords: string }[] = [
+  { kind: 'div', label: 'Container', hint: 'div', icon: SquareOutline, keywords: 'div box container wrapper' },
+  { kind: 'section', label: 'Section', hint: 'section', icon: Template, keywords: 'section block area' },
+  { kind: 'flex', label: 'Flex row', hint: 'display: flex', icon: Column, keywords: 'flex row stack layout horizontal' },
+  { kind: 'grid', label: 'Grid', hint: 'display: grid', icon: Grid, keywords: 'grid columns layout cards' },
   { kind: 'heading', label: 'Heading', hint: 'h2', icon: Heading, keywords: 'heading title text h2' },
-  { kind: 'paragraph', label: 'Paragraph', hint: 'p', icon: Pilcrow, keywords: 'paragraph text body copy p' },
+  { kind: 'paragraph', label: 'Paragraph', hint: 'p', icon: Paragraph, keywords: 'paragraph text body copy p' },
   { kind: 'link', label: 'Link', hint: 'a', icon: Link, keywords: 'link anchor a href' },
   { kind: 'image', label: 'Image', hint: 'img', icon: Image, keywords: 'image picture photo img' },
-  { kind: 'button', label: 'Button', hint: 'button', icon: RectangleHorizontal, keywords: 'button cta action' },
-  { kind: 'header', label: 'Header', hint: 'header', icon: PanelTop, keywords: 'header top bar masthead' },
-  { kind: 'nav', label: 'Navigation', hint: 'nav', icon: Navigation, keywords: 'nav navigation menu links' },
-  { kind: 'footer', label: 'Footer', hint: 'footer', icon: PanelBottom, keywords: 'footer bottom' },
-  { kind: 'list', label: 'List', hint: 'ul', icon: List, keywords: 'list bullets ul li items' },
-  { kind: 'form', label: 'Form', hint: 'form', icon: ClipboardList, keywords: 'form contact fields inputs' },
-  { kind: 'input', label: 'Input', hint: 'input', icon: TextCursorInput, keywords: 'input field text email' },
-  { kind: 'textarea', label: 'Text area', hint: 'textarea', icon: MessageSquareText, keywords: 'textarea message multiline' },
+  { kind: 'button', label: 'Button', hint: 'button', icon: ButtonCentered, keywords: 'button cta action' },
+  { kind: 'header', label: 'Header', hint: 'header', icon: DocumentAdd, keywords: 'header top bar masthead' },
+  { kind: 'nav', label: 'Navigation', hint: 'nav', icon: ListGlyph, keywords: 'nav navigation menu links' },
+  { kind: 'footer', label: 'Footer', hint: 'footer', icon: Box, keywords: 'footer bottom' },
+  { kind: 'list', label: 'List', hint: 'ul', icon: ListGlyph, keywords: 'list bullets ul li items' },
+  { kind: 'form', label: 'Form', hint: 'form', icon: TextCreation, keywords: 'form contact fields inputs' },
+  { kind: 'input', label: 'Input', hint: 'input', icon: StringText, keywords: 'input field text email' },
+  { kind: 'textarea', label: 'Text area', hint: 'textarea', icon: TextLongParagraph, keywords: 'textarea message multiline' },
 ];
 
 const CONTAINER_TAGS = new Set(['div', 'section', 'main', 'header', 'footer', 'nav', 'article', 'aside', 'form', 'ul', 'ol', 'li', 'figure', 'fieldset', 'label']);
@@ -88,28 +89,30 @@ function InsertList({ kinds, search, onDone }: { kinds?: InsertKind[]; search?: 
   return (
     <>
       {search && (
-        <input
-          className="popover__search"
-          autoFocus
-          aria-label="Search elements"
-          placeholder="Search elements…"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setFocused(0);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowDown') setFocused((f) => Math.min(f + 1, items.length - 1));
-            if (e.key === 'ArrowUp') setFocused((f) => Math.max(f - 1, 0));
-            if (e.key === 'Enter' && items[focused]) choose(items[focused].kind);
-          }}
-        />
+        <Field name="elementSearch" className="mb-2">
+          <FieldLabel className="sr-only">Search elements</FieldLabel>
+          <Input
+            autoFocus
+            aria-label="Search elements"
+            placeholder="Search elements…"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setFocused(0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowDown') setFocused((f) => Math.min(f + 1, items.length - 1));
+              if (e.key === 'ArrowUp') setFocused((f) => Math.max(f - 1, 0));
+              if (e.key === 'Enter' && items[focused]) choose(items[focused].kind);
+            }}
+          />
+        </Field>
       )}
       {items.map((item, i) => (
         <MenuItem
           key={item.kind}
-          className={cx('menu-item', search && i === focused && 'is-focused')}
-          icon={<item.icon size={14} />}
+          className={cx(search && i === focused && 'ring-1 ring-ring')}
+          icon={<Icon icon={item.icon} size={16} />}
           hint={item.hint}
           onClick={() => choose(item.kind)}
           onMouseEnter={() => setFocused(i)}
@@ -117,7 +120,7 @@ function InsertList({ kinds, search, onDone }: { kinds?: InsertKind[]; search?: 
           {item.label}
         </MenuItem>
       ))}
-      {items.length === 0 && <div className="empty-note">No matching elements.</div>}
+      {items.length === 0 && <p className="px-2 py-3 text-sm text-fg-2">No matching elements.</p>}
     </>
   );
 }
@@ -129,7 +132,7 @@ function FrameFlyout({ onDone }: { onDone: () => void }) {
       {(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((p) => (
         <MenuItem
           key={p}
-          icon={<Ruler size={14} />}
+          icon={<Icon icon={Ruler} size={16} />}
           hint={`${PRESETS[p].width} × ${PRESETS[p].height}`}
           onClick={() => {
             onDone();
@@ -140,7 +143,7 @@ function FrameFlyout({ onDone }: { onDone: () => void }) {
         </MenuItem>
       ))}
       <form
-        className="frame-menu__custom"
+        className="mt-2 flex items-end gap-2 border-t border-line pt-2"
         onSubmit={(e) => {
           e.preventDefault();
           const w = Number(size.width);
@@ -150,9 +153,15 @@ function FrameFlyout({ onDone }: { onDone: () => void }) {
           addCustomFrame(w, h);
         }}
       >
-        <input className="frame-menu__num" aria-label="New frame width" inputMode="numeric" value={size.width} onChange={(e) => setSize((s) => ({ ...s, width: e.target.value }))} />
-        <span>×</span>
-        <input className="frame-menu__num" aria-label="New frame height" inputMode="numeric" value={size.height} onChange={(e) => setSize((s) => ({ ...s, height: e.target.value }))} />
+        <Field name="frameWidth" className="min-w-0 flex-1">
+          <FieldLabel className="sr-only">Width</FieldLabel>
+          <Input aria-label="New frame width" inputMode="numeric" value={size.width} onChange={(e) => setSize((s) => ({ ...s, width: e.target.value }))} />
+        </Field>
+        <span className="pb-2 text-fg-3">×</span>
+        <Field name="frameHeight" className="min-w-0 flex-1">
+          <FieldLabel className="sr-only">Height</FieldLabel>
+          <Input aria-label="New frame height" inputMode="numeric" value={size.height} onChange={(e) => setSize((s) => ({ ...s, height: e.target.value }))} />
+        </Field>
         <Button size="sm" type="submit">
           Add
         </Button>
@@ -185,14 +194,14 @@ export function ToolRail() {
     setState({ tool: next });
   };
   const withFlyout = (id: Exclude<Flyout, null>, button: ReactNode, flyout: ReactNode) => (
-    <div className="tool-rail__slot">
+    <div className="relative">
       {button}
       {open === id && flyout}
     </div>
   );
   const footer = (
     <>
-      <div className="tool-rail__spacer" />
+      <div className="flex-1" />
       <ToolGroup>
         <BugCheckButton />
         <TerminalButton />
@@ -205,19 +214,19 @@ export function ToolRail() {
   if (mode === 'code') return <Rail>{footer}</Rail>;
 
   return (
-    <div ref={ref}>
+    <div ref={ref} className="contents">
       <Rail>
         <ToolGroup>
           <ToolButton label="Select" shortcut="V" active={tool === 'select' && !interact} onClick={() => pickTool('select')}>
-            <MousePointer2 size={16} />
+            <Icon icon={Cursor} size={16} />
           </ToolButton>
           <ToolButton label="Hand" shortcut="H, or hold Space" active={tool === 'hand' && !interact} onClick={() => pickTool('hand')}>
-            <Hand size={16} />
+            <Icon icon={Draggable} size={16} />
           </ToolButton>
           {withFlyout(
             'frame',
             <ToolButton label="Frame" active={open === 'frame'} onClick={() => toggle('frame')}>
-              <Frame size={16} />
+              <Icon icon={Ruler} size={16} />
             </ToolButton>,
             <FrameFlyout onDone={close} />,
           )}
@@ -225,30 +234,30 @@ export function ToolRail() {
         <ToolSeparator />
         <ToolGroup>
           <ToolButton label="Section" shortcut="F" disabled={!canInsert} onClick={() => void insertElement('section')}>
-            <LayoutTemplate size={16} />
+            <Icon icon={Template} size={16} />
           </ToolButton>
           <ToolButton label="Container" shortcut="R" disabled={!canInsert} onClick={() => void insertElement('div')}>
-            <Square size={16} />
+            <Icon icon={SquareOutline} size={16} />
           </ToolButton>
           {withFlyout(
             'text',
             <ToolButton label="Text" shortcut="T" disabled={!canInsert} active={open === 'text'} onClick={() => toggle('text')}>
-              <Type size={16} />
+              <Icon icon={TextCreation} size={16} />
             </ToolButton>,
             <ToolFlyout title={`Insert into ${target}`}>
               <InsertList kinds={['heading', 'paragraph', 'link']} onDone={close} />
             </ToolFlyout>,
           )}
           <ToolButton label="Image" shortcut="I" disabled={!canInsert} onClick={() => void insertImageFromDisk()}>
-            <Image size={16} />
+            <Icon icon={Image} size={16} />
           </ToolButton>
           <ToolButton label="Button" shortcut="B" disabled={!canInsert} onClick={() => void insertElement('button')}>
-            <RectangleHorizontal size={16} />
+            <Icon icon={ButtonCentered} size={16} />
           </ToolButton>
           {withFlyout(
             'more',
             <ToolButton label="More elements" shortcut="/" disabled={!canInsert} active={open === 'more'} onClick={() => toggle('more')}>
-              <Plus size={16} />
+              <Icon icon={Plus} size={16} />
             </ToolButton>,
             <ToolFlyout title={`Insert into ${target}`}>
               <InsertList search onDone={close} />

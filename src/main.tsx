@@ -12,6 +12,7 @@ import './styles/open-canvas.css';
 import './styles/direction.css';
 import './styles/overrides.css';
 import './styles/tailwind.css';
+import '@/components/lime/styles.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

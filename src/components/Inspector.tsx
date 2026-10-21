@@ -1,11 +1,30 @@
-import { Columns3, Crosshair, EyeOff, LayoutGrid, Minus, Move, Square, TextCursor, AlignCenter, AlignJustify, AlignLeft, AlignRight, Code2, ImageUp, MousePointerClick } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { RETAGGABLE_TAGS, type StyleState } from '../../shared/types';
 import { chooseImageForSelection, revealInCode, runEdit, setStyle, setTag } from '../lib/actions';
 import { setState, useActiveBreakpoint, useStore } from '../lib/store';
 import { InspectorHeader, KeyValue } from '../ui/Inspector.jsx';
 import { Panel, PanelTitle } from '../ui/Panels.jsx';
-import { Button, Field, InputShell, Notice, Segmented, SelectShell } from '../ui/primitives.jsx';
+import { Button, Field, InputShell, Notice, Segmented } from '../ui/primitives.jsx';
+import {
+  CenterToFit,
+  CircleDash,
+  Code,
+  Column,
+  Cursor,
+  Grid,
+  Icon,
+  Move,
+  SquareOutline,
+  Subtract,
+  TextAlignCenter,
+  TextAlignJustify,
+  TextAlignLeft,
+  TextAlignRight,
+  TextScale,
+  Upload,
+} from '@/components/lime/icon';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/lime/ui/select';
+import { Textarea } from '@/components/lime/ui/textarea';
 import { FrameworkLabel, PackageManagerLabel } from './BrandLogos';
 import { SCOPE_LABEL } from './Canvas';
 import { BoxModel } from './inspector/BoxModel';
@@ -65,17 +84,23 @@ function AttributeField({ name, label, placeholder }: { name: string; label: str
 function AttributeSelect({ name, label, options, fallback }: { name: string; label: string; options: [string, string][]; fallback: string }) {
   const selection = useStore((s) => s.selection)!;
   const info = useStore((s) => s.sourceInfo)!;
+  const value = info.attributes[name] ?? fallback;
   return (
     <Field label={label}>
-      <SelectShell>
-        <select value={info.attributes[name] ?? fallback} onChange={(e) => void runEdit({ type: 'setAttribute', id: selection.id, name, value: e.target.value }, `Set ${name}`)}>
-          {options.map(([value, text]) => (
-            <option key={value} value={value}>
+      <Select
+        value={value}
+        onValueChange={(next) => void runEdit({ type: 'setAttribute', id: selection.id, name, value: String(next ?? '') }, `Set ${name}`)}
+        items={Object.fromEntries(options)}
+      >
+        <SelectTrigger className="w-full" />
+        <SelectContent>
+          {options.map(([opt, text]) => (
+            <SelectItem key={opt} value={opt}>
               {text}
-            </option>
+            </SelectItem>
           ))}
-        </select>
-      </SelectShell>
+        </SelectContent>
+      </Select>
     </Field>
   );
 }
@@ -95,9 +120,9 @@ function ContentSection() {
     <Section title="Content">
       {isText &&
         (info.textEditable ? (
-          <textarea
+          <Textarea
             id="oc-text-field"
-            className="textarea"
+            autoGrow
             aria-label="Text content"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -110,13 +135,13 @@ function ContentSection() {
             }}
           />
         ) : (
-          <div className="content-locked">
-            <p className="muted" style={{ margin: 0 }}>
+          <div className="flex flex-col gap-2">
+            <p className="m-0 text-sm text-fg-2">
               {info.textReason === 'expression'
                 ? 'This text comes from a JavaScript expression, so it can only be changed in code.'
                 : 'This text contains other elements, such as links or emphasis. Edit it in code so the markup stays intact.'}
             </p>
-            <Button size="sm" icon={<Code2 size={13} />} onClick={() => revealInCode(info.file, info.line)}>
+            <Button size="sm" icon={<Icon icon={Code} size={16} />} onClick={() => revealInCode(info.file, info.line)}>
               Open in code
             </Button>
           </div>
@@ -124,7 +149,7 @@ function ContentSection() {
       {tag === 'img' && (
         <>
           <AttributeField name="src" label="Source" placeholder="/image.png or https://…" />
-          <Button size="sm" icon={<ImageUp size={13} />} onClick={() => void chooseImageForSelection()}>
+          <Button size="sm" icon={<Icon icon={Upload} size={16} />} onClick={() => void chooseImageForSelection()}>
             Choose image…
           </Button>
           <AttributeField name="alt" label="Alt text" placeholder="Describe the image" />
@@ -154,15 +179,16 @@ function TagSelect({ disabled }: { disabled: boolean }) {
   if (!RETAGGABLE_TAGS.includes(tag)) return null;
   return (
     <Field label="Element">
-      <SelectShell>
-        <select aria-label="Element type" value={tag} disabled={disabled} onChange={(e) => void setTag(e.target.value)}>
+      <Select value={tag} disabled={disabled} onValueChange={(next) => void setTag(String(next))} items={Object.fromEntries(RETAGGABLE_TAGS.map((t) => [t, t]))}>
+        <SelectTrigger aria-label="Element type" className="w-full" />
+        <SelectContent>
           {RETAGGABLE_TAGS.map((t) => (
-            <option key={t} value={t}>
+            <SelectItem key={t} value={t}>
               {t}
-            </option>
+            </SelectItem>
           ))}
-        </select>
-      </SelectShell>
+        </SelectContent>
+      </Select>
     </Field>
   );
 }
@@ -201,11 +227,11 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
         disabled={disabled}
         extra={['inline-block', 'inline-flex', 'inline-grid', 'contents']}
         options={[
-          { value: 'block', icon: <Square size={13} />, title: 'Block' },
-          { value: 'flex', icon: <Columns3 size={13} />, title: 'Flex' },
-          { value: 'grid', icon: <LayoutGrid size={13} />, title: 'Grid' },
-          { value: 'inline', icon: <TextCursor size={13} />, title: 'Inline' },
-          { value: 'none', icon: <EyeOff size={13} />, title: 'Hidden (none)' },
+          { value: 'block', icon: <Icon icon={SquareOutline} size={16} />, title: 'Block' },
+          { value: 'flex', icon: <Icon icon={Column} size={16} />, title: 'Flex' },
+          { value: 'grid', icon: <Icon icon={Grid} size={16} />, title: 'Grid' },
+          { value: 'inline', icon: <Icon icon={TextScale} size={16} />, title: 'Inline' },
+          { value: 'none', icon: <Icon icon={CircleDash} size={16} />, title: 'Hidden (none)' },
         ]}
       />
       <ToggleGroup
@@ -215,9 +241,9 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
         disabled={disabled}
         extra={['fixed', 'sticky']}
         options={[
-          { value: 'static', icon: <Minus size={13} />, title: 'Static' },
-          { value: 'relative', icon: <Move size={13} />, title: 'Relative' },
-          { value: 'absolute', icon: <Crosshair size={13} />, title: 'Absolute' },
+          { value: 'static', icon: <Icon icon={Subtract} size={16} />, title: 'Static' },
+          { value: 'relative', icon: <Icon icon={Move} size={16} />, title: 'Relative' },
+          { value: 'absolute', icon: <Icon icon={CenterToFit} size={16} />, title: 'Absolute' },
         ]}
       />
       <div className="grid-2">
@@ -287,10 +313,10 @@ function TypographySection({ disabled }: { disabled: boolean }) {
         label="Align"
         disabled={disabled}
         options={[
-          { value: 'left', icon: <AlignLeft size={13} />, title: 'Left' },
-          { value: 'center', icon: <AlignCenter size={13} />, title: 'Center' },
-          { value: 'right', icon: <AlignRight size={13} />, title: 'Right' },
-          { value: 'justify', icon: <AlignJustify size={13} />, title: 'Justify' },
+          { value: 'left', icon: <Icon icon={TextAlignLeft} size={16} />, title: 'Left' },
+          { value: 'center', icon: <Icon icon={TextAlignCenter} size={16} />, title: 'Center' },
+          { value: 'right', icon: <Icon icon={TextAlignRight} size={16} />, title: 'Right' },
+          { value: 'justify', icon: <Icon icon={TextAlignJustify} size={16} />, title: 'Justify' },
         ]}
       />
       <ColorInput prop="color" label="Color" disabled={disabled} />
@@ -348,7 +374,7 @@ function PageSettings() {
           <strong className="inspector-head__title">Page</strong>
         </div>
         <div className="inspector-head__meta inspector-empty">
-          <MousePointerClick size={20} aria-hidden="true" />
+          <Icon icon={Cursor} size={20} />
           <span>Select an element on the canvas or in Layers to edit it.</span>
         </div>
       </div>
@@ -374,7 +400,7 @@ function PageSettings() {
       <Section title="Breakpoints">
         <KeyValue label="Tablet">≤ {project.breakpoints.tablet}px</KeyValue>
         <KeyValue label="Mobile">≤ {project.breakpoints.mobile}px</KeyValue>
-        <p className="muted" style={{ margin: 0, lineHeight: 1.5 }}>
+        <p className="m-0 text-sm leading-normal text-fg-2">
           {project.breakpoints.detected ? 'Detected from the project’s existing media queries.' : 'Defaults. No existing max-width media queries were found.'} Each frame edits the scope its width falls in; resize a frame or select an element in another frame to change scope.
         </p>
       </Section>

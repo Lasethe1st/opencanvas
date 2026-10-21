@@ -1,14 +1,35 @@
-import { Copy, Keyboard, KeyRound, Monitor, Moon, Palette, Plug, RefreshCw, Settings as SettingsIcon, Sparkles, Sun, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 import type { McpStatus, ThemePreference } from '../../shared/types';
 import { api } from '../lib/api';
 import { plural } from '../lib/plural';
 import { setState, toast, useStore, type SettingsTab } from '../lib/store';
 import { AiSettingsPanel } from './settings/AiSettings';
 import { setThemePreference, useTheme } from '../lib/theme';
-import { Button, InputShell, Notice } from '../ui/primitives.jsx';
 import { ToolButton } from '../ui/ToolRail.jsx';
+import {
+  AiGenerate,
+  ColorPalette,
+  Connect,
+  Icon,
+  Keyboard,
+  Plug,
+  Renew,
+  Settings as SettingsIcon,
+} from '@/components/lime/icon';
+import { Button } from '@/components/lime/ui/button';
+import { CopyButton } from '@/components/lime/ui/copy-button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/lime/ui/dialog';
+import { Field, FieldDescription, FieldLabel } from '@/components/lime/ui/field';
+import { Input } from '@/components/lime/ui/input';
+import { List, ListIcon, ListItem } from '@/components/lime/ui/list';
+import { Segmented, SegmentedItem } from '@/components/lime/ui/segmented';
+import { Switch } from '@/components/lime/ui/switch';
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 
@@ -21,15 +42,16 @@ export function SettingsButton() {
   return (
     <ToolButton label="Settings" active={open} onClick={() => setState({ settingsOpen: !open })}>
       <SettingsIcon size={16} />
-      {state !== 'off' && <span className={`mcp-dot is-${state}`} aria-hidden />}
+      {state === 'on' && <span className="mcp-dot is-on" aria-hidden />}
+      {state === 'error' && <span className="mcp-dot is-error" aria-hidden />}
     </ToolButton>
   );
 }
 
-const TABS: { id: SettingsTab; label: string; icon: typeof Sun; lead: string }[] = [
-  { id: 'appearance', label: 'Appearance', icon: Palette, lead: 'How OpenCanvas looks on this computer.' },
-  { id: 'ai', label: 'AI', icon: Sparkles, lead: 'The model that answers in the dock’s Ask AI panel.' },
-  { id: 'mcp', label: 'MCP server', icon: Plug, lead: 'Connect AI agents to the project you have open.' },
+const TABS: { id: SettingsTab; label: string; lead: string; icon: typeof ColorPalette }[] = [
+  { id: 'appearance', label: 'Appearance', lead: 'How OpenCanvas looks on this computer.', icon: ColorPalette },
+  { id: 'ai', label: 'AI', lead: 'The model that answers in the dock’s Ask AI panel.', icon: AiGenerate },
+  { id: 'mcp', label: 'MCP server', lead: 'Connect AI agents to the project you have open.', icon: Plug },
 ];
 
 export function SettingsPage() {
@@ -37,79 +59,62 @@ export function SettingsPage() {
   const tab = useStore((s) => s.settingsTab);
   const setTab = (id: SettingsTab) => setState({ settingsTab: id });
   const close = () => setState({ settingsOpen: false });
-  const dialog = useRef<HTMLElement>(null);
+  const current = TABS.find((t) => t.id === tab) ?? TABS[0];
 
-  useEffect(() => {
-    if (!open) return;
-    // Move focus into the dialog, and give it back to the Settings button on close.
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    dialog.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
-    return () => opener?.focus();
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !document.querySelector('.dialog-backdrop') && close();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
-
-  if (!open) return null;
-  const current = TABS.find((t) => t.id === tab)!;
-  // Portaled to <body>: the workspace restyles its direct children, which pushed this page off to the side.
-  return createPortal(
-    <div className="settings-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
-      <section ref={dialog} className="settings-page" role="dialog" aria-modal="true" aria-label="Settings">
-        <nav className="settings-page__nav" role="tablist" aria-label="Settings sections" aria-orientation="vertical">
-          <h1 className="settings-page__title">Settings</h1>
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button key={id} role="tab" aria-selected={tab === id} className={`settings-page__tab${tab === id ? ' is-active' : ''}`} onClick={() => setTab(id)}>
-              <Icon size={15} />
-              {label}
-            </button>
-          ))}
-          <button className="settings-page__tab" onClick={() => setState({ shortcutsOpen: true })}>
-            <Keyboard size={15} />
-            Keyboard shortcuts
-          </button>
-        </nav>
-        <div className="settings-page__content" role="tabpanel" aria-label={current.label}>
-          <button className="settings-page__close" aria-label="Close settings" onClick={close}>
-            <X size={16} />
-          </button>
-          <div className="settings-page__inner">
-            <h2>{current.label}</h2>
-            <p className="settings-page__lead">{current.lead}</p>
-            {tab === 'appearance' ? <AppearanceSettings /> : tab === 'ai' ? <AiSettingsPanel /> : <McpSettings />}
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && close()}>
+      <DialogContent size="lg" className="overflow-hidden p-0">
+        <div className="flex min-h-0 flex-col sm:flex-row">
+          <nav className="flex shrink-0 flex-col gap-2 border-b border-line p-4 sm:w-56 sm:border-e sm:border-b-0" aria-label="Settings sections">
+            <DialogHeader className="pe-0">
+              <DialogTitle>Settings</DialogTitle>
+              <DialogDescription className="sr-only">Appearance, AI and MCP server.</DialogDescription>
+            </DialogHeader>
+            <List variant="plain" className="-mx-2">
+              {TABS.map(({ id, label, icon }) => (
+                <ListItem
+                  key={id}
+                  leading={<ListIcon icon={icon} tone={tab === id ? 'accent' : 'neutral'} />}
+                  title={label}
+                  chevron={false}
+                  onClick={() => setTab(id)}
+                />
+              ))}
+              <ListItem
+                leading={<ListIcon icon={Keyboard} />}
+                title="Keyboard shortcuts"
+                chevron={false}
+                onClick={() => setState({ shortcutsOpen: true })}
+              />
+            </List>
+          </nav>
+          <div className="min-h-0 flex-1 overflow-y-auto p-6">
+            <section className="flex flex-col gap-6">
+              <div className="flex flex-col gap-1">
+                <h2 className="text-lg font-semibold text-fg">{current.label}</h2>
+                <p className="text-sm text-fg-2">{current.lead}</p>
+              </div>
+              {tab === 'appearance' ? <AppearanceSettings /> : tab === 'ai' ? <AiSettingsPanel /> : <McpSettings />}
+            </section>
           </div>
         </div>
-      </section>
-    </div>,
-    document.body,
+      </DialogContent>
+    </Dialog>
   );
 }
-
-const THEMES: { id: ThemePreference; label: string; icon: typeof Sun }[] = [
-  { id: 'system', label: 'System', icon: Monitor },
-  { id: 'light', label: 'Light', icon: Sun },
-  { id: 'dark', label: 'Dark', icon: Moon },
-];
 
 function AppearanceSettings() {
   const { preference } = useTheme();
   return (
-    <>
-      <div className="git-section">Theme</div>
-      <div className="theme-options" role="radiogroup" aria-label="Theme">
-        {THEMES.map(({ id, label, icon: Icon }) => (
-          <button key={id} role="radio" aria-checked={preference === id} className={`theme-option${preference === id ? ' is-active' : ''}`} onClick={() => setThemePreference(id)}>
-            <Icon size={16} />
-            {label}
-          </button>
-        ))}
-      </div>
-      <p className="git-note">System follows your Windows light or dark setting.</p>
-    </>
+    <section className="flex flex-col gap-3">
+      <h3 className="text-lg font-semibold text-fg">Theme</h3>
+      <Segmented aria-label="Theme" value={preference} onValueChange={(v) => setThemePreference(v as ThemePreference)} fill>
+        <SegmentedItem value="system">System</SegmentedItem>
+        <SegmentedItem value="light">Light</SegmentedItem>
+        <SegmentedItem value="dark">Dark</SegmentedItem>
+      </Segmented>
+      <p className="text-sm text-fg-2">System follows your Windows light or dark setting.</p>
+    </section>
   );
 }
 
@@ -147,88 +152,101 @@ function McpSettings() {
       (err) => toast(errorText(err), 'error'),
     );
 
-  if (!status) return <Notice>Loading…</Notice>;
+  if (!status) return <p className="text-sm text-fg-2">Loading…</p>;
   const running = status.running;
 
   return (
-    <div className="mcp-panel">
-      <div className="git-panel__head">
-        <strong>{status.enabled ? 'Server on' : 'Server off'}</strong>
-        <label className="mcp-switch">
-          <input type="checkbox" aria-label="Enable MCP server" checked={status.enabled} onChange={(e) => void update(() => api.mcp.setEnabled(e.target.checked))} />
-          <span />
-        </label>
-      </div>
-      <p className="git-note">
+    <div className="flex flex-col gap-6">
+      <List variant="grouped">
+        <ListItem
+          title="MCP server"
+          description={status.enabled ? (running ? 'Server on' : status.error ?? 'Starting…') : 'Server off'}
+          trailing={
+            <Switch
+              aria-label="MCP server"
+              checked={status.enabled}
+              onCheckedChange={(on) => void update(() => api.mcp.setEnabled(on))}
+            />
+          }
+        />
+      </List>
+      <p className="text-sm text-fg-2">
         Lets AI agents such as Cursor or Claude inspect and edit the open project: add elements, set styles, change text and take screenshots. Their edits show up live and can be undone like your own.
       </p>
 
       {!status.enabled ? (
-        <Button size="sm" variant="primary" onClick={() => void update(() => api.mcp.setEnabled(true))}>
-          Start server
-        </Button>
+        <Button onClick={() => void update(() => api.mcp.setEnabled(true))}>Start server</Button>
       ) : !running ? (
-        <Notice>{status.error ?? 'Starting…'}</Notice>
+        <p className="text-sm text-warn-text" role="status">
+          {status.error ?? 'Starting…'}
+        </p>
       ) : (
         <>
-          <div className="git-row">
-            <span className="mcp-dot is-on" aria-hidden />
-            <span className="git-row__main mcp-url">{status.url}</span>
-            <button className="git-link" onClick={() => void copy(status.url, 'URL')} title="Copy URL">
-              <Copy size={11} />
-            </button>
-          </div>
+          <section className="flex flex-col gap-3">
+            <h3 className="text-lg font-semibold text-fg">Server URL</h3>
+            <div className="flex items-center gap-2">
+              <code className="min-w-0 flex-1 truncate rounded-field bg-surface px-3 py-2 font-mono text-sm text-fg">{status.url}</code>
+              <CopyButton value={status.url} label="Copy URL" />
+            </div>
+          </section>
 
-          <div className="git-section">Connect an agent</div>
-          <div className="mcp-actions">
-            <Button size="sm" variant="primary" icon={<Plug size={13} />} onClick={() => void api.mcp.installCursor().catch((err) => toast(errorText(err), 'error'))}>
-              Add to Cursor
-            </Button>
-            <Button size="sm" icon={<Copy size={13} />} onClick={() => void copy(cursorConfig(status), 'mcp.json config')}>
-              Copy mcp.json
-            </Button>
-            <Button size="sm" icon={<Copy size={13} />} onClick={() => void copy(claudeCommand(status), 'Claude Code command')}>
-              Claude Code
-            </Button>
-          </div>
-          <p className="git-note">The server only accepts connections from this computer that present the access token below.</p>
+          <section className="flex flex-col gap-3">
+            <h3 className="text-lg font-semibold text-fg">Connect an agent</h3>
+            <div className="flex flex-wrap gap-2">
+              <Button icon={<Icon icon={Connect} size={16} />} onClick={() => void api.mcp.installCursor().catch((err) => toast(errorText(err), 'error'))}>
+                Add to Cursor
+              </Button>
+              <Button variant="secondary" onClick={() => void copy(cursorConfig(status), 'mcp.json config')}>
+                Copy mcp.json
+              </Button>
+              <Button variant="secondary" onClick={() => void copy(claudeCommand(status), 'Claude Code command')}>
+                Claude Code
+              </Button>
+            </div>
+            <p className="text-sm text-fg-2">The server only accepts connections from this computer that present the access token below.</p>
+          </section>
 
-          <div className="git-section">Access token</div>
-          <div className="git-row">
-            <KeyRound size={13} />
-            <code className="git-row__main mcp-token">{showToken ? status.token : '•'.repeat(24)}</code>
-            <button className="git-link" onClick={() => setShowToken((v) => !v)}>
-              {showToken ? 'Hide' : 'Show'}
-            </button>
-            <button className="git-link" onClick={() => void copy(status.token, 'token')} title="Copy token">
-              <Copy size={11} />
-            </button>
-          </div>
-          <Button size="sm" variant="ghost" icon={<RefreshCw size={13} />} onClick={() => void update(() => api.mcp.regenerateToken())}>
-            New token (disconnects agents)
-          </Button>
+          <section className="flex flex-col gap-3">
+            <h3 className="text-lg font-semibold text-fg">Access token</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="min-w-0 flex-1 truncate rounded-field bg-surface px-3 py-2 font-mono text-sm text-fg">
+                {showToken ? status.token : '•'.repeat(24)}
+              </code>
+              <Button variant="ghost" size="sm" onClick={() => setShowToken((v) => !v)}>
+                {showToken ? 'Hide token' : 'Show token'}
+              </Button>
+              <CopyButton value={status.token} label="Copy token" />
+            </div>
+            <Button variant="ghost" icon={<Icon icon={Renew} size={16} />} onClick={() => void update(() => api.mcp.regenerateToken())}>
+              New token (disconnects agents)
+            </Button>
+          </section>
 
-          <div className="git-section">Activity</div>
-          <p className="git-note">
-            {status.calls === 0 ? 'No agent has called a tool yet.' : `${plural(status.calls, 'tool call', 'tool calls')}. Last: ${status.lastTool} ${ago(status.lastAt)}.`}
-          </p>
+          <section className="flex flex-col gap-2">
+            <h3 className="text-lg font-semibold text-fg">Activity</h3>
+            <p className="text-sm text-fg-2">
+              {status.calls === 0 ? 'No agent has called a tool yet.' : `${plural(status.calls, 'tool call', 'tool calls')}. Last: ${status.lastTool} ${ago(status.lastAt)}.`}
+            </p>
+          </section>
         </>
       )}
 
       {status.enabled && (
         <form
-          className="mcp-port"
+          className="flex max-w-sm flex-col gap-3"
           onSubmit={(e) => {
             e.preventDefault();
             const value = Number(port);
             if (value !== status.port) void update(() => api.mcp.setPort(value));
           }}
         >
-          <InputShell prefix="Port">
-            <input aria-label="Port" inputMode="numeric" value={port} onChange={(e) => setPort(e.target.value.replace(/\D/g, ''))} />
-          </InputShell>
-          <Button size="sm" type="submit" disabled={Number(port) === status.port}>
-            Apply
+          <Field name="port">
+            <FieldLabel>Port</FieldLabel>
+            <Input inputMode="numeric" value={port} onChange={(e) => setPort(e.target.value.replace(/\D/g, ''))} />
+            <FieldDescription>Applies when you press Apply port.</FieldDescription>
+          </Field>
+          <Button type="submit" variant="secondary" disabled={Number(port) === status.port}>
+            Apply port
           </Button>
         </form>
       )}

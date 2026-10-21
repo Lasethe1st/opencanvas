@@ -24,6 +24,7 @@ import { loadPanels } from './lib/panels';
 import { getState, setState, useStore } from './lib/store';
 import { initTerminals, toggleTerminal } from './lib/terminal';
 import { TerminalPanel } from './components/TerminalPanel';
+import { LimePortalProvider } from '@/lib/lime/portal';
 
 function isTyping(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -122,14 +123,15 @@ export default function App() {
 
   if (!project) {
     return (
-      <>
+      <LimePortalProvider>
         <Onboarding />
         <Toasts />
-      </>
+      </LimePortalProvider>
     );
   }
 
   return (
+    <LimePortalProvider>
     <div className="shell">
       <TopBar />
       <div className={`workspace${mode === 'visual' ? ' workspace--bleed' : ''}${focus ? ' is-focus' : ''}`} ref={workspaceRef}>
@@ -149,6 +151,7 @@ export default function App() {
       <ShortcutsDialog />
       <Toasts />
     </div>
+    </LimePortalProvider>
   );
 }
 

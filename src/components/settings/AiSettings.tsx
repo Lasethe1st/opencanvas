@@ -1,10 +1,14 @@
-import { Check, CircleAlert, KeyRound, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { AI_PROVIDERS, providerMeta, type AiModel, type AiSettings, type AiStatus } from '../../../shared/ai';
 import { api } from '../../lib/api';
 import { plural } from '../../lib/plural';
 import { setState, toast, useStore } from '../../lib/store';
-import { Button, InputShell, Notice, cx } from '../../ui/primitives.jsx';
+import { Checkmark, Icon, Password, Renew, TrashCan, WarningAlt } from '@/components/lime/icon';
+import { Button } from '@/components/lime/ui/button';
+import { Field, FieldDescription, FieldLabel } from '@/components/lime/ui/field';
+import { Input } from '@/components/lime/ui/input';
+import { List, ListItem } from '@/components/lime/ui/list';
+import { Radio, RadioGroup } from '@/components/lime/ui/radio';
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 
@@ -73,78 +77,91 @@ export function AiSettingsPanel() {
 
   const save = (patch: Partial<AiSettings>) => settings && apply(() => api.ai.setSettings({ ...settings, ...patch }));
 
-  if (!status || !settings || !meta) return <Notice>Loading…</Notice>;
+  if (!status || !settings || !meta) return <p className="text-sm text-fg-2">Loading…</p>;
 
   const encrypted = status.keyStorage === 'encrypted';
   const showKey = meta.needsKey || settings.provider === 'custom';
 
   return (
-    <div className="mcp-panel ai-settings">
-      <div className="git-section">Provider</div>
-      <div className="ai-providers" role="radiogroup" aria-label="Provider">
-        {AI_PROVIDERS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            role="radio"
-            aria-checked={settings.provider === p.id}
-            className={cx('ai-provider', settings.provider === p.id && 'is-active')}
-            onClick={() => settings.provider !== p.id && void save({ provider: p.id, baseUrl: p.defaultBaseUrl, model: '' })}
-          >
-            <span className="ai-provider__name">{p.label}</span>
-            <span className="ai-provider__hint">{p.local ? 'Runs on this computer' : p.needsKey ? 'Needs an API key' : 'Your own server'}</span>
-          </button>
-        ))}
-      </div>
-      {meta.local && (
-        <p className="git-note">
-          Start {meta.label} and download a model first. Pick a model that supports tool calling (for example Qwen or Llama 3.1 and later); small models may struggle with bigger changes.
-        </p>
-      )}
+    <div className="flex flex-col gap-8">
+      <section className="flex flex-col gap-3">
+        <h3 className="text-lg font-semibold text-fg">Provider</h3>
+        <RadioGroup aria-label="Provider" value={settings.provider} onValueChange={(id) => {
+          const p = AI_PROVIDERS.find((x) => x.id === id);
+          if (p && settings.provider !== p.id) void save({ provider: p.id, baseUrl: p.defaultBaseUrl, model: '' });
+        }} className="gap-2">
+          {AI_PROVIDERS.map((p) => (
+            <label
+              key={p.id}
+              className="flex cursor-pointer items-start gap-3 rounded-panel border border-line bg-surface p-3 has-data-checked:border-accent-line has-data-checked:bg-accent-wash"
+            >
+              <Radio value={p.id} className="mt-0.5" />
+              <span className="grid min-w-0 gap-0.5">
+                <span className="text-sm font-medium text-fg">{p.label}</span>
+                <span className="text-sm text-fg-2">{p.local ? 'Runs on this computer' : p.needsKey ? 'Needs an API key' : 'Your own server'}</span>
+              </span>
+            </label>
+          ))}
+        </RadioGroup>
+        {meta.local && (
+          <p className="text-sm text-fg-2">
+            Start {meta.label} and download a model first. Pick a model that supports tool calling (for example Qwen or Llama 3.1 and later); small models may struggle with bigger changes.
+          </p>
+        )}
+      </section>
 
-      <div className="git-section">Server</div>
       <form
-        className="ai-row"
+        className="flex max-w-md flex-col gap-3"
         onSubmit={(e) => {
           e.preventDefault();
           if (baseUrl.trim() !== settings.baseUrl) void save({ baseUrl: baseUrl.trim() });
         }}
       >
-        <InputShell>
-          <input aria-label="Server URL" placeholder={meta.defaultBaseUrl || 'https://api.example.com/v1'} value={baseUrl} spellCheck={false} onChange={(e) => setBaseUrl(e.target.value)} />
-        </InputShell>
-        <Button size="sm" type="submit" disabled={baseUrl.trim() === settings.baseUrl}>
-          Apply
-        </Button>
-        {meta.defaultBaseUrl && settings.baseUrl !== meta.defaultBaseUrl && (
-          <Button size="sm" variant="ghost" onClick={() => void save({ baseUrl: meta.defaultBaseUrl })}>
-            Reset
+        <h3 className="text-lg font-semibold text-fg">Server</h3>
+        <Field name="baseUrl">
+          <FieldLabel>Server URL</FieldLabel>
+          <Input placeholder={meta.defaultBaseUrl || 'https://api.example.com/v1'} value={baseUrl} spellCheck={false} onChange={(e) => setBaseUrl(e.target.value)} />
+        </Field>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" variant="secondary" disabled={baseUrl.trim() === settings.baseUrl}>
+            Apply URL
           </Button>
-        )}
+          {meta.defaultBaseUrl && settings.baseUrl !== meta.defaultBaseUrl && (
+            <Button type="button" variant="ghost" onClick={() => void save({ baseUrl: meta.defaultBaseUrl })}>
+              Reset URL
+            </Button>
+          )}
+        </div>
       </form>
 
       {showKey && (
-        <>
-          <div className="git-section">API key{!meta.needsKey && ' (optional)'}</div>
+        <section className="flex flex-col gap-3">
+          <h3 className="text-lg font-semibold text-fg">API key{!meta.needsKey && ' (optional)'}</h3>
           {!encrypted ? (
-            <Notice>
+            <p className="text-sm text-fg-2" role="status">
               This computer has no secure storage for keys, so OpenCanvas won’t save one. On Linux, install and unlock a keyring such as GNOME Keyring or KWallet. Local models with Ollama or LM Studio work without a key.
-            </Notice>
+            </p>
           ) : status.hasKey && !replacing ? (
-            <div className="git-row ai-key-saved">
-              <KeyRound size={13} />
-              <span className="git-row__main">Key saved, encrypted on this computer</span>
-              <button type="button" className="git-link" onClick={() => setReplacing(true)}>
-                Replace
-              </button>
-              <button type="button" className="git-link" onClick={() => void apply(() => api.ai.clearKey())}>
-                <Trash2 size={11} aria-hidden />
-                Remove
-              </button>
+            <div className="flex flex-col gap-2">
+              <List variant="grouped">
+                <ListItem
+                  leading={<Icon icon={Password} size={20} />}
+                  title="Key saved"
+                  description="Encrypted on this computer"
+                />
+              </List>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setReplacing(true)}>
+                  Replace key
+                </Button>
+                <Button type="button" variant="ghost" size="sm" icon={<Icon icon={TrashCan} size={16} />} onClick={() => void apply(() => api.ai.clearKey())}>
+                  Remove key
+                </Button>
+              </div>
             </div>
           ) : (
             <form
-              className="ai-row"
+              className="flex max-w-md flex-col gap-3"
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!key.trim()) return;
@@ -154,42 +171,55 @@ export function AiSettingsPanel() {
                 }
               }}
             >
-              <InputShell>
-                <input type="password" aria-label="API key" placeholder={settings.provider === 'anthropic' ? 'sk-ant-…' : 'sk-…'} value={key} autoComplete="off" spellCheck={false} onChange={(e) => setKey(e.target.value)} />
-              </InputShell>
-              <Button size="sm" variant="primary" type="submit" disabled={!key.trim()}>
-                Save key
-              </Button>
-              {replacing && (
-                <Button size="sm" variant="ghost" onClick={() => (setReplacing(false), setKey(''))}>
-                  Cancel
+              <Field name="apiKey">
+                <FieldLabel>API key</FieldLabel>
+                <Input
+                  type="password"
+                  placeholder={settings.provider === 'anthropic' ? 'sk-ant-…' : 'sk-…'}
+                  value={key}
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={(e) => setKey(e.target.value)}
+                />
+              </Field>
+              <div className="flex flex-wrap gap-2">
+                <Button type="submit" disabled={!key.trim()}>
+                  Save key
                 </Button>
-              )}
+                {replacing && (
+                  <Button type="button" variant="ghost" onClick={() => (setReplacing(false), setKey(''))}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
             </form>
           )}
-          {encrypted && <p className="git-note">The key is encrypted with your operating system’s keychain and only used by OpenCanvas to talk to {meta.label}. It can’t be shown again; replace it to change it.</p>}
-        </>
+          {encrypted && (
+            <p className="text-sm text-fg-2">
+              The key is encrypted with your operating system’s keychain and only used by OpenCanvas to talk to {meta.label}. It can’t be shown again; replace it to change it.
+            </p>
+          )}
+        </section>
       )}
 
-      <div className="git-section">
-        Model
-        {canList && (
-          <button type="button" className="git-link ai-refresh" onClick={() => void loadModels()} disabled={loadingModels} title="Reload the model list">
-            {loadingModels ? <Loader2 size={11} className="ai-spin" aria-hidden /> : <RefreshCw size={11} aria-hidden />}
-            Reload
-          </button>
-        )}
-      </div>
       <form
-        className="ai-row"
+        className="flex max-w-md flex-col gap-3"
         onSubmit={(e) => {
           e.preventDefault();
           if (model.trim() !== settings.model) void save({ model: model.trim() });
         }}
       >
-        <InputShell>
-          <input
-            aria-label="Model"
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-fg">Model</h3>
+          {canList && (
+            <Button type="button" variant="ghost" size="sm" icon={<Icon icon={Renew} size={16} />} pending={loadingModels || undefined} onClick={() => void loadModels()}>
+              Reload
+            </Button>
+          )}
+        </div>
+        <Field name="model">
+          <FieldLabel>Model name</FieldLabel>
+          <Input
             list="oc-ai-models"
             placeholder={loadingModels ? 'Loading models…' : 'Choose or type a model name'}
             value={model}
@@ -197,11 +227,19 @@ export function AiSettingsPanel() {
             onChange={(e) => {
               const next = e.target.value;
               setModel(next);
-              // Picking from the list saves straight away; typed names save with Apply.
               if (models?.some((m) => m.id === next) && next !== settings.model) void save({ model: next });
             }}
           />
-        </InputShell>
+          <FieldDescription>
+            {modelsError
+              ? `${modelsError} You can still type a model name.`
+              : models
+                ? models.length
+                  ? `${plural(models.length, 'model', 'models')} available.`
+                  : 'The server didn’t list any models. Type a model name instead.'
+                : 'Pick from the list or type a name.'}
+          </FieldDescription>
+        </Field>
         <datalist id="oc-ai-models">
           {models?.map((m) => (
             <option key={m.id} value={m.id}>
@@ -209,51 +247,47 @@ export function AiSettingsPanel() {
             </option>
           ))}
         </datalist>
-        <Button size="sm" type="submit" disabled={model.trim() === settings.model}>
-          Apply
+        <Button type="submit" variant="secondary" disabled={model.trim() === settings.model}>
+          Apply model
         </Button>
       </form>
-      {modelsError ? (
-        <p className="git-note git-note--warn">{modelsError} You can still type a model name.</p>
-      ) : models ? (
-        <p className="git-note">{models.length ? `${plural(models.length, 'model', 'models')} available.` : 'The server didn’t list any models. Type a model name instead.'}</p>
-      ) : null}
 
-      <div className="git-section">Check</div>
-      <div className="ai-row">
-        <Button
-          size="sm"
-          disabled={!status.ready || test.state === 'running'}
-          icon={test.state === 'running' ? <Loader2 size={13} className="ai-spin" /> : undefined}
-          onClick={async () => {
-            setTest({ state: 'running' });
-            try {
-              setTest({ state: 'ok', reply: await api.ai.test() });
-            } catch (err) {
-              setTest({ state: 'failed', message: errorText(err) });
-            }
-          }}
-        >
-          Test connection
-        </Button>
-        <span className={cx('ai-test', test.state === 'ok' && 'is-ok', test.state === 'failed' && 'is-failed')} role="status">
-          {test.state === 'ok' && (
-            <>
-              <Check size={13} aria-hidden /> Connected. The model replied “{test.reply.slice(0, 60)}”.
-            </>
-          )}
-          {test.state === 'failed' && (
-            <>
-              <CircleAlert size={13} aria-hidden /> {test.message}
-            </>
-          )}
-        </span>
-      </div>
-      {status.ready ? (
-        <p className="git-note">Ready. Open Ask AI in the dock to use it. Requests to cloud providers are billed to your account with them.</p>
-      ) : (
-        <p className="git-note git-note--warn">{status.reason}</p>
-      )}
+      <section className="flex flex-col gap-3">
+        <h3 className="text-lg font-semibold text-fg">Check</h3>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            pending={test.state === 'running' || undefined}
+            disabled={!status.ready || test.state === 'running'}
+            onClick={async () => {
+              setTest({ state: 'running' });
+              try {
+                setTest({ state: 'ok', reply: await api.ai.test() });
+              } catch (err) {
+                setTest({ state: 'failed', message: errorText(err) });
+              }
+            }}
+          >
+            Test connection
+          </Button>
+          <span className="text-sm text-fg-2" role="status">
+            {test.state === 'ok' && (
+              <span className="inline-flex items-center gap-1.5 text-success-text">
+                <Icon icon={Checkmark} size={16} /> Connected. The model replied “{test.reply.slice(0, 60)}”.
+              </span>
+            )}
+            {test.state === 'failed' && (
+              <span className="inline-flex items-center gap-1.5 text-danger-text">
+                <Icon icon={WarningAlt} size={16} /> {test.message}
+              </span>
+            )}
+          </span>
+        </div>
+        {status.ready ? (
+          <p className="text-sm text-fg-2">Ready. Open Ask AI in the dock to use it. Requests to cloud providers are billed to your account with them.</p>
+        ) : (
+          <p className="text-sm text-warn-text">{status.reason}</p>
+        )}
+      </section>
     </div>
   );
 }

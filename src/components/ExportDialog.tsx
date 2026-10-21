@@ -1,18 +1,26 @@
-import { CheckCircle2, CircleAlert, FileArchive, FolderOpen, Hammer, Info, TriangleAlert } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { FRAMEWORK_LABELS, type BuildCheckResult, type ExportIssue, type ExportReport, type ExportResult } from '../../shared/types';
 import { errorMessage, revealInCode } from '../lib/actions';
 import { api } from '../lib/api';
 import { plural } from '../lib/plural';
 import { hasUnsaved, setState, toast, useStore } from '../lib/store';
-import { Dialog, ExportOption } from '../ui/Overlays.jsx';
-import { Button, Notice, Spinner } from '../ui/primitives.jsx';
+import { Archive, CheckmarkFilled, ErrorFilled, FolderOpen, Icon, Information, Tools, WarningAlt } from '@/components/lime/icon';
+import { Button, Spinner } from '@/components/lime/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/lime/ui/dialog';
+import { List, ListIcon, ListItem } from '@/components/lime/ui/list';
 
 const SEVERITY_ICON = {
-  error: <CircleAlert size={14} />,
-  warning: <TriangleAlert size={14} />,
-  info: <Info size={14} />,
-};
+  error: ErrorFilled,
+  warning: WarningAlt,
+  info: Information,
+} as const;
 
 const MAX_LOG = 60_000;
 
@@ -24,18 +32,13 @@ function openIssueFile(file: string) {
 
 function IssueRow({ issue }: { issue: ExportIssue }) {
   return (
-    <li className={`export-issue export-issue--${issue.severity}`}>
-      <span className="export-issue__icon">{SEVERITY_ICON[issue.severity]}</span>
-      <div className="export-issue__body">
-        <strong>{issue.title}</strong>
-        {issue.file && (
-          <button className="source-link" onClick={() => openIssueFile(issue.file!)}>
-            {issue.file}
-          </button>
-        )}
-        <span className="muted">{issue.fix}</span>
-      </div>
-    </li>
+    <ListItem
+      leading={<ListIcon icon={SEVERITY_ICON[issue.severity]} tone={issue.severity === 'error' ? 'danger' : 'neutral'} />}
+      title={issue.title}
+      description={issue.file ? `${issue.file} · ${issue.fix}` : issue.fix}
+      onClick={issue.file ? () => openIssueFile(issue.file!) : undefined}
+      chevron={!!issue.file}
+    />
   );
 }
 
@@ -90,7 +93,6 @@ export function ExportDialog() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [log]);
 
-  if (!open || !project) return null;
   const close = () => {
     if (checking) void api.cancelBuildCheck();
     setState({ exportOpen: false });
@@ -124,93 +126,116 @@ export function ExportDialog() {
     }
   };
 
-  const frameworkLabel = project.framework === 'unknown' ? '' : `${FRAMEWORK_LABELS[project.framework]} `;
+  const frameworkLabel = project?.framework === 'unknown' ? '' : project ? `${FRAMEWORK_LABELS[project.framework]} ` : '';
 
   return (
     <Dialog
-      title="Export project"
-      data-export=""
-      onClose={close}
-      onKeyDown={(e) => {
-        if (e.key !== 'Escape') return;
-        e.stopPropagation();
-        close();
+      open={open && !!project}
+      onOpenChange={(next) => {
+        if (!next) close();
       }}
     >
-      {dirty && <Notice>The code editor has unsaved changes. They will not be included until you save.</Notice>}
-      {!result ? (
-        <>
-          <span className="muted">Download a clean copy of your project to run anywhere.</span>
-          <section className="export-report" aria-label="Export check">
-            {!report ? (
-              <span className="export-report__loading">
-                <Spinner /> Checking what the export will contain…
-              </span>
-            ) : (
-              <>
-                <span className="export-report__summary">{reportSummary(report)}</span>
-                {report.issues.length > 0 && (
-                  <ul className="export-issues" tabIndex={0} aria-label="Issues found">
-                    {report.issues.map((issue, i) => (
-                      <IssueRow key={i} issue={issue} />
-                    ))}
-                  </ul>
-                )}
-              </>
-            )}
-            <div className="export-check">
-              {checking ? (
-                <Button size="sm" onClick={() => void api.cancelBuildCheck()}>
-                  Cancel check
-                </Button>
-              ) : (
-                <Button size="sm" icon={<Hammer size={13} />} onClick={() => void checkBuild()}>
-                  Check it builds
-                </Button>
-              )}
-              {checking ? (
-                <span className="muted export-check__running">
-                  <Spinner /> Installing and building a clean copy…
+      <DialogContent size="lg">
+        <DialogHeader>
+          <DialogTitle>Export project</DialogTitle>
+          <DialogDescription>Download a clean copy of your project to run anywhere.</DialogDescription>
+        </DialogHeader>
+
+        {dirty && (
+          <p className="rounded-panel bg-warn-tint px-3 py-2 text-sm text-warn-text" role="status">
+            The code editor has unsaved changes. They will not be included until you save.
+          </p>
+        )}
+
+        {!result ? (
+          <div className="flex flex-col gap-4">
+            <section className="flex flex-col gap-3" aria-label="Export check">
+              {!report ? (
+                <span className="inline-flex items-center gap-2 text-sm text-fg-2">
+                  <Spinner /> Checking what the export will contain…
                 </span>
               ) : (
-                <span className="muted">Installs and builds a clean copy in a temporary folder. Takes a minute or two.</span>
+                <>
+                  <p className="text-sm text-fg-2">{reportSummary(report)}</p>
+                  {report.issues.length > 0 && (
+                    <List variant="plain" aria-label="Issues found">
+                      {report.issues.map((issue, i) => (
+                        <IssueRow key={i} issue={issue} />
+                      ))}
+                    </List>
+                  )}
+                </>
               )}
-            </div>
-            {check && (
-              <Notice tone={check.state === 'passed' ? 'info' : undefined} icon={check.state === 'passed' ? <CheckCircle2 size={15} /> : <TriangleAlert size={15} />}>
-                <strong>{CHECK_TEXT[check.state]}.</strong> {check.message}
-              </Notice>
+              <div className="flex flex-wrap items-center gap-3">
+                {checking ? (
+                  <Button size="sm" variant="secondary" onClick={() => void api.cancelBuildCheck()}>
+                    Cancel check
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="secondary" icon={<Icon icon={Tools} size={16} />} onClick={() => void checkBuild()}>
+                    Check it builds
+                  </Button>
+                )}
+                <span className="text-sm text-fg-2">
+                  {checking ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Spinner /> Installing and building a clean copy…
+                    </span>
+                  ) : (
+                    'Installs and builds a clean copy in a temporary folder. Takes a minute or two.'
+                  )}
+                </span>
+              </div>
+              {check && (
+                <p
+                  className={
+                    check.state === 'passed'
+                      ? 'rounded-panel bg-success-tint px-3 py-2 text-sm text-success-text'
+                      : 'rounded-panel bg-warn-tint px-3 py-2 text-sm text-warn-text'
+                  }
+                  role="status"
+                >
+                  <strong>{CHECK_TEXT[check.state]}.</strong> {check.message}
+                </p>
+              )}
+              {(checking || log) && (
+                <pre className="max-h-40 overflow-auto rounded-panel bg-surface p-3 font-mono text-xs text-fg" ref={logRef} aria-label="Build check log">
+                  {log || 'Starting…'}
+                </pre>
+              )}
+            </section>
+
+            <DialogFooter className="sm:flex-col sm:items-stretch">
+              <Button icon={<Icon icon={Archive} size={16} />} pending={working || undefined} disabled={working} onClick={() => void exportZip()}>
+                Download project ZIP
+              </Button>
+              <Button variant="secondary" icon={<Icon icon={FolderOpen} size={16} />} onClick={() => void api.revealProject()}>
+                Open project folder
+              </Button>
+              <p className="text-sm text-fg-2">Source, config and assets. Excludes node_modules, build output and local env files. The project already lives on disk as a normal {frameworkLabel}project.</p>
+            </DialogFooter>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <p className="rounded-panel bg-success-tint px-3 py-2 text-sm text-success-text" role="status">
+              <Icon icon={CheckmarkFilled} size={16} className="me-1 inline align-text-bottom" />
+              Exported {result.fileCount} files to{' '}
+              <Button variant="link" size="sm" onClick={() => result.path && void api.revealFile(result.path)}>
+                {result.path}
+              </Button>
+            </p>
+            <p className="text-sm text-fg">Unzip it anywhere and run:</p>
+            <pre className="overflow-auto rounded-panel bg-surface p-3 font-mono text-sm text-fg">{result.instructions?.join('\n')}</pre>
+            {result.envExampleAdded && (
+              <p className="text-sm text-fg-2">The ZIP includes a .env.example with the variable names your code reads. It has no values; fill them in after copying it to .env.</p>
             )}
-            {(checking || log) && (
-              <pre className="code-block export-check__log" ref={logRef} aria-label="Build check log">
-                {log || 'Starting…'}
-              </pre>
-            )}
-          </section>
-          <ExportOption icon={<FileArchive size={17} />} title={working ? 'Packaging…' : 'Download project ZIP'} onClick={() => void exportZip()} disabled={working}>
-            <span>Source, config and assets. Excludes node_modules, build output and local env files.</span>
-          </ExportOption>
-          <ExportOption icon={<FolderOpen size={17} />} title="Open project folder" onClick={() => void api.revealProject()}>
-            <span>The project already lives on disk as a normal {frameworkLabel}project.</span>
-          </ExportOption>
-        </>
-      ) : (
-        <>
-          <Notice tone="info" icon={<CheckCircle2 size={15} />}>
-            Exported {result.fileCount} files to{' '}
-            <button className="source-link" onClick={() => result.path && void api.revealFile(result.path)}>
-              {result.path}
-            </button>
-          </Notice>
-          <span>Unzip it anywhere and run:</span>
-          <pre className="code-block">{result.instructions?.join('\n')}</pre>
-          {result.envExampleAdded && (
-            <span className="muted">The ZIP includes a .env.example with the variable names your code reads. It has no values; fill them in after copying it to .env.</span>
-          )}
-          <span className="muted">The exported project has no dependency on OpenCanvas.</span>
-          <Button onClick={() => setResult(null)}>Export again</Button>
-        </>
-      )}
+            <p className="text-sm text-fg-2">The exported project has no dependency on OpenCanvas.</p>
+            <DialogFooter>
+              <Button onClick={() => setResult(null)}>Export again</Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
     </Dialog>
   );
 }

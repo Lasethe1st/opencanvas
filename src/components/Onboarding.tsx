@@ -1,4 +1,3 @@
-import { History, Inbox, LucideProvider, MessageCircle, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { RecentProject, TemplateMeta } from '../../shared/types';
 import { api } from '../lib/api';
@@ -9,7 +8,8 @@ import { NewProjectFlow, RecentChatsPanel, RecentPanel, SearchPanel, type NewVie
 import { HomePrompt } from './home/HomePrompt';
 import { HomeSidebar, type SidebarItem } from './home/HomeSidebar';
 import { SearchOverlay } from './home/SearchOverlay';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { Application, Chat, Plus, RecentlyViewed } from '@/components/lime/icon';
+import { TooltipProvider } from '@/components/lime/ui/tooltip';
 
 type PanelId = 'new' | 'chats' | 'projects';
 
@@ -70,7 +70,7 @@ export function Onboarding() {
       {
         id: 'chat',
         label: 'New chat',
-        icon: MessageCircle,
+        icon: Chat,
         onSelect: () => {
           setActive(null);
           setPrompt('');
@@ -96,8 +96,8 @@ export function Onboarding() {
           />
         ),
       },
-      { id: 'chats', label: 'Recent chats', icon: History, content: <RecentChatsPanel chats={chats} onPick={pickChat} /> },
-      { id: 'projects', label: 'All projects', icon: Inbox, content: <RecentPanel recent={recent} /> },
+      { id: 'chats', label: 'Recent chats', icon: RecentlyViewed, content: <RecentChatsPanel chats={chats} onPick={pickChat} /> },
+      { id: 'projects', label: 'All projects', icon: Application, content: <RecentPanel recent={recent} /> },
     ],
     [newView, repoDraft, location, busy, templates, chats, recent, pickChat],
   );
@@ -115,42 +115,38 @@ export function Onboarding() {
     );
 
   return (
-    <LucideProvider strokeWidth={1.5} absoluteStrokeWidth>
-      <TooltipProvider>
-        <div data-tw="" className="flex h-full bg-background text-foreground">
-          <HomeSidebar label="Home" items={items} active={active} onActiveChange={onActiveChange} busy={busy} onSearch={() => setSearchOpen(true)} />
-          <main className="flex min-w-0 flex-1 flex-col items-center overflow-y-auto px-8 pb-16 pt-[24vh]">
-            <div className="flex w-full max-w-[680px] flex-col items-center gap-8">
-              <h1 className="font-geist text-balance text-center text-2xl font-medium leading-[1.1] tracking-[-0.02em]">{greeting()}</h1>
-              <HomePrompt
-                value={prompt}
-                onChange={setPrompt}
-                onSubmit={() => {
-                  setChats((current) => addHomeChat(current, prompt));
-                  setSetupFrom('prompt');
-                  setSetup(true);
-                }}
-                disabled={busy}
-              />
-            </div>
-          </main>
-        </div>
-        {searchOpen && (
-          <SearchOverlay onClose={() => setSearchOpen(false)}>
-            <SearchPanel
-              recent={recent}
-              chats={chats}
-              onDone={() => setSearchOpen(false)}
-              onChat={pickChat}
-              onGithub={(repo) => {
-                setRepoDraft(repo);
-                setNewView('github');
-                setActive('new');
+    <TooltipProvider>
+      <div className="flex h-full min-h-dvh bg-page text-fg">
+        <HomeSidebar label="Home" items={items} active={active} onActiveChange={onActiveChange} busy={busy} onSearch={() => setSearchOpen(true)} />
+        <main className="flex min-w-0 flex-1 flex-col items-center overflow-y-auto px-8 pb-16 pt-[24vh]">
+            <div className="flex w-full max-w-2xl flex-col items-center gap-8">
+            <h1 className="text-balance text-center text-xl font-semibold leading-tight tracking-tight sm:text-2xl">{greeting()}</h1>
+            <HomePrompt
+              value={prompt}
+              onChange={setPrompt}
+              onSubmit={() => {
+                setChats((current) => addHomeChat(current, prompt));
+                setSetupFrom('prompt');
+                setSetup(true);
               }}
+              disabled={busy}
             />
-          </SearchOverlay>
-        )}
-      </TooltipProvider>
-    </LucideProvider>
+          </div>
+        </main>
+      </div>
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)}>
+        <SearchPanel
+          recent={recent}
+          chats={chats}
+          onDone={() => setSearchOpen(false)}
+          onChat={pickChat}
+          onGithub={(repo) => {
+            setRepoDraft(repo);
+            setNewView('github');
+            setActive('new');
+          }}
+        />
+      </SearchOverlay>
+    </TooltipProvider>
   );
 }
