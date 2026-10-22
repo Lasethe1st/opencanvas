@@ -76,6 +76,9 @@ import { Dock } from './Dock';
 import { getState, pageOf, setState, useStore, type FrameRuntime, type Selection, type TreeNode } from '../lib/store';
 import { StateCard } from '../ui/Canvas.jsx';
 import { CanvasNav, FrameChrome, FrameRename, Guides, Minimap, SelectionBar, SizeTip, Stage, WorldFrame } from '../ui/FreeCanvas.jsx';
+import { BuildOverlay, type SubtreeBox } from './BuildOverlay';
+import { measureSubtree } from '../lib/bridge';
+import { variantLetter } from '../../shared/variants';
 import { Button, IconButton, Menu, MenuItem, Notice } from '../ui/primitives.jsx';
 
 export const SCOPE_LABEL: Record<Breakpoint, string> = { base: 'Base', tablet: 'Tablet', mobile: 'Mobile' };
@@ -175,6 +178,8 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
           break;
         }
         case 'select': {
+          // Variant preview frames are read-only: show hover/selection inside the iframe only.
+          if (fid.startsWith('variant:')) return;
           // A click inside another frame makes it active; anything else it reports is stale (it just lost focus).
           const payload = msg.payload as Selection | null;
           if (!active) {
@@ -543,6 +548,10 @@ export function Canvas({ hidden }: { hidden: boolean }) {
   const activeFrameId = useStore((s) => s.activeFrameId);
   const camera = useStore((s) => s.camera);
   const runtime = useStore((s) => s.frameRuntime);
+  const variants = useStore((s) => s.variants);
+  const variantHighlightId = useStore((s) => s.variantHighlightId);
+  const build = useStore((s) => s.build);
+  const [buildBoxes, setBuildBoxes] = useState<SubtreeBox[]>([]);
   const interact = useStore((s) => s.interact);
   const tool = useStore((s) => s.tool);
   const syncScroll = useStore((s) => s.syncScroll);
@@ -561,6 +570,22 @@ export function Canvas({ hidden }: { hidden: boolean }) {
   const [fileDrag, setFileDrag] = useState(false);
 
   useBridgeMessages(stageRef);
+
+  useEffect(() => {
+    if (build.phase !== 'padding' && build.phase !== 'layout' && build.phase !== 'skeleton') {
+      setBuildBoxes([]);
+      return;
+    }
+    const frameId = build.frameId || activeFrameId;
+    if (!frameId || frameId.startsWith('variant:')) return;
+    let cancelled = false;
+    void measureSubtree(frameId, build.elementId).then((result) => {
+      if (!cancelled) setBuildBoxes(result.boxes as SubtreeBox[]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [build.phase, build.elementId, build.frameId, build.callId, activeFrameId]);
 
   // Files dragged from the OS: frames forward 'filedrag' because their documents swallow the drag events,
   // then an overlay above the frames receives the drop.
@@ -796,30 +821,80 @@ export function Canvas({ hidden }: { hidden: boolean }) {
       notice={(inlineNotice || (running && project.missingDependencies.length > 0)) && notices}
       overlay={(!running || isEmpty) && !interact ? running ? <EmptyPageCard /> : <StatusCard /> : undefined}
       world={
-        running &&
-        frames.map((f) => {
-          const r = rectOf(f);
-          const eff = effective(f);
-          const page = pageOf(f, { projectConfig });
-          const src = pageUrl(status.url!, page, f.routeValues);
-          return (
-            <WorldFrame key={f.id} x={r.x} y={r.y} width={r.width} height={r.height} active={f.id === activeFrame?.id} shadow={showShadow}>
-              {src === null ? (
-                <RouteValuesForm frame={f} route={page!.path} />
-              ) : (
-              <iframe
-                ref={(el) => registerFrame(f.id, el)}
-                key={src}
-                src={src}
-                title={`Preview: ${f.name}`}
-                data-frame-id={f.id}
-                style={{ width: eff.width, height: r.height }}
-                sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
-              />
-              )}
-            </WorldFrame>
-          );
-        })
+        running && (
+          <>
+            {frames.map((f) => {
+              const r = rectOf(f);
+              const eff = effective(f);
+              const page = pageOf(f, { projectConfig });
+              const src = pageUrl(status.url!, page, f.routeValues);
+              return (
+                <WorldFrame key={f.id} x={r.x} y={r.y} width={r.width} height={r.height} active={f.id === activeFrame?.id} shadow={showShadow}>
+                  {src === null ? (
+                    <RouteValuesForm frame={f} route={page!.path} />
+                  ) : (
+                    <iframe
+                      ref={(el) => registerFrame(f.id, el)}
+                      key={src}
+                      src={src}
+                      title={`Preview: ${f.name}`}
+                      data-frame-id={f.id}
+                      style={{ width: eff.width, height: r.height }}
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+                    />
+                  )}
+                </WorldFrame>
+              );
+            })}
+            {variants
+              .filter((v) => v.status === 'ready')
+              .map((v, i) => {
+                const sourceFrame =
+                  frames.find((f) => {
+                    const page = pageOf(f, { projectConfig });
+                    const file = page?.file;
+                    return !!file && (file === v.source.file || v.source.elementId.startsWith(file));
+                  }) || frames[0];
+                if (!sourceFrame || !status.url) return null;
+                const page = pageOf(sourceFrame, { projectConfig });
+                const base = rectOf(sourceFrame);
+                const gap = 48;
+                const y = base.y + base.height + gap + i * (base.height + gap);
+                const src = pageUrl(status.url, page, sourceFrame.routeValues, v.id);
+                if (!src) return null;
+                const fid = `variant:${v.id}`;
+                const highlighted = variantHighlightId === v.id;
+                return (
+                  <div key={fid} className="variant-frame-wrap" style={{ position: 'absolute', left: base.x, top: y - 22, width: base.width, height: base.height + 22, pointerEvents: 'none' }}>
+                    <div className={`variant-frame-label${highlighted ? ' is-active' : ''}`} style={{ position: 'relative', left: 0, top: 0 }}>
+                      Variant {variantLetter(i)}: {v.label || 'Untitled'}
+                    </div>
+                    <div style={{ pointerEvents: 'auto', position: 'relative' }}>
+                      <WorldFrame x={0} y={0} width={base.width} height={base.height} active={highlighted} shadow={showShadow}>
+                        <iframe
+                          ref={(el) => registerFrame(fid, el)}
+                          key={src}
+                          src={src}
+                          title={`Variant ${variantLetter(i)}: ${v.label}`}
+                          data-frame-id={fid}
+                          data-variant={v.id}
+                          style={{ width: sourceFrame.width, height: base.height }}
+                          sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+                        />
+                      </WorldFrame>
+                    </div>
+                  </div>
+                );
+              })}
+            {build.phase !== 'idle' &&
+              (() => {
+                const target = frames.find((f) => f.id === (build.frameId || activeFrameId)) || activeFrame;
+                if (!target) return null;
+                const r = rectOf(target);
+                return <BuildOverlay x={r.x} y={r.y} width={r.width} height={r.height} build={build} boxes={buildBoxes} />;
+              })()}
+          </>
+        )
       }
       chrome={
         <>

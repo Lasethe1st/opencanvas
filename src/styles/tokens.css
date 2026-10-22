@@ -1,18 +1,18 @@
-/* OpenCanvas v1 — design tokens. Monochrome UI; colour is reserved for selection and status.
+/* OpenCanvas v1 — design tokens. Fully monochrome UI (no hue accents).
    Light is the default; dark applies to any subtree with data-theme='dark'. */
 :root,
 [data-theme='light'] {
   --font: 'Inter Variable', 'Inter', 'Segoe UI Variable Text', system-ui, -apple-system, sans-serif;
   --mono: 'Geist Mono Variable', 'Geist Mono', 'Cascadia Code', ui-monospace, Consolas, monospace;
 
-  --bg: #f6f6f7;
+  --bg: #f0f0f1;
   --surface: #ffffff;
-  --surface-2: #fafafa;
-  --surface-3: #f2f2f3;
-  --canvas: #f0f0f1;
-  --canvas-dot: #c9c9cf;
-  --line: #e7e7ea;
-  --line-strong: #d6d6db;
+  --surface-2: #f5f5f6;
+  --surface-3: #ebebec;
+  --canvas: #e8e8ea;
+  --canvas-dot: #c4c4ca;
+  --line: #e0e0e3;
+  --line-strong: #ceced3;
   --fg: #111113;
   --fg-2: #52525b;
   --fg-3: #6b6b74;
@@ -23,25 +23,32 @@
   --accent-fg: #ffffff;
   --accent-soft: rgba(17, 17, 19, 0.06);
   --accent-line: rgba(17, 17, 19, 0.18);
-  --select: #3b82f6;
-  --select-soft: rgba(59, 130, 246, 0.12);
-  --guide: #f43f5e;
-  --danger: #c8262c;
-  --danger-soft: #fdecec;
-  --success: #1f9d55;
-  --warning: #d97706;
-  --warning-soft: #fff6e6;
-  --warning-fg: #8a4b06;
+  --select: #18181b;
+  --select-soft: rgba(17, 17, 19, 0.1);
+  --guide: #52525b;
+  --danger: #18181b;
+  --danger-soft: rgba(17, 17, 19, 0.08);
+  --success: #3f3f46;
+  --warning: #52525b;
+  --warning-soft: rgba(17, 17, 19, 0.06);
+  --warning-fg: #3f3f46;
 
   --hover: rgba(17, 17, 20, 0.045);
   --press: rgba(17, 17, 20, 0.08);
   --inverse: #18181c;
   --inverse-fg: #f6f6f7;
   --backdrop: rgba(17, 17, 20, 0.28);
-  --code-bg: #fbfbfc;
+  --code-bg: #f7f7f8;
 
-  --box-margin: #fdf3e3;
-  --box-padding: #e8f5ec;
+  --box-margin: #f0f0f1;
+  --box-padding: #e8e8ea;
+
+  /* Build overlay stages — gray steps only (no hue). */
+  --oc-stage-grid: #3f3f46;
+  --oc-stage-padding: #52525b;
+  --oc-stage-layout: #71717a;
+  --oc-stage-skeleton: #a1a1aa;
+  --oc-stage-finished: #18181b;
 
   --shadow-sm: 0 1px 2px rgba(17, 17, 20, 0.06);
   --shadow-md: 0 1px 2px rgba(17, 17, 20, 0.05), 0 6px 16px rgba(17, 17, 20, 0.07);
@@ -49,14 +56,20 @@
   --frame-outline: rgba(17, 17, 20, 0.1);
   --frame-shadow: 0 1px 2px rgba(17, 17, 20, 0.04), 0 6px 24px rgba(17, 17, 20, 0.06);
 
+  --r-xsm: 3px;
   --r-sm: 4px;
   --r: 6px;
   --r-lg: 8px;
   --r-xl: 10px;
+  --pill: 70rem;
 
   --topbar-h: 44px;
   --control-h: 28px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* User chat bubble — overridden by [data-chat-bubble] presets. */
+  --chat-user-bg: var(--fg);
+  --chat-user-fg: var(--bg);
 
   color-scheme: light;
   font-family: var(--font);
@@ -69,43 +82,49 @@
 }
 
 [data-theme='dark'] {
-  --bg: #181818;
-  --surface: #202020;
-  --surface-2: #252525;
-  --surface-3: #2b2b2b;
-  --canvas: #141414;
-  --canvas-dot: #2f2f2f;
-  --line: #2e2e2e;
-  --line-strong: #3b3b3b;
-  --fg: #f2f2f2;
-  --fg-2: #b4b4b4;
-  --fg-3: #9a9a9a;
-  --fg-4: #5c5c5c;
+  --bg: #0a0a0a;
+  --surface: #121212;
+  --surface-2: #161616;
+  --surface-3: #1c1c1c;
+  --canvas: #0c0c0c;
+  --canvas-dot: #222222;
+  --line: #222222;
+  --line-strong: #2e2e2e;
+  --fg: #ececec;
+  --fg-2: #a8a8a8;
+  --fg-3: #8a8a8a;
+  --fg-4: #525252;
 
-  --accent: #f2f2f3;
+  --accent: #ececec;
   --accent-hover: #ffffff;
-  --accent-fg: #111113;
-  --accent-soft: rgba(255, 255, 255, 0.08);
-  --accent-line: rgba(255, 255, 255, 0.22);
-  --select: #4f8ff7;
-  --select-soft: rgba(79, 143, 247, 0.16);
-  --guide: #fb7185;
-  --danger: #f0565c;
-  --danger-soft: rgba(240, 86, 92, 0.12);
-  --success: #3fbf75;
-  --warning: #f2a33a;
-  --warning-soft: rgba(242, 163, 58, 0.1);
-  --warning-fg: #f6c27a;
+  --accent-fg: #0a0a0a;
+  --accent-soft: rgba(255, 255, 255, 0.07);
+  --accent-line: rgba(255, 255, 255, 0.18);
+  --select: #ececec;
+  --select-soft: rgba(255, 255, 255, 0.12);
+  --guide: #a8a8a8;
+  --danger: #ececec;
+  --danger-soft: rgba(255, 255, 255, 0.08);
+  --success: #c4c4c4;
+  --warning: #a8a8a8;
+  --warning-soft: rgba(255, 255, 255, 0.06);
+  --warning-fg: #d4d4d4;
 
-  --hover: rgba(255, 255, 255, 0.05);
-  --press: rgba(255, 255, 255, 0.09);
-  --inverse: #f2f2f4;
-  --inverse-fg: #111114;
-  --backdrop: rgba(0, 0, 0, 0.55);
-  --code-bg: #1c1c1c;
+  --hover: rgba(255, 255, 255, 0.04);
+  --press: rgba(255, 255, 255, 0.08);
+  --inverse: #ececec;
+  --inverse-fg: #0a0a0a;
+  --backdrop: rgba(0, 0, 0, 0.65);
+  --code-bg: #101010;
 
-  --box-margin: rgba(242, 163, 58, 0.08);
-  --box-padding: rgba(63, 191, 117, 0.08);
+  --box-margin: rgba(255, 255, 255, 0.04);
+  --box-padding: rgba(255, 255, 255, 0.06);
+
+  --oc-stage-grid: #a8a8a8;
+  --oc-stage-padding: #8a8a8a;
+  --oc-stage-layout: #c4c4c4;
+  --oc-stage-skeleton: #6e6e6e;
+  --oc-stage-finished: #ececec;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.35);
@@ -114,6 +133,36 @@
   --frame-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 28px rgba(0, 0, 0, 0.4);
 
   color-scheme: dark;
+}
+
+:root[data-chat-bubble='sky'],
+[data-theme][data-chat-bubble='sky'] {
+  --chat-user-bg: #7eb8d4;
+  --chat-user-fg: #0c1a22;
+}
+
+:root[data-chat-bubble='seafoam'],
+[data-theme][data-chat-bubble='seafoam'] {
+  --chat-user-bg: #6bb3a0;
+  --chat-user-fg: #0d1f1a;
+}
+
+:root[data-chat-bubble='sand'],
+[data-theme][data-chat-bubble='sand'] {
+  --chat-user-bg: #d4b896;
+  --chat-user-fg: #1f1810;
+}
+
+:root[data-chat-bubble='coral'],
+[data-theme][data-chat-bubble='coral'] {
+  --chat-user-bg: #e07a5f;
+  --chat-user-fg: #1f100c;
+}
+
+:root[data-chat-bubble='slate'],
+[data-theme][data-chat-bubble='slate'] {
+  --chat-user-bg: #8b95a8;
+  --chat-user-fg: #12141a;
 }
 
 *,

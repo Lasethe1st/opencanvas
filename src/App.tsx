@@ -56,9 +56,12 @@ export default function App() {
     void api.mcp.status().then((status) => setState({ mcp: status }));
     const offAi = api.ai.onEvent(handleAiEvent);
     void refreshAiStatus();
+    const offVariants = api.variants.onChanged((variants) => setState({ variants }));
+    void api.variants.list().then((variants) => setState({ variants })).catch(() => undefined);
     const offTerminals = initTerminals();
     return () => {
       offAi();
+      offVariants();
       offTerminals();
       offStatus();
       offLog();
@@ -124,6 +127,8 @@ export default function App() {
     return (
       <>
         <Onboarding />
+        <SettingsPage />
+        <ShortcutsDialog />
         <Toasts />
       </>
     );

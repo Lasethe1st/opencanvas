@@ -25,14 +25,14 @@ export function SearchOverlay({ onClose, children }: { onClose: () => void; chil
   };
 
   return createPortal(
-    <div data-tw="" className="fixed inset-0 grid place-items-start justify-items-center overflow-y-auto bg-overlay p-4 pt-[14vh] motion-safe:animate-[fade-in_0.15s_ease-out]" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div data-tw="" className="fixed inset-0 z-[100] grid place-items-start justify-items-center overflow-y-auto bg-overlay p-4 pt-[14vh] motion-safe:animate-[fade-in_0.15s_ease-out]" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
       <div
         ref={card}
         role="dialog"
         aria-modal="true"
         aria-label="Search"
         onKeyDown={onKeyDown}
-        className="max-h-[70vh] w-full max-w-[560px] overflow-y-auto overscroll-contain rounded-lg border border-border bg-card p-3 text-foreground shadow-[var(--shadow-lg)]"
+        className="max-h-[70vh] w-full max-w-[560px] overflow-y-auto overscroll-contain rounded-lg border border-border bg-card/80 p-3 text-foreground shadow-[var(--shadow-lg)] backdrop-blur-[20px] backdrop-saturate-150"
       >
         {children}
       </div>

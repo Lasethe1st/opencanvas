@@ -25,7 +25,7 @@ export function ProjectRow({
       title={path}
       aria-description={path}
       className={cn(
-        "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-start transition-colors duration-150 hover:bg-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+        "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-start transition-colors duration-150 hover:bg-accent focus-visible:bg-accent",
         active && "bg-accent",
       )}
       {...rest}

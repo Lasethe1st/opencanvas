@@ -79,15 +79,17 @@
   --color-accent-foreground: var(--fg);
   --color-destructive: var(--danger);
   --color-border: var(--line);
-  /* Form-control borders need 3:1 against their surface (WCAG 1.4.11). --line-strong measures 1.45:1, so controls
-     here use a mix of the foreground instead: 3.5:1 in light, 4.7:1 in dark. */
-  --color-input: color-mix(in srgb, var(--fg) 50%, var(--surface));
-  --color-ring: var(--select);
+  /* Soft hairline for controls; prefer fill over heavy strokes on Lime surfaces. */
+  --color-input: var(--line);
+  /* Focus ring matches monochrome accent (not canvas --select blue). */
+  --color-ring: var(--accent);
   --color-overlay: var(--backdrop);
 
+  --radius-xsm: var(--r-xsm);
   --radius-sm: var(--r-sm);
   --radius-md: var(--r);
   --radius-lg: var(--r-lg);
   --radius-xl: var(--r-xl);
+  --radius-pill: var(--pill);
 
 }

@@ -1,22 +1,25 @@
-import { Copy, FileCode2, FileText, Layers, Loader2, Palette, Search, Sparkles, SquareStack, Type } from 'lucide-react';
+import { Copy, FileCode2, FileText, Layers, Loader2, Palette, Search, Sparkles, SquareStack, SwatchBook, Type } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { PageConfig } from '../../shared/project-config';
 import type { FileNode } from '../../shared/types';
 import { openFile, revealInCode, selectElement } from '../lib/actions';
 import { api } from '../lib/api';
 import { openAiSettings } from '../lib/ai';
-import { activePage, duplicatePage, focusPage, saveDirection } from '../lib/pages';
+import { activePage, focusPage, saveDirection } from '../lib/pages';
 import { copyAgentPrompt } from '../lib/prompt';
 import { activeFrame, getState, setState, useStore, type DockMode, type TreeNode } from '../lib/store';
 import { Button, cx } from '../ui/primitives.jsx';
 import { DirectionEditor, uploadPaths, type DirectionDraft } from './direction/DirectionEditor';
 import { AiChat } from './dock/AiChat';
+import { DesignSystemPanel } from './dock/DesignSystem';
+import { VariantsPanel } from './dock/Variants';
 
 const MODES: { id: DockMode; label: string; icon: ReactNode }[] = [
   { id: 'input', label: 'Ask AI', icon: <Sparkles size={15} /> },
   { id: 'variants', label: 'Variants', icon: <SquareStack size={15} /> },
   { id: 'search', label: 'Search', icon: <Search size={15} /> },
   { id: 'direction', label: 'Direction', icon: <Palette size={15} /> },
+  { id: 'design-system', label: 'Design system', icon: <SwatchBook size={15} /> },
 ];
 
 export const openDock = (mode: DockMode) => setState({ dockMode: mode });
@@ -57,6 +60,7 @@ export function Dock() {
           {shown === 'variants' && <VariantsPanel key="variants" />}
           {shown === 'search' && <SearchPanel key="search" onDone={closeDock} />}
           {shown === 'direction' && <DirectionPanel key="direction" />}
+          {shown === 'design-system' && <DesignSystemPanel key="design-system" />}
         </div>
       </div>
       <div className="dock__bar">
@@ -140,28 +144,6 @@ function HandOffPanel() {
         </Button>
         <Button size="sm" variant="primary" icon={<Sparkles size={13} />} onClick={openAiSettings}>
           Set up AI
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-/* ---------- Variants ---------- */
-
-function VariantsPanel() {
-  const canEdit = useStore((s) => !!s.projectConfig?.canEditPages);
-  const busy = useStore((s) => s.busy);
-  useStore((s) => s.activeFrameId);
-  const page = activePage();
-  return (
-    <div className="dock-pane">
-      <PanelHead title="Variants" />
-      <p className="dock-empty">
-        Generated variants are coming in a later update. To compare ideas now, duplicate the page and try a different take side by side, or ask the AI to restyle the copy.
-      </p>
-      <div className="dock-actions">
-        <Button size="sm" icon={<Copy size={13} />} disabled={!canEdit || !page?.file || busy} onClick={() => page && void duplicatePage(page.id)}>
-          Duplicate {page?.name ?? 'page'}
         </Button>
       </div>
     </div>

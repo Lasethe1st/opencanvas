@@ -47,9 +47,41 @@ export function sendMulti(ids: string[], only?: string) {
   for (const fid of frames.keys()) if (!only || fid === only) sendToFrame(fid, 'multi', { ids, linked: fid !== active });
 }
 
+/** Amber dashed outlines for elements that use a design-system token (`data-oc` keys and/or source ids). */
+export function highlightTokenDependents(opts: { keys?: string[]; ids?: string[]; label?: string } | null) {
+  if (!opts) {
+    sendToPreview('highlight-token', { keys: [], ids: [], label: '' });
+    return;
+  }
+  sendToPreview('highlight-token', {
+    keys: opts.keys ?? [],
+    ids: opts.ids ?? [],
+    label: opts.label ?? '',
+  });
+}
+
 /** Mirrors a selection made in one frame into all the others. */
 export function sendLinkedSelect(exceptId: string, id: string | null) {
   for (const fid of frames.keys()) if (fid !== exceptId) sendToFrame(fid, 'select', { id, linked: true });
+}
+
+/** Asks the bridge for layout boxes of an element's subtree (build overlay). */
+export function measureSubtree(frameId: string, elementId: string | null): Promise<{ boxes: Array<{ x: number; y: number; width: number; height: number; padding?: { top: number; right: number; bottom: number; left: number }; kind: string; depth: number }> }> {
+  const requestId = `measure-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  return new Promise((resolve) => {
+    const done = (payload: { boxes?: unknown }) => {
+      window.removeEventListener('message', onMessage);
+      clearTimeout(timer);
+      resolve({ boxes: Array.isArray(payload?.boxes) ? (payload.boxes as never[]) : [] });
+    };
+    const onMessage = (event: MessageEvent) => {
+      const msg = event.data;
+      if (msg?.source === 'oc-bridge' && msg.type === 'measure-subtree' && msg.requestId === requestId) done(msg.payload ?? {});
+    };
+    const timer = setTimeout(() => done({ boxes: [] }), 2000);
+    window.addEventListener('message', onMessage);
+    sendToFrame(frameId, 'measure-subtree', { requestId, id: elementId });
+  });
 }
 
 /** The preview is cross-origin, so ask its bridge to reload; resetting src covers a page whose bridge is gone. */

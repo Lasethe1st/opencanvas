@@ -8,10 +8,29 @@ export * from '../shared/source/jsx';
 export * from '../shared/source/routes';
 export * from '../shared/project-config';
 export * from '../shared/design-tokens';
+export * from '../shared/design-system';
+export { buildDesignContext, buildDesignSystemBrief, describeStyle } from '../shared/design-context';
 export { createPage, deletePage, duplicatePage, pagesState, readConfig, renamePage, reorderPages, writeDirection } from './services/project-config';
 export { listProviders, searchProvider } from './services/inspiration';
 export { importFiles } from './services/assets';
 export { applyEdit, inspectElement, relocate, revertChanges } from './services/edits';
+export {
+  applyVariant,
+  beginVariantSet,
+  discardVariant,
+  discardVariantSet,
+  fileHash,
+  listVariants,
+  proposeVariant,
+  pruneVariants,
+  readVariantIndex,
+  replaceElementInFile,
+  ensureVariantsGitignore,
+} from './services/variants';
+export * from '../shared/variants';
+export * from '../shared/variant-resolve';
+export * from '../shared/build-stages';
+export { createVariantTools, VARIANT_TOOL_NAMES } from './services/mcp-tools';
 export { faviconHrefs, projectFavicon } from './services/favicon';
 export { extractJson, githubSlug, goLiveOnVercel, publicAlias, vercelImportUrl } from './services/vercel';
 export { friendlyError, git, gitClone, gitCommit, gitInit, gitPush, gitSetIdentity, gitSetRemote, gitStatus, normalizeRemote, parseStatus, remoteWebUrl, repoName } from './services/git';

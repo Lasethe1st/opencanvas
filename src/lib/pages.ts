@@ -48,10 +48,18 @@ export function reconcileFrames() {
 }
 
 /** Preview URL for a page, or null while a dynamic route still needs example values. */
-export function pageUrl(base: string, page: PageConfig | null, routeValues?: Record<string, string>): string | null {
-  if (!page || page.path === '/') return base;
-  const path = fillRoute(page.path, routeValues);
-  return path === null ? null : base.replace(/\/+$/, '') + path;
+export function pageUrl(base: string, page: PageConfig | null, routeValues?: Record<string, string>, ocv?: string | null): string | null {
+  let url: string;
+  if (!page || page.path === '/') {
+    url = base;
+  } else {
+    const path = fillRoute(page.path, routeValues);
+    if (path === null) return null;
+    url = base.replace(/\/+$/, '') + path;
+  }
+  if (!ocv) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}ocv=${encodeURIComponent(ocv)}`;
 }
 
 export function setRouteValues(frameId: string, routeValues: Record<string, string>) {

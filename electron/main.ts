@@ -1,10 +1,29 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, net, safeStorage, shell, type IpcMainInvokeEvent } from 'electron';
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { EditCommand, FileChange, ImportedProject, McpApplied, McpRequest, McpStatus, OpenedFile, ProjectInfo, RecentProject, TemplateId, ThemePreference } from '../shared/types';
 import { applyEdit, inspectElement, relocate, revertChanges } from './services/edits';
 import { McpServer, newToken, readMcpSettings, writeMcpSettings, type McpSettings } from './services/mcp';
-import { createMcpTools, MCP_INSTRUCTIONS, type McpContext } from './services/mcp-tools';
+import { createMcpTools, createVariantTools, MCP_INSTRUCTIONS, type McpContext } from './services/mcp-tools';
+import {
+  applyVariant,
+  beginVariantSet,
+  discardVariant,
+  discardVariantSet,
+  finishGeneratingSet,
+  listVariants,
+  markVariantFailed,
+  proposeVariant,
+  pruneVariants,
+  readVariantIndex,
+  resetVariantForRetry,
+  ensureVariantsGitignore,
+} from './services/variants';
+import type { VariantGenerateRequest, VariantRecord } from '../shared/variants';
+import { clampVariantCount } from '../shared/variants';
+import { locateElement } from '../shared/source/jsx';
+import { parseSourceId } from '../shared/source/ast';
 import { IMAGE_EXTENSIONS, importFiles } from './services/assets';
 import { buildProjectZip, runInstructions } from './services/exporter';
 import { runBuildCheck, validateExport } from './services/export-validate';
@@ -26,7 +45,20 @@ import { providerMeta, validateBaseUrl, type AiSettings, type AiStatus } from '.
 import { buildDesignContext } from '../shared/design-context';
 import { aiKeyName, aiNotReadyReason, normalizeAiSettings, readAiSettings, redact, SecretStore, writeAiSettings, type Cipher } from './services/ai-keys';
 import { listModels, testConnection } from './services/ai-providers';
+import { voiceCapabilities, voiceReply, voiceSpeak, voiceTranscribe } from './services/ai-voice';
+import {
+  designSystemStatus,
+  exportDesignSystem,
+  hydrateFromDirection,
+  restoreDesignSystem,
+  setActiveTheme,
+  syncDesignTokensCss,
+  tokenImpact,
+  updateToken,
+} from './services/design-system';
 import { AiAgent } from './services/ai-agent';
+import type { VoiceChatMessage } from '../shared/voice';
+import type { Token } from '../shared/design-system';
 import { TerminalManager, type SpawnPty } from './services/terminal';
 
 const APP_ROOT = app.getAppPath();
@@ -109,6 +141,11 @@ const terminals = new TerminalManager({
   onExit: (event) => win?.webContents.send('terminal:exit', event),
 });
 
+function pushVariantsChanged() {
+  if (!project) return;
+  win?.webContents.send('variants:changed', listVariants(project.root));
+}
+
 function activate(info: ProjectInfo): ProjectInfo {
   if (project?.root !== info.root) {
     agent.reset();
@@ -118,6 +155,13 @@ function activate(info: ProjectInfo): ProjectInfo {
   rememberProject(info);
   watchProject(info.root);
   preview.stop();
+  try {
+    pruneVariants(info.root);
+    ensureVariantsGitignore(info.root);
+  } catch {
+    /* best-effort */
+  }
+  pushVariantsChanged();
   return info;
 }
 
@@ -260,7 +304,125 @@ const createToolContext = (turn?: { id: string; label: string }): McpContext => 
     push: () => gitPush(requireProject().root),
     goLive: () => goLiveOnVercel(requireProject().root, (url, init) => net.fetch(url, init)),
   },
+  variants: {
+    propose: (args) => {
+      const record = proposeVariant(requireProject(), args);
+      pushVariantsChanged();
+      return record;
+    },
+    list: () => listVariants(requireProject().root),
+    apply: (id) => {
+      const { result, record } = applyVariant(requireProject(), id);
+      if (result.ok) {
+        recordForUndo({ label: `Apply variant: ${record.label || 'Variant'}`, changes: result.changes, selectId: result.selectId, turnId: turn?.id });
+      }
+      pushVariantsChanged();
+      return { ok: result.ok, error: result.error, selectId: result.selectId };
+    },
+  },
 });
+
+function variantFocusedContext(elementId: string): string {
+  const info = requireProject();
+  const state = pagesState(info);
+  const parsed = parseSourceId(elementId);
+  if (!parsed) throw new ProjectError(`Invalid element reference: ${elementId}`);
+  const abs = safeResolve(info.root, parsed.file);
+  const code = fs.readFileSync(abs, 'utf8');
+  const { element } = locateElement(code, parsed.file, parsed.line, parsed.column);
+  const jsx = code.slice(element.start, element.end);
+  const inspected = inspectElement(info, elementId);
+  const styles = 'error' in inspected ? {} : inspected.styles.base;
+  const direction = buildDesignContext(state.config.direction, { projectName: info.name, pages: state.pages });
+  const refs = state.config.direction.references
+    .map((r) => `- ${r.title}${r.colors.length ? ` · colours: ${r.colors.join(', ')}` : ''}${r.tags.length ? ` · tags: ${r.tags.join(', ')}` : ''}`)
+    .join('\n');
+  return [
+    '# Focused element',
+    `Id: ${elementId}`,
+    `File: ${parsed.file}`,
+    'error' in inspected ? '' : `Tag: <${inspected.tag}> Name: ${inspected.name ?? '(none)'}`,
+    '',
+    '## JSX',
+    '```jsx',
+    jsx,
+    '```',
+    '',
+    '## Computed / stored styles (base)',
+    JSON.stringify(styles, null, 2),
+    '',
+    direction,
+    refs ? `\n# References\n${refs}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+let activeVariantSetId: string | null = null;
+
+function startVariantGeneration(req: VariantGenerateRequest, singleId?: string): { setId: string; turnId: string; variants: VariantRecord[] } {
+  const reason = aiNotReadyReason(aiSettings, secretStore.has(aiKeyName(aiSettings.provider)));
+  if (reason) throw new Error(reason);
+  const info = requireProject();
+  const request = String(req.request ?? '').trim();
+  if (!request) throw new ProjectError('Describe the variants you want.');
+  const elementId = String(req.elementId ?? '').trim();
+  if (!elementId) throw new ProjectError('Select an element first.');
+
+  let setId: string;
+  let variants: VariantRecord[];
+  if (singleId) {
+    const reset = resetVariantForRetry(info.root, singleId);
+    if (!reset) throw new ProjectError('That variant cannot be retried.');
+    setId = reset.setId;
+    variants = [reset];
+    pushVariantsChanged();
+  } else {
+    const begun = beginVariantSet(info, { elementId, request, count: clampVariantCount(req.count) });
+    setId = begun.setId;
+    variants = begun.variants;
+    pushVariantsChanged();
+  }
+
+  activeVariantSetId = setId;
+  const count = variants.length;
+  const tools = createVariantTools(createToolContext({ id: randomUUID(), label: `Variants: ${request.slice(0, 40)}` }));
+  const bound = tools.map((t) =>
+    t.name === 'propose_variant'
+      ? {
+          ...t,
+          run: async (args: Record<string, unknown>) => {
+            try {
+              const record = proposeVariant(info, {
+                setId,
+                label: String(args.label ?? ''),
+                notes: typeof args.notes === 'string' ? args.notes : '',
+                jsx: String(args.jsx ?? ''),
+              });
+              pushVariantsChanged();
+              return [{ type: 'text' as const, text: `Variant ready: ${record.label} (${record.id})\nStatus: ${record.status}` }];
+            } catch (err) {
+              const generating = readVariantIndex(info.root).variants.find((v) => v.setId === setId && v.status === 'generating');
+              if (generating) {
+                markVariantFailed(info.root, generating.id, (err as Error).message);
+                pushVariantsChanged();
+              }
+              throw err;
+            }
+          },
+        }
+      : t,
+  );
+
+  const turnId = agent.sendVariants(request, {
+    tools: bound,
+    focusedContext: variantFocusedContext(elementId),
+    count,
+    ctx: { selection: { id: elementId, name: variants[0]?.source.label ?? 'Element', tag: '?' }, page: null, frameWidth: null },
+  });
+
+  return { setId, turnId, variants };
+}
 
 const mcpContext = createToolContext();
 
@@ -290,14 +452,20 @@ const rethrowScrubbed = (err: unknown): never => {
 };
 
 function projectContextForAi(): string {
-  if (!project) return 'No project is open. Ask the user to open or create one in OpenCanvas.';
+  if (!project) return 'No project is open right now. Chat normally; only suggest opening or creating a project if they need canvas or file edits.';
   const state = pagesState(project);
+  const ds = designSystemStatus(project);
   return [
     `# Open project: ${project.name}`,
     `Framework: ${project.framework}. Styles file: ${project.stylesFile}. ${project.editable ? '' : 'The project is read-only in OpenCanvas.'}`,
     `Pages (${state.routing}): ${state.pages.map((p) => `${p.name} ${p.path}${p.file ? ` → ${p.file}` : ''}`).join('; ')}`,
     '',
     buildDesignContext(state.config.direction, { projectName: project.name, pages: state.pages }),
+    '',
+    // Short pointer only — full token dump makes the model stiff; tools return detail on demand.
+    ds.document.tokens.length
+      ? `Design system: ${ds.document.tokens.length} tokens, theme “${ds.document.activeThemeId}”, ${ds.document.components.length} components (use get_design_system / propose_token_change).`
+      : 'Design system: empty — import tokens or create them from the Design system dock.',
     '',
     MCP_INSTRUCTIONS,
   ].join('\n');
@@ -313,7 +481,15 @@ function initAi() {
     secrets: () => secretStore.secrets(),
     tools: (turnId, request) => createMcpTools(createToolContext({ id: turnId, label: `AI: ${request.length > 40 ? `${request.slice(0, 40)}…` : request}` })),
     projectContext: projectContextForAi,
-    emit: (event) => win?.webContents.send('ai:event', event),
+    emit: (event) => {
+      win?.webContents.send('ai:event', event);
+      if ((event.type === 'done' || event.type === 'error') && activeVariantSetId && project) {
+        const setId = activeVariantSetId;
+        activeVariantSetId = null;
+        finishGeneratingSet(project.root, setId);
+        pushVariantsChanged();
+      }
+    },
     commandCwd: () => requireProject().root,
     runCommand: ptyUnavailable
       ? undefined
@@ -626,12 +802,36 @@ function registerIpc() {
     const content = fs.readFileSync(file, 'utf8');
     const isJson = file.toLowerCase().endsWith('.json');
     try {
-      return { file: path.basename(file), format: isJson ? 'tokens-json' : 'css', tokens: isJson ? parseJsonTokens(content) : parseCssTokens(content), importedAt: Date.now() };
+      const flat: DesignSystemConfig = {
+        file: path.basename(file),
+        format: isJson ? 'tokens-json' : 'css',
+        tokens: isJson ? parseJsonTokens(content) : parseCssTokens(content),
+        importedAt: Date.now(),
+      };
+      if (project) {
+        try {
+          hydrateFromDirection(project, flat);
+        } catch {
+          /* direction still receives the flat snapshot for AI context */
+        }
+      }
+      return flat;
     } catch (err) {
       if (err instanceof TokenImportError) throw new Error(err.message);
       throw err;
     }
   });
+  handle('designSystem:get', () => {
+    const info = requireProject();
+    const status = designSystemStatus(info);
+    return { document: status.document, issues: status.issues, cssFile: status.cssFile };
+  });
+  handle('designSystem:setActiveTheme', (themeId: string) => setActiveTheme(requireProject(), String(themeId)));
+  handle('designSystem:upsertToken', (token: Token, summary?: string) => updateToken(requireProject(), token, summary));
+  handle('designSystem:impact', (tokenId: string) => tokenImpact(requireProject(), String(tokenId)));
+  handle('designSystem:historyRestore', (changeId: string) => restoreDesignSystem(requireProject(), String(changeId)));
+  handle('designSystem:export', (format: 'css' | 'tokens-json') => exportDesignSystem(requireProject(), format === 'tokens-json' ? 'tokens-json' : 'css'));
+  handle('designSystem:syncCss', () => syncDesignTokensCss(requireProject()));
   handle('inspiration:providers', () => listProviders());
   handle('inspiration:search', (provider: string, query: string) => searchProvider(String(provider), String(query ?? '')).catch(rethrowScrubbed));
   handle('inspiration:connect', (provider: string) => connectProvider(String(provider)).catch(rethrowScrubbed));
@@ -678,13 +878,89 @@ function registerIpc() {
   handle('ai:send', (request: string, context?: AiTurnContext) => {
     const reason = aiNotReadyReason(aiSettings, secretStore.has(aiKeyName(aiSettings.provider)));
     if (reason) throw new Error(reason);
-    requireProject();
+    // Home chat may send before a project exists; tools that need a project refuse at call time.
     return agent.send(String(request ?? ''), context && typeof context === 'object' ? context : undefined);
   });
   handle('ai:answer', (id: string, answer: string) => agent.answer(String(id), String(answer ?? '')));
   handle('ai:approve', (id: string, allow: boolean) => agent.approve(String(id), allow === true));
   handle('ai:cancel', () => agent.cancel());
   handle('ai:reset', () => agent.reset());
+  handle('ai:voiceCapabilities', () =>
+    voiceCapabilities(aiSettings, secretStore.has(aiKeyName(aiSettings.provider))),
+  );
+  handle('ai:voiceReply', async (messages: VoiceChatMessage[]) => {
+    const reason = aiNotReadyReason(aiSettings, secretStore.has(aiKeyName(aiSettings.provider)));
+    if (reason) throw new Error(reason);
+    try {
+      return await voiceReply(Array.isArray(messages) ? messages : [], aiSettings, aiKey(), (url, init) => net.fetch(url, init));
+    } catch (err) {
+      throw scrub(err);
+    }
+  });
+  handle('ai:voiceSpeak', async (text: string) => {
+    try {
+      return await voiceSpeak(String(text ?? ''), aiSettings, aiKey(), (url, init) => net.fetch(url, init));
+    } catch (err) {
+      throw scrub(err);
+    }
+  });
+  handle('ai:voiceTranscribe', async (audioBase64: string, mime: string) => {
+    const reason = aiNotReadyReason(aiSettings, secretStore.has(aiKeyName(aiSettings.provider)));
+    if (reason) throw new Error(reason);
+    try {
+      return await voiceTranscribe(String(audioBase64 ?? ''), String(mime ?? 'audio/webm'), aiSettings, aiKey(), (url, init) =>
+        net.fetch(url, init),
+      );
+    } catch (err) {
+      throw scrub(err);
+    }
+  });
+
+  handle('variants:generate', (raw: VariantGenerateRequest) => {
+    const req = raw && typeof raw === 'object' ? raw : ({} as VariantGenerateRequest);
+    return startVariantGeneration({
+      elementId: String(req.elementId ?? ''),
+      request: String(req.request ?? ''),
+      count: req.count,
+    });
+  });
+  handle('variants:cancel', () => {
+    agent.cancel();
+    if (activeVariantSetId && project) {
+      finishGeneratingSet(project.root, activeVariantSetId);
+      activeVariantSetId = null;
+      pushVariantsChanged();
+    }
+  });
+  handle('variants:list', () => (project ? listVariants(project.root) : []));
+  handle('variants:apply', (id: string) => {
+    const info = requireProject();
+    const { result, record } = applyVariant(info, String(id));
+    if (result.ok && result.changes.length) {
+      recordForUndo({ label: `Apply variant: ${record.label || 'Variant'}`, changes: result.changes, selectId: result.selectId });
+    }
+    pushVariantsChanged();
+    return { ok: result.ok, error: result.error, selectId: result.selectId };
+  });
+  handle('variants:discard', (id: string) => {
+    discardVariant(requireProject().root, String(id));
+    pushVariantsChanged();
+  });
+  handle('variants:discardSet', (setId: string) => {
+    if (activeVariantSetId === setId) {
+      agent.cancel();
+      activeVariantSetId = null;
+    }
+    discardVariantSet(requireProject().root, String(setId));
+    pushVariantsChanged();
+  });
+  handle('variants:retry', (id: string) => {
+    const info = requireProject();
+    const index = readVariantIndex(info.root);
+    const existing = index.variants.find((v) => v.id === String(id));
+    if (!existing) throw new ProjectError('That variant no longer exists.');
+    return startVariantGeneration({ elementId: existing.source.elementId, request: existing.request, count: 1 }, existing.id);
+  });
 
   handle('terminal:unavailable', () => ptyUnavailable);
   handle('terminal:create', (opts?: { cols?: number; rows?: number; title?: string }) => {

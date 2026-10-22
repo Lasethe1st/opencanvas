@@ -2,12 +2,17 @@
  * Standalone preview server. Spawned as a separate Node process (never inside
  * the Electron main process) so project code and its tooling stay isolated
  * from the editor's privileged runtime.
+ *
+ * Variant frames load with `?ocv=<id>`. Entry scripts and imports under editable
+ * roots inherit that tag; `load` serves `.opencanvas/variants/<id>/…` overrides
+ * when present. `node_modules` and CSS stay shared (one React).
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { createServer, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { injectSourceIds } from '../shared/source/jsx';
+import { isVariantTaggedSource, parseOcvId, shouldPropagateOcv, variantOverrideRel, withOcv } from '../shared/variant-resolve';
 
 const projectRoot = process.env.OC_PROJECT_ROOT!;
 const appRoot = process.env.OC_APP_ROOT!;
@@ -21,33 +26,86 @@ function send(message: Record<string, unknown>) {
   process.stdout.write(`OC_MSG ${JSON.stringify(message)}\n`);
 }
 
+function projectRel(abs: string): string {
+  return path.relative(projectRoot, abs).split(path.sep).join('/');
+}
+
+function editablePrefixes(): string[] {
+  return editableRoots.map((r) => path.join(projectRoot, r).split(path.sep).join('/'));
+}
+
 function openCanvasPlugin(): Plugin {
   const roots = editableRoots.map((r) => path.join(projectRoot, r) + path.sep);
+  const prefixes = editablePrefixes();
+
   return {
     name: 'open-canvas-source-ids',
     enforce: 'pre',
-    resolveId(id) {
-      if (id === BRIDGE_ID) return '\0oc-bridge';
-      return null;
+    async resolveId(id, importer, options) {
+      if (id === BRIDGE_ID || id.startsWith(`${BRIDGE_ID}?`)) return '\0oc-bridge';
+
+      const importerOcv = importer ? parseOcvId(importer).ocv : null;
+      const { clean, ocv: existing } = parseOcvId(id);
+      if (existing) return null;
+      if (!importerOcv) return null;
+      if (clean.startsWith('\0')) return null;
+
+      const resolved = await this.resolve(clean, importer ? parseOcvId(importer).clean : importer, { skipSelf: true, ...options });
+      if (!resolved || resolved.external) return resolved;
+      const resolvedPath = parseOcvId(resolved.id).clean;
+      if (!shouldPropagateOcv(withOcv(importer ?? '', importerOcv), resolvedPath.split(path.sep).join('/'), prefixes)) {
+        return resolved;
+      }
+      return { ...resolved, id: withOcv(resolvedPath, importerOcv) };
     },
     load(id) {
       if (id === '\0oc-bridge') return fs.readFileSync(path.join(appRoot, 'preview-runtime', 'bridge.js'), 'utf8');
+
+      const { clean, ocv } = parseOcvId(id);
+      if (!ocv || !isVariantTaggedSource(clean)) return null;
+
+      const normalized = path.normalize(clean.split('?')[0]);
+      if (!roots.some((r) => normalized.startsWith(r)) || normalized.includes(`${path.sep}node_modules${path.sep}`)) {
+        return null;
+      }
+
+      const rel = projectRel(normalized);
+      const overrideRel = variantOverrideRel(ocv, rel);
+      const overrideAbs = path.join(projectRoot, ...overrideRel.split('/'));
+      if (fs.existsSync(overrideAbs) && fs.statSync(overrideAbs).isFile()) {
+        return fs.readFileSync(overrideAbs, 'utf8');
+      }
       return null;
     },
     transform(code, id) {
-      const file = id.split('?')[0];
+      const file = parseOcvId(id).clean;
       if (!/\.(jsx|tsx|js)$/.test(file)) return null;
       const normalized = path.normalize(file);
       if (!roots.some((r) => normalized.startsWith(r)) || normalized.includes(`${path.sep}node_modules${path.sep}`)) return null;
-      const rel = path.relative(projectRoot, normalized).split(path.sep).join('/');
+      const rel = projectRel(normalized);
       const result = injectSourceIds(code, file, rel);
       return result.changed ? { code: result.code, map: null } : null;
     },
-    transformIndexHtml() {
-      return [
-        { tag: 'script', children: EARLY_ERRORS, injectTo: 'head-prepend' },
-        { tag: 'script', attrs: { type: 'module', src: BRIDGE_ID }, injectTo: 'body' },
+    transformIndexHtml(html, ctx) {
+      const tags = [
+        { tag: 'script', children: EARLY_ERRORS, injectTo: 'head-prepend' as const },
+        { tag: 'script', attrs: { type: 'module', src: BRIDGE_ID }, injectTo: 'body' as const },
       ];
+      const url = ctx.originalUrl || ctx.path || '';
+      let ocv: string | null = null;
+      try {
+        ocv = new URL(url, 'http://oc.local').searchParams.get('ocv');
+      } catch {
+        ocv = null;
+      }
+      if (!ocv) return tags;
+
+      // Tag every module entry script so the resolve/load chain carries ?ocv=.
+      const tagged = html.replace(/(<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["'])([^"']+)(["'])/gi, (_m, pre: string, src: string, post: string) => {
+        if (src.startsWith(BRIDGE_ID) || src.includes('node_modules')) return `${pre}${src}${post}`;
+        return `${pre}${withOcv(src, ocv!)}${post}`;
+      });
+      return { html: tagged, tags };
     },
   };
 }

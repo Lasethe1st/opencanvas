@@ -1,4 +1,7 @@
 import type { AiEvent, AiModel, AiSettings, AiStatus } from './ai';
+import type { VoiceCapabilities, VoiceChatMessage, VoiceSpeakResult } from './voice';
+import type { DesignSystemDocument, Token, ValidationIssue } from './design-system';
+import type { VariantGenerateRequest, VariantRecord } from './variants';
 import type { FontCatalog } from './fonts';
 import type { InspirationBoard, InspirationProviderInfo, InspirationResult } from './inspiration';
 import type { DesignReference, DesignSystemConfig, DirectionConfig, PageMutation, ProjectPagesState } from './project-config';
@@ -151,6 +154,23 @@ export interface OpenCanvasApi {
     /** Native picker for a CSS or token JSON file; null when cancelled. Throws when the file has no tokens. */
     importDesignSystem(): Promise<DesignSystemConfig | null>;
   };
+  designSystem: {
+    get(): Promise<{ document: DesignSystemDocument; issues: ValidationIssue[]; cssFile: string }>;
+    setActiveTheme(themeId: string): Promise<DesignSystemDocument>;
+    upsertToken(token: Token, summary?: string): Promise<DesignSystemDocument>;
+    impact(tokenId: string): Promise<{
+      tokenId: string;
+      dependentTokens: string[];
+      components: string[];
+      styleUsages: number;
+      styleKeys: string[];
+      cssVar: string;
+    }>;
+    historyRestore(changeId: string): Promise<DesignSystemDocument>;
+    export(format: 'css' | 'tokens-json'): Promise<string>;
+    /** Re-sync generated CSS from the saved document. */
+    syncCss(): Promise<string>;
+  };
   inspiration: {
     providers(): Promise<InspirationProviderInfo[]>;
     search(provider: string, query: string): Promise<InspirationResult[]>;
@@ -179,6 +199,24 @@ export interface OpenCanvasApi {
     /** Forgets the conversation. */
     reset(): Promise<void>;
     onEvent(cb: (event: AiEvent) => void): () => void;
+    /** How the voice orb listens/speaks for the selected provider. */
+    voiceCapabilities(): Promise<VoiceCapabilities>;
+    /** Short tool-free reply for the voice loop. */
+    voiceReply(messages: VoiceChatMessage[]): Promise<string>;
+    /** Speak text via the provider TTS when available, else browser speech. */
+    voiceSpeak(text: string): Promise<VoiceSpeakResult>;
+    /** Transcribe a mic clip (base64) when provider STT is available. */
+    voiceTranscribe(audioBase64: string, mime: string): Promise<string>;
+  };
+  variants: {
+    generate(request: VariantGenerateRequest): Promise<{ setId: string; turnId: string; variants: VariantRecord[] }>;
+    cancel(): Promise<void>;
+    list(): Promise<VariantRecord[]>;
+    apply(id: string): Promise<{ ok: boolean; error?: string; selectId?: string | null }>;
+    discard(id: string): Promise<void>;
+    discardSet(setId: string): Promise<void>;
+    retry(id: string): Promise<{ turnId: string; variant: VariantRecord }>;
+    onChanged(cb: (variants: VariantRecord[]) => void): () => void;
   };
   terminal: {
     /** Null when terminals can run here, otherwise the reason they can't. */

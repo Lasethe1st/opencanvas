@@ -279,6 +279,18 @@ export function buildSnippet(kind: InsertKind, image?: { src: string; alt: strin
 }
 
 /**
+ * Replaces the element at `line`:`column` with a single validated JSX element.
+ * Preserves the original element's indentation on the first line.
+ */
+export function replaceElementJsx(code: string, filename: string, line: number, column: number, jsx: string): { code: string; offset: number } {
+  const snippet = normalizeJsxSnippet(jsx);
+  const { element } = locateElement(code, filename, line, column);
+  const indent = lineIndent(code, element.start);
+  const text = indentSnippet(snippet, indent);
+  return { code: applySplices(code, [{ start: element.start, end: element.end, text }]), offset: element.start };
+}
+
+/**
  * Validates that `jsx` is exactly one JSX element and returns it dedented, ready for `insertElement`.
  */
 export function normalizeJsxSnippet(jsx: string): string {

@@ -19,10 +19,13 @@ import {
   readAttributes,
   readText,
   removeElement,
+  replaceElementJsx,
   setAttribute,
   setTagName,
   setText,
 } from '../../shared/source/jsx';
+
+export { replaceElementJsx };
 import type { EditCommand, EditResult, FileChange, ProjectInfo, SourceElementInfo } from '../../shared/types';
 import { safeResolve } from './project';
 

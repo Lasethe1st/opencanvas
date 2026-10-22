@@ -1,8 +1,10 @@
 import type { AiChatItem, AiStatus } from '../../../shared/ai';
+import type { BuildState } from '../../../shared/build-stages';
 import type { FrameLayout } from '../../../shared/canvas';
 import { defaultDirection, type DesignReference, type DirectionConfig, type PageConfig, type ProjectPagesState } from '../../../shared/project-config';
 import type { FileNode, McpStatus } from '../../../shared/types';
-import type { DockMode, FrameRuntime, TreeNode } from '../../lib/store';
+import type { VariantRecord } from '../../../shared/variants';
+import type { DockMode, FrameRuntime, Selection, TreeNode } from '../../lib/store';
 
 const PAGES: PageConfig[] = [
   { id: 'home', name: 'Home', path: '/', file: 'src/App.jsx' },
@@ -101,7 +103,33 @@ export interface StateFixture {
   /** Typed into the search box after the panel opens. */
   query?: string;
   ai?: { status: AiStatus; chat?: AiChatItem[]; turnId?: string | null };
+  selection?: Selection | null;
+  variants?: VariantRecord[];
+  build?: BuildState;
 }
+
+const SAMPLE_VARIANTS: VariantRecord[] = [
+  {
+    id: 'v-a',
+    setId: 'set-1',
+    source: { file: 'src/App.jsx', elementId: 'src/App.jsx:9:6', label: 'Hero', fileHash: 'x' },
+    request: 'Bolder headline',
+    label: 'Editorial stack',
+    notes: 'Larger type, shorter subline',
+    createdAt: Date.now(),
+    status: 'ready',
+  },
+  {
+    id: 'v-b',
+    setId: 'set-1',
+    source: { file: 'src/App.jsx', elementId: 'src/App.jsx:9:6', label: 'Hero', fileHash: 'x' },
+    request: 'Bolder headline',
+    label: 'Split layout',
+    notes: 'Copy left, media right',
+    createdAt: Date.now(),
+    status: 'ready',
+  },
+];
 
 export const FRAMES: FrameLayout[] = [{ id: 'f-desktop', name: 'Desktop', x: 0, y: 0, width: 1440, height: 900, preset: 'desktop', fitPage: false, pageId: 'work' }];
 export const RUNTIME: Record<string, FrameRuntime> = { 'f-desktop': { ready: true, contentHeight: 2400, tree: TREE } };
@@ -198,11 +226,41 @@ export const GROUPS: { heading: string; states: Record<string, StateFixture> }[]
   {
     heading: 'Variants',
     states: {
-      variants: { label: 'Duplicate available', mode: 'variants', config: pagesState() },
-      'variants-readonly': {
-        label: 'Pages are read-only',
+      'variants-empty': { label: 'No selection', mode: 'variants', config: pagesState(), selection: null },
+      'variants-ready': {
+        label: 'Element selected',
         mode: 'variants',
-        config: pagesState({ routing: 'react-router', canEditPages: false, pagesNote: 'This project routes with React Router, so OpenCanvas shows its pages but doesn’t change them.' }),
+        config: pagesState(),
+        selection: { id: 'src/App.jsx:9:6', uid: 'u1', tag: 'section', name: 'Hero', rect: { x: 0, y: 0, width: 100, height: 40 }, parentId: null, computed: {} },
+        ai: { status: aiStatus() },
+      },
+      'variants-cards': {
+        label: 'Ready cards',
+        mode: 'variants',
+        config: pagesState(),
+        selection: { id: 'src/App.jsx:9:6', uid: 'u1', tag: 'section', name: 'Hero', rect: { x: 0, y: 0, width: 100, height: 40 }, parentId: null, computed: {} },
+        variants: SAMPLE_VARIANTS,
+        ai: { status: aiStatus() },
+      },
+      'variants-no-ai': {
+        label: 'AI not set up',
+        mode: 'variants',
+        config: pagesState(),
+        selection: { id: 'src/App.jsx:9:6', uid: 'u1', tag: 'section', name: 'Hero', rect: { x: 0, y: 0, width: 100, height: 40 }, parentId: null, computed: {} },
+        variants: SAMPLE_VARIANTS,
+        ai: { status: NOT_SET_UP },
+      },
+      'build-grid': {
+        label: 'Build: Grid',
+        mode: null,
+        config: pagesState(),
+        build: { phase: 'grid', turnId: 't1', callId: 'c1', tool: 'insert_jsx', elementId: 'src/App.jsx:14:6', explained: false, frameId: 'f-desktop' },
+      },
+      'build-layout': {
+        label: 'Build: Layout',
+        mode: null,
+        config: pagesState(),
+        build: { phase: 'layout', turnId: 't1', callId: 'c1', tool: 'insert_jsx', elementId: 'src/App.jsx:14:6', explained: true, frameId: 'f-desktop' },
       },
     },
   },

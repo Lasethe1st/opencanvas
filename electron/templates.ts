@@ -93,7 +93,7 @@ createRoot(document.getElementById('root')).render(
 `,
     'src/open-canvas.css': CANVAS_CSS,
     'public/placeholder.svg': PLACEHOLDER_SVG,
-    '.gitignore': 'node_modules\ndist\n.vite\n',
+    '.gitignore': 'node_modules\ndist\n.vite\n.opencanvas/variants\n',
     'README.md': `# ${title}
 
 A React + Vite project created with OpenCanvas.

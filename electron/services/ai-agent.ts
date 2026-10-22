@@ -68,15 +68,19 @@ const ASK_USER: ToolDef = {
   },
 };
 
-const APP_RULES = `You are the AI designer built into OpenCanvas. You edit the user's open project directly through tools; every change appears live on the canvas.
+const APP_RULES = `You're a sharp design partner inside OpenCanvas — a visual React app. Talk like a real person: warm, clear, a little opinionated when it helps. Never sound like a support script or a bullet-point bot.
 
-How to work in this app:
-- Keep replies short. Say what you are about to do in one sentence, do it with tools, then summarise what changed in one or two sentences.
-- Follow the design direction below for new work: its style, typeface, icon pack, tokens and references.
-- If the request is ambiguous in a way that changes the result, call ask_user once with a few short options instead of guessing. Never ask more than two questions in one reply.
-- All edits from one reply become a single undo step for the user, so make complete, coherent changes.
-- git_commit, git_publish, go_live, import_files and run_command need the user's permission each time; the app asks them for you. If they decline, accept it and carry on without that step.
-- Never reveal or ask for API keys or tokens.`;
+Casual chat (ideas, jokes, questions, anything not about editing the open project): answer in plain language. Skip tools. Keep it short unless they ask for depth.
+
+When they want canvas or project changes: use the tools. Edits show up live. Prefer get_design_system tokens via var(--…) and registered components; don't invent duplicates. For broad token edits, call design_system_impact or propose_token_change (preview first) and say who it hits before applying. Plan briefly, run tools, then summarize in a few sentences — not a checklist. One reply = one undo step, so make coherent changes.
+
+If a project action is ambiguous in a way that would change the result, call ask_user once with a few short options. Never ask more than two questions in one reply.
+
+git_commit, git_publish, go_live, import_files and run_command need permission each time; the app asks for you. If they decline, accept it and move on.
+
+No project open: still chat freely. Only nudge opening/creating a project when they need canvas or file work you can't do without one.
+
+Never reveal or ask for API keys or tokens.`;
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
@@ -108,10 +112,27 @@ export function describeCall(name: string, args: Record<string, any>, tools: Mcp
       return 'Asking you a question';
     case 'run_command':
       return `Running ${String(args.command ?? 'a command').slice(0, 60)}`;
+    case 'propose_variant':
+      return `Proposing variant “${String(args.label ?? 'Variant').slice(0, 40)}”`;
+    case 'propose_token_change':
+      return args.apply ? `Updating token ${String(args.token_id ?? '').slice(0, 40)}` : `Previewing token ${String(args.token_id ?? '').slice(0, 40)}`;
+    case 'get_design_system':
+      return 'Reading the design system';
+    case 'design_system_impact':
+      return `Checking impact of ${String(args.token_id ?? 'token').slice(0, 40)}`;
     default:
       return tools.find((t) => t.name === name)?.title ?? name.replace(/_/g, ' ');
   }
 }
+
+const VARIANT_RULES = `You are proposing design variants for one selected element in OpenCanvas.
+
+Rules for this turn:
+- You may only use the read tools, ask_user, and propose_variant. You cannot edit project files directly.
+- Call propose_variant once per alternative. Each call must include a short label, optional notes, and a single JSX element that replaces the selected element.
+- Keep the same outer purpose as the original element. Vary layout, hierarchy, copy tone or visual treatment as requested.
+- Propose exactly the number of variants the user asked for. Stop when you have proposed that many.
+- Keep replies short. Do not invent files or imports that do not exist in the focused context.`;
 
 /** What will happen if the user allows a gated tool call. */
 export function approvalSummary(name: string, args: Record<string, any>): string {
@@ -207,14 +228,47 @@ export class AiAgent {
 
   /** Starts a turn and returns its id; the turn runs in the background and reports through events. */
   send(request: string, ctx?: AiTurnContext): string {
+    return this.startTurn(request, { ctx });
+  }
+
+  /**
+   * Variant-generation turn: uses only the supplied tools (read-only + propose_variant + ask_user)
+   * and a focused system prompt. Does not keep the exchange in the main chat history.
+   */
+  sendVariants(
+    request: string,
+    opts: { tools: McpTool[]; focusedContext: string; count: number; ctx?: AiTurnContext },
+  ): string {
+    const text = String(request ?? '').trim();
+    if (!text) throw new AiProviderError('Describe the variants you want.');
+    return this.startTurn(text, {
+      ctx: opts.ctx,
+      tools: opts.tools,
+      system: `${VARIANT_RULES}\n\nPropose exactly ${opts.count} variant${opts.count === 1 ? '' : 's'}.\n\n${opts.focusedContext}`,
+      ephemeral: true,
+      allowRunCommand: false,
+    });
+  }
+
+  private startTurn(
+    request: string,
+    opts: {
+      ctx?: AiTurnContext;
+      tools?: McpTool[];
+      system?: string;
+      ephemeral?: boolean;
+      allowRunCommand?: boolean;
+    },
+  ): string {
     const text = String(request ?? '').trim();
     if (!text) throw new AiProviderError('Type what you’d like to change first.');
-    if (this.turnId) throw new AiProviderError('The AI is still working on your last request. Stop it or wait for it to finish.');
+    // A follow-up while busy is queued on the editor side; never surface a “still working” error.
+    if (this.turnId) return this.turnId;
     const turnId = randomUUID();
     this.turnId = turnId;
     this.abort = new AbortController();
     this.deps.emit({ turnId, type: 'start', request: text });
-    void this.run(turnId, text, ctx, this.abort.signal);
+    void this.run(turnId, text, opts.ctx, this.abort.signal, opts);
     return turnId;
   }
 
@@ -237,11 +291,23 @@ export class AiAgent {
     });
   }
 
-  private async run(turnId: string, request: string, ctx: AiTurnContext | undefined, signal: AbortSignal) {
+  private async run(
+    turnId: string,
+    request: string,
+    ctx: AiTurnContext | undefined,
+    signal: AbortSignal,
+    opts: {
+      tools?: McpTool[];
+      system?: string;
+      ephemeral?: boolean;
+      allowRunCommand?: boolean;
+    } = {},
+  ) {
     const { deps } = this;
-    const tools = deps.tools(turnId, request).filter((t) => t.name !== 'undo' && t.name !== 'redo');
-    const toolDefs: ToolDef[] = [...tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })), ASK_USER, ...(deps.runCommand ? [RUN_COMMAND] : [])];
-    const system = `${APP_RULES}\n\n${deps.projectContext()}`;
+    const tools = (opts.tools ?? deps.tools(turnId, request)).filter((t) => t.name !== 'undo' && t.name !== 'redo');
+    const allowRun = opts.allowRunCommand !== false && !!deps.runCommand && !opts.tools;
+    const toolDefs: ToolDef[] = [...tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })), ASK_USER, ...(allowRun ? [RUN_COMMAND] : [])];
+    const system = opts.system ?? `${APP_RULES}\n\n${deps.projectContext()}`;
     const turn: ChatMessage[] = [{ role: 'user', content: [{ type: 'text', text: describeTurnContext(ctx) + request }] }];
     const epoch = this.epoch;
     let stopped = false;
@@ -256,13 +322,16 @@ export class AiAgent {
         let streamed = '';
         let response;
         try {
+          const effort = deps.settings().thinkingEffort ?? 'medium';
+          const maxTokens = effort === 'high' ? 16384 : effort === 'low' ? 4096 : 8192;
           response = await streamChat(
             {
               settings: deps.settings(),
               key: deps.key(),
               system,
-              messages: [...this.history, ...turn],
+              messages: [...(opts.ephemeral ? [] : this.history), ...turn],
               tools: toolDefs,
+              maxTokens,
               signal,
               onText: (delta) => {
                 streamed += delta;
@@ -292,7 +361,7 @@ export class AiAgent {
     } finally {
       const last = turn[turn.length - 1];
       if (last.role !== 'assistant' || last.toolCalls.length) turn.push({ role: 'assistant', text: stopped ? '(Stopped by the user.)' : '(The reply ended early.)', toolCalls: [] });
-      if (epoch === this.epoch) {
+      if (epoch === this.epoch && !opts.ephemeral) {
         this.history.push(...turn);
         this.trimImages();
       }

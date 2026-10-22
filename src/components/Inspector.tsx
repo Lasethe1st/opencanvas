@@ -9,6 +9,7 @@ import { Button, Field, InputShell, Notice, Segmented, SelectShell } from '../ui
 import { FrameworkLabel, PackageManagerLabel } from './BrandLogos';
 import { SCOPE_LABEL } from './Canvas';
 import { BoxModel } from './inspector/BoxModel';
+import { DesignTokenBindings } from './inspector/DesignTokens';
 import { FontPicker } from './inspector/FontPicker';
 import { AlignGrid, ColorInput, CommitInput, CompactInput, CompactSelect, More, Section, StyleField, StyleInput, StyleSelect, ToggleGroup } from './inspector/fields';
 import { useStyleValue } from './inspector/useStyleValue';
@@ -442,6 +443,7 @@ export function Inspector() {
           </Section>
           {(grouped || !NO_TEXT_TAGS.has(selection.tag)) && <TypographySection disabled={disabled} />}
           <AppearanceSection disabled={disabled} isMedia={!grouped && NO_TEXT_TAGS.has(selection.tag)} />
+          <DesignTokenBindings />
           <p className="empty-note legend">
             <span className="marker marker--set" /> set at this breakpoint <span className="marker marker--inherited" /> inherited
             <br />

@@ -35,7 +35,7 @@ export function AiChat() {
   }, [items, thinking]);
 
   const send = async () => {
-    if (!draft.trim() || busy || !ready) return;
+    if (!draft.trim() || !ready) return;
     pinned.current = true;
     await sendToAi(draft);
   };

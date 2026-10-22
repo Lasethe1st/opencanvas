@@ -1,4 +1,6 @@
 /** Plain-text design brief built from the project's direction. Shared by the prompt hand-off and the MCP tools. */
+import type { DesignSystemDocument } from './design-system';
+import { cssVarName } from './design-system';
 import { REFERENCE_ROLES, type DirectionConfig, type PageConfig, type VisualStyle } from './project-config';
 
 function lean(v: number, low: string, high: string): string | null {
@@ -75,6 +77,32 @@ export function buildDesignContext(direction: DirectionConfig, options: DesignCo
     lines.push('');
     lines.push('## Request');
     lines.push(options.request.trim());
+  }
+  return lines.join('\n');
+}
+
+/** Structured brief for the design-system engine (tokens, themes, components). */
+export function buildDesignSystemBrief(doc: DesignSystemDocument): string {
+  const lines: string[] = [];
+  lines.push(`# Design system: ${doc.meta.name}`);
+  lines.push(`Active theme: ${doc.activeThemeId}. Revision ${doc.revision}.`);
+  lines.push('');
+  lines.push('Prefer existing semantic tokens (`var(--…)`) and registered components. Do not invent duplicate tokens or components.');
+  lines.push('');
+  lines.push(`## Tokens (${doc.tokens.length})`);
+  for (const t of doc.tokens.slice(0, MAX_TOKENS_IN_BRIEF)) {
+    const val = t.value.kind === 'raw' ? t.value.value : `{${t.value.ref}}`;
+    lines.push(`- ${t.path} (${t.role}, ${t.type}) → ${cssVarName(t.path)}: ${val}`);
+  }
+  if (doc.tokens.length > MAX_TOKENS_IN_BRIEF) lines.push(`- …and ${doc.tokens.length - MAX_TOKENS_IN_BRIEF} more`);
+  lines.push('');
+  lines.push(`## Themes (${doc.themes.map((t) => t.id).join(', ')})`);
+  if (doc.components.length) {
+    lines.push('');
+    lines.push(`## Components (${doc.components.length})`);
+    for (const c of doc.components.slice(0, 40)) {
+      lines.push(`- ${c.name} (${c.file})${c.tokenDeps.length ? ` tokens: ${c.tokenDeps.join(', ')}` : ''}`);
+    }
   }
   return lines.join('\n');
 }

@@ -106,7 +106,9 @@ export function normalizeAiSettings(raw: unknown): AiSettings {
       baseUrl = providerMeta(provider).defaultBaseUrl;
     }
   }
-  return { provider, model, baseUrl };
+  const thinkingEffort =
+    r.thinkingEffort === 'low' || r.thinkingEffort === 'medium' || r.thinkingEffort === 'high' ? r.thinkingEffort : 'medium';
+  return { provider, model, baseUrl, thinkingEffort };
 }
 
 export function readAiSettings(file: string): AiSettings {

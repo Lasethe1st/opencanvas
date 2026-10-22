@@ -5,15 +5,11 @@
  * gentle motion.
  */
 
-/* 1. Corners: one radius scale */
+/* 1. Corners: tokens.css owns --r-xsm…--r-xl. Only extras live here. */
 :root,
 :root[data-theme],
 [data-theme='dark'] {
-  --r-sm: 8px;
-  --r: 10px;
-  --r-lg: 14px;
-  --r-xl: 18px;
-  --r-panel: 20px;
+  --r-panel: var(--r-xl);
   --r-pill: 999px;
   --control-h: 32px;
 }
@@ -28,33 +24,13 @@
   border-radius: var(--r-lg);
 }
 
-/* 2. Visible keyboard focus everywhere */
+/* 2. Visible keyboard focus — monochrome; canvas selection keeps --select */
 :focus-visible {
-  outline: 2px solid var(--select);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-/* 3. One accent color (light and dark) */
-:root,
-[data-theme='light'] {
-  --accent: var(--select);
-  --accent-hover: #2563eb;
-  --accent-fg: #ffffff;
-  --accent-soft: var(--select-soft);
-  --accent-line: rgba(59, 130, 246, 0.35);
-  --box-margin: rgba(59, 130, 246, 0.05);
-  --box-padding: rgba(59, 130, 246, 0.1);
-}
-
-[data-theme='dark'] {
-  --accent: var(--select);
-  --accent-hover: #6aa1f8;
-  --accent-fg: #ffffff;
-  --accent-soft: var(--select-soft);
-  --accent-line: rgba(79, 143, 247, 0.4);
-  --box-margin: rgba(79, 143, 247, 0.06);
-  --box-padding: rgba(79, 143, 247, 0.12);
-}
+/* 3. Accent stays monochrome from tokens.css (--select is only for canvas selection). */
 
 /* Start screen pills: neutral, with only "Start new project" in the accent */
 .action-pill.action-pill--violet[class],
@@ -627,13 +603,8 @@ kbd, .kbd,
 .toggle-more__select.is-active { background: var(--accent-soft); color: var(--fg); }
 .toggle-more__select select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
 
-/* Squircle corners (progressive enhancement, after jespervos.com/craft/squircles).
-   Radius tokens are scaled by ~1.841 so the squircle sits inside the circular corner it
-   replaces; unsupported browsers keep the plain border-radius. Pills stay round. */
-
-/* Squircles: only token-radius surfaces get the shape, with a compensated radius. Round things stay round. */
+/* Squircles: shape only — do not rescale radius tokens (8px stays 8px). */
 @supports (corner-shape: squircle) {
-  :root, :root[data-theme] { --r-sm: calc(8px * 1.4); --r: calc(10px * 1.4); --r-lg: calc(14px * 1.841); --r-xl: calc(18px * 1.841); --r-panel: calc(20px * 1.841); }
   .ai-card,
   .ai-card__command,
   .ai-card__text input,
@@ -830,11 +801,6 @@ kbd, .kbd,
   corner-shape: round;
 }
 
-button:not(.theme-option):not(.ai-provider):not(.template-card):not(.export-option) {
-  border-radius: 999px;
-  corner-shape: round;
-}
-
 .tree-row.is-hovered {
   box-shadow: inset 0 0 0 1px var(--line-strong);
 }
@@ -848,12 +814,14 @@ button:not(.theme-option):not(.ai-provider):not(.template-card):not(.export-opti
 }
 
 .theme-option.is-active {
-  border-color: var(--line-strong);
+  border-color: transparent;
+  background: var(--accent-soft);
 }
 
 .template-card.is-selected {
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-md);
+  border-color: transparent;
+  background: var(--accent-soft);
+  box-shadow: none;
 }
 
 .minimap__view {

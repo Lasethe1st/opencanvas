@@ -1,10 +1,12 @@
 /** In-app AI: provider settings and the events a turn streams to the editor. Keys never leave the main process. */
 
-export type AiProviderKind = 'anthropic' | 'openai' | 'ollama' | 'lmstudio' | 'custom';
+export type AiProviderKind = 'anthropic' | 'openai' | 'xai' | 'ollama' | 'lmstudio' | 'custom';
 
 export interface AiProviderMeta {
   id: AiProviderKind;
   label: string;
+  /** Short product name for the composer (Claude, ChatGPT, Grok…). */
+  product: string;
   /** Wire protocol the provider speaks. */
   protocol: 'anthropic' | 'openai';
   defaultBaseUrl: string;
@@ -14,22 +16,33 @@ export interface AiProviderMeta {
 }
 
 export const AI_PROVIDERS: AiProviderMeta[] = [
-  { id: 'anthropic', label: 'Anthropic', protocol: 'anthropic', defaultBaseUrl: 'https://api.anthropic.com', needsKey: true, local: false },
-  { id: 'openai', label: 'OpenAI', protocol: 'openai', defaultBaseUrl: 'https://api.openai.com/v1', needsKey: true, local: false },
-  { id: 'ollama', label: 'Ollama', protocol: 'openai', defaultBaseUrl: 'http://localhost:11434/v1', needsKey: false, local: true },
-  { id: 'lmstudio', label: 'LM Studio', protocol: 'openai', defaultBaseUrl: 'http://localhost:1234/v1', needsKey: false, local: true },
-  { id: 'custom', label: 'Other OpenAI-compatible', protocol: 'openai', defaultBaseUrl: '', needsKey: false, local: false },
+  { id: 'anthropic', label: 'Anthropic', product: 'Claude', protocol: 'anthropic', defaultBaseUrl: 'https://api.anthropic.com', needsKey: true, local: false },
+  { id: 'openai', label: 'OpenAI', product: 'ChatGPT', protocol: 'openai', defaultBaseUrl: 'https://api.openai.com/v1', needsKey: true, local: false },
+  { id: 'xai', label: 'xAI', product: 'Grok', protocol: 'openai', defaultBaseUrl: 'https://api.x.ai/v1', needsKey: true, local: false },
+  { id: 'ollama', label: 'Ollama', product: 'Ollama', protocol: 'openai', defaultBaseUrl: 'http://localhost:11434/v1', needsKey: false, local: true },
+  { id: 'lmstudio', label: 'LM Studio', product: 'LM Studio', protocol: 'openai', defaultBaseUrl: 'http://localhost:1234/v1', needsKey: false, local: true },
+  { id: 'custom', label: 'Other OpenAI-compatible', product: 'Custom', protocol: 'openai', defaultBaseUrl: '', needsKey: false, local: false },
 ];
 
 export const providerMeta = (id: AiProviderKind): AiProviderMeta => AI_PROVIDERS.find((p) => p.id === id) ?? AI_PROVIDERS[0];
+
+/** How hard the in-app model should work on a turn (maps to reply budget). */
+export type AiThinkingEffort = 'low' | 'medium' | 'high';
 
 export interface AiSettings {
   provider: AiProviderKind;
   model: string;
   baseUrl: string;
+  /** Optional — defaults to medium when omitted. */
+  thinkingEffort?: AiThinkingEffort;
 }
 
-export const defaultAiSettings = (): AiSettings => ({ provider: 'anthropic', model: '', baseUrl: AI_PROVIDERS[0].defaultBaseUrl });
+export const defaultAiSettings = (): AiSettings => ({
+  provider: 'anthropic',
+  model: '',
+  baseUrl: AI_PROVIDERS[0].defaultBaseUrl,
+  thinkingEffort: 'medium',
+});
 
 export interface AiStatus {
   settings: AiSettings;

@@ -1,5 +1,8 @@
-import { defaultAiSettings, providerMeta, type AiEvent, type AiProviderKind, type AiSettings, type AiStatus } from '../../shared/ai';
+import { providerMeta, type AiEvent, type AiProviderKind, type AiSettings, type AiStatus } from '../../shared/ai';
 import type { OpenCanvasApi } from '../../shared/api';
+import type { VoiceChatMessage } from '../../shared/voice';
+import type { VariantRecord } from '../../shared/variants';
+import { VARIANT_COUNT, clampVariantCount } from '../../shared/variants';
 import type { InspirationProviderInfo, InspirationResult } from '../../shared/inspiration';
 import {
   componentName,
@@ -287,18 +290,52 @@ function mockInspiration(): OpenCanvasApi['inspiration'] {
 
 /** AI stand-in: plays a scripted turn (text, a tool call, a clarifying question) so the dock chat can be styled. */
 function mockAi(): OpenCanvasApi['ai'] {
-  let settings: AiSettings = defaultAiSettings();
-  const keys = new Set<AiProviderKind>();
+  // Browser preview defaults to Claude and stays ready so the home chat demo works without Settings keys.
+  let settings: AiSettings = {
+    provider: 'anthropic',
+    model: 'claude-sonnet',
+    baseUrl: providerMeta('anthropic').defaultBaseUrl,
+    thinkingEffort: 'medium',
+  };
+  const keys = new Set<AiProviderKind>(['anthropic', 'openai', 'xai']);
   let listeners: ((e: AiEvent) => void)[] = [];
   let pending: { id: string; turnId: string; resolve: (answer: string) => void } | null = null;
   let busy = false;
   let stop = false;
   const emit = (e: AiEvent) => listeners.forEach((l) => l(e));
   const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const previewModels = (provider: AiProviderKind): { id: string; label: string }[] => {
+    switch (provider) {
+      case 'anthropic':
+        return [
+          { id: 'claude-opus', label: 'Claude Opus' },
+          { id: 'claude-sonnet', label: 'Claude Sonnet' },
+          { id: 'claude-haiku', label: 'Claude Haiku' },
+        ];
+      case 'openai':
+        return [
+          { id: 'fable-5.1', label: 'Fable 5.1' },
+          { id: 'gpt-6', label: 'GPT-6' },
+          { id: 'gpt-4o', label: 'GPT-4o' },
+          { id: 'clade', label: 'Clade' },
+        ];
+      case 'xai':
+        return [
+          { id: 'astra', label: 'Astra' },
+          { id: 'grok-3', label: 'Grok 3' },
+        ];
+      case 'ollama':
+        return [{ id: 'llama3.2', label: 'llama3.2' }];
+      case 'lmstudio':
+        return [{ id: 'local-model', label: 'Local model' }];
+      default:
+        return [{ id: 'custom-model', label: 'Custom model' }];
+    }
+  };
   const status = (): AiStatus => {
     const meta = providerMeta(settings.provider);
-    const hasKey = keys.has(settings.provider);
-    const reason = meta.needsKey && !hasKey ? `Add your ${meta.label} API key.` : !settings.baseUrl ? 'Enter the server URL.' : !settings.model ? 'Choose a model.' : null;
+    const hasKey = keys.has(settings.provider) || !meta.needsKey;
+    const reason = !settings.baseUrl && meta.id === 'custom' ? 'Enter the server URL.' : !settings.model ? 'Choose a model.' : null;
     return { settings, hasKey, ready: !reason, reason, keyStorage: 'encrypted', busy };
   };
   const stream = async (turnId: string, text: string) => {
@@ -318,10 +355,14 @@ function mockAi(): OpenCanvasApi['ai'] {
     stop = false;
     emit({ turnId, type: 'start', request });
     try {
-      await stream(turnId, 'Sure. I’ll start by looking at the page and your direction. ');
-      emit({ turnId, type: 'tool-start', callId: 'c1', tool: 'get_outline', summary: 'Reading the page structure' });
+      await stream(turnId, 'Sure. I’ll shape a brief from that, then outline the first page. ');
+      emit({ turnId, type: 'tool-start', callId: 'c1', tool: 'get_outline', summary: 'Reading your brief' });
       await wait(500);
-      emit({ turnId, type: 'tool-end', callId: 'c1', ok: true, summary: 'Read the page structure' });
+      emit({ turnId, type: 'tool-end', callId: 'c1', ok: true, summary: 'Read your brief' });
+      if (stop) return;
+      emit({ turnId, type: 'tool-start', callId: 'c2', tool: 'get_selection', summary: 'Sketching a page outline' });
+      await wait(450);
+      emit({ turnId, type: 'tool-end', callId: 'c2', ok: true, summary: 'Sketched a page outline' });
       if (stop) return;
       const answer = await ask(turnId, {
         turnId,
@@ -329,11 +370,10 @@ function mockAi(): OpenCanvasApi['ai'] {
         question: { id: 'q1', question: 'How many pricing plans should the section show?', options: ['Two plans', 'Three plans', 'Four plans'], allowText: true },
       });
       emit({ turnId, type: 'resolved', id: 'q1', answer });
-      await stream(turnId, `Got it: ${answer.toLowerCase()}. This is the browser preview, so nothing is written to disk. `);
-      emit({ turnId, type: 'tool-start', callId: 'c2', tool: 'insert_jsx', summary: 'Inserting a pricing section' });
-      await wait(700);
-      emit({ turnId, type: 'tool-end', callId: 'c2', ok: false, summary: 'Edits aren’t available in the browser preview' });
-      await stream(turnId, 'Run OpenCanvas with npm start to let the AI edit the project.');
+      await stream(
+        turnId,
+        `Got it: ${answer.toLowerCase()}. Here’s a starter section shape you can take into project setup:\n\n\`\`\`tsx\n<section data-oc-name="Pricing">\n  <h2>Pricing</h2>\n  <p>${answer}</p>\n</section>\n\`\`\`\n\nContinue to project when you’re ready — this browser preview won’t write files.`,
+      );
     } finally {
       busy = false;
       pending = null;
@@ -344,6 +384,10 @@ function mockAi(): OpenCanvasApi['ai'] {
     status: async () => status(),
     setSettings: async (next) => {
       settings = { ...next };
+      if (!settings.model) {
+        const first = previewModels(settings.provider)[0];
+        if (first) settings = { ...settings, model: first.id };
+      }
       return status();
     },
     setKey: async (key) => {
@@ -355,16 +399,14 @@ function mockAi(): OpenCanvasApi['ai'] {
       keys.delete(settings.provider);
       return status();
     },
-    listModels: async () => [
-      { id: 'sample-large', label: 'sample-large (browser preview)' },
-      { id: 'sample-small', label: 'sample-small (browser preview)' },
-    ],
+    listModels: async () => previewModels(settings.provider),
     test: async () => {
       if (!status().ready) throw new Error(status().reason ?? 'Not ready.');
       return 'OK (browser preview sample)';
     },
     send: async (request) => {
-      if (busy) throw new Error('The AI is still working on your last request.');
+      // Editor queues follow-ups; never reject with a “still working” toast.
+      if (busy) return `t${Date.now().toString(36)}`;
       const turnId = `t${Date.now().toString(36)}`;
       void run(turnId, request);
       return turnId;
@@ -379,6 +421,103 @@ function mockAi(): OpenCanvasApi['ai'] {
     },
     reset: async () => undefined,
     onEvent: (cb) => {
+      listeners.push(cb);
+      return () => {
+        listeners = listeners.filter((l) => l !== cb);
+      };
+    },
+    voiceCapabilities: async () => {
+      const meta = providerMeta(settings.provider);
+      const hasKey = keys.has(settings.provider) || !meta.needsKey;
+      const providerTts = (settings.provider === 'openai' || settings.provider === 'xai') && hasKey;
+      return {
+        provider: settings.provider,
+        label: meta.product,
+        stt: 'browser' as const,
+        tts: providerTts ? ('provider' as const) : ('browser' as const),
+      };
+    },
+    voiceReply: async (messages: VoiceChatMessage[]) => {
+      await wait(400);
+      const last = [...messages].reverse().find((m) => m.role === 'user')?.text?.trim() || 'that';
+      return `Got it — ${last.slice(0, 80)}. I’ll keep this short for voice; end the session anytime to drop it into chat.`;
+    },
+    voiceSpeak: async (text: string) => ({ kind: 'browser' as const, text }),
+    voiceTranscribe: async () => {
+      await wait(300);
+      return 'Browser preview sample transcript.';
+    },
+  };
+}
+
+function mockVariants() {
+  let variants: VariantRecord[] = [];
+  let listeners: ((v: VariantRecord[]) => void)[] = [];
+  const notify = () => {
+    for (const cb of listeners) cb(variants);
+  };
+  return {
+    generate: async (request: { elementId: string; request: string; count?: number }) => {
+      const count = clampVariantCount(request.count ?? VARIANT_COUNT.default);
+      const setId = `set-${Date.now().toString(36)}`;
+      const created: VariantRecord[] = [];
+      for (let i = 0; i < count; i++) {
+        created.push({
+          id: `v-${Date.now().toString(36)}-${i}`,
+          setId,
+          source: { file: 'src/App.jsx', elementId: request.elementId, label: 'Element', fileHash: 'browser' },
+          request: request.request,
+          label: '',
+          notes: '',
+          createdAt: Date.now(),
+          status: 'generating',
+        });
+      }
+      variants = [...variants.filter((v) => v.status === 'ready' || v.status === 'failed' || v.status === 'stale'), ...created];
+      notify();
+      setTimeout(() => {
+        variants = variants.map((v) =>
+          v.setId === setId
+            ? { ...v, status: 'ready' as const, label: `Alt ${String.fromCharCode(65 + created.indexOf(v))}`, notes: 'Browser preview sample' }
+            : v,
+        );
+        notify();
+      }, 600);
+      return { setId, turnId: `t-${setId}`, variants: created };
+    },
+    cancel: async () => {
+      variants = variants.map((v) => (v.status === 'generating' ? { ...v, status: 'failed' as const, error: 'Stopped' } : v));
+      notify();
+    },
+    list: async () => variants.filter((v) => v.status !== 'discarded' && v.status !== 'applied'),
+    apply: async (id: string) => {
+      const v = variants.find((x) => x.id === id);
+      if (!v || v.status !== 'ready') return { ok: false, error: UNAVAILABLE };
+      variants = variants.map((x) => (x.id === id ? { ...x, status: 'applied' as const } : x.setId === v.setId ? { ...x, status: 'discarded' as const } : x));
+      notify();
+      return { ok: true, selectId: v.source.elementId };
+    },
+    discard: async (id: string) => {
+      variants = variants.map((v) => (v.id === id ? { ...v, status: 'discarded' as const } : v));
+      notify();
+    },
+    discardSet: async (setId: string) => {
+      variants = variants.map((v) => (v.setId === setId ? { ...v, status: 'discarded' as const } : v));
+      notify();
+    },
+    retry: async (id: string) => {
+      const v = variants.find((x) => x.id === id);
+      if (!v) throw new Error('Missing variant');
+      const next = { ...v, status: 'generating' as const, error: undefined, label: '' };
+      variants = variants.map((x) => (x.id === id ? next : x));
+      notify();
+      setTimeout(() => {
+        variants = variants.map((x) => (x.id === id ? { ...x, status: 'ready' as const, label: 'Retry' } : x));
+        notify();
+      }, 400);
+      return { turnId: `retry-${id}`, variant: next };
+    },
+    onChanged: (cb: (v: VariantRecord[]) => void) => {
       listeners.push(cb);
       return () => {
         listeners = listeners.filter((l) => l !== cb);
@@ -502,8 +641,34 @@ export function createBrowserApi(): OpenCanvasApi {
       image: refuse,
       importDesignSystem: refuse,
     },
+    designSystem: {
+      get: async () => ({
+        document: {
+          version: 1 as const,
+          revision: 0,
+          meta: { name: 'Browser preview', updatedAt: Date.now() },
+          tokens: [],
+          themes: [
+            { id: 'light', label: 'Light' },
+            { id: 'dark', label: 'Dark', isDark: true },
+          ],
+          components: [],
+          activeThemeId: 'light',
+          history: [],
+        },
+        issues: [],
+        cssFile: 'src/design-tokens.css',
+      }),
+      setActiveTheme: refuse,
+      upsertToken: refuse,
+      impact: async () => ({ tokenId: '', dependentTokens: [], components: [], styleUsages: 0, styleKeys: [], cssVar: '' }),
+      historyRestore: refuse,
+      export: async () => '{}\n',
+      syncCss: async () => 'src/design-tokens.css',
+    },
     inspiration: mockInspiration(),
     ai: mockAi(),
+    variants: mockVariants(),
     terminal: {
       unavailable: async () => 'The terminal runs in the OpenCanvas desktop app. It isn’t available in this browser preview.',
       create: refuse,

@@ -139,7 +139,7 @@ export async function gitStatus(root: string): Promise<GitStatus> {
 export async function gitInit(root: string) {
   await git(root, ['init', '-b', 'main']);
   const ignore = path.join(root, '.gitignore');
-  if (!fs.existsSync(ignore)) fs.writeFileSync(ignore, 'node_modules\ndist\n.vite\n.DS_Store\n', 'utf8');
+  if (!fs.existsSync(ignore)) fs.writeFileSync(ignore, 'node_modules\ndist\n.vite\n.DS_Store\n.opencanvas/variants\n', 'utf8');
 }
 
 export async function gitSetIdentity(root: string, name: string, email: string) {

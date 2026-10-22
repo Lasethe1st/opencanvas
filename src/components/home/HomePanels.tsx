@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight, FileText, FolderOpen, LayoutTemplate, MessageSquare, Search, Sparkles } from 'lucide-react';
+import { ArrowLeft, ChevronRight, FileText, FolderOpen, LayoutTemplate, MessagesCircle, Search, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import type { RecentProject, TemplateId, TemplateMeta } from '../../../shared/types';
 import type { HomeChat } from '../../lib/home-chats';
@@ -32,12 +32,12 @@ function timeAgo(ms: number) {
 }
 
 function Lead({ children }: { children: ReactNode }) {
-  return <p className="mb-3 ps-1 text-sm text-muted-foreground">{children}</p>;
+  return <p className="mb-3 text-sm text-muted-foreground">{children}</p>;
 }
 
 function Foot({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-3 truncate ps-1 text-xs text-muted-foreground" title={typeof children === 'string' ? children : undefined}>
+    <p className="mt-3 truncate text-xs text-muted-foreground" title={typeof children === 'string' ? children : undefined}>
       {children}
     </p>
   );
@@ -53,7 +53,7 @@ export function NewProjectPanel({ location, busy, onSetup }: { location: string;
         type="button"
         disabled={busy}
         onClick={onSetup}
-        className="flex w-full items-start gap-3 rounded-lg border border-border bg-muted/50 p-3 text-start transition-colors duration-150 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+        className="flex w-full items-start gap-3 rounded-2xl border-0 bg-muted/50 p-3 text-start transition-colors duration-150 hover:bg-accent focus-visible:bg-accent disabled:opacity-50"
       >
         <Sparkles className="mt-0.5 shrink-0" aria-hidden />
         <span className="grid gap-0.5">
@@ -108,8 +108,8 @@ export function TemplatesPanel({ templates, location, busy }: { templates: Templ
             onClick={() => setSelected(t.id)}
             onDoubleClick={create}
             className={cn(
-              'rounded-lg border p-2.5 text-start transition-colors duration-150 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-              selected === t.id ? 'border-ring bg-accent' : 'border-border',
+              'rounded-2xl border-0 p-2.5 text-start transition-colors duration-150 hover:bg-accent focus-visible:bg-secondary',
+              selected === t.id ? 'bg-accent' : 'bg-muted/40',
             )}
           >
             <strong className="block text-sm font-medium">{t.name}</strong>
@@ -199,7 +199,7 @@ export function RecentChatsPanel({ chats, onPick }: { chats: HomeChat[]; onPick:
   return (
     <div className="flex flex-col gap-0.5">
       {chats.map((chat) => (
-        <ProjectRow key={chat.id} icon={<MessageSquare className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={chat.text} detail={timeAgo(chat.at)} path={chat.text} onClick={() => onPick(chat)} />
+        <ProjectRow key={chat.id} icon={<MessagesCircle className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={chat.text} detail={timeAgo(chat.at)} path={chat.text} onClick={() => onPick(chat)} />
       ))}
     </div>
   );
@@ -249,9 +249,12 @@ export function NewProjectFlow({
   if (view === 'start')
     return (
       <div ref={ref} className="flex flex-col gap-3">
-        <NewProjectPanel location={location} busy={busy} onSetup={onSetup} />
+        {/* px-2 matches ProjectRow inset used in other nav flyouts */}
+        <div className="px-2">
+          <NewProjectPanel location={location} busy={busy} onSetup={onSetup} />
+        </div>
         <div className="flex flex-col gap-0.5 border-t border-border pt-2">
-          <p className="mb-1 ps-1 text-xs text-muted-foreground">Other ways to start</p>
+          <p className="mb-1 px-2 text-xs text-muted-foreground">Other ways to start</p>
           {MORE_WAYS.map(({ id, label, icon: Icon }) => (
             <Button key={id} variant="ghost" className="h-9 justify-start gap-3 px-2 [&_svg]:size-4" onClick={() => onView(id)}>
               <Icon />
@@ -269,7 +272,9 @@ export function NewProjectFlow({
         <ArrowLeft />
         <span className="truncate">{title}</span>
       </Button>
-      {view === 'templates' ? <TemplatesPanel templates={templates} location={location} busy={busy} /> : view === 'github' ? <GithubPanel key={repoDraft} initial={repoDraft} location={location} busy={busy} /> : <OpenPanel />}
+      <div className="px-2">
+        {view === 'templates' ? <TemplatesPanel templates={templates} location={location} busy={busy} /> : view === 'github' ? <GithubPanel key={repoDraft} initial={repoDraft} location={location} busy={busy} /> : <OpenPanel />}
+      </div>
     </div>
   );
 }
@@ -319,7 +324,7 @@ export function SearchPanel({ recent, chats, onGithub, onChat, onDone }: { recen
       key: c.id,
       kind: 'chat',
       run: () => onChat(c),
-      render: (isActive, hover) => <ProjectRow icon={<MessageSquare className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={c.text} detail={`Chat · ${timeAgo(c.at)}`} path={c.text} active={isActive} onMouseEnter={hover} onClick={() => onChat(c)} />,
+      render: (isActive, hover) => <ProjectRow icon={<MessagesCircle className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={c.text} detail={`Chat · ${timeAgo(c.at)}`} path={c.text} active={isActive} onMouseEnter={hover} onClick={() => onChat(c)} />,
     });
 
   const activeRow = Math.min(active, Math.max(0, rows.length - 1));

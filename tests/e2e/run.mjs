@@ -144,8 +144,10 @@ async function waitFor(fn, message, timeout = 15000) {
 }
 
 /**
- * A stand-in OpenAI-compatible server. The first chat request with tools gets a streamed reply that
- * changes the selected element's text and colour; the follow-up gets a closing sentence.
+ * A stand-in OpenAI-compatible server.
+ * - Default: set_styles + set_text on the selected element.
+ * - When tools include propose_variant: proposes two JSX alternatives.
+ * - When the user message mentions "structural insert": insert_jsx for the build overlay.
  */
 async function mockOpenAi() {
   const requests = [];
@@ -165,7 +167,57 @@ async function mockOpenAi() {
       res.end('data: [DONE]\n\n');
     };
     if (!json.tools) return send([chunk({ content: 'OK' }), chunk({}, 'stop')]);
-    if (json.messages.some((m) => m.role === 'tool')) return send([chunk({ content: 'Done: ' }), chunk({ content: 'the heading is orange.' }), chunk({}, 'stop')]);
+    const toolNames = (json.tools || []).map((t) => t.function?.name || t.name);
+    const lastUser = [...json.messages].reverse().find((m) => m.role === 'user');
+    const userText = typeof lastUser?.content === 'string' ? lastUser.content : JSON.stringify(lastUser?.content ?? '');
+
+    if (toolNames.includes('propose_variant')) {
+      if (json.messages.some((m) => m.role === 'tool')) {
+        const toolResults = json.messages.filter((m) => m.role === 'tool').length;
+        if (toolResults >= 2) return send([chunk({ content: 'Proposed two variants.' }), chunk({}, 'stop')]);
+        const args = JSON.stringify({
+          label: 'Soft',
+          notes: 'Quieter type',
+          jsx: '<h2 data-oc-name="Heading">Soft take</h2>',
+        });
+        return send([
+          chunk({ role: 'assistant', content: 'Second variant.' }),
+          chunk({ tool_calls: [{ index: 0, id: 'call_pv2', type: 'function', function: { name: 'propose_variant', arguments: args } }] }),
+          chunk({}, 'tool_calls'),
+        ]);
+      }
+      const args = JSON.stringify({
+        label: 'Bold',
+        notes: 'Stronger headline',
+        jsx: '<h2 data-oc-name="Heading">Bold take</h2>',
+      });
+      return send([
+        chunk({ role: 'assistant', content: 'Proposing variants.' }),
+        chunk({ tool_calls: [{ index: 0, id: 'call_pv1', type: 'function', function: { name: 'propose_variant', arguments: args } }] }),
+        chunk({}, 'tool_calls'),
+      ]);
+    }
+
+    if (json.messages.some((m) => m.role === 'tool')) {
+      if (/structural insert/i.test(userText) || requests.some((r) => /structural insert/i.test(JSON.stringify(r.messages ?? [])))) {
+        return send([chunk({ content: 'Inserted a note block.' }), chunk({}, 'stop')]);
+      }
+      return send([chunk({ content: 'Done: ' }), chunk({ content: 'the heading is orange.' }), chunk({}, 'stop')]);
+    }
+
+    if (/structural insert/i.test(userText)) {
+      const id = /\(id (\S+)\)/.exec(userText)?.[1] ?? /\(id (\S+)\)/.exec(json.messages.find((m) => m.role === 'user')?.content ?? '')?.[1] ?? '';
+      const args = JSON.stringify({
+        parent_id: id,
+        jsx: '<aside data-oc-name="AI note"><p>Built by AI</p></aside>',
+      });
+      return send([
+        chunk({ role: 'assistant', content: 'Inserting a block.' }),
+        chunk({ tool_calls: [{ index: 0, id: 'call_insert', type: 'function', function: { name: 'insert_jsx', arguments: args } }] }),
+        chunk({}, 'tool_calls'),
+      ]);
+    }
+
     const id = /\(id (\S+)\)/.exec(json.messages[1].content)?.[1] ?? '';
     const styleArgs = JSON.stringify({ ids: [id], styles: { color: 'rgb(234, 88, 12)' } });
     const textArgs = JSON.stringify({ id, text: 'Hello from the AI' });
@@ -549,6 +601,48 @@ try {
   await waitFor(async () => (await frame.locator('h2').first().textContent()) === h2Before, 'one undo restores the text');
   await waitFor(async () => (await frame.locator('h2').first().evaluate((el) => getComputedStyle(el).color)) !== 'rgb(234, 88, 12)', 'and the colour');
   ok('one undo reverts everything the AI did in that reply');
+
+  step('Variants: generate two alternatives without touching source, then apply + undo');
+  await frame.locator('h2').first().dispatchEvent('click');
+  await waitFor(async () => (await selectedTag()) === '<h2>', 'h2 selected for variants');
+  const sourceBeforeVariants = readProject('src/App.jsx');
+  await page.locator('.dock__mode[aria-label="Variants"]').click();
+  await page.getByRole('button', { name: 'Generate' }).waitFor();
+  await page.locator('.variant-form select').selectOption('2');
+  await page.locator('.variant-form textarea').fill('Two distinct headlines');
+  await page.getByRole('button', { name: 'Generate' }).click();
+  await waitFor(async () => (await page.locator('.variant-card').count()) >= 2, 'two variant cards', 30000);
+  await waitFor(async () => (await page.locator('.variant-card__status', { hasText: 'ready' }).count()) >= 2, 'both ready', 30000);
+  await waitFor(async () => (await page.locator('iframe[data-variant]').count()) >= 2, 'two variant frames on canvas', 20000);
+  assert.equal(readProject('src/App.jsx'), sourceBeforeVariants, 'source unchanged while variants preview');
+  await shot('04i-variants');
+  await page.locator('.variant-card').first().getByRole('button', { name: 'Apply' }).click();
+  await waitFor(() => readProject('src/App.jsx') !== sourceBeforeVariants, 'apply writes source');
+  assert.match(readProject('src/App.jsx'), /Bold take|Soft take/);
+  await undoKey();
+  await waitFor(() => readProject('src/App.jsx') === sourceBeforeVariants, 'one undo restores original');
+  ok('variants render on canvas with source untouched; apply is one undo step');
+
+  step('Build animation: structural insert shows stages then cleans up');
+  await frame.locator('h2').first().dispatchEvent('click');
+  await waitFor(async () => (await selectedTag()) === '<h2>', 'h2 selected for build');
+  await page.locator('.dock__mode[aria-label="Ask AI"]').click();
+  const buildInput = page.getByLabel('Message the AI');
+  await buildInput.fill('Do a structural insert beside this heading');
+  await buildInput.press('Enter');
+  await waitFor(async () => (await page.locator('.build-overlay').count()) > 0, 'build overlay appears', 30000);
+  const stages = [];
+  await waitFor(async () => {
+    const stage = await page.locator('.build-overlay').getAttribute('data-stage');
+    if (stage && stages[stages.length - 1] !== stage) stages.push(stage);
+    return stages.includes('grid') || stages.includes('padding') || stages.includes('layout') || stages.includes('skeleton') || stages.includes('finished');
+  }, 'build stage observed', 20000);
+  await waitFor(async () => (await frame.locator('[data-oc-name="AI note"]').count()) > 0, 'structural insert landed', 30000);
+  await waitFor(async () => (await page.locator('.build-overlay').count()) === 0, 'build overlay cleaned up', 20000);
+  assert.ok(stages.length >= 1, `saw stages: ${stages.join(' → ')}`);
+  await shot('04j-build');
+  ok(`build overlay ran (${stages.join(' → ')}) and was removed`);
+
   await page.locator('.dock__mode[aria-label="Ask AI"]').click();
   ai.close();
   await frame.locator('h2').first().dispatchEvent('click');

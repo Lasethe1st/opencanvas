@@ -24,13 +24,13 @@ export async function buildProjectZip(project: ProjectInfo, extra: Record<string
       const full = path.join(dir, entry.name);
       const rel = toRel(project.root, full);
       if (entry.isDirectory()) {
-        if (IGNORED_DIRS.has(entry.name)) {
+        if (IGNORED_DIRS.has(entry.name) || rel === '.opencanvas/variants' || rel.startsWith('.opencanvas/variants/')) {
           skipped.push(`${rel}/`);
           continue;
         }
         visit(full);
       } else if (entry.isFile()) {
-        if (IGNORED_FILES.test(entry.name)) {
+        if (IGNORED_FILES.test(entry.name) || rel.startsWith('.opencanvas/variants/')) {
           skipped.push(rel);
           continue;
         }

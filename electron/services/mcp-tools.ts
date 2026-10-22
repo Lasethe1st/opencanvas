@@ -16,9 +16,11 @@ import {
   type ProjectInfo,
   type SourceElementInfo,
 } from '../../shared/types';
-import { buildDesignContext, describeStyle } from '../../shared/design-context';
+import { buildDesignContext, buildDesignSystemBrief, describeStyle } from '../../shared/design-context';
 import { normalizePath, type PageRouting, type ProjectPagesState } from '../../shared/project-config';
+import type { VariantRecord } from '../../shared/variants';
 import { McpToolError, type McpContent, type McpTool } from './mcp';
+import { designSystemStatus, proposeTokenChange, tokenImpact } from './design-system';
 import { remoteWebUrl } from './git';
 import { isEditablePath, listTree, safeResolve } from './project';
 
@@ -50,15 +52,39 @@ export interface McpContext {
     /** Gets the pushed commit live on Vercel. */
     goLive(): Promise<GoLiveResult>;
   };
+  /** Optional: variant proposal store (Milestone 3). */
+  variants?: {
+    propose(args: { setId?: string; elementId?: string; label: string; notes?: string; jsx: string }): VariantRecord;
+    list(): VariantRecord[];
+    apply(id: string): { ok: boolean; error?: string; selectId?: string | null };
+  };
+}
+
+/** Read-only tools plus propose_variant for in-app variant generation turns. */
+export const VARIANT_TOOL_NAMES = [
+  'get_project',
+  'get_design_direction',
+  'get_design_system',
+  'get_outline',
+  'inspect_element',
+  'read_file',
+  'screenshot',
+  'propose_variant',
+] as const;
+
+export function createVariantTools(ctx: McpContext): McpTool[] {
+  const all = createMcpTools(ctx);
+  const allow = new Set<string>(VARIANT_TOOL_NAMES);
+  return all.filter((t) => allow.has(t.name));
 }
 
 export const MCP_INSTRUCTIONS = `OpenCanvas is a visual editor for React + Vite projects. These tools edit the project that is open in the app; every change shows up live on the canvas and can be undone by the user (or with the undo tool).
 
 Workflow:
-1. Call get_project, then get_outline to see the JSX element tree. Element ids look like "src/App.jsx:12:6" (file:line:column of the opening tag). Before designing anything new, call get_design_direction and follow the user's chosen style, typeface, icon pack, tokens and references. list_pages shows every page and the file that renders it.
+1. Call get_project, then get_outline to see the JSX element tree. Element ids look like "src/App.jsx:12:6" (file:line:column of the opening tag). Before designing anything new, call get_design_direction and get_design_system. Prefer existing semantic tokens (var(--…)) and registered components; do not invent duplicate tokens. list_pages shows every page and the file that renders it.
 2. Ids shift whenever a file changes. Every edit returns the new outline of the files it touched, so use ids from the latest result only.
 3. Build structure with insert_jsx (any JSX element, inserted inside the target when it's a container such as div/section/header/nav/ul/form, otherwise after it) or insert_element (preset blocks).
-4. Style with set_styles. It writes CSS rules to the project's open-canvas.css keyed by a data-oc attribute, per breakpoint (base, tablet, mobile) and state (default, hover). Prefer this over inline style props or new classes so the user can keep editing visually.
+4. Style with set_styles. It writes CSS rules to the project's open-canvas.css keyed by a data-oc attribute, per breakpoint (base, tablet, mobile) and state (default, hover). Prefer var(--token) from get_design_system over new hex/rgb values. For broad token changes, call propose_token_change with apply=false (or design_system_impact), summarize scope to the user, then call propose_token_change with apply=true.
 5. Check your work with screenshot (desktop ~1440, tablet ~834, mobile ~390; pass "page" for pages other than "/").
 6. To save or share the site, use git_status, git_commit and git_publish (creates or connects a GitHub repository and pushes). go_live does all of that and then publishes on Vercel.
 7. To find bugs, call run_audit. It tests the live page at every screen size and returns each problem with a suggested fix and the element id; fix them, then run it again to confirm.`;
@@ -256,6 +282,98 @@ export function createMcpTools(ctx: McpContext): McpTool[] {
           }
         }
         return out;
+      },
+    },
+    {
+      name: 'get_design_system',
+      title: 'Get design system',
+      description:
+        'The project design-system engine: semantic/primitive tokens (with CSS variable names), themes, registered components, and validation issues. Prefer these tokens via var(--…) in set_styles. Call before inventing colors or components.',
+      inputSchema: { type: 'object', properties: {} },
+      annotations: { readOnlyHint: true },
+      run: () => {
+        const p = requireProject(ctx);
+        const status = designSystemStatus(p);
+        const issues =
+          status.issues.length === 0
+            ? 'No validation issues.'
+            : status.issues.map((i) => `- [${i.severity}] ${i.message}`).join('\n');
+        return [text(`${buildDesignSystemBrief(status.document)}\n\n## Validation\n${issues}\n\nCSS file: ${status.cssFile}`)];
+      },
+    },
+    {
+      name: 'design_system_impact',
+      title: 'Design system impact',
+      description:
+        'Who depends on a token (other tokens, components, style-file var() usages). Call before proposing a broad token change and summarize the impact to the user.',
+      inputSchema: {
+        type: 'object',
+        properties: { token_id: { type: 'string', description: 'Token id or path, e.g. color.primary' } },
+        required: ['token_id'],
+      },
+      annotations: { readOnlyHint: true },
+      run: (args) => {
+        const p = requireProject(ctx);
+        const id = String(args.token_id ?? '').trim();
+        if (!id) throw new McpToolError('token_id is required.');
+        const impact = tokenImpact(p, id);
+        return [
+          text(
+            [
+              `Impact for ${impact.tokenId} (${impact.cssVar}):`,
+              `- Dependent tokens: ${impact.dependentTokens.length ? impact.dependentTokens.join(', ') : 'none'}`,
+              `- Components: ${impact.components.length ? impact.components.join(', ') : 'none'}`,
+              `- Style file var() usages: ${impact.styleUsages}`,
+              `- data-oc keys: ${impact.styleKeys.length ? impact.styleKeys.join(', ') : 'none'}`,
+            ].join('\n'),
+          ),
+        ];
+      },
+    },
+    {
+      name: 'propose_token_change',
+      title: 'Propose token change',
+      description:
+        'Preview or apply a design-system token update. Call with apply=false first; the result includes impact (dependent tokens, components, data-oc keys). After summarizing for the user, call again with apply=true to write .opencanvas/design-system.json and regenerate design-tokens.css.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          token_id: { type: 'string', description: 'Token id or path, e.g. color.primary' },
+          value: { type: 'string', description: 'New value: literal (#hex, 16px, …), {alias.path}, or var(--token)' },
+          apply: { type: 'boolean', description: 'false (default) = preview + impact only; true = write the change' },
+          theme_id: { type: 'string', description: 'Optional theme override id (e.g. dark). Omit to change the default value.' },
+          summary: { type: 'string', description: 'Optional history summary when applying' },
+        },
+        required: ['token_id', 'value'],
+      },
+      annotations: { readOnlyHint: false },
+      run: (args) => {
+        const p = requireProject(ctx);
+        const tokenId = String(args.token_id ?? '').trim();
+        const value = String(args.value ?? '').trim();
+        if (!tokenId || !value) throw new McpToolError('token_id and value are required.');
+        const result = proposeTokenChange(p, {
+          tokenId,
+          value,
+          apply: !!args.apply,
+          themeId: args.theme_id ? String(args.theme_id) : undefined,
+          summary: args.summary ? String(args.summary) : undefined,
+        });
+        const impact = result.impact;
+        return [
+          text(
+            [
+              result.applied ? `Applied change to ${result.path}.` : `Proposed change to ${result.path} (not applied).`,
+              `- ${result.previous} → ${result.next}`,
+              `- Dependent tokens: ${impact.dependentTokens.length ? impact.dependentTokens.join(', ') : 'none'}`,
+              `- Components: ${impact.components.length ? impact.components.join(', ') : 'none'}`,
+              `- Style usages: ${impact.styleUsages}; data-oc: ${impact.styleKeys.length ? impact.styleKeys.join(', ') : 'none'}`,
+              result.applied ? '' : 'Call again with apply=true after the user confirms.',
+            ]
+              .filter(Boolean)
+              .join('\n'),
+          ),
+        ];
       },
     },
     {
@@ -660,6 +778,65 @@ export function createMcpTools(ctx: McpContext): McpTool[] {
       run: async () => {
         requireProject(ctx);
         return [text(String(await ctx.renderer('redo')))];
+      },
+    },
+    {
+      name: 'propose_variant',
+      title: 'Propose variant',
+      description:
+        'Stores one alternative JSX element for the selected source element as a temporary variant. Does not change project files until the user applies it. Call once per alternative.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          label: str('Short name for this alternative'),
+          notes: str('Optional one-line note about what differs'),
+          jsx: str('A single JSX element that replaces the selected element'),
+          element_id: str('Element id when proposing outside an in-app generation turn'),
+          set_id: str('Optional generation set id'),
+        },
+        required: ['label', 'jsx'],
+      },
+      annotations: { readOnlyHint: true },
+      run: (args) => {
+        requireProject(ctx);
+        if (!ctx.variants) throw new McpToolError('Variants are not available.');
+        const record = ctx.variants.propose({
+          label: requireString(args, 'label'),
+          notes: typeof args.notes === 'string' ? args.notes : '',
+          jsx: requireString(args, 'jsx'),
+          elementId: typeof args.element_id === 'string' ? args.element_id : undefined,
+          setId: typeof args.set_id === 'string' ? args.set_id : undefined,
+        });
+        return [text(`Variant ready: ${record.label} (${record.id})\nStatus: ${record.status}`)];
+      },
+    },
+    {
+      name: 'list_variants',
+      title: 'List variants',
+      description: 'Lists temporary variant proposals for the open project (ready, generating, failed, or stale).',
+      inputSchema: { type: 'object', properties: {} },
+      annotations: { readOnlyHint: true },
+      run: () => {
+        requireProject(ctx);
+        if (!ctx.variants) throw new McpToolError('Variants are not available.');
+        return [text(JSON.stringify(ctx.variants.list(), null, 2))];
+      },
+    },
+    {
+      name: 'apply_variant',
+      title: 'Apply variant',
+      description: 'Writes a ready variant into the real source file as one undoable edit. Fails with a stale error when the file changed since generation.',
+      inputSchema: {
+        type: 'object',
+        properties: { id: str('Variant id from list_variants or propose_variant') },
+        required: ['id'],
+      },
+      run: (args) => {
+        requireProject(ctx);
+        if (!ctx.variants) throw new McpToolError('Variants are not available.');
+        const result = ctx.variants.apply(requireString(args, 'id'));
+        if (!result.ok) throw new McpToolError(result.error || 'Could not apply the variant.');
+        return [text(`Applied variant.${result.selectId ? `\nElement id: ${result.selectId}` : ''}`)];
       },
     },
   ];

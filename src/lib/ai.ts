@@ -2,23 +2,58 @@
 import type { AiEvent } from '../../shared/ai';
 import { reduceAiChat } from '../../shared/ai-chat';
 import type { AiTurnContext } from '../../shared/api';
+import { IDLE_BUILD, reduceBuild } from '../../shared/build-stages';
 import { errorMessage } from './actions';
 import { api } from './api';
 import { activePage } from './pages';
 import { activeFrame, getState, setState, toast } from './store';
 
+/** Follow-ups while a turn is running — drained when the current turn finishes. */
+const pendingRequests: string[] = [];
+/** Blocks overlapping send() calls before aiTurnId is set from the start event. */
+let sendLock = false;
+
+function isBusyMessage(err: unknown): boolean {
+  return /still working on your last request/i.test(errorMessage(err));
+}
+
+function drainQueue() {
+  const next = pendingRequests.shift();
+  if (next) void sendToAi(next);
+}
+
 export function handleAiEvent(event: AiEvent) {
   const s = getState();
+  const frameId = s.activeFrameId;
+  const inProject = !!s.project;
   if (event.type === 'start') {
-    if (!s.project) return;
-    setState({ aiTurnId: event.turnId, aiChat: reduceAiChat(s.aiChat, event) });
+    setState({
+      aiTurnId: event.turnId,
+      aiChat: reduceAiChat(s.aiChat, event),
+      ...(inProject ? { build: reduceBuild(s.build, event, { frameId }) } : {}),
+    });
     return;
   }
-  // Events from a turn that belonged to a project that has since been closed.
+  // Events from a turn that belonged to a project that has since been closed / a different turn.
   if (event.turnId !== s.aiTurnId) return;
-  setState({ aiChat: reduceAiChat(s.aiChat, event), ...(event.type === 'done' ? { aiTurnId: null } : {}) });
-  // The AI is waiting on the user, so bring the conversation into view.
-  if ((event.type === 'question' || event.type === 'approval') && s.dockMode !== 'input') setState({ dockMode: 'input' });
+  const build = inProject ? reduceBuild(s.build, event, { frameId }) : s.build;
+  const done = event.type === 'done';
+  setState({
+    aiChat: reduceAiChat(s.aiChat, event),
+    ...(inProject ? { build } : {}),
+    ...(done ? { aiTurnId: null } : {}),
+  });
+  // The AI is waiting on the user, so bring the conversation into view (in-project dock only).
+  if (inProject && (event.type === 'question' || event.type === 'approval') && s.dockMode !== 'input') setState({ dockMode: 'input' });
+  if (inProject && done && (build.phase === 'stopped' || build.phase === 'failed')) {
+    setTimeout(() => {
+      if (getState().build.turnId === event.turnId) setState({ build: IDLE_BUILD });
+    }, 800);
+  }
+  if (done) {
+    sendLock = false;
+    drainQueue();
+  }
 }
 
 export async function refreshAiStatus() {
@@ -39,24 +74,44 @@ function turnContext(): AiTurnContext {
   };
 }
 
-/** Sends the request to the in-app AI. Resolves false when it couldn't start. */
+/** Sends the request to the in-app AI. Queues while a turn is already running. */
 export async function sendToAi(request: string): Promise<boolean> {
   const text = request.trim();
-  if (!text || getState().aiTurnId) return false;
+  if (!text) return false;
+
+  if (getState().aiTurnId || sendLock) {
+    pendingRequests.push(text);
+    if (getState().dockDraft.trim() === text) setState({ dockDraft: '' });
+    return true;
+  }
+
+  sendLock = true;
   try {
     await api.ai.send(text, turnContext());
     if (getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     return true;
   } catch (err) {
+    sendLock = false;
+    if (isBusyMessage(err)) {
+      pendingRequests.push(text);
+      if (getState().dockDraft.trim() === text) setState({ dockDraft: '' });
+      return true;
+    }
     toast(errorMessage(err), 'error');
     void refreshAiStatus();
     return false;
   }
 }
 
-export const stopAi = () => void api.ai.cancel();
+export const stopAi = () => {
+  pendingRequests.length = 0;
+  sendLock = false;
+  void api.ai.cancel();
+};
 
 export async function newAiChat() {
+  pendingRequests.length = 0;
+  sendLock = false;
   if (getState().aiTurnId) await api.ai.cancel();
   await api.ai.reset();
   setState({ aiChat: [], aiTurnId: null });

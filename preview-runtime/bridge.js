@@ -67,6 +67,8 @@
       .linked .label, .editing .label { display: none; }
       .multi { border: 1.5px solid #3b82f6; }
       .multi.is-linked { border: 1px dashed rgba(59,130,246,.55); }
+      .token-hit { border: 1.5px dashed #d97706; box-shadow: 0 0 0 1px rgba(217,119,6,.25); }
+      .token-hit .label { background: #d97706; }
     </style>
     <div class="box hover"><span class="label"></span></div>
     <div class="box linked"></div>
@@ -78,6 +80,11 @@
   let multiIds = [];
   let multiLinked = false;
   const multiBoxes = [];
+  /** Design-system impact: highlight elements that use a token (`data-oc` keys or source ids). */
+  let tokenHighlightKeys = [];
+  let tokenHighlightIds = [];
+  let tokenHighlightLabel = '';
+  const tokenHighlightBoxes = [];
 
   function attachOverlay() {
     if (!host.isConnected) document.documentElement.appendChild(host);
@@ -181,6 +188,33 @@
     multiBoxes.forEach((box, i) => {
       box.classList.toggle('is-linked', multiLinked);
       place(box, els[i] ?? null, '');
+    });
+    const tokenEls = [];
+    const seen = new Set();
+    for (const key of tokenHighlightKeys) {
+      for (const el of document.querySelectorAll(`[data-oc="${CSS.escape(key)}"]`)) {
+        if (seen.has(el)) continue;
+        seen.add(el);
+        tokenEls.push(el);
+      }
+    }
+    for (const id of tokenHighlightIds) {
+      for (const el of document.querySelectorAll(`[${ATTR}="${CSS.escape(id)}"]`)) {
+        if (seen.has(el)) continue;
+        seen.add(el);
+        tokenEls.push(el);
+      }
+    }
+    while (tokenHighlightBoxes.length < tokenEls.length) {
+      const box = document.createElement('div');
+      box.className = 'box token-hit';
+      box.innerHTML = '<span class="label"></span>';
+      shadow.appendChild(box);
+      tokenHighlightBoxes.push(box);
+    }
+    tokenHighlightBoxes.forEach((box, i) => {
+      const el = tokenEls[i];
+      place(box, el ?? null, el ? tokenHighlightLabel || nameOf(el) : '');
     });
   }
 
@@ -750,6 +784,13 @@
         multiLinked = !!msg.linked;
         render();
         break;
+      case 'highlight-token': {
+        tokenHighlightKeys = Array.isArray(msg.keys) ? msg.keys.filter((k) => typeof k === 'string') : [];
+        tokenHighlightIds = Array.isArray(msg.ids) ? msg.ids.filter((k) => typeof k === 'string') : [];
+        tokenHighlightLabel = typeof msg.label === 'string' ? msg.label : '';
+        render();
+        break;
+      }
       case 'zoom': {
         // The frame is CSS-scaled on the canvas; keep the selection stroke and handles a constant screen size.
         const z = Number(msg.zoom);
@@ -792,6 +833,41 @@
           report = { width: window.innerWidth, url: location.href, issues: [], error: String(err?.message || err) };
         }
         post('audit', report, { requestId: msg.requestId });
+        break;
+      }
+      case 'measure-subtree': {
+        const root = (msg.id && byId(msg.id)) || (msg.uid && byUid.get(msg.uid)) || selected;
+        const boxes = [];
+        const walk = (el, depth) => {
+          if (!el || !el.getBoundingClientRect) return;
+          const r = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          const tag = el.tagName.toLowerCase();
+          let kind = 'container';
+          if (tag === 'img' || tag === 'svg' || tag === 'video' || tag === 'picture') kind = 'image';
+          else if (tag === 'input' || tag === 'button' || tag === 'select' || tag === 'textarea' || tag === 'a') kind = 'control';
+          else if (TEXT_TAGS.has(tag) || (el.childNodes.length && [...el.childNodes].every((n) => n.nodeType === 3 || (n.nodeType === 1 && TEXT_TAGS.has(n.tagName?.toLowerCase()))))) kind = 'text';
+          boxes.push({
+            x: r.x,
+            y: r.y,
+            width: r.width,
+            height: r.height,
+            padding: {
+              top: parseFloat(cs.paddingTop) || 0,
+              right: parseFloat(cs.paddingRight) || 0,
+              bottom: parseFloat(cs.paddingBottom) || 0,
+              left: parseFloat(cs.paddingLeft) || 0,
+            },
+            kind,
+            depth,
+          });
+          for (const child of el.children) {
+            if (child === host) continue;
+            walk(child, depth + 1);
+          }
+        };
+        if (root) walk(root, 0);
+        post('measure-subtree', { boxes }, { requestId: msg.requestId });
         break;
       }
     }

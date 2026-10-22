@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { breakpointFor, type Camera, type FrameLayout, type Guide } from '../../shared/canvas';
+import { IDLE_BUILD, type BuildState } from '../../shared/build-stages';
+import type { VariantRecord } from '../../shared/variants';
 import type { AiChatItem, AiStatus } from '../../shared/ai';
 import type { PageConfig, ProjectPagesState } from '../../shared/project-config';
 import type { TerminalSession } from '../../shared/terminal';
@@ -135,6 +137,12 @@ interface State {
   aiChat: AiChatItem[];
   /** The AI turn that is running, if any. */
   aiTurnId: string | null;
+  /** Temporary variant proposals (never saved to canvas.json). */
+  variants: VariantRecord[];
+  /** Hovered variant card → highlight its canvas frame. */
+  variantHighlightId: string | null;
+  /** Structural AI build overlay state. */
+  build: BuildState;
   terminalOpen: boolean;
   terminals: TerminalSession[];
   activeTerminal: string | null;
@@ -146,7 +154,7 @@ interface State {
 
 export type SettingsTab = 'appearance' | 'ai' | 'mcp';
 
-export type DockMode = 'input' | 'variants' | 'search' | 'direction';
+export type DockMode = 'input' | 'variants' | 'search' | 'direction' | 'design-system';
 
 export const initialState: State = {
   project: null,
@@ -204,6 +212,9 @@ export const initialState: State = {
   aiStatus: null,
   aiChat: [],
   aiTurnId: null,
+  variants: [],
+  variantHighlightId: null,
+  build: IDLE_BUILD,
   terminalOpen: readTerminalOpen(),
   terminals: [],
   activeTerminal: null,

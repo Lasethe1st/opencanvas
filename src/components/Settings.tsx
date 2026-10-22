@@ -6,9 +6,12 @@ import { api } from '../lib/api';
 import { plural } from '../lib/plural';
 import { setState, toast, useStore, type SettingsTab } from '../lib/store';
 import { AiSettingsPanel } from './settings/AiSettings';
+import { CHAT_BUBBLE_PRESETS, setChatBubblePreset, useChatBubblePreset } from '../lib/chat-bubble';
+import { getOrbColors, ORB_COLOR_PRESETS, setOrbColorPreset, useOrbColorPreset } from '../lib/orb-colors';
 import { setThemePreference, useTheme } from '../lib/theme';
 import { Button, InputShell, Notice } from '../ui/primitives.jsx';
 import { ToolButton } from '../ui/ToolRail.jsx';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 
@@ -26,8 +29,8 @@ export function SettingsButton() {
   );
 }
 
-const TABS: { id: SettingsTab; label: string; icon: typeof Sun; lead: string }[] = [
-  { id: 'appearance', label: 'Appearance', icon: Palette, lead: 'How OpenCanvas looks on this computer.' },
+const TABS: { id: SettingsTab; label: string; icon: typeof Sun; lead: string | null }[] = [
+  { id: 'appearance', label: 'Appearance', icon: Palette, lead: null },
   { id: 'ai', label: 'AI', icon: Sparkles, lead: 'The model that answers in the dock’s Ask AI panel.' },
   { id: 'mcp', label: 'MCP server', icon: Plug, lead: 'Connect AI agents to the project you have open.' },
 ];
@@ -58,33 +61,35 @@ export function SettingsPage() {
   const current = TABS.find((t) => t.id === tab)!;
   // Portaled to <body>: the workspace restyles its direct children, which pushed this page off to the side.
   return createPortal(
-    <div className="settings-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
-      <section ref={dialog} className="settings-page" role="dialog" aria-modal="true" aria-label="Settings">
-        <nav className="settings-page__nav" role="tablist" aria-label="Settings sections" aria-orientation="vertical">
-          <h1 className="settings-page__title">Settings</h1>
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button key={id} role="tab" aria-selected={tab === id} className={`settings-page__tab${tab === id ? ' is-active' : ''}`} onClick={() => setTab(id)}>
-              <Icon size={15} />
-              {label}
+    <TooltipProvider>
+      <div className="settings-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
+        <section ref={dialog} className="settings-page" role="dialog" aria-modal="true" aria-label="Settings">
+          <nav className="settings-page__nav" role="tablist" aria-label="Settings sections" aria-orientation="vertical">
+            <h1 className="settings-page__title">Settings</h1>
+            {TABS.map(({ id, label, icon: Icon }) => (
+              <button key={id} role="tab" aria-selected={tab === id} className={`settings-page__tab${tab === id ? ' is-active' : ''}`} onClick={() => setTab(id)}>
+                <Icon size={15} />
+                {label}
+              </button>
+            ))}
+            <button className="settings-page__tab" onClick={() => setState({ shortcutsOpen: true })}>
+              <Keyboard size={15} />
+              Keyboard shortcuts
             </button>
-          ))}
-          <button className="settings-page__tab" onClick={() => setState({ shortcutsOpen: true })}>
-            <Keyboard size={15} />
-            Keyboard shortcuts
-          </button>
-        </nav>
-        <div className="settings-page__content" role="tabpanel" aria-label={current.label}>
-          <button className="settings-page__close" aria-label="Close settings" onClick={close}>
-            <X size={16} />
-          </button>
-          <div className="settings-page__inner">
-            <h2>{current.label}</h2>
-            <p className="settings-page__lead">{current.lead}</p>
-            {tab === 'appearance' ? <AppearanceSettings /> : tab === 'ai' ? <AiSettingsPanel /> : <McpSettings />}
+          </nav>
+          <div className="settings-page__content" role="tabpanel" aria-label={current.label}>
+            <button className="settings-page__close" aria-label="Close settings" onClick={close}>
+              <X size={16} />
+            </button>
+            <div className="settings-page__inner">
+              <h2>{current.label}</h2>
+              {current.lead ? <p className="settings-page__lead">{current.lead}</p> : null}
+              {tab === 'appearance' ? <AppearanceSettings /> : tab === 'ai' ? <AiSettingsPanel /> : <McpSettings />}
+            </div>
           </div>
-        </div>
-      </section>
-    </div>,
+        </section>
+      </div>
+    </TooltipProvider>,
     document.body,
   );
 }
@@ -97,18 +102,81 @@ const THEMES: { id: ThemePreference; label: string; icon: typeof Sun }[] = [
 
 function AppearanceSettings() {
   const { preference } = useTheme();
+  const bubble = useChatBubblePreset();
+  const orb = useOrbColorPreset();
+  const orbColors = getOrbColors(orb);
   return (
     <>
       <div className="git-section">Theme</div>
-      <div className="theme-options" role="radiogroup" aria-label="Theme">
+      <div className="theme-toggle" role="radiogroup" aria-label="Theme">
         {THEMES.map(({ id, label, icon: Icon }) => (
-          <button key={id} role="radio" aria-checked={preference === id} className={`theme-option${preference === id ? ' is-active' : ''}`} onClick={() => setThemePreference(id)}>
-            <Icon size={16} />
-            {label}
-          </button>
+          <Tooltip key={id}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={preference === id}
+                aria-label={label}
+                className={`theme-toggle__btn${preference === id ? ' is-active' : ''}`}
+                onClick={() => setThemePreference(id)}
+              >
+                <Icon size={15} strokeWidth={1.75} />
+                <span>{label}</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{label}</TooltipContent>
+          </Tooltip>
         ))}
       </div>
-      <p className="git-note">System follows your Windows light or dark setting.</p>
+
+      <div className="git-section">Your messages</div>
+      <div className="appearance-preview appearance-preview--bubble" aria-hidden>
+        <div className="appearance-preview__bubble">{'Looks good'}</div>
+      </div>
+      <div className="swatch-row" role="radiogroup" aria-label="Message bubble color">
+        {CHAT_BUBBLE_PRESETS.map(({ id, label, swatch }) => (
+          <Tooltip key={id}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={bubble === id}
+                aria-label={label}
+                className={`swatch-dot${bubble === id ? ' is-active' : ''}`}
+                style={{ background: id === 'default' ? 'var(--fg)' : swatch }}
+                onClick={() => setChatBubblePreset(id)}
+              />
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{label}</TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+
+      <div className="git-section">Voice orb</div>
+      <div className="appearance-preview appearance-preview--orb" aria-hidden>
+        <div
+          className="appearance-preview__orb"
+          style={{ background: `radial-gradient(circle at 35% 30%, ${orbColors[0]}, ${orbColors[1]} 70%)` }}
+        />
+      </div>
+      <div className="swatch-row" role="radiogroup" aria-label="Voice orb color">
+        {ORB_COLOR_PRESETS.map(({ id, label, colors }) => (
+          <Tooltip key={id}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={orb === id}
+                aria-label={label}
+                className={`swatch-dot${orb === id ? ' is-active' : ''}`}
+                style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}
+                onClick={() => setOrbColorPreset(id)}
+              />
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{label}</TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
     </>
   );
 }
