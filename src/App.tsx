@@ -138,8 +138,8 @@ export default function App() {
     <div className="shell">
       <TopBar />
       <div className={`workspace${mode === 'visual' ? ' workspace--bleed' : ''}${focus ? ' is-focus' : ''}`} ref={workspaceRef}>
-        <ToolRail />
         {gitOpen ? <GitPanel /> : <LeftSidebar />}
+        <ToolRail />
         <div className="workspace__center">
           <Canvas hidden={mode !== 'visual'} />
           <CodeView hidden={mode !== 'code'} />

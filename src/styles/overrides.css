@@ -370,7 +370,7 @@ body {
 
 /* Floating side panels */
 .workspace { padding: 8px; gap: 8px; background: var(--bg); box-sizing: border-box; min-height: 0; }
-.workspace > div:first-child > .tool-rail,
+.workspace > div > .tool-rail,
 .workspace > .panel {
   border: 1px solid var(--line) !important;
   border-radius: var(--r-lg);
@@ -546,7 +546,7 @@ kbd, .kbd,
 .workspace--bleed > :not(.workspace__center) { position: relative; z-index: 2; }
 .workspace--bleed > .workspace__center + * { margin-left: auto; }
 .workspace--bleed .stage { border-radius: 0; border: none; }
-.workspace--bleed > div:first-child > .tool-rail,
+.workspace--bleed > div > .tool-rail,
 .workspace--bleed > .panel { border-radius: var(--r-lg); }
 /* The canvas runs under the header, so the strip behind the two pills is the canvas itself. */
 .shell:has(.workspace--bleed) { position: relative; grid-template-rows: minmax(0, 1fr); }
@@ -728,9 +728,9 @@ kbd, .kbd,
   .tree-row__input,
   .tree-row__toggle,
   .workspace > .panel,
-  .workspace > div:first-child > .tool-rail,
+  .workspace > div > .tool-rail,
   .workspace--bleed > .panel,
-  .workspace--bleed > div:first-child > .tool-rail,
+  .workspace--bleed > div > .tool-rail,
   .workspace__center,
   [data-tip]:hover::after,
   kbd { corner-shape: superellipse(2); }
@@ -738,13 +738,13 @@ kbd, .kbd,
 }
 
 /* Floating sidebars and tool rail: larger squircle panel radius. Content keeps clear of the deeper corners. */
-.workspace > div:first-child > .tool-rail,
+.workspace > div > .tool-rail,
 .workspace > .panel,
-.workspace--bleed > div:first-child > .tool-rail,
+.workspace--bleed > div > .tool-rail,
 .workspace--bleed > .panel { border-radius: var(--r-panel); }
 .workspace > .panel > .panel__head { padding-inline: 12px; }
 .workspace > .panel > .panel__body { padding-bottom: 8px; }
-.workspace > div:first-child > .tool-rail { padding-block: 10px; }
+.workspace > div > .tool-rail { padding-block: 10px; }
 
 /* Short controls stay rounded rectangles (not capsules) under the squircle boost. */
 .tree-row,
@@ -828,7 +828,7 @@ kbd, .kbd,
   stroke: var(--line-strong);
 }
 
-.workspace--bleed > div:first-child > .tool-rail {
+.workspace--bleed > div > .tool-rail {
   border-radius: 999px;
   corner-shape: round;
 }
@@ -841,3 +841,7 @@ kbd, .kbd,
   .workspace > .panel, .workspace > .panel.is-hidden, .workspace.is-focus .dock, .workspace.is-focus .canvas-nav { transition: none; }
   .workspace > .panel.is-hidden { transform: none; }
 }
+
+/* Layers panel sits on the far left, tool rail beside it. A hidden left panel leaves the layout so the rail slides to the edge. */
+.workspace > .panel--left.is-hidden { position: absolute; left: 8px; top: 8px; bottom: 8px; }
+.workspace--bleed > .panel--left.is-hidden { top: calc(var(--topbar-h) + 16px); }
