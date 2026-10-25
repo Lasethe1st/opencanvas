@@ -1,16 +1,78 @@
-import { FolderOpen, FolderSearch, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { CloudSync, FolderOpen, FolderSearch, GlobeCheck, Laptop, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FRAMEWORK_LABELS } from '../../shared/types';
-import { closeProject, openProjectDialog, selectElement } from '../lib/actions';
+import { closeProject, openProjectDialog } from '../lib/actions';
 import { api } from '../lib/api';
 import { sendToPreview } from '../lib/bridge';
 import { stopInlineEdit } from '../lib/inline-edit';
-import { findPath, hasUnsaved, setState, useStore } from '../lib/store';
+import { setState, useStore } from '../lib/store';
 import { Menu, MenuItem } from '../ui/primitives.jsx';
-import { Brand, Breadcrumb, Divider, ModeSwitch, PanelsButton, PreviewButton, ProjectButton, SaveStatus, TopBar as Bar } from '../ui/TopBar.jsx';
+import { Divider, ModeSwitch, PanelsButton, PreviewButton, ProjectButton, TopBar as Bar } from '../ui/TopBar.jsx';
 import { togglePanels } from '../lib/panels';
+import { CanvasBgControl } from './CanvasBgControl';
 import { openFullPreview } from './FullPreview';
 import { GoLiveButton } from './GoLive';
+import { ProjectTabs } from './ProjectTabs';
+
+const liveKey = (root: string) => `oc-live:${root}`;
+const publishedKey = (root: string) => `oc-published:${root}`;
+
+type ProjectPlace = 'local' | 'cloud' | 'both';
+
+function projectPlace(root: string, remote: string | null | undefined): ProjectPlace {
+  const local = Boolean(root);
+  const cloud =
+    Boolean(remote) ||
+    localStorage.getItem(publishedKey(root)) === 'true' ||
+    Boolean(localStorage.getItem(liveKey(root)));
+  if (local && cloud) return 'both';
+  if (cloud) return 'cloud';
+  return 'local';
+}
+
+/** Laptop = on this computer · Cloud = remote only · Globe = local + cloud. */
+function ProjectPlaceBadge() {
+  const project = useStore((s) => s.project)!;
+  const remote = useStore((s) => s.gitStatus?.remote);
+  const place = useMemo(() => projectPlace(project.root, remote), [project.root, remote]);
+
+  useEffect(() => {
+    let alive = true;
+    void api.git
+      .status()
+      .then((gitStatus) => {
+        if (alive) setState({ gitStatus });
+      })
+      .catch(() => {
+        if (alive) setState({ gitStatus: null });
+      });
+    return () => {
+      alive = false;
+    };
+  }, [project.root]);
+
+  const meta =
+    place === 'both'
+      ? { Icon: GlobeCheck, label: 'On this computer and in the cloud', tip: 'Local project linked to a remote' }
+      : place === 'cloud'
+        ? { Icon: CloudSync, label: 'Cloud project', tip: 'Working in the cloud — not stored on this computer' }
+        : { Icon: Laptop, label: 'On this computer', tip: 'Local project — changes save to files on this computer' };
+
+  return (
+    <span
+      className="project-place"
+      role="img"
+      aria-label={meta.label}
+      title={meta.tip}
+      data-tip={meta.tip}
+      data-tip-side="bottom"
+      data-place={place}
+    >
+      <meta.Icon size={15} strokeWidth={1.75} aria-hidden />
+    </span>
+  );
+}
+
 function ProjectMenu() {
   const project = useStore((s) => s.project)!;
   const [open, setOpen] = useState(false);
@@ -51,24 +113,6 @@ function ProjectMenu() {
   );
 }
 
-function Crumbs() {
-  const selection = useStore((s) => s.selection);
-  const domTree = useStore((s) => s.domTree);
-  const activeFile = useStore((s) => s.activeFile);
-  const mode = useStore((s) => s.mode);
-
-  if (mode === 'code') {
-    const parts = activeFile ? activeFile.split('/') : ['No file open'];
-    return <Breadcrumb items={parts.map((label, i) => ({ key: `${i}`, label }))} />;
-  }
-  const path = selection ? (findPath(domTree, selection.uid) ?? []) : [];
-  if (!path.length) return <Breadcrumb items={[{ key: 'page', label: selection ? selection.name : 'Page' }]} />;
-  const visible = path.slice(-4);
-  const items = visible.map((node) => ({ key: node.uid, label: node.name, node }));
-  if (path.length > visible.length) items.unshift({ key: 'more', label: '…', node: path[path.length - visible.length - 1] });
-  return <Breadcrumb items={items} onSelect={(item) => selectElement(item.node.id, item.node.uid)} />;
-}
-
 export function setInteract(next: boolean) {
   if (next) stopInlineEdit(true);
   setState({ interact: next, tool: 'select' });
@@ -77,21 +121,18 @@ export function setInteract(next: boolean) {
 
 export function TopBar() {
   const mode = useStore((s) => s.mode);
-  const dirty = useStore((s) => hasUnsaved(s));
-  const busy = useStore((s) => s.busy);
   const panelsHidden = useStore((s) => s.panelsHidden.left && s.panelsHidden.right);
 
   return (
     <Bar
       start={
         <>
-          <Brand />
-          <Divider />
           <ProjectMenu />
-          <SaveStatus state={busy ? 'saving' : dirty ? 'dirty' : 'saved'} />
+          <ProjectPlaceBadge />
+          <CanvasBgControl />
         </>
       }
-      center={<Crumbs />}
+      center={<ProjectTabs />}
       end={
         <>
           <PreviewButton onClick={openFullPreview} />

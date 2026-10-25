@@ -12,6 +12,7 @@ import {
   CodeBlockHeader,
   CodeBlockTitle,
 } from "@/components/ui/code-block";
+import { ShimmeringText } from "@/components/ui/shimmering-text";
 import { Trace, TraceIcon, TraceLine, TraceTitle } from "@/components/ui/trace";
 import { dynamicPillRadius } from "../../lib/pill-radius";
 import { cn } from "@/lib/utils";
@@ -48,8 +49,8 @@ export function HomeChat() {
           <ChatItem key={item.id} item={item} />
         ))}
         {thinking && (
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            Thinking…
+          <p className="text-[length:var(--chat-font-size-sm)]" aria-live="polite">
+            <ShimmeringText text="Thinking…" className="text-[length:var(--chat-font-size-sm)]" startOnView={false} />
           </p>
         )}
         <div ref={endRef} aria-hidden />
@@ -78,7 +79,7 @@ function UserBubble({ text }: { text: string }) {
   return (
     <div
       ref={ref}
-      className="ml-auto max-w-[min(85%,28rem)] break-words bg-[var(--chat-user-bg)] px-3 py-1 text-sm leading-relaxed text-[var(--chat-user-fg)] [overflow-wrap:anywhere] whitespace-pre-wrap"
+      className="ml-auto max-w-[min(85%,28rem)] break-words bg-[var(--chat-user-bg)] px-3 py-1 text-[length:var(--chat-font-size)] leading-relaxed text-[var(--chat-user-fg)] [overflow-wrap:anywhere] whitespace-pre-wrap"
       style={{ borderRadius: radius }}
     >
       {text}
@@ -94,7 +95,7 @@ function ChatItem({ item }: { item: AiChatItem }) {
       return <AssistantMessage text={item.text} />;
     case "error":
       return (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive" role="alert">
+        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-[length:var(--chat-font-size-sm)] text-destructive" role="alert">
           <CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           <span>{item.text}</span>
         </div>
@@ -144,7 +145,7 @@ function ToolTrace({ item }: { item: Extract<AiChatItem, { kind: "tool" }> }) {
 function AssistantMessage({ text }: { text: string }) {
   const parts = splitFenced(text);
   return (
-    <div className="flex max-w-[95%] flex-col gap-2 text-sm leading-relaxed text-foreground">
+    <div className="flex max-w-[95%] flex-col gap-2 text-[length:var(--chat-font-size)] leading-relaxed text-foreground">
       {parts.map((part, i) =>
         part.type === "code" ? (
           <CodeBlock key={i} size="sm">
@@ -204,15 +205,15 @@ function QuestionCard({ item }: { item: Extract<AiChatItem, { kind: "question" }
   if (!open) {
     return (
       <div data-home-chat="" className="flex flex-col gap-1.5">
-        <p className="text-sm text-muted-foreground">{question.question}</p>
-        <div className="ml-auto max-w-[85%] rounded-[var(--r-lg)] bg-muted px-3 py-1.5 text-sm text-foreground">{answer}</div>
+        <p className="text-[length:var(--chat-font-size-sm)] text-muted-foreground">{question.question}</p>
+        <div className="ml-auto max-w-[85%] rounded-[var(--r-lg)] bg-muted px-3 py-1.5 text-[length:var(--chat-font-size-sm)] text-foreground">{answer}</div>
       </div>
     );
   }
 
   return (
     <fieldset data-home-chat="" className="rounded-2xl border-0 bg-muted px-3 py-3">
-      <legend className="px-0.5 text-sm font-medium leading-snug text-foreground">{question.question}</legend>
+      <legend className="px-0.5 text-[length:var(--chat-font-size)] font-medium leading-snug text-foreground">{question.question}</legend>
       {question.options.length > 0 && (
         <div className="mt-2.5 flex flex-col gap-2">
           {question.options.map((option, i) => (
@@ -220,7 +221,7 @@ function QuestionCard({ item }: { item: Extract<AiChatItem, { kind: "question" }
               key={option}
               ref={i === 0 ? first : undefined}
               type="button"
-              className="rounded-lg border-0 bg-background/55 px-3 py-2 text-left text-sm transition-colors duration-150 hover:bg-background motion-safe:enabled:active:scale-[0.96]"
+              className="rounded-lg border-0 bg-background/55 px-3 py-2 text-left text-[length:var(--chat-font-size-sm)] transition-colors duration-150 hover:bg-background motion-safe:enabled:active:scale-[0.96]"
               onClick={() => answerAi(question.id, option)}
             >
               <span className="me-2 tabular-nums text-muted-foreground">{i + 1}.</span>
@@ -239,7 +240,7 @@ function QuestionCard({ item }: { item: Extract<AiChatItem, { kind: "question" }
         >
           <input
             ref={textRef}
-            className="min-h-8 min-w-0 flex-1 rounded-lg border-0 bg-background/55 px-3 py-1.5 text-sm outline-none transition-colors duration-150 focus-visible:bg-background"
+            className="min-h-8 min-w-0 flex-1 rounded-lg border-0 bg-background/55 px-3 py-1.5 text-[length:var(--chat-font-size-sm)] outline-none transition-colors duration-150 focus-visible:bg-background"
             aria-label="Your own answer"
             placeholder={question.options.length ? "Or type your own answer" : "Type your answer"}
             value={text}
@@ -265,7 +266,7 @@ function ApprovalCard({ item }: { item: Extract<AiChatItem, { kind: "approval" }
       role="group"
       aria-label="Permission needed"
     >
-      <div className="flex items-center gap-2 text-sm font-medium">
+      <div className="flex items-center gap-2 text-[length:var(--chat-font-size-sm)] font-medium">
         <ShieldQuestion className="size-3.5" aria-hidden />
         {TOOL_LABELS[approval.tool] ?? approval.tool}
       </div>
@@ -274,7 +275,7 @@ function ApprovalCard({ item }: { item: Extract<AiChatItem, { kind: "approval" }
           <CodeBlockContent wrap>{approval.command}</CodeBlockContent>
         </CodeBlock>
       )}
-      <p className="mt-1.5 text-sm text-muted-foreground">{approval.summary}</p>
+      <p className="mt-1.5 text-[length:var(--chat-font-size-sm)] text-muted-foreground">{approval.summary}</p>
       {open ? (
         <div className="mt-2 flex justify-end gap-2">
           <Button size="sm" variant="ghost" onClick={() => approveAi(approval.id, false)}>
@@ -285,7 +286,7 @@ function ApprovalCard({ item }: { item: Extract<AiChatItem, { kind: "approval" }
           </Button>
         </div>
       ) : (
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-[length:var(--chat-font-size-sm)] text-muted-foreground">
           {answer === "Allowed" ? "You allowed this." : answer === "Declined" ? "You didn’t allow this." : answer}
         </p>
       )}

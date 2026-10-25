@@ -54,19 +54,45 @@ export interface DirectionConfig {
   designSystem: DesignSystemConfig | null;
 }
 
+/** Workspace view kind. Only `design` pages participate in site routing / canvas frames. */
+export type PageViewType = 'design' | 'agent' | 'code' | 'terminal' | 'three' | 'custom';
+
+export const PAGE_VIEW_TYPES: { id: PageViewType; label: string }[] = [
+  { id: 'design', label: 'Design' },
+  { id: 'agent', label: 'Agent activity' },
+  { id: 'code', label: 'Code' },
+  { id: 'terminal', label: 'Terminal' },
+  { id: 'three', label: '3D / Three.js' },
+  { id: 'custom', label: 'Custom' },
+];
+
 export interface PageConfig {
   id: string;
   name: string;
-  /** URL path, always starting with "/". */
+  /** URL path, always starting with "/". Empty for non-design pages. */
   path: string;
-  /** Project-relative component file that renders the page. */
+  /** Project-relative component file (design route or linked Three.js / R3F scene). */
   file: string | null;
+  /** Workspace view type (default design). */
+  viewType: PageViewType;
+  /** Lucide icon name (e.g. layout-template). */
+  icon: string;
 }
 
 export interface ProjectConfig {
-  version: 1;
+  version: 1 | 2;
   pages: PageConfig[];
   direction: DirectionConfig;
+  /** Default page id when opening the project. */
+  defaultPageId?: string;
+}
+
+export function isDesignPage(page: PageConfig): boolean {
+  return (page.viewType ?? 'design') === 'design';
+}
+
+export function designPages(pages: PageConfig[]): PageConfig[] {
+  return pages.filter(isDesignPage);
 }
 
 /** How the project's pages are routed, which decides what OpenCanvas may change. */
@@ -96,7 +122,45 @@ export function defaultDirection(): DirectionConfig {
 }
 
 export function defaultProjectConfig(homeFile: string | null = null): ProjectConfig {
-  return { version: 1, pages: [{ id: HOME_PAGE_ID, name: 'Home', path: '/', file: homeFile }], direction: defaultDirection() };
+  return {
+    version: 2,
+    pages: [{ id: HOME_PAGE_ID, name: 'Home', path: '/', file: homeFile, viewType: 'design', icon: 'layout-template' }],
+    direction: defaultDirection(),
+    defaultPageId: HOME_PAGE_ID,
+  };
+}
+
+const VIEW_TYPES = new Set<PageViewType>(['design', 'agent', 'code', 'terminal', 'three', 'custom']);
+
+function defaultIcon(viewType: PageViewType): string {
+  if (viewType === 'agent') return 'git-branch';
+  if (viewType === 'code') return 'file-code-2';
+  if (viewType === 'terminal') return 'terminal';
+  if (viewType === 'three') return 'box';
+  return 'layout-template';
+}
+
+function normalizePage(raw: Partial<PageConfig>, fallbackPath = '/'): PageConfig | null {
+  if (!raw || typeof raw.id !== 'string') return null;
+  const viewType = VIEW_TYPES.has(raw.viewType as PageViewType) ? (raw.viewType as PageViewType) : 'design';
+  const path =
+    viewType === 'design'
+      ? normalizePath(typeof raw.path === 'string' && raw.path.trim() ? raw.path : fallbackPath)
+      : typeof raw.path === 'string' && raw.path.trim()
+        ? normalizePath(raw.path)
+        : '';
+  const file =
+    (viewType === 'design' || viewType === 'three') && typeof raw.file === 'string' && !raw.file.includes('..')
+      ? raw.file
+      : null;
+  return {
+    id: raw.id,
+    name: text(raw.name).trim() || (path || raw.id),
+    path,
+    file,
+    viewType,
+    icon: text(raw.icon).trim() || defaultIcon(viewType),
+  };
 }
 
 const unit = (v: unknown, fallback = 0.5) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : fallback);
@@ -163,17 +227,21 @@ export function normalizeProjectConfig(raw: unknown, homeFile: string | null = n
   if (!value || typeof value !== 'object') return config;
   const pages: PageConfig[] = [];
   const ids = new Set<string>();
-  const paths = new Set<string>();
+  const designPaths = new Set<string>();
   for (const p of Array.isArray(value.pages) ? (value.pages as Partial<PageConfig>[]) : []) {
-    if (!p || typeof p.id !== 'string' || typeof p.path !== 'string' || ids.has(p.id)) continue;
-    const path = normalizePath(p.path);
-    if (paths.has(path)) continue;
-    ids.add(p.id);
-    paths.add(path);
-    pages.push({ id: p.id, name: text(p.name).trim() || path, path, file: typeof p.file === 'string' && !p.file.includes('..') ? p.file : null });
+    const page = normalizePage(p);
+    if (!page || ids.has(page.id)) continue;
+    if (page.viewType === 'design') {
+      if (!page.path || designPaths.has(page.path)) continue;
+      designPaths.add(page.path);
+    }
+    ids.add(page.id);
+    pages.push(page);
   }
-  if (!paths.has('/')) pages.unshift(config.pages[0]);
-  return { version: 1, pages, direction: normalizeDirection(value.direction) };
+  if (![...pages].some((p) => p.viewType === 'design' && p.path === '/')) pages.unshift(config.pages[0]);
+  const defaultPageId =
+    typeof value.defaultPageId === 'string' && ids.has(value.defaultPageId) ? value.defaultPageId : pages.find((p) => p.viewType === 'design')?.id ?? pages[0]?.id ?? HOME_PAGE_ID;
+  return { version: 2, pages, direction: normalizeDirection(value.direction), defaultPageId };
 }
 
 export function pageSlug(name: string): string {

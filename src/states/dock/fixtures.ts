@@ -7,10 +7,10 @@ import type { VariantRecord } from '../../../shared/variants';
 import type { DockMode, FrameRuntime, Selection, TreeNode } from '../../lib/store';
 
 const PAGES: PageConfig[] = [
-  { id: 'home', name: 'Home', path: '/', file: 'src/App.jsx' },
-  { id: 'work', name: 'Work', path: '/work', file: 'src/pages/Work.jsx' },
-  { id: 'about', name: 'About the studio', path: '/about-the-studio', file: 'src/pages/AboutTheStudio.jsx' },
-  { id: 'contact', name: 'Contact', path: '/contact', file: 'src/pages/Contact.jsx' },
+  { id: 'home', name: 'Home', path: '/', file: 'src/App.jsx', viewType: 'design', icon: 'layout-template' },
+  { id: 'work', name: 'Work', path: '/work', file: 'src/pages/Work.jsx', viewType: 'design', icon: 'layout-template' },
+  { id: 'about', name: 'About the studio', path: '/about-the-studio', file: 'src/pages/AboutTheStudio.jsx', viewType: 'design', icon: 'layout-template' },
+  { id: 'contact', name: 'Contact', path: '/contact', file: 'src/pages/Contact.jsx', viewType: 'design', icon: 'layout-template' },
 ];
 
 const node = (id: string, tag: string, name: string, children: TreeNode[] = []): TreeNode => ({ id, uid: id, tag, name, children });
@@ -81,6 +81,7 @@ const MCP_ON: McpStatus = { enabled: true, running: true, port: 7801, url: 'http
 const aiStatus = (over: Partial<AiStatus> = {}): AiStatus => ({
   settings: { provider: 'anthropic', model: 'claude-sonnet-4-5', baseUrl: 'https://api.anthropic.com' },
   hasKey: true,
+  voiceKeys: { openai: true, xai: true },
   ready: true,
   reason: null,
   keyStorage: 'encrypted',

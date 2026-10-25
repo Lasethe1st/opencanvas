@@ -319,6 +319,7 @@ export class AiAgent {
           turn.push({ role: 'assistant', text: note.trim(), toolCalls: [] });
           break;
         }
+        deps.emit({ turnId, type: 'step', stepId: `${turnId}:step:${step}`, index: step, label: `Step ${step + 1}` });
         let streamed = '';
         let response;
         try {
@@ -402,14 +403,15 @@ export class AiAgent {
       if (decision !== 'Allowed') return fail('The user declined this action. Do not try it again in this reply; carry on without it or explain what they can do instead.');
     }
 
-    deps.emit({ turnId, type: 'tool-start', callId: call.id, tool: call.name, summary: describeCall(call.name, call.args, tools) });
+    const startedAt = Date.now();
+    deps.emit({ turnId, type: 'tool-start', callId: call.id, tool: call.name, summary: describeCall(call.name, call.args, tools), startedAt });
     try {
       const content = await tool.run(call.args);
-      deps.emit({ turnId, type: 'tool-end', callId: call.id, ok: true, summary: describeCall(call.name, call.args, tools), elementId: elementIdOf(call.args, content) });
+      deps.emit({ turnId, type: 'tool-end', callId: call.id, ok: true, summary: describeCall(call.name, call.args, tools), elementId: elementIdOf(call.args, content), endedAt: Date.now() });
       return { callId: call.id, name: call.name, content: toParts(content), isError: false };
     } catch (err) {
       const message = redact((err as Error)?.message ?? String(err), deps.secrets());
-      deps.emit({ turnId, type: 'tool-end', callId: call.id, ok: false, summary: message });
+      deps.emit({ turnId, type: 'tool-end', callId: call.id, ok: false, summary: message, endedAt: Date.now() });
       return fail(message);
     }
   }

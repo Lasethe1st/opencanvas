@@ -1,4 +1,5 @@
 import { ChevronDown, RotateCcw } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 
 const cx = (...parts) => parts.filter(Boolean).join(' ');
 
@@ -19,15 +20,42 @@ export function IconButton({ label, tipSide, active, size, children, className, 
   );
 }
 
-export function Segmented({ label, options, value, onChange }) {
+export function Segmented({ label, options, value, onChange, layoutId }) {
+  const reduceMotion = useReducedMotion();
+  const pillId = layoutId || `segmented-pill-${label}`;
   return (
     <div className="segmented" role="radiogroup" aria-label={label}>
-      {options.map((o) => (
-        <button key={o.id} role="radio" aria-checked={value === o.id} aria-label={o.label} data-tip={o.icon && !o.text ? o.label : undefined} className={value === o.id ? 'is-active' : ''} onClick={() => onChange?.(o.id)}>
-          {o.icon}
-          {o.text}
-        </button>
-      ))}
+      {options.map((o) => {
+        const active = value === o.id;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            aria-label={o.label}
+            data-tip={o.icon && !o.text ? o.label : undefined}
+            className={active ? 'is-active' : undefined}
+            onClick={() => onChange?.(o.id)}
+          >
+            {active && (
+              <motion.span
+                layoutId={pillId}
+                className="segmented__pill"
+                transition={
+                  reduceMotion
+                    ? { duration: 0 }
+                    : { type: 'spring', stiffness: 520, damping: 38, mass: 0.8 }
+                }
+              />
+            )}
+            <span className="segmented__label">
+              {o.icon}
+              {o.text}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

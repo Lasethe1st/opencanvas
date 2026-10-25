@@ -1,5 +1,5 @@
 /** Source transforms for multi-page projects: the managed routes file, wiring it into the entry, and route detection. */
-import { componentName, type PageConfig } from '../project-config';
+import { componentName, designPages, type PageConfig } from '../project-config';
 import { applySplices, jsxTagName, parseSource, walk, type AstNode, type Splice } from './ast';
 
 export const ROUTES_MARKER = '// Managed by OpenCanvas: maps URL paths to pages. Plain React, no router dependency.';
@@ -48,7 +48,7 @@ export function routeIdentifiers(pages: PageConfig[]): string[] {
 export function generateRoutesFile(pages: PageConfig[], routesFile: string): string {
   const dir = posix.dirname(routesFile);
   const isTs = routesFile.endsWith('.tsx');
-  const routed = pages.filter((p) => p.file);
+  const routed = designPages(pages).filter((p) => p.file);
   const ids = routeIdentifiers(routed);
   const imports = routed.map((p, i) => `import ${ids[i]} from '${posix.relative(dir, p.file!)}';`);
   const home = ids[routed.findIndex((p) => p.path === '/')] ?? ids[0];

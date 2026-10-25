@@ -1,11 +1,22 @@
-import { Copy, FileCode2, FileText, Layers, Loader2, Palette, Search, Sparkles, SquareStack, SwatchBook, Type } from 'lucide-react';
+import {
+  Copy,
+  FileCode2,
+  FileText,
+  Layers,
+  Palette,
+  Search,
+  Sparkles,
+  SquareStack,
+  SwatchBook,
+  Type,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { PageConfig } from '../../shared/project-config';
 import type { FileNode } from '../../shared/types';
 import { openFile, revealInCode, selectElement } from '../lib/actions';
 import { api } from '../lib/api';
 import { openAiSettings } from '../lib/ai';
-import { activePage, focusPage, saveDirection } from '../lib/pages';
+import { focusPage, saveDirection } from '../lib/pages';
 import { copyAgentPrompt } from '../lib/prompt';
 import { activeFrame, getState, setState, useStore, type DockMode, type TreeNode } from '../lib/store';
 import { Button, cx } from '../ui/primitives.jsx';
@@ -14,37 +25,49 @@ import { AiChat } from './dock/AiChat';
 import { DesignSystemPanel } from './dock/DesignSystem';
 import { VariantsPanel } from './dock/Variants';
 
-const MODES: { id: DockMode; label: string; icon: ReactNode }[] = [
+/** Dock modes hosted in the left control rail (Ask AI, Search, …). */
+export const CONTROL_MODES: { id: DockMode; label: string; icon: ReactNode }[] = [
   { id: 'input', label: 'Ask AI', icon: <Sparkles size={15} /> },
-  { id: 'variants', label: 'Variants', icon: <SquareStack size={15} /> },
   { id: 'search', label: 'Search', icon: <Search size={15} /> },
   { id: 'direction', label: 'Direction', icon: <Palette size={15} /> },
   { id: 'design-system', label: 'Design system', icon: <SwatchBook size={15} /> },
+  { id: 'variants', label: 'Variants', icon: <SquareStack size={15} /> },
 ];
 
 export const openDock = (mode: DockMode) => setState({ dockMode: mode });
 const closeDock = () => setState({ dockMode: null });
 
-/** Bottom-centre dock on the canvas: one panel at a time above a bar of modes. */
+/** Floating dock panel for Ask AI / Search / Direction / etc. (opened from the left rail). */
 export function Dock() {
   const mode = useStore((s) => s.dockMode);
-  const draft = useStore((s) => s.dockDraft);
-  const aiBusy = useStore((s) => !!s.aiTurnId);
   const [shown, setShown] = useState<DockMode | null>(mode);
-  const modeButtons = useRef<Partial<Record<DockMode, HTMLButtonElement | null>>>({});
+  const dockRef = useRef<HTMLDivElement | null>(null);
   if (mode && mode !== shown) setShown(mode);
 
-  const close = () => {
-    const last = getState().dockMode;
-    closeDock();
-    if (last) modeButtons.current[last]?.focus();
-  };
+  const close = () => closeDock();
+
+  useEffect(() => {
+    if (!mode) return;
+    const onDown = (e: PointerEvent) => {
+      const target = e.target as Node | null;
+      if (target && dockRef.current?.contains(target)) return;
+      // Left rail buttons toggle modes — don't steal their clicks.
+      if (target instanceof Element && target.closest('.tool-rails')) return;
+      close();
+    };
+    window.addEventListener('pointerdown', onDown);
+    return () => window.removeEventListener('pointerdown', onDown);
+  }, [mode]);
+
+  if (!mode && !shown) return null;
 
   return (
     <div
+      ref={dockRef}
       className={cx('dock', mode && 'is-open')}
       role="region"
       aria-label="Dock"
+      hidden={!mode}
       onKeyDown={(e) => {
         if (e.key === 'Escape' && getState().dockMode) {
           e.preventDefault();
@@ -61,31 +84,6 @@ export function Dock() {
           {shown === 'search' && <SearchPanel key="search" onDone={closeDock} />}
           {shown === 'direction' && <DirectionPanel key="direction" />}
           {shown === 'design-system' && <DesignSystemPanel key="design-system" />}
-        </div>
-      </div>
-      <div className="dock__bar">
-        <button type="button" className={cx('dock__prompt', !draft && !aiBusy && 'is-empty')} onClick={() => openDock('input')} title={draft || undefined}>
-          {aiBusy ? <Loader2 size={14} className="ai-spin" aria-hidden /> : <Sparkles size={14} aria-hidden />}
-          <span>{aiBusy ? 'The AI is working…' : draft || 'Describe what to design…'}</span>
-        </button>
-        <div className="dock__modes" role="toolbar" aria-label="Dock modes">
-          {MODES.map((m) => (
-            <button
-              key={m.id}
-              ref={(el) => {
-                modeButtons.current[m.id] = el;
-              }}
-              type="button"
-              className={cx('dock__mode', mode === m.id && 'is-active')}
-              aria-pressed={mode === m.id}
-              aria-controls="oc-dock-panel"
-              aria-label={m.label}
-              title={m.label}
-              onClick={() => (mode === m.id ? closeDock() : openDock(m.id))}
-            >
-              {m.icon}
-            </button>
-          ))}
         </div>
       </div>
     </div>

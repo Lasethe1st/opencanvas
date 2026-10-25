@@ -802,35 +802,74 @@
   container: stage / inline-size;
 }
 
-/* The zoom bar and minimap sit bottom-right (about 272px wide); the dock keeps clear of them. */
-.dock {
+/* Bottom chrome: Shapeshift bar (+ optional dock panel stacked above). */
+.canvas-bottom-chrome {
   position: absolute;
-  right: 296px;
+  right: auto;
   bottom: 12px;
-  left: 12px;
+  left: 50%;
   z-index: 30;
   display: flex;
   flex-direction: column;
-  max-width: 560px;
-  margin-inline: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--r-xl);
-  background: var(--surface);
-  box-shadow: var(--shadow-lg);
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: min(560px, calc(100% - 32px));
+  margin-inline: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
-@container stage (min-width: 1160px) {
-  .dock {
-    right: auto;
-    left: 50%;
-    width: 560px;
-    transform: translateX(-50%);
-  }
+.canvas-bottom-chrome > * {
+  pointer-events: auto;
+}
+
+.canvas-shapeshift {
+  width: min(540px, calc(100vw - 32px));
+  container-type: inline-size;
+}
+.canvas-shapeshift [data-slot='shapeshift-shell'] {
+  box-shadow: none;
+}
+.canvas-shapeshift [data-slot='shapeshift-list'],
+.canvas-shapeshift [data-slot='shapeshift-panel'] {
+  scrollbar-width: none;
+}
+.canvas-shapeshift [data-slot='shapeshift-list']::-webkit-scrollbar,
+.canvas-shapeshift [data-slot='shapeshift-panel']::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* Dock panel sits above Shapeshift when a rail mode is open. */
+.canvas-bottom-chrome .dock {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  max-width: min(560px, calc(100% - 32px));
+  margin-inline: 0;
+  transform: none;
+  border: 1px solid var(--line);
+  border-radius: var(--pill, 999px);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  overflow: visible;
+}
+
+.canvas-bottom-chrome .dock.is-open {
+  width: min(560px, calc(100% - 32px));
+  border-radius: 20px;
+  overflow: hidden;
 }
 
 @container stage (max-width: 679px) {
-  .dock {
-    right: 12px;
+  .canvas-bottom-chrome {
     bottom: 56px;
   }
 }
@@ -838,98 +877,99 @@
 .dock__panel {
   display: grid;
   grid-template-rows: 0fr;
+  width: 0;
+  min-width: 0;
+  max-width: 0;
   opacity: 0;
-  transition: grid-template-rows 0.22s var(--ease), opacity 0.16s var(--ease);
+  overflow: hidden;
+  pointer-events: none;
+  transition:
+    grid-template-rows 0.22s var(--ease),
+    opacity 0.16s var(--ease),
+    width 0.22s var(--ease),
+    max-width 0.22s var(--ease);
 }
 
 .dock.is-open .dock__panel {
   grid-template-rows: 1fr;
+  width: 100%;
+  max-width: none;
   opacity: 1;
+  pointer-events: auto;
 }
 
 .dock__panel-inner {
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
 }
 
 .dock.is-open .dock__panel-inner {
-  border-bottom: 1px solid var(--line);
+  border-bottom: none;
 }
 
 .dock__bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px;
+  display: none;
 }
 
-.dock__prompt {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
+.dock__sep {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--line);
+}
+
+.dock__tool {
+  display: grid;
+  place-items: center;
+  width: 32px;
   height: 32px;
-  padding: 0 10px;
   border: none;
-  border-radius: var(--r-lg);
+  border-radius: var(--pill, 999px);
   background: transparent;
-  color: var(--fg);
-  text-align: left;
+  color: var(--fg-2);
+  transition:
+    background-color 0.15s ease-out,
+    color 0.15s ease-out,
+    transform 0.15s ease-out;
 }
 
-.dock__prompt:hover {
+.dock__tool:hover:not(:disabled) {
+  color: var(--fg);
   background: var(--hover);
 }
 
-.dock__prompt > svg {
-  flex: none;
-  color: var(--fg-3);
-}
-
-.dock__prompt > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dock__prompt.is-empty > span {
-  color: var(--fg-3);
-}
-
-.dock__modes {
-  display: flex;
-  flex: none;
-  gap: 2px;
-  padding: 2px;
-  border-radius: var(--r-lg);
-  background: var(--surface-3);
-}
-
-.dock__mode {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 28px;
-  border: none;
-  border-radius: var(--r);
-  background: transparent;
-  color: var(--fg-2);
-  transition: background-color 0.12s var(--ease), color 0.12s var(--ease), transform 0.12s var(--ease);
-}
-
-.dock__mode:hover {
-  color: var(--fg);
-}
-
-.dock__mode:active {
+.dock__tool:active:not(:disabled) {
   transform: scale(0.96);
 }
 
-.dock__mode.is-active {
-  background: var(--surface);
-  color: var(--fg);
-  box-shadow: var(--shadow-sm);
+.dock__tool:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.dock__tool:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.dock__tool.is-active {
+  background: var(--accent);
+  color: var(--accent-fg);
+  box-shadow: none;
+}
+
+.dock__slot {
+  position: relative;
+}
+
+.dock__flyout {
+  bottom: calc(100% + 10px);
+  left: 50%;
+  top: auto;
+  transform: translateX(-50%);
+  min-width: 180px;
 }
 
 .dock-pane {
@@ -1552,8 +1592,12 @@
   .icon-pack,
   .start-dialog__ai,
   .dock__panel,
-  .dock__mode {
+  .dock__tool {
     transition: none;
+  }
+
+  .dock__tool:active:not(:disabled) {
+    transform: none;
   }
 
   .ai-spin,

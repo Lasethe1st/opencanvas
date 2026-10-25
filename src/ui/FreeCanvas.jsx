@@ -157,11 +157,13 @@ export function Minimap({ frames, view, width = 176, height = 112, onNavigate })
 }
 
 /** Bottom-corner navigation: zoom, fit, scroll sync and layout history. */
-export function CanvasNav({ zoom, onZoomIn, onZoomOut, onReset, onFitAll, onFitSelection, syncScroll, onSyncScroll, canUndo, canRedo, onUndo, onRedo, minimap, minimapOpen, onToggleMinimap }) {
+export function CanvasNav({ zoom, onZoomIn, onZoomOut, onReset, onFitAll, onFitSelection, syncScroll, onSyncScroll, canUndo, canRedo, onUndo, onRedo, minimap, minimapOpen, onToggleMinimap, canvasBg }) {
   return (
     <div className="canvas-nav">
       {minimapOpen && minimap && <div className="canvas-nav__minimap">{minimap}</div>}
       <div className="canvas-nav__bar">
+        {canvasBg}
+        {canvasBg ? <span className="canvas-nav__sep" /> : null}
         <IconButton size="sm" tipSide="top" label="Undo layout change" disabled={!canUndo} onClick={onUndo}>
           <Undo2 size={13} />
         </IconButton>

@@ -1,10 +1,34 @@
-import { ArrowUp, Check, CircleAlert, Crosshair, Loader2, MessageSquarePlus, ShieldQuestion, Square, X } from 'lucide-react';
+import { ArrowUp, Check, CircleAlert, Crosshair, GitBranch, Loader2, MessageSquarePlus, ShieldQuestion, Square, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { providerMeta, type AiChatItem } from '../../../shared/ai';
+import { setLeafPage } from '../../../shared/workspace-layout';
 import { selectElement } from '../../lib/actions';
 import { answerAi, approveAi, newAiChat, openAiSettings, sendToAi, stopAi } from '../../lib/ai';
-import { setState, useStore } from '../../lib/store';
+import { createPage } from '../../lib/pages';
+import { getState, setState, useStore } from '../../lib/store';
+import { scheduleWorkspaceSave } from '../../lib/workspace';
 import { Button, IconButton, cx } from '../../ui/primitives.jsx';
+
+async function showAgentActivity() {
+  const s = getState();
+  let page = s.projectConfig?.pages.find((p) => (p.viewType ?? 'design') === 'agent');
+  if (!page) {
+    await createPage('Agent activity', 'agent');
+    page = getState().projectConfig?.pages.find((p) => (p.viewType ?? 'design') === 'agent');
+  }
+  if (!page) return;
+  const ws = getState().workspace;
+  const paneId = ws.focusedPaneId;
+  setState({
+    workspace: {
+      ...ws,
+      layout: paneId ? setLeafPage(ws.layout, paneId, page.id) : ws.layout,
+      activePageId: page.id,
+    },
+    dockMode: null,
+  });
+  scheduleWorkspaceSave();
+}
 
 const TOOL_LABELS: Record<string, string> = {
   git_commit: 'Save a version (commit)',
@@ -52,6 +76,9 @@ export function AiChat() {
             {provider} · {model}
           </button>
         )}
+        <IconButton label="Show activity" size="sm" tipSide="top" onClick={() => void showAgentActivity()}>
+          <GitBranch size={14} />
+        </IconButton>
         <IconButton label="New chat" size="sm" tipSide="top" disabled={!items.length} onClick={() => void newAiChat().then(() => inputRef.current?.focus())}>
           <MessageSquarePlus size={14} />
         </IconButton>

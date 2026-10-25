@@ -35,7 +35,8 @@ import { cancelInstall, installDependencies, PreviewManager } from './services/p
 import { detectProject, findProjectRoot, listTree, ProjectError, projectSummary, safeResolve, slugify, uniqueDir, writeFiles } from './services/project';
 import { extractZip, ZIP_LIMITS } from './services/zip-import';
 import { generateTemplate, TEMPLATES } from './templates';
-import { createPage, deletePage, duplicatePage, imageDataUrl, pagesState, referenceImage, renamePage, reorderPages, writeDirection } from './services/project-config';
+import { createPage, createWorkspacePage, deletePage, duplicatePage, imageDataUrl, pagesState, referenceImage, renamePage, reorderPages, writeDirection } from './services/project-config';
+import { readWorkspace, writeWorkspace } from './services/workspace';
 import { connectProvider, disconnectProvider, listProviders, providerBoardItems, providerBoards, providerImage, saveeProvider, searchProvider, setProviders } from './services/inspiration';
 import { SaveeClient } from './services/savee';
 import { parseCssTokens, parseJsonTokens, TokenImportError } from '../shared/design-tokens';
@@ -65,6 +66,15 @@ const APP_ROOT = app.getAppPath();
 const DEV_URL = process.env.OC_DEV_SERVER_URL;
 if (process.env.OC_USER_DATA) app.setPath('userData', process.env.OC_USER_DATA);
 const projectsDir = () => process.env.OC_PROJECTS_DIR ?? path.join(app.getPath('documents'), 'OpenCanvas Projects');
+
+/** Window / dock icon — replace `src/assets/brand-mark.png` to change the app mark. */
+function appIconPath(): string | undefined {
+  const candidates = [
+    path.join(APP_ROOT, 'src', 'assets', 'brand-mark.png'),
+    path.join(__dirname, '..', 'src', 'assets', 'brand-mark.png'),
+  ];
+  return candidates.find((p) => fs.existsSync(p));
+}
 
 let win: BrowserWindow | null = null;
 let project: ProjectInfo | null = null;
@@ -439,10 +449,29 @@ const safeCipher: Cipher = {
   decrypt: (data) => safeStorage.decryptString(data),
 };
 
+function voiceKeyFlags() {
+  return {
+    openai: secretStore.has(aiKeyName('openai')),
+    xai: secretStore.has(aiKeyName('xai')),
+  };
+}
+
+function voiceProviderKey(provider: 'openai' | 'xai') {
+  return secretStore.get(aiKeyName(provider));
+}
+
 function aiStatus(): AiStatus {
   const hasKey = secretStore.has(aiKeyName(aiSettings.provider));
   const reason = aiNotReadyReason(aiSettings, hasKey);
-  return { settings: aiSettings, hasKey, ready: !reason, reason, keyStorage: secretStore.available() ? 'encrypted' : 'unavailable', busy: agent.busy };
+  return {
+    settings: aiSettings,
+    hasKey,
+    voiceKeys: voiceKeyFlags(),
+    ready: !reason,
+    reason,
+    keyStorage: secretStore.available() ? 'encrypted' : 'unavailable',
+    busy: agent.busy,
+  };
 }
 
 const aiKey = () => secretStore.get(aiKeyName(aiSettings.provider));
@@ -482,7 +511,8 @@ function initAi() {
     tools: (turnId, request) => createMcpTools(createToolContext({ id: turnId, label: `AI: ${request.length > 40 ? `${request.slice(0, 40)}…` : request}` })),
     projectContext: projectContextForAi,
     emit: (event) => {
-      win?.webContents.send('ai:event', event);
+      const tagged = project ? { ...event, projectRoot: project.root } : event;
+      win?.webContents.send('ai:event', tagged);
       if ((event.type === 'done' || event.type === 'error') && activeVariantSetId && project) {
         const setId = activeVariantSetId;
         activeVariantSetId = null;
@@ -774,7 +804,15 @@ function registerIpc() {
 
   handle('config:get', () => pagesState(requireProject()));
   handle('config:setDirection', (direction: DirectionConfig, uploads?: Record<string, string>) => writeDirection(requireProject(), direction, uploads));
-  handle('pages:create', (name: string) => createPage(requireProject(), String(name ?? '')));
+  handle('workspace:get', (fallbackPageId?: string | null) => readWorkspace(requireProject().root, fallbackPageId ?? null));
+  handle('workspace:set', (workspace: import('../shared/workspace-layout').WorkspaceState) => {
+    writeWorkspace(requireProject().root, workspace);
+  });
+  handle('pages:create', (name: string, viewType?: string) =>
+    viewType && viewType !== 'design'
+      ? createWorkspacePage(requireProject(), String(name ?? ''), viewType as import('../shared/project-config').PageViewType)
+      : createPage(requireProject(), String(name ?? '')),
+  );
   handle('pages:duplicate', (id: string) => duplicatePage(requireProject(), id));
   handle('pages:rename', (id: string, name: string) => renamePage(requireProject(), id, String(name ?? '')));
   handle('pages:reorder', (ids: string[]) => reorderPages(requireProject(), Array.isArray(ids) ? ids : []));
@@ -885,9 +923,7 @@ function registerIpc() {
   handle('ai:approve', (id: string, allow: boolean) => agent.approve(String(id), allow === true));
   handle('ai:cancel', () => agent.cancel());
   handle('ai:reset', () => agent.reset());
-  handle('ai:voiceCapabilities', () =>
-    voiceCapabilities(aiSettings, secretStore.has(aiKeyName(aiSettings.provider))),
-  );
+  handle('ai:voiceCapabilities', () => voiceCapabilities(aiSettings, voiceKeyFlags()));
   handle('ai:voiceReply', async (messages: VoiceChatMessage[]) => {
     const reason = aiNotReadyReason(aiSettings, secretStore.has(aiKeyName(aiSettings.provider)));
     if (reason) throw new Error(reason);
@@ -899,17 +935,20 @@ function registerIpc() {
   });
   handle('ai:voiceSpeak', async (text: string) => {
     try {
-      return await voiceSpeak(String(text ?? ''), aiSettings, aiKey(), (url, init) => net.fetch(url, init));
+      return await voiceSpeak(String(text ?? ''), aiSettings, voiceKeyFlags(), voiceProviderKey, (url, init) => net.fetch(url, init));
     } catch (err) {
       throw scrub(err);
     }
   });
   handle('ai:voiceTranscribe', async (audioBase64: string, mime: string) => {
-    const reason = aiNotReadyReason(aiSettings, secretStore.has(aiKeyName(aiSettings.provider)));
-    if (reason) throw new Error(reason);
     try {
-      return await voiceTranscribe(String(audioBase64 ?? ''), String(mime ?? 'audio/webm'), aiSettings, aiKey(), (url, init) =>
-        net.fetch(url, init),
+      return await voiceTranscribe(
+        String(audioBase64 ?? ''),
+        String(mime ?? 'audio/webm'),
+        aiSettings,
+        voiceKeyFlags(),
+        voiceProviderKey,
+        (url, init) => net.fetch(url, init),
       );
     } catch (err) {
       throw scrub(err);
@@ -988,6 +1027,7 @@ function registerIpc() {
 const windowBackground = () => (nativeTheme.shouldUseDarkColors ? '#181818' : '#f5f5f6');
 
 function createWindow() {
+  const icon = appIconPath();
   win = new BrowserWindow({
     width: 1480,
     height: 920,
@@ -996,6 +1036,7 @@ function createWindow() {
     title: 'OpenCanvas',
     backgroundColor: windowBackground(),
     show: false,
+    ...(icon ? { icon } : {}),
     webPreferences: {
       preload: path.join(APP_ROOT, 'dist-electron', 'preload.cjs'),
       contextIsolation: true,
@@ -1006,6 +1047,7 @@ function createWindow() {
     },
   });
   win.once('ready-to-show', () => win?.show());
+  if (process.platform === 'darwin' && icon && app.dock) app.dock.setIcon(icon);
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//.test(url)) void shell.openExternal(url);

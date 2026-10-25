@@ -46,7 +46,7 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string[][]; label:
       { keys: [['V']], label: 'Select tool' },
       { keys: [['H'], ['Space', 'drag']], label: 'Hand tool / pan' },
       { keys: [['/']], label: 'Insert any element…' },
-      { keys: [['F']], label: 'Insert section' },
+      { keys: [['F']], label: 'Insert section…' },
       { keys: [['R']], label: 'Insert container' },
       { keys: [['T']], label: 'Insert text' },
       { keys: [['I']], label: 'Insert image from a file' },
@@ -119,6 +119,19 @@ export function handleShortcut(key: string, meta: boolean, shift: boolean, alt =
   }
   if ((meta && key === '/') || (plain && key === '?')) {
     setState({ shortcutsOpen: true });
+    return true;
+  }
+  if (meta && alt && (key === 'ArrowRight' || key === 'ArrowLeft')) {
+    const { openProjects, activeProjectRoot } = getState();
+    if (openProjects.length > 1) {
+      const i = Math.max(0, openProjects.findIndex((t) => t.root === activeProjectRoot));
+      const next = openProjects[(i + (key === 'ArrowRight' ? 1 : openProjects.length - 1)) % openProjects.length];
+      void import('./actions').then((m) => m.switchProjectTab(next.root));
+      return true;
+    }
+  }
+  if (plain && key === 'Escape' && getState().selectedAgentNodeId) {
+    setState({ selectedAgentNodeId: null });
     return true;
   }
   if (meta && !alt && lower === 'e') {

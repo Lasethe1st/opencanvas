@@ -79,8 +79,12 @@ const api: OpenCanvasApi = {
     get: () => invoke('config:get'),
     setDirection: (direction, uploads) => invoke('config:setDirection', direction, uploads),
   },
+  workspace: {
+    get: (fallbackPageId) => invoke('workspace:get', fallbackPageId),
+    set: (workspace) => invoke('workspace:set', workspace),
+  },
   pages: {
-    create: (name) => invoke('pages:create', name),
+    create: (name, viewType) => invoke('pages:create', name, viewType),
     duplicate: (id) => invoke('pages:duplicate', id),
     rename: (id, name) => invoke('pages:rename', id, name),
     reorder: (ids) => invoke('pages:reorder', ids),

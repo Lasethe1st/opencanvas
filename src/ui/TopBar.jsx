@@ -93,7 +93,7 @@ export function TopBar({ start, center, end }) {
   return (
     <header className="topbar">
       <div className="topbar__side">{start}</div>
-      <div>{center}</div>
+      {center ? <div className="topbar__center">{center}</div> : null}
       <div className="topbar__side topbar__side--end">{end}</div>
     </header>
   );

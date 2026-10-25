@@ -1,4 +1,4 @@
-import { Copy, Keyboard, KeyRound, Monitor, Moon, Palette, Plug, RefreshCw, Settings as SettingsIcon, Sparkles, Sun, X } from 'lucide-react';
+import { Copy, Keyboard, KeyRound, Monitor, Moon, Palette, Plug, RefreshCw, Settings as SettingsIcon, SlidersHorizontal, Sparkles, Sun, Type, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { McpStatus, ThemePreference } from '../../shared/types';
@@ -7,6 +7,7 @@ import { plural } from '../lib/plural';
 import { setState, toast, useStore, type SettingsTab } from '../lib/store';
 import { AiSettingsPanel } from './settings/AiSettings';
 import { CHAT_BUBBLE_PRESETS, setChatBubblePreset, useChatBubblePreset } from '../lib/chat-bubble';
+import { CHAT_FONT_SIZE_PRESETS, setChatFontSize, useChatFontSize } from '../lib/chat-font-size';
 import { getOrbColors, ORB_COLOR_PRESETS, setOrbColorPreset, useOrbColorPreset } from '../lib/orb-colors';
 import { setThemePreference, useTheme } from '../lib/theme';
 import { Button, InputShell, Notice } from '../ui/primitives.jsx';
@@ -30,6 +31,7 @@ export function SettingsButton() {
 }
 
 const TABS: { id: SettingsTab; label: string; icon: typeof Sun; lead: string | null }[] = [
+  { id: 'general', label: 'General', icon: SlidersHorizontal, lead: null },
   { id: 'appearance', label: 'Appearance', icon: Palette, lead: null },
   { id: 'ai', label: 'AI', icon: Sparkles, lead: 'The model that answers in the dock’s Ask AI panel.' },
   { id: 'mcp', label: 'MCP server', icon: Plug, lead: 'Connect AI agents to the project you have open.' },
@@ -84,13 +86,55 @@ export function SettingsPage() {
             <div className="settings-page__inner">
               <h2>{current.label}</h2>
               {current.lead ? <p className="settings-page__lead">{current.lead}</p> : null}
-              {tab === 'appearance' ? <AppearanceSettings /> : tab === 'ai' ? <AiSettingsPanel /> : <McpSettings />}
+              {tab === 'general' ? (
+                <GeneralSettings />
+              ) : tab === 'appearance' ? (
+                <AppearanceSettings />
+              ) : tab === 'ai' ? (
+                <AiSettingsPanel />
+              ) : (
+                <McpSettings />
+              )}
             </div>
           </div>
         </section>
       </div>
     </TooltipProvider>,
     document.body,
+  );
+}
+
+function GeneralSettings() {
+  const fontSize = useChatFontSize();
+  return (
+    <>
+      <div className="git-section">Font Size</div>
+      <p className="git-note">Size of messages in the home chat.</p>
+      <div className="theme-toggle" role="radiogroup" aria-label="Chat font size">
+        {CHAT_FONT_SIZE_PRESETS.map(({ id, label }) => (
+          <Tooltip key={id}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={fontSize === id}
+                aria-label={label}
+                className={`theme-toggle__btn${fontSize === id ? ' is-active' : ''}`}
+                onClick={() => setChatFontSize(id)}
+              >
+                <Type
+                  size={id === 'small' ? 13 : id === 'large' ? 17 : 15}
+                  strokeWidth={1.75}
+                  aria-hidden
+                />
+                <span>{label}</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{label}</TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -110,22 +154,18 @@ function AppearanceSettings() {
       <div className="git-section">Theme</div>
       <div className="theme-toggle" role="radiogroup" aria-label="Theme">
         {THEMES.map(({ id, label, icon: Icon }) => (
-          <Tooltip key={id}>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={preference === id}
-                aria-label={label}
-                className={`theme-toggle__btn${preference === id ? ' is-active' : ''}`}
-                onClick={() => setThemePreference(id)}
-              >
-                <Icon size={15} strokeWidth={1.75} />
-                <span>{label}</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{label}</TooltipContent>
-          </Tooltip>
+          <button
+            key={id}
+            type="button"
+            role="radio"
+            aria-checked={preference === id}
+            aria-label={label}
+            title={label}
+            className={`theme-toggle__btn theme-toggle__btn--icon${preference === id ? ' is-active' : ''}`}
+            onClick={() => setThemePreference(id)}
+          >
+            <Icon size={15} strokeWidth={1.75} aria-hidden />
+          </button>
         ))}
       </div>
 

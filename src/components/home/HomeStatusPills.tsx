@@ -36,7 +36,7 @@ export function HomeStatusPills({
     <div className={cn("flex min-w-0 flex-wrap items-center gap-2", className)}>
       <button
         type="button"
-        className="inline-flex max-w-[min(100%,240px)] items-center gap-2 rounded-[var(--pill)] bg-[color:var(--surface-3)]/90 px-3 py-2.5 text-xs font-medium text-foreground shadow-[var(--shadow-sm)] backdrop-blur-[12px] backdrop-saturate-150 transition-colors hover:bg-[color:var(--surface-3)]"
+        className="inline-flex max-w-[min(100%,240px)] items-center gap-2 rounded-[var(--pill)] bg-[color:var(--surface-3)]/90 px-3 py-2.5 text-[length:var(--chat-font-size)] font-normal text-foreground shadow-[var(--shadow-sm)] backdrop-blur-[12px] backdrop-saturate-150 transition-colors hover:bg-[color:var(--surface-3)]"
         title={projectLabel}
         onClick={onOpenProjects}
       >
@@ -45,7 +45,7 @@ export function HomeStatusPills({
       </button>
       {run && (
         <div
-          className="inline-flex max-w-full items-center gap-2 rounded-[var(--pill)] bg-[color:var(--surface-3)]/90 px-3 py-2.5 text-xs font-medium text-foreground shadow-[var(--shadow-sm)] backdrop-blur-[12px] backdrop-saturate-150"
+          className="inline-flex max-w-full items-center gap-2 rounded-[var(--pill)] bg-[color:var(--surface-3)]/90 px-3 py-2.5 text-[length:var(--chat-font-size)] font-normal text-foreground shadow-[var(--shadow-sm)] backdrop-blur-[12px] backdrop-saturate-150"
           role="status"
           aria-live="polite"
         >

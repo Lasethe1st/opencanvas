@@ -90,8 +90,8 @@ function Tab({ session, active }: { session: TerminalSession; active: boolean })
   );
 }
 
-export function TerminalPanel() {
-  const open = useStore((s) => s.terminalOpen);
+export function TerminalPanel({ force }: { force?: boolean } = {}) {
+  const open = useStore((s) => s.terminalOpen) || !!force;
   const terminals = useStore((s) => s.terminals);
   const active = useStore((s) => s.activeTerminal);
   const [height, setHeight] = useState(readHeight);

@@ -1,7 +1,7 @@
 import { PanelLeft, PanelRight, Search } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type ComponentType, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import brandMark from '../../assets/brand-mark.png';
+import homeMark from '../../assets/home-mark.png';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -140,11 +140,11 @@ export function HomeSidebar({
       <div className={cn('flex shrink-0 gap-1 px-2 pt-2 pb-0', collapsed ? 'flex-col items-center' : 'h-14 items-center')}>
         {!collapsed && (
           <img
-            src={brandMark}
+            src={homeMark}
             alt=""
             width={28}
             height={28}
-            className="box-border size-9 shrink-0 object-contain p-1.5 opacity-90 brightness-0 invert"
+            className="home-mark box-border size-9 shrink-0 object-contain p-1.5 opacity-90"
             aria-hidden
           />
         )}

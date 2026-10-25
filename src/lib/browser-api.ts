@@ -16,6 +16,7 @@ import {
   type ProjectPagesState,
 } from '../../shared/project-config';
 import type { FileNode, GitStatus, McpStatus, PreviewStatus, ProjectInfo, RecentProject, SourceElementInfo, TemplateMeta } from '../../shared/types';
+import { normalizeWorkspace } from '../../shared/workspace-layout';
 
 /**
  * Stand-in for the Electron bridge when the renderer runs in a plain browser tab (npm run dev:browser),
@@ -188,16 +189,47 @@ function memoryConfig() {
     },
     get: async () => state(),
     pages: {
-      create: async (name: string) =>
+      create: async (name: string, viewType?: import('../../shared/project-config').PageViewType) =>
         mutate((pages) => {
-          const page = { id: `p${Date.now().toString(36)}`, ...unique(pages, name.trim() || 'New page'), file: `src/pages/${componentName(name || 'New page')}.jsx` };
+          const vt = viewType ?? 'design';
+          const { name: n, path: p } = unique(pages, name.trim() || 'New page');
+          const page =
+            vt === 'design'
+              ? { id: `p${Date.now().toString(36)}`, name: n, path: p, file: `src/pages/${componentName(name || 'New page')}.jsx`, viewType: 'design' as const, icon: 'layout-template' }
+              : {
+                  id: `p${Date.now().toString(36)}`,
+                  name: n,
+                  path: '',
+                  file: vt === 'three' ? `src/scenes/${componentName(name || 'MainScene')}.jsx` : null,
+                  viewType: vt,
+                  icon:
+                    vt === 'agent'
+                      ? 'git-branch'
+                      : vt === 'code'
+                        ? 'file-code-2'
+                        : vt === 'terminal'
+                          ? 'terminal'
+                          : vt === 'three'
+                            ? 'box'
+                            : 'layout-template',
+                };
           pages.push(page);
           return page;
         }),
       duplicate: async (id: string) =>
         mutate((pages) => {
           const source = find(pages, id);
-          const page = { id: `p${Date.now().toString(36)}`, ...unique(pages, `${source.name} copy`), file: source.file };
+          const page = {
+            id: `p${Date.now().toString(36)}`,
+            ...unique(pages, `${source.name} copy`),
+            file: source.file,
+            viewType: source.viewType ?? 'design',
+            icon: source.icon || 'layout-template',
+          };
+          if ((source.viewType ?? 'design') !== 'design') {
+            page.path = '';
+            page.file = null;
+          }
           pages.splice(pages.indexOf(source) + 1, 0, page);
           return page;
         }),
@@ -217,7 +249,7 @@ function memoryConfig() {
       remove: async (id: string) =>
         mutate((pages) => {
           const page = find(pages, id);
-          if (page.path === '/') throw new Error('The home page can’t be deleted.');
+          if ((page.viewType ?? 'design') === 'design' && page.path === '/') throw new Error('The home page can’t be deleted.');
           pages.splice(pages.indexOf(page), 1);
           return page;
         }),
@@ -336,7 +368,16 @@ function mockAi(): OpenCanvasApi['ai'] {
     const meta = providerMeta(settings.provider);
     const hasKey = keys.has(settings.provider) || !meta.needsKey;
     const reason = !settings.baseUrl && meta.id === 'custom' ? 'Enter the server URL.' : !settings.model ? 'Choose a model.' : null;
-    return { settings, hasKey, ready: !reason, reason, keyStorage: 'encrypted', busy };
+    return {
+      settings,
+      hasKey,
+      // Browser preview never stores real OpenAI/xAI secrets, so cloud TTS isn’t available here.
+      voiceKeys: { openai: false, xai: false },
+      ready: !reason,
+      reason,
+      keyStorage: 'encrypted',
+      busy,
+    };
   };
   const stream = async (turnId: string, text: string) => {
     for (const word of text.split(/(?<= )/)) {
@@ -428,13 +469,12 @@ function mockAi(): OpenCanvasApi['ai'] {
     },
     voiceCapabilities: async () => {
       const meta = providerMeta(settings.provider);
-      const hasKey = keys.has(settings.provider) || !meta.needsKey;
-      const providerTts = (settings.provider === 'openai' || settings.provider === 'xai') && hasKey;
       return {
         provider: settings.provider,
         label: meta.product,
         stt: 'browser' as const,
-        tts: providerTts ? ('provider' as const) : ('browser' as const),
+        tts: 'browser' as const,
+        ttsBackend: 'browser' as const,
       };
     },
     voiceReply: async (messages: VoiceChatMessage[]) => {
@@ -442,7 +482,13 @@ function mockAi(): OpenCanvasApi['ai'] {
       const last = [...messages].reverse().find((m) => m.role === 'user')?.text?.trim() || 'that';
       return `Got it — ${last.slice(0, 80)}. I’ll keep this short for voice; end the session anytime to drop it into chat.`;
     },
-    voiceSpeak: async (text: string) => ({ kind: 'browser' as const, text }),
+    voiceSpeak: async (text: string) => {
+      const pref = settings.ttsBackend;
+      if (pref === 'openai' || pref === 'xai') {
+        throw new Error('Cloud voices need the OpenCanvas desktop app. Use “This device” in the browser preview.');
+      }
+      return { kind: 'browser' as const, text };
+    },
     voiceTranscribe: async () => {
       await wait(300);
       return 'Browser preview sample transcript.';
@@ -634,6 +680,10 @@ export function createBrowserApi(): OpenCanvasApi {
     projectConfig: {
       get: memory.get,
       setDirection: async (direction) => memory.setDirection(direction),
+    },
+    workspace: {
+      get: async (fallbackPageId) => normalizeWorkspace(null, fallbackPageId ?? null),
+      set: async () => undefined,
     },
     pages: memory.pages,
     direction: {

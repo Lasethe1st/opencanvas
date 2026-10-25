@@ -26,15 +26,16 @@ export async function loadProjectConfig() {
 /** True when a file change may have changed pages or direction. */
 export const touchesConfig = (paths: string[]) => paths.some((p) => p === CONFIG_FILE || /^src\/routes\.[jt]sx$/.test(p) || /(^|\/)(app|pages)\//.test(p));
 
-/** Drops frames of pages that no longer exist and gives every page without a frame a desktop frame. */
+/** Drops frames of pages that no longer exist and gives every design page without a frame a desktop frame. */
 export function reconcileFrames() {
   const { projectConfig, frames, frameRuntime, project } = getState();
   if (!projectConfig || !frames.length) return;
-  const ids = new Set(projectConfig.pages.map((p) => p.id));
+  const design = projectConfig.pages.filter((p) => (p.viewType ?? 'design') === 'design');
+  const ids = new Set(design.map((p) => p.id));
   let next: FrameLayout[] = frames.filter((f) => !f.pageId || ids.has(f.pageId));
   if (!next.length) next = frames.slice(0, 1).map((f) => ({ ...f, pageId: undefined }));
-  const first = projectConfig.pages[0];
-  for (const page of projectConfig.pages) {
+  const first = design[0];
+  for (const page of design) {
     const has = next.some((f) => (f.pageId ?? first?.id) === page.id);
     if (has) continue;
     const rects = next.map((f) => displayRect(f, frameRuntime[f.id]));
@@ -77,6 +78,11 @@ export function activePage(): PageConfig | null {
 }
 
 export function focusPage(id: string) {
+  const page = getState().projectConfig?.pages.find((p) => p.id === id);
+  if (page && (page.viewType ?? 'design') !== 'design') {
+    // Non-design pages are selected via the workspace pane, not canvas frames.
+    return;
+  }
   const frames = framesOf(id);
   const frame = frames.find((f) => f.id === getState().activeFrameId) ?? frames[0];
   if (!frame) return;
@@ -104,8 +110,8 @@ async function mutate(run: () => Promise<PageMutation>, label: (m: PageMutation)
   }
 }
 
-export async function createPage(name: string) {
-  const result = await mutate(() => api.pages.create(name), (m) => `Add page ${m.page?.name ?? name}`);
+export async function createPage(name: string, viewType?: import('../../shared/project-config').PageViewType) {
+  const result = await mutate(() => api.pages.create(name, viewType), (m) => `Add page ${m.page?.name ?? name}`);
   if (result?.page) focusPage(result.page.id);
 }
 

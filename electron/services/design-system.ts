@@ -230,15 +230,10 @@ export function proposeTokenChange(
   const token = doc.tokens.find((t) => t.id === args.tokenId || t.path === args.tokenId);
   if (!token) throw new ProjectError(`Unknown token “${args.tokenId}”.`);
   const nextValue = parseTokenValue(args.value);
-  const previous =
-    args.themeId && token.themes?.[args.themeId]
-      ? token.themes[args.themeId]!.kind === 'raw'
-        ? token.themes[args.themeId]!.value
-        : `{${(token.themes[args.themeId] as { kind: 'alias'; ref: string }).ref}}`
-      : token.value.kind === 'raw'
-        ? token.value.value
-        : `{${token.value.ref}}`;
-  const nextDisplay = nextValue.kind === 'raw' ? nextValue.value : `{${nextValue.ref}}`;
+  const formatValue = (v: TokenValue) => (v.kind === 'raw' ? v.value : `{${v.ref}}`);
+  const themeOverride = args.themeId ? token.themes?.[args.themeId] : undefined;
+  const previous = formatValue(themeOverride ?? token.value);
+  const nextDisplay = formatValue(nextValue);
   const impact = tokenImpact(info, token.id);
   if (!args.apply) {
     return {

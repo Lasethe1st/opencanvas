@@ -73,4 +73,6 @@ export function CanvasNav(props: {
   minimap?: ReactNode;
   minimapOpen: boolean;
   onToggleMinimap: () => void;
+  /** Optional control for the free-canvas backdrop color. */
+  canvasBg?: ReactNode;
 }): JSX.Element;

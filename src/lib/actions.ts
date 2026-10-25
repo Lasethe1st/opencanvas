@@ -1,13 +1,24 @@
 import type { EditCommand, FileChange, ImportResult, InsertKind, McpApplied, McpRequest, ProjectInfo, TemplateId } from '../../shared/types';
 import { mergeChanges } from '../../shared/history';
 import type { ProjectSetup } from '../../shared/api';
+import { EMPTY_AGENT_GRAPH } from '../../shared/agent-graph';
+import { defaultWorkspace } from '../../shared/workspace-layout';
 import { api } from './api';
 import { runAudit } from './audit';
 import { sendToPreview } from './bridge';
 import { loadLayout } from './canvas';
 import { loadProjectConfig, touchesConfig } from './pages';
 import { resetTerminals } from './terminal';
+import { loadWorkspace } from './workspace';
 import { activeBreakpoint, findPath, getState, hasUnsaved, initialState, setState, toast, useStore, type HistoryEntry, type SelectionItem, type TreeNode } from './store';
+import {
+  hydrateSessionPatch,
+  pushClosed,
+  removeTab,
+  sessionHasUnsaved,
+  snapshotSession,
+  upsertTab,
+} from './workspace-session';
 
 function errorMessage(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err);
@@ -23,13 +34,118 @@ export async function refreshTree() {
   }
 }
 
+function preserveAppChrome() {
+  const s = getState();
+  return {
+    leftWidth: s.leftWidth,
+    rightWidth: s.rightWidth,
+    leftTab: s.leftTab,
+    mcp: s.mcp,
+    aiStatus: s.aiStatus,
+    terminalOpen: s.terminalOpen,
+    openProjects: s.openProjects,
+    sessions: s.sessions,
+    closedProjectRoots: s.closedProjectRoots,
+  };
+}
+
+function registerOpenTab(project: ProjectInfo) {
+  const s = getState();
+  setState({
+    openProjects: upsertTab(s.openProjects, { root: project.root, name: project.name }),
+    activeProjectRoot: project.root,
+    closedProjectRoots: s.closedProjectRoots.filter((r) => r !== project.root),
+  });
+}
+
+/** Soft-switch: snapshot current project, then open another (warm hydrate or cold load). */
+export async function switchProjectTab(root: string) {
+  const s = getState();
+  if (s.project?.root === root) return;
+  const session = s.sessions[root];
+  if (!session) {
+    try {
+      await loadProject(await api.openProject(root));
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+    }
+    return;
+  }
+
+  const leave = s.project ? snapshotSession(s) : null;
+  resetTerminals();
+  const chrome = preserveAppChrome();
+  const sessions = { ...chrome.sessions, ...(leave ? { [leave.root]: leave } : {}), [session.root]: session };
+  setState({
+    ...initialState,
+    ...chrome,
+    ...hydrateSessionPatch(session),
+    openProjects: upsertTab(chrome.openProjects, { root: session.root, name: session.name }),
+    sessions,
+    activeProjectRoot: session.root,
+  });
+  try {
+    await api.openProject(root);
+  } catch (err) {
+    toast(errorMessage(err), 'error');
+    return;
+  }
+  if (session.project.canPreview) await api.startPreview().catch(() => undefined);
+  else setState({ mode: 'code' });
+}
+
 async function loadProject(project: ProjectInfo) {
-  const { leftWidth, rightWidth, leftTab, mcp, aiStatus, terminalOpen, terminals, activeTerminal } = getState();
-  const sameProject = getState().project?.root === project.root;
+  const s = getState();
+  const sameProject = s.project?.root === project.root;
+  const warm = !sameProject ? s.sessions[project.root] : null;
+
+  if (s.project && s.project.root !== project.root) {
+    const snap = snapshotSession(s);
+    if (snap) setState({ sessions: { ...getState().sessions, [s.project.root]: snap } });
+  }
+
   if (!sameProject) resetTerminals();
-  setState({ ...initialState, project, leftWidth, rightWidth, leftTab, mcp, aiStatus, terminalOpen, ...(sameProject ? { terminals, activeTerminal } : {}) });
+  const chrome = preserveAppChrome();
+
+  if (warm && !sameProject) {
+    setState({
+      ...initialState,
+      ...chrome,
+      ...hydrateSessionPatch(warm),
+      project,
+      openProjects: upsertTab(chrome.openProjects, { root: project.root, name: project.name }),
+      activeProjectRoot: project.root,
+      sessions: { ...chrome.sessions, [project.root]: { ...warm, project, name: project.name } },
+      closedProjectRoots: chrome.closedProjectRoots.filter((r) => r !== project.root),
+    });
+    await Promise.all([refreshTree(), loadProjectConfig()]);
+    for (const warning of project.warnings) toast(warning, 'info');
+    if (project.canPreview) await api.startPreview();
+    else setState({ mode: 'code' });
+    return;
+  }
+
+  setState({
+    ...initialState,
+    ...chrome,
+    project,
+    leftTab: chrome.leftTab,
+    mcp: chrome.mcp,
+    aiStatus: chrome.aiStatus,
+    terminalOpen: chrome.terminalOpen,
+    ...(sameProject ? { terminals: s.terminals, activeTerminal: s.activeTerminal } : {}),
+    openProjects: upsertTab(chrome.openProjects, { root: project.root, name: project.name }),
+    activeProjectRoot: project.root,
+    sessions: chrome.sessions,
+    closedProjectRoots: chrome.closedProjectRoots.filter((r) => r !== project.root),
+    workspace: defaultWorkspace(null),
+    agentGraph: EMPTY_AGENT_GRAPH,
+  });
   loadLayout(project);
   await Promise.all([refreshTree(), loadProjectConfig()]);
+  const cfg = getState().projectConfig;
+  const defaultPageId = cfg?.config.defaultPageId ?? cfg?.pages.find((p) => (p.viewType ?? 'design') === 'design')?.id ?? null;
+  void loadWorkspace(project.root, defaultPageId);
   for (const warning of project.warnings) toast(warning, 'info');
   const entry = project.entryFile ? 'src/App.jsx' : null;
   const tree = getState().fileTree;
@@ -37,6 +153,9 @@ async function loadProject(project: ProjectInfo) {
   if (appFile) await openFile(appFile, false);
   if (project.canPreview) await api.startPreview();
   else setState({ mode: 'code' });
+  // Persist warm session snapshot after cold load settles
+  const snap = snapshotSession(getState());
+  if (snap) setState({ sessions: { ...getState().sessions, [project.root]: snap } });
 }
 
 function containsPath(node: { path: string; children?: any[] }, path: string): boolean {
@@ -63,7 +182,9 @@ export async function createProject(template: TemplateId, name: string, setup?: 
 }
 
 export async function openProjectDialog() {
-  if (!confirmDiscard()) return;
+  // Opening another project as a new tab: only confirm discard when replacing the sole project with unsaved buffers and no warm session path.
+  const s = getState();
+  if (s.project && s.openProjects.length <= 1 && !confirmDiscard()) return;
   try {
     const project = await api.openProjectDialog();
     if (project) await loadProject(project);
@@ -115,7 +236,12 @@ export async function importZip() {
 }
 
 export async function openRecent(root: string) {
-  if (!confirmDiscard()) return;
+  const s = getState();
+  if (s.sessions[root]) {
+    await switchProjectTab(root);
+    return;
+  }
+  if (s.project && s.openProjects.length <= 1 && !confirmDiscard()) return;
   try {
     await loadProject(await api.openProject(root));
   } catch (err) {
@@ -123,12 +249,61 @@ export async function openRecent(root: string) {
   }
 }
 
+/** Close one project tab. Soft-closes without quitting Electron until the last tab is gone. */
+export async function closeProjectTab(root?: string) {
+  const s = getState();
+  const target = root ?? s.activeProjectRoot ?? s.project?.root;
+  if (!target) return;
+
+  const session = s.sessions[target];
+  const isActive = s.project?.root === target;
+  if (isActive ? hasUnsaved() : sessionHasUnsaved(session)) {
+    if (!window.confirm('You have unsaved changes in the code editor. Discard them?')) return;
+  }
+
+  const leaveSnap = isActive ? snapshotSession(s) : session;
+  const closed = pushClosed(s.closedProjectRoots, target);
+  const tabs = removeTab(s.openProjects, target);
+  const { [target]: _removed, ...restSessions } = s.sessions;
+
+  if (tabs.length === 0) {
+    await api.closeProject();
+    await api.setUnsaved(false);
+    resetTerminals();
+    setState({
+      ...initialState,
+      leftTab: s.leftTab,
+      mcp: s.mcp,
+      aiStatus: s.aiStatus,
+      terminalOpen: s.terminalOpen,
+      openProjects: [],
+      activeProjectRoot: null,
+      sessions: {},
+      closedProjectRoots: closed,
+    });
+    return;
+  }
+
+  const next = tabs.find((t) => t.root !== target) ?? tabs[0];
+  setState({
+    openProjects: tabs,
+    sessions: restSessions,
+    closedProjectRoots: closed,
+  });
+
+  if (isActive) {
+    await switchProjectTab(next.root);
+  }
+}
+
 export async function closeProject() {
-  if (!confirmDiscard()) return;
-  await api.closeProject();
-  await api.setUnsaved(false);
-  resetTerminals();
-  setState({ ...initialState, leftTab: getState().leftTab, mcp: getState().mcp, aiStatus: getState().aiStatus, terminalOpen: getState().terminalOpen });
+  await closeProjectTab(getState().project?.root);
+}
+
+export async function reopenClosedProject() {
+  const root = getState().closedProjectRoots[0];
+  if (!root) return;
+  await openRecent(root);
 }
 
 export async function installDependencies() {
@@ -196,26 +371,67 @@ export function closeFile(path: string) {
 }
 
 export function updateBuffer(path: string, content: string) {
-  setState((s) => ({ buffers: { ...s.buffers, [path]: { ...s.buffers[path], content } } }));
+  setState((s) => ({ buffers: { ...s.buffers, [path]: { ...s.buffers[path], content } }, saveError: null }));
   void api.setUnsaved(hasUnsaved());
+  scheduleAutosave();
+}
+
+let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
+let autosaveGen = 0;
+
+/** Debounce dirty buffer writes so the editor autosaves without a manual Save. */
+export function scheduleAutosave(delayMs = 700) {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => {
+    autosaveTimer = null;
+    void saveDirtyFiles();
+  }, delayMs);
+}
+
+/** Write every dirty code buffer to disk. Used by autosave and the topbar status control. */
+export async function saveDirtyFiles(): Promise<boolean> {
+  const dirty = Object.entries(getState().buffers).filter(([, b]) => b.content !== b.saved);
+  if (!dirty.length) {
+    setState({ saving: false, saveError: null });
+    void api.setUnsaved(false);
+    return true;
+  }
+  const gen = ++autosaveGen;
+  setState({ saving: true, saveError: null });
+  try {
+    for (const [path] of dirty) {
+      const buffer = getState().buffers[path];
+      if (!buffer || buffer.content === buffer.saved) continue;
+      const change = await api.writeFile(path, buffer.content);
+      if (gen !== autosaveGen) return false;
+      setState((s) => ({
+        buffers: { ...s.buffers, [path]: { content: buffer.content, saved: buffer.content } },
+        past: [...s.past, { label: `Edit ${path}`, changes: [change] }],
+        future: [],
+      }));
+    }
+    if (gen !== autosaveGen) return false;
+    setState({ saving: false, saveError: null });
+    void api.setUnsaved(hasUnsaved());
+    return true;
+  } catch (err) {
+    if (gen !== autosaveGen) return false;
+    setState({ saving: false, saveError: errorMessage(err) });
+    void api.setUnsaved(hasUnsaved());
+    return false;
+  }
 }
 
 export async function saveFile(path = getState().activeFile) {
   if (!path) return;
   const buffer = getState().buffers[path];
   if (!buffer || buffer.content === buffer.saved) return;
-  try {
-    const change = await api.writeFile(path, buffer.content);
-    setState((s) => ({
-      buffers: { ...s.buffers, [path]: { content: buffer.content, saved: buffer.content } },
-      past: [...s.past, { label: `Edit ${path}`, changes: [change] }],
-      future: [],
-    }));
-    void api.setUnsaved(hasUnsaved());
-    toast(`Saved ${path}`, 'success');
-  } catch (err) {
-    toast(`Could not save ${path}: ${errorMessage(err)}`, 'error');
+  if (autosaveTimer) {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = null;
   }
+  const ok = await saveDirtyFiles();
+  if (!ok) toast(`Could not save ${path}: ${getState().saveError ?? 'Unknown error'}`, 'error');
 }
 
 export async function createFileOrFolder(kind: 'file' | 'folder', parentDir: string, name: string): Promise<boolean> {

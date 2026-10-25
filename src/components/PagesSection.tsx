@@ -1,10 +1,27 @@
-import { ArrowDown, ArrowUp, Compass, Copy, FileText, Home, Plus, Trash2 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Bot,
+  Box,
+  Code2,
+  Compass,
+  Copy,
+  FileText,
+  Home,
+  LayoutTemplate,
+  Plus,
+  Terminal,
+  Trash2,
+} from 'lucide-react';
+import { useRef, useState, type ComponentType } from 'react';
+import { PAGE_VIEW_TYPES, type PageViewType } from '../../shared/project-config';
 import { runtimeOnlyPaths } from '../../shared/source/routes';
+import { setLeafPage } from '../../shared/workspace-layout';
 import { sendToFrame } from '../lib/bridge';
 import { plural } from '../lib/plural';
 import { createPage, deletePage, duplicatePage, focusPage, framesOf, movePage, renamePage } from '../lib/pages';
-import { activeFrame, getState, pageOf, useStore } from '../lib/store';
+import { activeFrame, getState, pageOf, setState, useStore } from '../lib/store';
+import { scheduleWorkspaceSave } from '../lib/workspace';
 import { FrameRow } from '../ui/FramesPanel.jsx';
 import { IconButton, SectionLabel } from '../ui/primitives.jsx';
 
@@ -44,18 +61,47 @@ export function RowRename({ value, label, onCommit, onCancel }: { value: string;
 
 const confirmDelete = (name: string) => window.confirm(`Delete the page ${name}? Its route is removed. You can undo this.`);
 
-/** Pages of the project: each page is a route, shown in its own frames on the canvas. */
+const PAGE_ICONS: Record<string, ComponentType<{ size?: number; className?: string }>> = {
+  'layout-template': LayoutTemplate,
+  home: Home,
+  'git-branch': Bot,
+  'file-code-2': Code2,
+  terminal: Terminal,
+  'file-text': FileText,
+  box: Box,
+};
+
+function iconFor(page: { viewType?: PageViewType; icon?: string; path?: string }) {
+  const viewType = page.viewType ?? 'design';
+  if (viewType === 'design' && page.path === '/') return Home;
+  const key =
+    page.icon ||
+    (viewType === 'agent'
+      ? 'git-branch'
+      : viewType === 'code'
+        ? 'file-code-2'
+        : viewType === 'terminal'
+          ? 'terminal'
+          : viewType === 'three'
+            ? 'box'
+            : 'layout-template');
+  return PAGE_ICONS[key] ?? FileText;
+}
+
+/** Pages of the project: design routes plus workspace views (agent/code/terminal). */
 export function PagesSection() {
   const state = useStore((s) => s.projectConfig);
-  const activeId = useStore((s) => pageOf(activeFrame(s), s)?.id);
+  const activeId = useStore((s) => pageOf(activeFrame(s), s)?.id ?? s.workspace.activePageId);
   useStore((s) => s.frames);
   const busy = useStore((s) => s.busy);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [addType, setAddType] = useState<PageViewType>('design');
   const visited = useStore((s) => s.visitedPaths);
   if (!state) return null;
   const { pages, canEditPages, pagesNote } = state;
-  const runtime = state.routing === 'react-router' ? runtimeOnlyPaths(pages.map((p) => p.path), visited) : [];
+  const designPaths = pages.filter((p) => (p.viewType ?? 'design') === 'design').map((p) => p.path);
+  const runtime = state.routing === 'react-router' ? runtimeOnlyPaths(designPaths, visited) : [];
 
   return (
     <>
@@ -71,18 +117,35 @@ export function PagesSection() {
       <div className="frame-list" role="list" aria-label="Pages">
         {pages.map((p, i) => {
           const count = framesOf(p.id).length;
-          const home = p.path === '/';
+          const viewType = p.viewType ?? 'design';
+          const home = viewType === 'design' && p.path === '/';
           const remove = () => !home && confirmDelete(p.name) && void deletePage(p.id);
+          const meta =
+            viewType === 'design'
+              ? `${p.path || '/'} · ${plural(count, 'frame', 'frames').replace(' ', '\u00a0')}`
+              : viewType;
           return (
             <FrameRow
               key={p.id}
               role="listitem"
-              icon={home ? Home : FileText}
+              icon={iconFor(p)}
               name={p.name}
-              meta={`${p.path} · ${plural(count, 'frame', 'frames').replace(' ', '\u00a0')}`}
+              meta={meta}
               active={p.id === activeId}
               title={canEditPages ? 'F2 to rename, Alt+↑/↓ to reorder' : undefined}
-              onClick={() => focusPage(p.id)}
+              onClick={() => {
+                focusPage(p.id);
+                const ws = getState().workspace;
+                const paneId = ws.focusedPaneId;
+                setState({
+                  workspace: {
+                    ...ws,
+                    layout: paneId ? setLeafPage(ws.layout, paneId, p.id) : ws.layout,
+                    activePageId: p.id,
+                  },
+                });
+                scheduleWorkspaceSave();
+              }}
               onDoubleClick={() => canEditPages && setRenaming(p.id)}
               onKeyDown={(e) => {
                 if (!canEditPages) return;
@@ -103,7 +166,7 @@ export function PagesSection() {
                     <IconButton size="sm" label={`Move ${p.name} down`} disabled={i === pages.length - 1 || busy} onClick={(e) => { e.stopPropagation(); void movePage(p.id, 1); }}>
                       <ArrowDown size={12} />
                     </IconButton>
-                    <IconButton size="sm" label={`Duplicate ${p.name}`} disabled={!p.file || busy} onClick={(e) => { e.stopPropagation(); void duplicatePage(p.id); }}>
+                    <IconButton size="sm" label={`Duplicate ${p.name}`} disabled={busy || (viewType === 'design' && !p.file)} onClick={(e) => { e.stopPropagation(); void duplicatePage(p.id); }}>
                       <Copy size={12} />
                     </IconButton>
                     <IconButton size="sm" label={home ? 'The home page can’t be deleted' : `Delete ${p.name}`} disabled={home || busy} onClick={(e) => { e.stopPropagation(); remove(); }}>
@@ -128,16 +191,27 @@ export function PagesSection() {
           );
         })}
         {adding && (
-          <div className="frame-row" role="listitem">
-            <FileText size={14} className="frame-row__icon" />
+          <div className="frame-row frame-row--adding" role="listitem">
+            <select
+              className="pages-add__type"
+              aria-label="Page type"
+              value={addType}
+              onChange={(e) => setAddType(e.target.value as PageViewType)}
+            >
+              {PAGE_VIEW_TYPES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
             <span className="frame-row__text">
               <RowRename
-                value="New page"
+                value={addType === 'design' ? 'New page' : PAGE_VIEW_TYPES.find((t) => t.id === addType)?.label ?? 'New page'}
                 label="New page name"
                 onCancel={() => setAdding(false)}
                 onCommit={(v) => {
                   setAdding(false);
-                  if (v.trim()) void createPage(v);
+                  if (v.trim()) void createPage(v, addType);
                 }}
               />
             </span>

@@ -273,10 +273,14 @@ export async function listenForUtterance(caps: VoiceCapabilities | null, signal?
 }
 
 /** Prefer a natural local voice over the platform default (often flat/robotic). */
-function pickBrowserVoice(): SpeechSynthesisVoice | null {
+function pickBrowserVoice(preferredVoiceURI?: string | null): SpeechSynthesisVoice | null {
   if (typeof speechSynthesis === 'undefined') return null;
   const voices = speechSynthesis.getVoices();
   if (!voices.length) return null;
+  if (preferredVoiceURI) {
+    const chosen = voices.find((v) => v.voiceURI === preferredVoiceURI);
+    if (chosen) return chosen;
+  }
   const prefer = [/google.*english/i, /microsoft.*natural/i, /samantha/i, /karen/i, /moira/i, /jenny/i, /aria/i, /en[-_]?us/i, /^en/i];
   for (const re of prefer) {
     const hit = voices.find((v) => re.test(`${v.name} ${v.lang}`));
@@ -285,7 +289,7 @@ function pickBrowserVoice(): SpeechSynthesisVoice | null {
   return voices.find((v) => v.lang.toLowerCase().startsWith('en')) ?? voices[0] ?? null;
 }
 
-export function speakWithBrowser(text: string, signal?: AbortSignal): Promise<void> {
+export function speakWithBrowser(text: string, signal?: AbortSignal, preferredVoiceURI?: string | null): Promise<void> {
   return new Promise((resolve, reject) => {
     if (typeof speechSynthesis === 'undefined') {
       reject(new Error('Speech synthesis isn’t available here.'));
@@ -295,7 +299,7 @@ export function speakWithBrowser(text: string, signal?: AbortSignal): Promise<vo
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = 0.98;
     utter.pitch = 1;
-    const voice = pickBrowserVoice();
+    const voice = pickBrowserVoice(preferredVoiceURI);
     if (voice) utter.voice = voice;
     const onAbort = () => {
       speechSynthesis.cancel();
@@ -315,7 +319,7 @@ export function speakWithBrowser(text: string, signal?: AbortSignal): Promise<vo
     if (!voice && speechSynthesis.getVoices().length === 0) {
       const once = () => {
         speechSynthesis.removeEventListener('voiceschanged', once);
-        const v = pickBrowserVoice();
+        const v = pickBrowserVoice(preferredVoiceURI);
         if (v) utter.voice = v;
         speak();
       };
@@ -328,6 +332,14 @@ export function speakWithBrowser(text: string, signal?: AbortSignal): Promise<vo
     }
     speak();
   });
+}
+
+async function preferredBrowserVoiceURI(): Promise<string | null> {
+  try {
+    return (await api.ai.status()).settings.ttsVoices?.browser ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function playAudioBase64(mime: string, base64: string, signal?: AbortSignal): Promise<void> {
@@ -359,24 +371,15 @@ async function playAudioBase64(mime: string, base64: string, signal?: AbortSigna
   }
 }
 
-export async function speakResult(result: VoiceSpeakResult, signal?: AbortSignal): Promise<void> {
+export async function speakResult(result: VoiceSpeakResult, signal?: AbortSignal, preferredVoiceURI?: string | null): Promise<void> {
   if (result.kind === 'audio') return playAudioBase64(result.mime, result.base64, signal);
-  return speakWithBrowser(result.text, signal);
+  return speakWithBrowser(result.text, signal, preferredVoiceURI);
 }
 
 export async function speakText(text: string, signal?: AbortSignal): Promise<void> {
-  let result: VoiceSpeakResult;
-  try {
-    result = await api.ai.voiceSpeak(text);
-  } catch {
-    result = { kind: 'browser', text };
-  }
+  const browserVoiceURI = await preferredBrowserVoiceURI();
+  // Do not fall back to device (Windows) voices when cloud TTS fails — that hides the real error.
+  const result = await api.ai.voiceSpeak(text);
   if (signal?.aborted) throw new DOMException('Stopped.', 'AbortError');
-  try {
-    await speakResult(result, signal);
-  } catch (err) {
-    if (signal?.aborted || (err instanceof DOMException && err.name === 'AbortError')) throw err;
-    if (result.kind === 'audio') await speakWithBrowser(text, signal);
-    else throw err;
-  }
+  await speakResult(result, signal, browserVoiceURI);
 }

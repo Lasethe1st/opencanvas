@@ -3,9 +3,13 @@ import { breakpointFor, type Camera, type FrameLayout, type Guide } from '../../
 import { IDLE_BUILD, type BuildState } from '../../shared/build-stages';
 import type { VariantRecord } from '../../shared/variants';
 import type { AiChatItem, AiStatus } from '../../shared/ai';
+import { EMPTY_AGENT_GRAPH, type AgentGraph } from '../../shared/agent-graph';
 import type { PageConfig, ProjectPagesState } from '../../shared/project-config';
 import type { TerminalSession } from '../../shared/terminal';
+import type { ThreeSceneDoc } from '../../shared/three';
 import type { AuditReport, Breakpoint, FileChange, GitStatus, FileNode, ImportedProject, McpStatus, PreviewStatus, ProjectInfo, SourceElementInfo, StyleState } from '../../shared/types';
+import { defaultWorkspace, type WorkspaceState } from '../../shared/workspace-layout';
+import type { OpenProjectTab, ProjectSession } from './workspace-session';
 
 export interface TreeNode {
   id: string;
@@ -65,6 +69,7 @@ export interface Toast {
 
 export type Tool = 'select' | 'hand';
 export type LeftTab = 'layers' | 'files' | 'frames';
+export type InsertPanel = 'frame' | 'section' | 'more';
 
 /** Shown instead of entering inline text editing when the source can't be edited safely. */
 export interface InlineNotice {
@@ -106,6 +111,10 @@ interface State {
   past: HistoryEntry[];
   future: HistoryEntry[];
   busy: boolean;
+  /** File autosave in flight (code buffers). */
+  saving: boolean;
+  /** Last autosave failure, cleared on the next successful save. */
+  saveError: string | null;
   toasts: Toast[];
   leftTab: LeftTab;
   leftWidth: number;
@@ -118,6 +127,8 @@ interface State {
   fullPreview: boolean;
   gitOpen: boolean;
   gitStatus: GitStatus | null;
+  /** Left-panel insert tool offerings (Frame / Section / More); null shows Layers/Files/Frames. */
+  insertPanel: InsertPanel | null;
   auditOpen: boolean;
   auditRunning: boolean;
   audit: AuditReport | null;
@@ -150,9 +161,22 @@ interface State {
   visitedPaths: string[];
   /** Shown once after a ZIP import: what OpenCanvas detected. */
   importSummary: ImportedProject | null;
+  /** Soft multi-project tabs (one Electron project live at a time). */
+  openProjects: OpenProjectTab[];
+  activeProjectRoot: string | null;
+  sessions: Record<string, ProjectSession>;
+  closedProjectRoots: string[];
+  /** Split workspace layout for the active project. */
+  workspace: WorkspaceState;
+  /** Live agent execution graph for the active turn / last turn. */
+  agentGraph: AgentGraph;
+  followAgentNode: boolean;
+  selectedAgentNodeId: string | null;
+  /** In-memory Three.js scene docs keyed by page id. */
+  threeScenes: Record<string, ThreeSceneDoc>;
 }
 
-export type SettingsTab = 'appearance' | 'ai' | 'mcp';
+export type SettingsTab = 'general' | 'appearance' | 'ai' | 'mcp';
 
 export type DockMode = 'input' | 'variants' | 'search' | 'direction' | 'design-system';
 
@@ -188,6 +212,8 @@ export const initialState: State = {
   past: [],
   future: [],
   busy: false,
+  saving: false,
+  saveError: null,
   toasts: [],
   leftTab: readLeftTab(),
   leftWidth: 260,
@@ -199,6 +225,7 @@ export const initialState: State = {
   fullPreview: false,
   gitOpen: false,
   gitStatus: null,
+  insertPanel: null,
   auditOpen: false,
   auditRunning: false,
   audit: null,
@@ -220,6 +247,15 @@ export const initialState: State = {
   activeTerminal: null,
   visitedPaths: [],
   importSummary: null,
+  openProjects: [],
+  activeProjectRoot: null,
+  sessions: {},
+  closedProjectRoots: [],
+  workspace: defaultWorkspace(null),
+  agentGraph: EMPTY_AGENT_GRAPH,
+  followAgentNode: true,
+  selectedAgentNodeId: null,
+  threeScenes: {},
 };
 
 function readTerminalOpen(): boolean {

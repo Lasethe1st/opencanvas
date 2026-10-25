@@ -5,6 +5,7 @@ import {
   CONFIG_FILE,
   REFERENCES_DIR,
   componentName,
+  designPages,
   normalizeDirection,
   normalizePath,
   normalizeProjectConfig,
@@ -18,6 +19,7 @@ import {
 } from '../../shared/project-config';
 import { detectRoutes, generateRoutesFile, isManagedRoutes, newPageSource, nextRouteFor, rebaseImports, routesFileFor, RoutingError, wireRoutesIntoEntry } from '../../shared/source/routes';
 import type { FileChange, ProjectInfo } from '../../shared/types';
+import { createDefaultScene, generateR3fSceneSource } from '../../shared/three';
 import { IGNORED_DIRS, ProjectError, safeResolve, toRel } from './project';
 
 const read = (root: string, rel: string): string | null => {
@@ -88,7 +90,14 @@ function detectedPages(config: ProjectConfig, found: { path: string; file: strin
     if (seen.has(f.path)) continue;
     seen.add(f.path);
     const named = config.pages.find((p) => p.path === f.path);
-    pages.push({ id: f.path === '/' ? 'home' : `route:${f.path}`, name: named?.name ?? titleFor(f.path), path: f.path, file: f.file });
+    pages.push({
+      id: f.path === '/' ? 'home' : `route:${f.path}`,
+      name: named?.name ?? titleFor(f.path),
+      path: f.path,
+      file: f.file,
+      viewType: named?.viewType ?? 'design',
+      icon: named?.icon ?? 'layout-template',
+    });
   }
   pages.sort((a, b) => (a.path === '/' ? -1 : b.path === '/' ? 1 : 0));
   return pages.length ? pages : config.pages.slice(0, 1);
@@ -239,8 +248,9 @@ function mutatePages(info: ProjectInfo, mutate: Mutate): PageMutation {
   let page: PageConfig | null;
   try {
     page = mutate({ config, changes, dir, ext });
-    const multi = config.pages.length > 1;
-    if (state.routing === 'single' && multi) {
+    const designCount = designPages(config.pages).length;
+    const multiDesign = designCount > 1;
+    if (state.routing === 'single' && multiDesign) {
       const entryCode = read(info.root, entry);
       if (entryCode === null) throw new ProjectError(`${entry} could not be read.`);
       put(info.root, entry, wireRoutesIntoEntry(entryCode, entry, home, routesFile), changes);
@@ -248,7 +258,7 @@ function mutatePages(info: ProjectInfo, mutate: Mutate): PageMutation {
         put(info.root, 'vercel.json', `${JSON.stringify({ rewrites: [{ source: '/(.*)', destination: '/index.html' }] }, null, 2)}\n`, changes);
       }
     }
-    if (state.routing === 'managed' || multi) put(info.root, routesFile, generateRoutesFile(config.pages, routesFile), changes);
+    if (state.routing === 'managed' || multiDesign) put(info.root, routesFile, generateRoutesFile(config.pages, routesFile), changes);
     put(info.root, CONFIG_FILE, serialize(config), changes);
   } catch (err) {
     rollback(info.root, changes);
@@ -295,8 +305,42 @@ export function createPage(info: ProjectInfo, rawName: string): PageMutation {
     const component = componentName(name);
     const file = uniqueFile(info.root, dir, component, ext);
     put(info.root, file, newPageSource(component, name), changes);
-    const page: PageConfig = { id: pageId(), name, path: uniquePath(config.pages, name), file };
+    const page: PageConfig = { id: pageId(), name, path: uniquePath(config.pages, name), file, viewType: 'design', icon: 'layout-template' };
     config.pages.push(page);
+    return page;
+  });
+}
+
+export function createWorkspacePage(info: ProjectInfo, rawName: string, viewType: import('../../shared/project-config').PageViewType = 'design'): PageMutation {
+  if (viewType === 'design') return createPage(info, rawName);
+  if (viewType === 'three') {
+    return mutatePages(info, ({ config, changes, dir }) => {
+      const id = pageId();
+      const name = uniqueName(config.pages, rawName.trim() || '3D Scene');
+      const base = componentName(name) || 'MainScene';
+      let file = `src/scenes/${base}.jsx`;
+      let n = 2;
+      while (fs.existsSync(path.join(dir, file)) || config.pages.some((p) => p.file === file)) {
+        file = `src/scenes/${base}${n}.jsx`;
+        n += 1;
+      }
+      const doc = createDefaultScene(file);
+      const source = generateR3fSceneSource(doc, path.basename(file, path.extname(file)));
+      put(info.root, file, source, changes);
+      put(info.root, `.opencanvas/three/${id}.json`, JSON.stringify(doc, null, 2), changes);
+      const page: PageConfig = { id, name, path: '', file, viewType: 'three', icon: 'box' };
+      config.pages.push(page);
+      if (!config.defaultPageId) config.defaultPageId = page.id;
+      return page;
+    });
+  }
+  return mutatePages(info, ({ config }) => {
+    const name = uniqueName(config.pages, rawName.trim() || 'New page');
+    const icon =
+      viewType === 'agent' ? 'git-branch' : viewType === 'code' ? 'file-code-2' : viewType === 'terminal' ? 'terminal' : 'layout-template';
+    const page: PageConfig = { id: pageId(), name, path: '', file: null, viewType, icon };
+    config.pages.push(page);
+    if (!config.defaultPageId) config.defaultPageId = page.id;
     return page;
   });
 }
@@ -304,13 +348,19 @@ export function createPage(info: ProjectInfo, rawName: string): PageMutation {
 export function duplicatePage(info: ProjectInfo, id: string): PageMutation {
   return mutatePages(info, ({ config, changes, dir, ext }) => {
     const source = config.pages.find((p) => p.id === id);
-    if (!source?.file) throw new ProjectError('That page has no source file to copy.');
+    if (!source) throw new ProjectError('That page no longer exists.');
+    if ((source.viewType ?? 'design') !== 'design' || !source.file) {
+      const name = uniqueName(config.pages, `${source.name} copy`);
+      const page: PageConfig = { ...source, id: pageId(), name, path: source.viewType === 'design' ? uniquePath(config.pages, name) : '', file: null };
+      config.pages.splice(config.pages.indexOf(source) + 1, 0, page);
+      return page;
+    }
     const code = read(info.root, source.file);
     if (code === null) throw new ProjectError(`${source.file} could not be read.`);
     const name = uniqueName(config.pages, `${source.name} copy`);
     const file = uniqueFile(info.root, dir, componentName(name), source.file.endsWith('.tsx') ? 'tsx' : ext);
     put(info.root, file, rebaseImports(code, source.file, file), changes);
-    const page: PageConfig = { id: pageId(), name, path: uniquePath(config.pages, name), file };
+    const page: PageConfig = { id: pageId(), name, path: uniquePath(config.pages, name), file, viewType: 'design', icon: source.icon || 'layout-template' };
     config.pages.splice(config.pages.indexOf(source) + 1, 0, page);
     return page;
   });
@@ -342,7 +392,7 @@ export function deletePage(info: ProjectInfo, id: string): PageMutation {
   return mutatePages(info, ({ config, changes }) => {
     const page = config.pages.find((p) => p.id === id);
     if (!page) throw new ProjectError('That page no longer exists.');
-    if (page.path === '/') throw new ProjectError('The home page can’t be deleted.');
+    if ((page.viewType ?? 'design') === 'design' && page.path === '/') throw new ProjectError('The home page can’t be deleted.');
     config.pages = config.pages.filter((p) => p !== page);
     if (page.file && isOwnedPageFile(info, page.file)) put(info.root, page.file, null, changes);
     return page;

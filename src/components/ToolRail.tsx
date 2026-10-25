@@ -8,33 +8,33 @@ import {
   TextCursorInput,
   Columns3,
   Frame,
-  Hand,
   Heading,
   Image,
   LayoutGrid,
   LayoutTemplate,
   Link,
-  MousePointer2,
   Pilcrow,
   Plus,
   RectangleHorizontal,
   Ruler,
   Square,
-  Type,
+  X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { PRESETS } from '../../shared/canvas';
 import type { InsertKind } from '../../shared/types';
 import { insertElement, insertImageFromDisk } from '../lib/actions';
 import { addCustomFrame, addFrame } from '../lib/canvas';
-import { setState, useStore } from '../lib/store';
-import { Button, cx, MenuItem } from '../ui/primitives.jsx';
-import { ToolButton, ToolFlyout, ToolGroup, ToolRail as Rail, ToolSeparator } from '../ui/ToolRail.jsx';
+import { getState, setState, useStore, type InsertPanel as InsertPanelId } from '../lib/store';
+import { Button, cx, IconButton, MenuItem } from '../ui/primitives.jsx';
+import { Panel, PanelTitle } from '../ui/Panels.jsx';
+import { ToolButton, ToolFlyout, ToolGroup, ToolRail as Rail, ToolRails } from '../ui/ToolRail.jsx';
 import { BugCheckButton } from './BugCheck';
+import { CONTROL_MODES, openDock } from './Dock';
 import { GitMenu } from './GitMenu';
+import { Resizer } from './Resizer';
 import { SettingsButton } from './Settings';
 import { TerminalButton } from './TerminalPanel';
-import { setInteract } from './TopBar';
 
 const ELEMENTS: { kind: InsertKind; label: string; hint: string; icon: typeof Square; keywords: string }[] = [
   { kind: 'div', label: 'Container', hint: 'div', icon: Square, keywords: 'div box container wrapper' },
@@ -55,22 +55,24 @@ const ELEMENTS: { kind: InsertKind; label: string; hint: string; icon: typeof Sq
   { kind: 'textarea', label: 'Text area', hint: 'textarea', icon: MessageSquareText, keywords: 'textarea message multiline' },
 ];
 
+const SECTION_KINDS: InsertKind[] = ['section', 'header', 'nav', 'footer', 'flex', 'grid'];
+
 const CONTAINER_TAGS = new Set(['div', 'section', 'main', 'header', 'footer', 'nav', 'article', 'aside', 'form', 'ul', 'ol', 'li', 'figure', 'fieldset', 'label']);
 
-type Flyout = 'frame' | 'text' | 'more' | null;
+const PANEL_TITLES: Record<InsertPanelId, string> = {
+  frame: 'Add frame',
+  section: 'Insert section',
+  more: 'Insert element',
+};
 
-function useOutside(open: boolean, ref: React.RefObject<HTMLElement | null>, onClose: () => void) {
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && onClose();
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('pointerdown', onDown);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('pointerdown', onDown);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [open, ref, onClose]);
+/** Open or toggle an insert offerings panel in the left sidebar (same pattern as Source control). */
+export function toggleInsertPanel(id: InsertPanelId) {
+  const cur = getState().insertPanel;
+  setState({ insertPanel: cur === id ? null : id, gitOpen: false });
+}
+
+function closeInsertPanel() {
+  setState({ insertPanel: null });
 }
 
 function InsertList({ kinds, search, onDone }: { kinds?: InsertKind[]; search?: boolean; onDone: () => void }) {
@@ -122,10 +124,10 @@ function InsertList({ kinds, search, onDone }: { kinds?: InsertKind[]; search?: 
   );
 }
 
-function FrameFlyout({ onDone }: { onDone: () => void }) {
+function FrameOfferings({ onDone }: { onDone: () => void }) {
   const [size, setSize] = useState({ width: '1024', height: '768' });
   return (
-    <ToolFlyout title="Add frame">
+    <>
       {(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((p) => (
         <MenuItem
           key={p}
@@ -157,106 +159,193 @@ function FrameFlyout({ onDone }: { onDone: () => void }) {
           Add
         </Button>
       </form>
-    </ToolFlyout>
+    </>
+  );
+}
+
+export function InsertPanel() {
+  const panel = useStore((s) => s.insertPanel)!;
+  const width = useStore((s) => s.leftWidth);
+  const selection = useStore((s) => s.selection);
+  const target = !selection ? 'the page' : CONTAINER_TAGS.has(selection.tag) ? selection.name : `after ${selection.name}`;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || document.querySelector('.dialog-backdrop, .settings-page')) return;
+      closeInsertPanel();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  let body: ReactNode;
+  if (panel === 'frame') body = <FrameOfferings onDone={closeInsertPanel} />;
+  else if (panel === 'section') body = <InsertList kinds={SECTION_KINDS} onDone={closeInsertPanel} />;
+  else body = <InsertList search onDone={closeInsertPanel} />;
+
+  return (
+    <Panel
+      side="left"
+      width={width}
+      className="panel panel--left insert-panel"
+      aria-label={PANEL_TITLES[panel]}
+      head={
+        <>
+          <PanelTitle>{PANEL_TITLES[panel]}</PanelTitle>
+          <IconButton size="sm" label="Close" onClick={closeInsertPanel}>
+            <X size={14} />
+          </IconButton>
+        </>
+      }
+      resizer={<Resizer value={width} min={200} max={460} onChange={(v) => setState({ leftWidth: v })} />}
+    >
+      <div className="insert-panel__body">
+        {panel !== 'frame' && <p className="insert-panel__target">Into {target}</p>}
+        {body}
+      </div>
+    </Panel>
   );
 }
 
 export function ToolRail() {
   const mode = useStore((s) => s.mode);
-  const tool = useStore((s) => s.tool);
+  const dockMode = useStore((s) => s.dockMode);
   const interact = useStore((s) => s.interact);
-  const selection = useStore((s) => s.selection);
   const editable = useStore((s) => s.project?.editable ?? false);
-  const [open, setOpen] = useState<Flyout>(null);
-  const ref = useRef<HTMLDivElement>(null);
-  const close = () => setOpen(null);
-  useOutside(open !== null, ref, close);
+  const insertPanel = useStore((s) => s.insertPanel);
+  const frameBtn = useRef<HTMLButtonElement>(null);
+  const sectionBtn = useRef<HTMLButtonElement>(null);
+  const moreBtn = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
-    const openInsert = () => setOpen('more');
+    const openInsert = () => setState({ insertPanel: 'more', gitOpen: false });
     window.addEventListener('oc-open-insert', openInsert);
     return () => window.removeEventListener('oc-open-insert', openInsert);
   }, []);
 
+  useEffect(() => {
+    if (!insertPanel) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || document.querySelector('.dialog-backdrop, .settings-page')) return;
+      closeInsertPanel();
+    };
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node | null;
+      if (!t) return;
+      if (frameBtn.current?.contains(t) || sectionBtn.current?.contains(t) || moreBtn.current?.contains(t)) return;
+      if (t instanceof Element && t.closest('.tool-flyout')) return;
+      closeInsertPanel();
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('pointerdown', onDown, true);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('pointerdown', onDown, true);
+    };
+  }, [insertPanel]);
+
   const canInsert = editable && !interact;
-  const target = !selection ? 'the page' : CONTAINER_TAGS.has(selection.tag) ? selection.name : `after ${selection.name}`;
-  const toggle = (id: Exclude<Flyout, null>) => setOpen((o) => (o === id ? null : id));
-  const pickTool = (next: 'select' | 'hand') => {
-    if (interact) setInteract(false);
-    setState({ tool: next });
-  };
-  const withFlyout = (id: Exclude<Flyout, null>, button: ReactNode, flyout: ReactNode) => (
-    <div className="tool-rail__slot">
-      {button}
-      {open === id && flyout}
-    </div>
+  const flyoutAnchor = insertPanel === 'frame' ? frameBtn.current : insertPanel === 'section' ? sectionBtn.current : insertPanel === 'more' ? moreBtn.current : null;
+
+  const controlRail = (
+    <Rail label="Ask and explore">
+      <ToolGroup>
+        {CONTROL_MODES.map((m) => (
+          <ToolButton
+            key={m.id}
+            label={m.label}
+            active={dockMode === m.id}
+            aria-expanded={dockMode === m.id}
+            onClick={() => (dockMode === m.id ? setState({ dockMode: null }) : openDock(m.id))}
+          >
+            {m.icon}
+          </ToolButton>
+        ))}
+      </ToolGroup>
+    </Rail>
   );
-  const footer = (
-    <>
-      <div className="tool-rail__spacer" />
+
+  const projectRail = (
+    <Rail label="Project">
       <ToolGroup>
         <BugCheckButton />
         <TerminalButton />
         <GitMenu />
         <SettingsButton />
       </ToolGroup>
-    </>
+    </Rail>
   );
 
-  if (mode === 'code') return <Rail>{footer}</Rail>;
+  if (mode === 'code') {
+    return (
+      <ToolRails>
+        {controlRail}
+        <div className="tool-rails__spacer" />
+        {projectRail}
+      </ToolRails>
+    );
+  }
 
   return (
-    <div ref={ref}>
-      <Rail>
+    <ToolRails>
+      <Rail label="Canvas tools">
         <ToolGroup>
-          <ToolButton label="Select" shortcut="V" active={tool === 'select' && !interact} onClick={() => pickTool('select')}>
-            <MousePointer2 size={16} />
+          <ToolButton
+            ref={frameBtn}
+            label="Frame"
+            active={insertPanel === 'frame'}
+            aria-expanded={insertPanel === 'frame'}
+            onClick={() => toggleInsertPanel('frame')}
+          >
+            <Frame size={16} />
           </ToolButton>
-          <ToolButton label="Hand" shortcut="H, or hold Space" active={tool === 'hand' && !interact} onClick={() => pickTool('hand')}>
-            <Hand size={16} />
-          </ToolButton>
-          {withFlyout(
-            'frame',
-            <ToolButton label="Frame" active={open === 'frame'} onClick={() => toggle('frame')}>
-              <Frame size={16} />
-            </ToolButton>,
-            <FrameFlyout onDone={close} />,
-          )}
-        </ToolGroup>
-        <ToolSeparator />
-        <ToolGroup>
-          <ToolButton label="Section" shortcut="F" disabled={!canInsert} onClick={() => void insertElement('section')}>
+          <ToolButton
+            ref={sectionBtn}
+            label="Section"
+            shortcut="F"
+            disabled={!canInsert}
+            active={insertPanel === 'section'}
+            aria-expanded={insertPanel === 'section'}
+            onClick={() => toggleInsertPanel('section')}
+          >
             <LayoutTemplate size={16} />
           </ToolButton>
           <ToolButton label="Container" shortcut="R" disabled={!canInsert} onClick={() => void insertElement('div')}>
             <Square size={16} />
           </ToolButton>
-          {withFlyout(
-            'text',
-            <ToolButton label="Text" shortcut="T" disabled={!canInsert} active={open === 'text'} onClick={() => toggle('text')}>
-              <Type size={16} />
-            </ToolButton>,
-            <ToolFlyout title={`Insert into ${target}`}>
-              <InsertList kinds={['heading', 'paragraph', 'link']} onDone={close} />
-            </ToolFlyout>,
-          )}
           <ToolButton label="Image" shortcut="I" disabled={!canInsert} onClick={() => void insertImageFromDisk()}>
             <Image size={16} />
           </ToolButton>
           <ToolButton label="Button" shortcut="B" disabled={!canInsert} onClick={() => void insertElement('button')}>
             <RectangleHorizontal size={16} />
           </ToolButton>
-          {withFlyout(
-            'more',
-            <ToolButton label="More elements" shortcut="/" disabled={!canInsert} active={open === 'more'} onClick={() => toggle('more')}>
-              <Plus size={16} />
-            </ToolButton>,
-            <ToolFlyout title={`Insert into ${target}`}>
-              <InsertList search onDone={close} />
-            </ToolFlyout>,
-          )}
+          <ToolButton
+            ref={moreBtn}
+            label="More elements"
+            shortcut="/"
+            disabled={!canInsert}
+            active={insertPanel === 'more'}
+            aria-expanded={insertPanel === 'more'}
+            onClick={() => toggleInsertPanel('more')}
+          >
+            <Plus size={16} />
+          </ToolButton>
         </ToolGroup>
-        {footer}
       </Rail>
-    </div>
+      {controlRail}
+      <div className="tool-rails__spacer" />
+      {projectRail}
+      {insertPanel && flyoutAnchor && (
+        <ToolFlyout title={PANEL_TITLES[insertPanel]} anchor={flyoutAnchor}>
+          {insertPanel === 'frame' ? (
+            <FrameOfferings onDone={closeInsertPanel} />
+          ) : insertPanel === 'section' ? (
+            <InsertList kinds={SECTION_KINDS} onDone={closeInsertPanel} />
+          ) : (
+            <InsertList search onDone={closeInsertPanel} />
+          )}
+        </ToolFlyout>
+      )}
+    </ToolRails>
   );
 }

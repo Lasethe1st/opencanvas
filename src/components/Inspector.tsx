@@ -2,14 +2,16 @@ import { Columns3, Crosshair, EyeOff, LayoutGrid, Minus, Move, Square, TextCurso
 import { useEffect, useState } from 'react';
 import { RETAGGABLE_TAGS, type StyleState } from '../../shared/types';
 import { chooseImageForSelection, revealInCode, runEdit, setStyle, setTag } from '../lib/actions';
-import { setState, useActiveBreakpoint, useStore } from '../lib/store';
+import { setState, useStore, type Selection } from '../lib/store';
+import type { SourceElementInfo } from '../../shared/types';
 import { InspectorHeader, KeyValue } from '../ui/Inspector.jsx';
-import { Panel, PanelTitle } from '../ui/Panels.jsx';
+import { Panel } from '../ui/Panels.jsx';
 import { Button, Field, InputShell, Notice, Segmented, SelectShell } from '../ui/primitives.jsx';
 import { FrameworkLabel, PackageManagerLabel } from './BrandLogos';
-import { SCOPE_LABEL } from './Canvas';
 import { BoxModel } from './inspector/BoxModel';
 import { DesignTokenBindings } from './inspector/DesignTokens';
+import { ElementCodePanel } from './inspector/ElementCodePanel';
+import { ElementMotionPanel } from './inspector/ElementMotionPanel';
 import { FontPicker } from './inspector/FontPicker';
 import { AlignGrid, ColorInput, CommitInput, CompactInput, CompactSelect, More, Section, StyleField, StyleInput, StyleSelect, ToggleGroup } from './inspector/fields';
 import { useStyleValue } from './inspector/useStyleValue';
@@ -332,6 +334,55 @@ function AppearanceSection({ disabled, isMedia }: { disabled: boolean; isMedia: 
   );
 }
 
+type InspectorTab = 'visual' | 'code' | 'motion';
+
+function ElementEmpty({ message }: { message: string }) {
+  return (
+    <div className="inspector-head">
+      <div className="inspector-head__meta inspector-empty">
+        <MousePointerClick size={20} aria-hidden="true" />
+        <span>{message}</span>
+      </div>
+    </div>
+  );
+}
+
+function VisualPanel({
+  selection,
+  grouped,
+  disabled,
+  info,
+  sourceError,
+}: {
+  selection: Selection;
+  grouped: boolean;
+  disabled: boolean;
+  info: SourceElementInfo | null;
+  sourceError: string | null;
+}) {
+  return (
+    <>
+      {grouped ? <GroupHeader /> : <ElementHeader />}
+      <StateToggle />
+      {sourceError && <Notice>{sourceError}</Notice>}
+      {!sourceError && !info && <div className="empty-note">Reading source…</div>}
+      {!grouped && <ContentSection />}
+      <LayoutSection disabled={disabled} grouped={grouped} />
+      <Section title="Spacing">
+        <BoxModel disabled={disabled} />
+      </Section>
+      {(grouped || !NO_TEXT_TAGS.has(selection.tag)) && <TypographySection disabled={disabled} />}
+      <AppearanceSection disabled={disabled} isMedia={!grouped && NO_TEXT_TAGS.has(selection.tag)} />
+      <DesignTokenBindings />
+      <p className="empty-note legend">
+        <span className="marker marker--set" /> set at this breakpoint <span className="marker marker--inherited" /> inherited
+        <br />
+        Other values are computed from the page.
+      </p>
+    </>
+  );
+}
+
 function PageSettings() {
   const project = useStore((s) => s.project)!;
   const status = useStore((s) => s.previewStatus);
@@ -344,15 +395,6 @@ function PageSettings() {
       : ' · not installed';
   return (
     <>
-      <div className="inspector-head">
-        <div className="inspector-head__row">
-          <strong className="inspector-head__title">Page</strong>
-        </div>
-        <div className="inspector-head__meta inspector-empty">
-          <MousePointerClick size={20} aria-hidden="true" />
-          <span>Select an element on the canvas or in Layers to edit it.</span>
-        </div>
-      </div>
       <Section title="Project">
         <KeyValue label="Framework">
           <FrameworkLabel framework={project.framework} />
@@ -408,11 +450,15 @@ export function Inspector() {
   const sourceError = useStore((s) => s.sourceError);
   const project = useStore((s) => s.project)!;
   const width = useStore((s) => s.rightWidth);
-  const scope = useActiveBreakpoint();
   const grouped = useStore((s) => s.multiSelect.length > 0);
+  const [tab, setTab] = useState<InspectorTab>('visual');
 
   const disabled = !info || !project.editable;
   const hiddenPanel = useStore((s) => s.panelsHidden.right);
+
+  useEffect(() => {
+    if (selection) setTab('visual');
+  }, [selection?.id]);
 
   return (
     <Panel
@@ -421,36 +467,37 @@ export function Inspector() {
       hidden={hiddenPanel}
       aria-label="Inspector"
       head={
-        <>
-          <PanelTitle>Inspector</PanelTitle>
-          <span className="scope-tag">{SCOPE_LABEL[scope]}</span>
-        </>
+        <Segmented
+          label="Inspector"
+          value={tab}
+          onChange={(id) => setTab(id)}
+          options={[
+            { id: 'visual', label: 'Visual', text: 'Visual' },
+            { id: 'code', label: 'Code', text: 'Code' },
+            { id: 'motion', label: 'Motion', text: 'Motion' },
+          ]}
+        />
       }
       resizer={<Resizer value={width} min={260} max={440} invert onChange={(v) => setState({ rightWidth: v })} />}
     >
-      {!selection ? (
-        <PageSettings />
-      ) : (
-        <>
-          {grouped ? <GroupHeader /> : <ElementHeader />}
-          <StateToggle />
-          {sourceError && <Notice>{sourceError}</Notice>}
-          {!sourceError && !info && <div className="empty-note">Reading source…</div>}
-          {!grouped && <ContentSection />}
-          <LayoutSection disabled={disabled} grouped={grouped} />
-          <Section title="Spacing">
-            <BoxModel disabled={disabled} />
-          </Section>
-          {(grouped || !NO_TEXT_TAGS.has(selection.tag)) && <TypographySection disabled={disabled} />}
-          <AppearanceSection disabled={disabled} isMedia={!grouped && NO_TEXT_TAGS.has(selection.tag)} />
-          <DesignTokenBindings />
-          <p className="empty-note legend">
-            <span className="marker marker--set" /> set at this breakpoint <span className="marker marker--inherited" /> inherited
-            <br />
-            Other values are computed from the page.
-          </p>
-        </>
-      )}
+      {tab === 'visual' &&
+        (!selection ? (
+          <PageSettings />
+        ) : (
+          <VisualPanel selection={selection} grouped={grouped} disabled={disabled} info={info} sourceError={sourceError} />
+        ))}
+      {tab === 'code' &&
+        (!selection ? (
+          <ElementEmpty message="Select an element to edit its code." />
+        ) : (
+          <ElementCodePanel />
+        ))}
+      {tab === 'motion' &&
+        (!selection ? (
+          <ElementEmpty message="Select an element to animate it." />
+        ) : (
+          <ElementMotionPanel disabled={disabled} />
+        ))}
     </Panel>
   );
 }

@@ -139,7 +139,7 @@ export function GitMenu() {
       label="Source control"
       shortcut={[label, changes > 0 && plural(changes, 'change', 'changes'), status?.ahead && `${status.ahead} to push`].filter(Boolean).join(' · ')}
       active={open}
-      onClick={() => setState({ gitOpen: !open })}
+      onClick={() => setState({ gitOpen: !open, insertPanel: null })}
       aria-expanded={open}
     >
       <GitBranch size={16} />

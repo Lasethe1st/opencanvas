@@ -1,11 +1,11 @@
-import { Check, ExternalLink, TriangleAlert } from 'lucide-react';
+import { Check, CircleAlert, ExternalLink, Loader2, TriangleAlert } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { GitStatus } from '../../shared/types';
-import { refreshTree, syncBuffersFromDisk } from '../lib/actions';
+import { refreshTree, saveDirtyFiles, syncBuffersFromDisk } from '../lib/actions';
 import { api } from '../lib/api';
 import { hasUnsaved, useStore } from '../lib/store';
 import { Dialog } from '../ui/Overlays.jsx';
-import { Button, Spinner } from '../ui/primitives.jsx';
+import { Button, Spinner, cx } from '../ui/primitives.jsx';
 import { GithubMark } from '../ui/StartScreen.jsx';
 import { errorText, IdentityForm } from './GitMenu';
 
@@ -29,16 +29,49 @@ function VercelMark({ size = 12 }: { size?: number }) {
 
 export function GoLiveButton() {
   const project = useStore((s) => s.project)!;
+  const saving = useStore((s) => s.saving);
+  const saveError = useStore((s) => s.saveError);
+  const unsaved = useStore((s) => hasUnsaved(s));
   const [open, setOpen] = useState(false);
   const [published, setPublished] = useState(
     () => localStorage.getItem(publishedKey(project.root)) === 'true' || !!localStorage.getItem(liveKey(project.root)),
   );
 
+  const status = saving ? 'saving' : saveError ? 'error' : unsaved ? 'unsaved' : null;
+
   return (
     <div className="publish-action">
-      <Button variant="primary" aria-label={published ? 'Update' : 'Publish'} onClick={() => setOpen(true)}>
-        {published ? 'Update' : 'Publish'}
-      </Button>
+      {status === 'saving' ? (
+        <button type="button" className={cx('btn', 'publish-action__status')} disabled aria-live="polite" aria-label="Saving">
+          <Loader2 size={14} className="ai-spin" aria-hidden />
+          Saving
+        </button>
+      ) : status === 'error' ? (
+        <button
+          type="button"
+          className={cx('btn', 'publish-action__status', 'is-error')}
+          aria-label="Could not save. Click to retry."
+          title={saveError ?? 'Could not save'}
+          onClick={() => void saveDirtyFiles()}
+        >
+          <CircleAlert size={14} aria-hidden />
+          Could not Save
+        </button>
+      ) : status === 'unsaved' ? (
+        <button
+          type="button"
+          className={cx('btn', 'publish-action__status', 'is-unsaved')}
+          aria-label="Unsaved changes. Click to save now."
+          onClick={() => void saveDirtyFiles()}
+        >
+          <span className="publish-action__dot" aria-hidden />
+          Unsaved
+        </button>
+      ) : (
+        <Button variant="primary" aria-label={published ? 'Update' : 'Publish'} onClick={() => setOpen(true)}>
+          {published ? 'Update' : 'Publish'}
+        </Button>
+      )}
       {open && (
         <GoLiveDialog
           onClose={() => setOpen(false)}

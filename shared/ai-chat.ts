@@ -14,6 +14,9 @@ export function reduceAiChat(items: AiChatItem[], event: AiEvent): AiChatItem[] 
       if (!event.delta.trim()) return items;
       return [...items, { kind: 'assistant', id: `${turnId}:a${items.length}`, text: event.delta }];
     }
+    case 'step':
+      // Graph-only; chat stays a flat tool/text timeline.
+      return items;
     case 'tool-start':
       return [...items, { kind: 'tool', id: `${turnId}:${event.callId}`, tool: event.tool, summary: event.summary, state: 'running' }];
     case 'tool-end': {

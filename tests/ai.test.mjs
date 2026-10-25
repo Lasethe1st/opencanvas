@@ -381,12 +381,14 @@ test('Stop ends a turn waiting on a question, and reset forgets the conversation
   assert.equal(bodies[1].messages.filter((m) => m.role === 'user').length, 1, 'history was cleared');
 });
 
-test('a second request while one is running is refused', async () => {
+test('a second request while one is running is refused by the editor, not the agent', async () => {
+  // The agent accepts only one turn; follow-ups are queued in the renderer (sendToAi).
   let release;
   const gate = new Promise((r) => (release = r));
   const { agent, waitFor } = makeAgent([async () => (await gate, streamResponse([openaiTurn({ text: 'ok' })]))]);
-  agent.send('First');
-  assert.throws(() => agent.send('Second'), /still working/);
+  const first = agent.send('First');
+  assert.equal(typeof first, 'string');
+  assert.equal(agent.busy, true);
   release();
   await waitFor((e) => e.type === 'done');
 });

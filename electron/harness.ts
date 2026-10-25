@@ -30,6 +30,11 @@ export {
 export * from '../shared/variants';
 export * from '../shared/variant-resolve';
 export * from '../shared/build-stages';
+export * from '../shared/agent-graph';
+export * from '../shared/three';
+export * from '../shared/workspace-layout';
+export { createWorkspacePage } from './services/project-config';
+export { readWorkspace, writeWorkspace } from './services/workspace';
 export { createVariantTools, VARIANT_TOOL_NAMES } from './services/mcp-tools';
 export { faviconHrefs, projectFavicon } from './services/favicon';
 export { extractJson, githubSlug, goLiveOnVercel, publicAlias, vercelImportUrl } from './services/vercel';

@@ -1,7 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import { Canvas } from './components/Canvas';
 import { BugCheckPanel } from './components/BugCheck';
-import { CodeView } from './components/CodeView';
 import { ExportDialog } from './components/ExportDialog';
 import { ImportSummaryDialog } from './components/ImportSummary';
 import { FullPreview } from './components/FullPreview';
@@ -12,8 +10,10 @@ import { Inspector } from './components/Inspector';
 import { LeftSidebar } from './components/LeftSidebar';
 import { Onboarding } from './components/Onboarding';
 import { Toasts } from './components/Toasts';
+import { TerminalPanel } from './components/TerminalPanel';
 import { ToolRail } from './components/ToolRail';
 import { TopBar } from './components/TopBar';
+import { WorkspaceSplit } from './components/WorkspaceSplit';
 import { handleMcpRequest, recordExternalEdit, refreshSourceInfo, refreshTree, reloadProjectConfig, saveFile, syncBuffersFromDisk } from './lib/actions';
 import { handleAiEvent, refreshAiStatus } from './lib/ai';
 import { api } from './lib/api';
@@ -23,7 +23,6 @@ import { handleShortcut } from './lib/shortcuts';
 import { loadPanels } from './lib/panels';
 import { getState, setState, useStore } from './lib/store';
 import { initTerminals, toggleTerminal } from './lib/terminal';
-import { TerminalPanel } from './components/TerminalPanel';
 
 function isTyping(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -94,7 +93,7 @@ export default function App() {
       if (event.key === 'Enter' && event.target instanceof HTMLButtonElement) return;
       // Tab keeps moving focus between controls; it only walks the element tree from the canvas.
       if (event.key === 'Tab' && event.target instanceof HTMLElement && event.target !== document.body && !event.target.closest('.stage')) return;
-      if (event.key === 'Escape' && document.querySelector('.dialog-backdrop, .menu, .popover, .git-panel, .settings-page, .full-preview, .font-menu, .tool-flyout, .audit-panel')) return;
+      if (event.key === 'Escape' && document.querySelector('.dialog-backdrop, .menu, .popover, .git-panel, .insert-panel, .settings-page, .full-preview, .font-menu, .tool-flyout, .audit-panel')) return;
       if (handleShortcut(event.key, meta, event.shiftKey, event.altKey)) event.preventDefault();
     };
     window.addEventListener('keydown', onKey);
@@ -141,8 +140,7 @@ export default function App() {
         <ToolRail />
         {gitOpen ? <GitPanel /> : <LeftSidebar />}
         <div className="workspace__center">
-          <Canvas hidden={mode !== 'visual'} />
-          <CodeView hidden={mode !== 'code'} />
+          <WorkspaceSplit />
           <TerminalPanel />
         </div>
         {auditOpen ? <BugCheckPanel /> : mode === 'visual' && <Inspector />}

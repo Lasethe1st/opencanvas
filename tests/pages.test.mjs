@@ -22,8 +22,9 @@ const exists = (p, f) => fs.existsSync(path.join(p.root, f));
 
 test('missing config gives defaults with a home page', () => {
   const config = h.normalizeProjectConfig(null, 'src/App.jsx');
-  assert.equal(config.version, 1);
-  assert.deepEqual(config.pages, [{ id: 'home', name: 'Home', path: '/', file: 'src/App.jsx' }]);
+  assert.equal(config.version, 2);
+  assert.deepEqual(config.pages, [{ id: 'home', name: 'Home', path: '/', file: 'src/App.jsx', viewType: 'design', icon: 'layout-template' }]);
+  assert.equal(config.defaultPageId, 'home');
   assert.equal(config.direction.visualStyle.minimalExpressive, 0.5);
   assert.equal(config.direction.visualStyle.casualProfessional, 0.5);
   assert.equal(config.direction.iconPack, 'lucide');
@@ -61,6 +62,18 @@ test('blank Vite project starts single-page and editable', () => {
   assert.equal(state.routing, 'single');
   assert.equal(state.canEditPages, true);
   assert.equal(state.pages.length, 1);
+});
+
+test('workspace pages (agent/code) skip routes and keep design home', () => {
+  const p = makeProject();
+  const agent = h.createWorkspacePage(p, 'Activity', 'agent');
+  assert.equal(agent.page.viewType, 'agent');
+  assert.equal(agent.page.path, '');
+  assert.equal(agent.page.file, null);
+  assert.equal(exists(p, 'src/routes.jsx'), false);
+  const state = h.pagesState(p);
+  assert.ok(state.pages.some((x) => x.viewType === 'agent'));
+  assert.ok(state.pages.some((x) => x.viewType === 'design' && x.path === '/'));
 });
 
 test('adding a page writes the page, managed routes and entry in one change set, and undo restores it', () => {

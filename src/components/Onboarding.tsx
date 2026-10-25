@@ -196,7 +196,7 @@ export function Onboarding() {
                         {(canContinue || (aiChat.some((i) => i.kind === 'user') && !aiReady)) && (
                           <div className="flex shrink-0 items-center gap-2">
                             <HomeAiHint />
-                            <Button type="button" size="sm" variant={canContinue ? 'default' : 'secondary'} className="h-auto rounded-[var(--pill)] px-2.5 py-2" onClick={continueToSetup}>
+                            <Button type="button" size="sm" variant={canContinue ? 'default' : 'secondary'} className="h-auto rounded-[var(--pill)] px-2.5 py-2 text-[13px] font-normal" onClick={continueToSetup}>
                               Continue to project
                             </Button>
                           </div>
@@ -241,7 +241,7 @@ export function Onboarding() {
                   <HomeComposerExtras />
                   <HomeAiHint className="text-center" />
                   {dockDraft.trim() && !aiReady && (
-                    <Button type="button" variant="secondary" className="rounded-[var(--pill)]" onClick={continueToSetup}>
+                    <Button type="button" variant="secondary" className="rounded-[var(--pill)] text-[13px] font-normal" onClick={continueToSetup}>
                       Continue to project
                     </Button>
                   )}

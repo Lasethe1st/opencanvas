@@ -1,5 +1,8 @@
 import type { AiProviderKind } from './ai';
 
+/** Fixed phrase for Settings › AI voice samples. */
+export const VOICE_SAMPLE_PHRASE = 'Hi — this is how I’ll sound when we talk in OpenCanvas.';
+
 /** How mic input is turned into text. */
 export type VoiceSttMode = 'browser' | 'provider';
 
@@ -12,6 +15,8 @@ export type VoiceCapabilities = {
   label: string;
   stt: VoiceSttMode;
   tts: VoiceTtsMode;
+  /** Which engine will speak (openai / xai / browser). */
+  ttsBackend: 'openai' | 'xai' | 'browser';
 };
 
 export type VoiceChatMessage = {

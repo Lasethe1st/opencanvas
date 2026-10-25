@@ -139,8 +139,12 @@ export interface OpenCanvasApi {
     /** Saves the direction; `uploads` maps reference ids to picked image files to copy into the project. */
     setDirection(direction: DirectionConfig, uploads?: Record<string, string>): Promise<ProjectPagesState>;
   };
+  workspace: {
+    get(fallbackPageId?: string | null): Promise<import('./workspace-layout').WorkspaceState>;
+    set(workspace: import('./workspace-layout').WorkspaceState): Promise<void>;
+  };
   pages: {
-    create(name: string): Promise<PageMutation>;
+    create(name: string, viewType?: import('./project-config').PageViewType): Promise<PageMutation>;
     duplicate(id: string): Promise<PageMutation>;
     rename(id: string, name: string): Promise<PageMutation>;
     reorder(ids: string[]): Promise<PageMutation>;

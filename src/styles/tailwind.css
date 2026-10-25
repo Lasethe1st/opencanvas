@@ -8,6 +8,9 @@
 @source '../components/ui';
 @source '../components/home';
 @source '../components/Onboarding.tsx';
+@source '../components/shapeshift.tsx';
+@source '../components/shapeshift-shapes.tsx';
+@source '../components/CanvasShapeshift.tsx';
 
 /* Scoped stand-in for Tailwind's preflight. Everything inside an element marked data-tw (the new shadcn-based
    screens, plus their portalled dialogs and menus) gets a modern reset. :where() keeps specificity at zero, so the
@@ -45,6 +48,8 @@
    being emitted at :root and overriding them. Components read the app tokens directly: shadow-[var(--shadow-md)]. */
 @theme {
   --shadow-*: initial;
+  /* Shapeshift registry shadow — colors mapped to theme tokens. */
+  --shadow-popover: 0 0 0 1px color-mix(in srgb, var(--fg) 6%, transparent), 0 4px 8px -2px color-mix(in srgb, var(--fg) 6%, transparent), 0 12px 24px -4px color-mix(in srgb, var(--fg) 8%, transparent);
 }
 
 @theme inline {
@@ -90,6 +95,7 @@
   --radius-md: var(--r);
   --radius-lg: var(--r-lg);
   --radius-xl: var(--r-xl);
+  --radius-3xl: var(--r-3xl);
   --radius-pill: var(--pill);
 
 }

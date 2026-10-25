@@ -1,9 +1,7 @@
 import {
-  AlertTriangle,
   ArrowDown,
   ArrowUp,
   Box,
-  CirclePause,
   Code2,
   Copy,
   CornerLeftUp,
@@ -72,6 +70,7 @@ import { cancelInlineEdit, commitInlineEdit, dismissInlineNotice, editSelectedTe
 import { handleShortcut } from '../lib/shortcuts';
 import { pageUrl, setRouteValues } from '../lib/pages';
 import { routeParams } from '../../shared/source/routes';
+import { CanvasShapeshift } from './CanvasShapeshift';
 import { Dock } from './Dock';
 import { getState, pageOf, setState, useStore, type FrameRuntime, type Selection, type TreeNode } from '../lib/store';
 import { StateCard } from '../ui/Canvas.jsx';
@@ -301,7 +300,6 @@ function StatusCard() {
     const needsInstall = vite && ((!project.hasNodeModules && !project.managedPreview) || project.missingDependencies.length > 0);
     return (
       <StateCard
-        icon={<AlertTriangle size={18} />}
         title="Preview unavailable"
         log={status.log ? status.log.slice(-2000) : undefined}
         actions={
@@ -326,7 +324,6 @@ function StatusCard() {
   }
   return (
     <StateCard
-      icon={<CirclePause size={18} />}
       title="Preview stopped"
       actions={
         vite && (
@@ -638,7 +635,7 @@ export function Canvas({ hidden }: { hidden: boolean }) {
     if (!el || !root) return;
     const onWheel = (e: WheelEvent) => {
       const target = e.target as Element | null;
-      const inDock = !!target?.closest?.('.dock');
+      const inDock = !!target?.closest?.('.dock, .canvas-shapeshift, .canvas-bottom-chrome');
       // Plain wheel over the dock scrolls its panels; Ctrl+wheel there zooms the canvas instead of the app.
       if (!(target && el.contains(target)) && !(inDock && (e.ctrlKey || e.metaKey))) return;
       e.preventDefault();
@@ -973,7 +970,14 @@ export function Canvas({ hidden }: { hidden: boolean }) {
           }
         />
       }
-      dock={!hidden && <Dock />}
+      dock={
+        !hidden && (
+          <div className="canvas-bottom-chrome">
+            <Dock />
+            <CanvasShapeshift />
+          </div>
+        )
+      }
     />
   );
 }

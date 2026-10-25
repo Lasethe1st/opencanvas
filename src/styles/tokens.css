@@ -61,11 +61,17 @@
   --r: 6px;
   --r-lg: 8px;
   --r-xl: 10px;
+  --r-3xl: 1.5rem;
+  --radius-3xl: var(--r-3xl);
   --pill: 70rem;
 
   --topbar-h: 44px;
   --control-h: 28px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Home chat type scale — overridden by Settings › General › Font Size. */
+  --chat-font-size: 14px;
+  --chat-font-size-sm: 12.5px;
 
   /* User chat bubble — overridden by [data-chat-bubble] presets. */
   --chat-user-bg: var(--fg);

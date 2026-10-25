@@ -1,6 +1,7 @@
 /** In-app AI from the editor's side: the conversation lives in the store, the model and keys in the main process. */
 import type { AiEvent } from '../../shared/ai';
 import { reduceAiChat } from '../../shared/ai-chat';
+import { EMPTY_AGENT_GRAPH, reduceAgentGraph } from '../../shared/agent-graph';
 import type { AiTurnContext } from '../../shared/api';
 import { IDLE_BUILD, reduceBuild } from '../../shared/build-stages';
 import { errorMessage } from './actions';
@@ -26,10 +27,13 @@ export function handleAiEvent(event: AiEvent) {
   const s = getState();
   const frameId = s.activeFrameId;
   const inProject = !!s.project;
+  if (event.projectRoot && s.project && event.projectRoot !== s.project.root) return;
   if (event.type === 'start') {
     setState({
       aiTurnId: event.turnId,
       aiChat: reduceAiChat(s.aiChat, event),
+      agentGraph: reduceAgentGraph(s.agentGraph, event),
+      selectedAgentNodeId: event.turnId,
       ...(inProject ? { build: reduceBuild(s.build, event, { frameId }) } : {}),
     });
     return;
@@ -38,8 +42,11 @@ export function handleAiEvent(event: AiEvent) {
   if (event.turnId !== s.aiTurnId) return;
   const build = inProject ? reduceBuild(s.build, event, { frameId }) : s.build;
   const done = event.type === 'done';
+  const agentGraph = reduceAgentGraph(s.agentGraph, event);
   setState({
     aiChat: reduceAiChat(s.aiChat, event),
+    agentGraph,
+    ...(s.followAgentNode && agentGraph.activeNodeId ? { selectedAgentNodeId: agentGraph.activeNodeId } : {}),
     ...(inProject ? { build } : {}),
     ...(done ? { aiTurnId: null } : {}),
   });
@@ -114,7 +121,7 @@ export async function newAiChat() {
   sendLock = false;
   if (getState().aiTurnId) await api.ai.cancel();
   await api.ai.reset();
-  setState({ aiChat: [], aiTurnId: null });
+  setState({ aiChat: [], aiTurnId: null, agentGraph: EMPTY_AGENT_GRAPH, selectedAgentNodeId: null });
 }
 
 export const answerAi = (id: string, answer: string) => void api.ai.answer(id, answer);

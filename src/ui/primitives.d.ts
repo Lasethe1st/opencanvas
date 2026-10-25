@@ -11,7 +11,14 @@ export interface SegmentedOption<T extends string> {
   text?: ReactNode;
   icon?: ReactNode;
 }
-export function Segmented<T extends string>(props: { label: string; options: SegmentedOption<T>[]; value: T; onChange?: (id: T) => void }): JSX.Element;
+export function Segmented<T extends string>(props: {
+  label: string;
+  options: SegmentedOption<T>[];
+  value: T;
+  onChange?: (id: T) => void;
+  /** Unique Motion layout id so multiple segmented controls don’t share one pill. Defaults to the aria label. */
+  layoutId?: string;
+}): JSX.Element;
 
 export function Badge(props: { tone?: 'busy' | 'warning'; children?: ReactNode }): JSX.Element;
 export function Section(props: { title: string; open?: boolean; onToggle?: () => void; children?: ReactNode }): JSX.Element;

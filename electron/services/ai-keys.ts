@@ -1,7 +1,38 @@
 /** Encrypted secrets (AI keys, Savee tokens) and AI settings, kept in the app's user data folder. Secrets never reach the renderer. */
 import fs from 'node:fs';
 import path from 'node:path';
-import { AI_PROVIDERS, defaultAiSettings, providerMeta, validateBaseUrl, type AiProviderKind, type AiSettings } from '../../shared/ai';
+import {
+  AI_PROVIDERS,
+  OPENAI_TTS_VOICES,
+  defaultAiSettings,
+  normalizeTtsBackend,
+  providerMeta,
+  validateBaseUrl,
+  type AiProviderKind,
+  type AiSettings,
+  type AiTtsVoices,
+} from '../../shared/ai';
+
+const OPENAI_TTS_VOICE_IDS = new Set<string>(OPENAI_TTS_VOICES.map((v) => v.id));
+
+function normalizeTtsVoices(raw: unknown): AiTtsVoices | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as Record<string, unknown>;
+  const out: AiTtsVoices = {};
+  if (typeof r.openai === 'string') {
+    const id = r.openai.trim().toLowerCase().slice(0, 64);
+    if (OPENAI_TTS_VOICE_IDS.has(id)) out.openai = id;
+  }
+  if (typeof r.xai === 'string') {
+    const id = r.xai.trim().toLowerCase().slice(0, 64);
+    if (/^[a-z0-9_-]{1,64}$/.test(id)) out.xai = id;
+  }
+  if (typeof r.browser === 'string') {
+    const uri = r.browser.trim().slice(0, 200);
+    if (uri) out.browser = uri;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
 
 /** Electron's safeStorage in the app; a fake in tests. */
 export interface Cipher {
@@ -108,7 +139,11 @@ export function normalizeAiSettings(raw: unknown): AiSettings {
   }
   const thinkingEffort =
     r.thinkingEffort === 'low' || r.thinkingEffort === 'medium' || r.thinkingEffort === 'high' ? r.thinkingEffort : 'medium';
-  return { provider, model, baseUrl, thinkingEffort };
+  const ttsVoices = normalizeTtsVoices(r.ttsVoices);
+  const ttsBackend = normalizeTtsBackend(r.ttsBackend);
+  const out: AiSettings = { provider, model, baseUrl, thinkingEffort, ttsBackend };
+  if (ttsVoices) out.ttsVoices = ttsVoices;
+  return out;
 }
 
 export function readAiSettings(file: string): AiSettings {

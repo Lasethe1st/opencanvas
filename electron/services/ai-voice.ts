@@ -1,7 +1,13 @@
 /** Provider voice (STT/TTS) using the stored AI key. Keys never leave the main process. */
 import { File as NodeFile } from 'node:buffer';
 import type { AiSettings } from '../../shared/ai';
-import { providerMeta } from '../../shared/ai';
+import {
+  normalizeTtsBackend,
+  providerMeta,
+  resolveOpenAiTtsVoice,
+  resolveTtsBackend,
+  resolveXaiTtsVoice,
+} from '../../shared/ai';
 import type { VoiceCapabilities, VoiceChatMessage, VoiceSpeakResult } from '../../shared/voice';
 import { streamChat, type Fetcher } from './ai-providers';
 
@@ -10,29 +16,49 @@ Keep answers to 1–3 spoken sentences. Sound warm and natural: contractions, ev
 No markdown, bullets, numbered lists, code, or “As an AI…”. Don't narrate tools or steps.
 If they want to build something, give one concrete next move and at most one short question.`;
 
-export function voiceCapabilities(settings: AiSettings, hasKey: boolean): VoiceCapabilities {
+export type VoiceKeyFlags = { openai: boolean; xai: boolean };
+
+export function voiceCapabilities(settings: AiSettings, keys: VoiceKeyFlags): VoiceCapabilities {
   const meta = providerMeta(settings.provider);
-  const providerVoice = (settings.provider === 'openai' || settings.provider === 'xai') && hasKey;
+  const ttsBackend = resolveTtsBackend(settings, keys);
+  const sttProvider =
+    (settings.provider === 'openai' && keys.openai) || (settings.provider === 'xai' && keys.xai)
+      ? settings.provider
+      : keys.openai
+        ? 'openai'
+        : keys.xai
+          ? 'xai'
+          : null;
   return {
     provider: settings.provider,
-    label: meta.product,
-    // Chromium's built-in SpeechRecognition often fails in Electron (`network` error).
-    // Prefer the provider's STT whenever the key supports it.
-    stt: providerVoice ? 'provider' : 'browser',
-    tts: providerVoice ? 'provider' : 'browser',
+    label: ttsBackend === 'openai' ? 'ChatGPT' : ttsBackend === 'xai' ? 'Grok' : meta.product,
+    stt: sttProvider ? 'provider' : 'browser',
+    tts: ttsBackend === 'browser' ? 'browser' : 'provider',
+    ttsBackend,
   };
 }
 
 function openaiBase(settings: AiSettings): string {
-  return (settings.baseUrl || providerMeta('openai').defaultBaseUrl).replace(/\/$/, '');
+  // Prefer OpenAI’s default URL when speaking via OpenAI TTS while chat uses another provider.
+  if (settings.provider === 'openai' && settings.baseUrl) return settings.baseUrl.replace(/\/$/, '');
+  return providerMeta('openai').defaultBaseUrl.replace(/\/$/, '');
 }
 
 function xaiBase(settings: AiSettings): string {
-  return (settings.baseUrl || providerMeta('xai').defaultBaseUrl).replace(/\/$/, '');
+  if (settings.provider === 'xai' && settings.baseUrl) return settings.baseUrl.replace(/\/$/, '');
+  return providerMeta('xai').defaultBaseUrl.replace(/\/$/, '');
 }
 
 async function bufferToBase64(buf: ArrayBuffer): Promise<string> {
   return Buffer.from(buf).toString('base64');
+}
+
+function sttBackend(settings: AiSettings, keys: VoiceKeyFlags): 'openai' | 'xai' | null {
+  if (settings.provider === 'openai' && keys.openai) return 'openai';
+  if (settings.provider === 'xai' && keys.xai) return 'xai';
+  if (keys.openai) return 'openai';
+  if (keys.xai) return 'xai';
+  return null;
 }
 
 /** Transcribe a short mic clip (base64) with OpenAI Whisper or xAI STT. */
@@ -40,11 +66,17 @@ export async function voiceTranscribe(
   audioBase64: string,
   mime: string,
   settings: AiSettings,
-  key: string | null,
+  keys: VoiceKeyFlags,
+  getKey: (provider: 'openai' | 'xai') => string | null,
   fetcher: Fetcher,
 ): Promise<string> {
-  if (!key) throw new Error('Add your API key in Settings › AI to use voice.');
   if (!audioBase64.trim()) throw new Error('No audio captured.');
+  const backend = sttBackend(settings, keys);
+  if (!backend) {
+    throw new Error('Add an OpenAI or Grok API key in Settings › AI to use voice (built-in speech doesn’t work in the desktop app).');
+  }
+  const key = getKey(backend);
+  if (!key) throw new Error(`Add your ${backend === 'openai' ? 'OpenAI' : 'xAI'} API key in Settings › AI to use voice.`);
 
   const bytes = Buffer.from(audioBase64, 'base64');
   const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') || mime.includes('m4a') ? 'm4a' : mime.includes('wav') ? 'wav' : 'webm';
@@ -52,7 +84,7 @@ export async function voiceTranscribe(
   const blobType = mime.split(';')[0] || 'audio/webm';
   const file = new NodeFile([bytes], filename, { type: blobType });
 
-  if (settings.provider === 'openai') {
+  if (backend === 'openai') {
     const form = new FormData();
     form.append('model', 'whisper-1');
     form.append('language', 'en');
@@ -72,42 +104,54 @@ export async function voiceTranscribe(
     return text;
   }
 
-  if (settings.provider === 'xai') {
-    const form = new FormData();
-    form.append('model', 'grok-voice-transcribe-2.0');
-    form.append('language', 'en');
-    form.append('file', file);
-    const res = await fetcher(`${xaiBase(settings)}/stt`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}` },
-      body: form,
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      throw new Error(readableVoiceError('xAI', res.status, body));
-    }
-    const data = (await res.json()) as { text?: string };
-    const text = data.text?.trim();
-    if (!text) throw new Error('Didn’t catch that — try again.');
-    return text;
+  const form = new FormData();
+  form.append('model', 'grok-voice-transcribe-2.0');
+  form.append('language', 'en');
+  form.append('file', file);
+  const res = await fetcher(`${xaiBase(settings)}/stt`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}` },
+    body: form,
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(readableVoiceError('xAI', res.status, body));
   }
-
-  throw new Error(`${providerMeta(settings.provider).label} doesn’t support speech-to-text yet. Switch to OpenAI or Grok, or use a Chromium build with speech recognition.`);
+  const data = (await res.json()) as { text?: string };
+  const text = data.text?.trim();
+  if (!text) throw new Error('Didn’t catch that — try again.');
+  return text;
 }
 
-/** Synthesize speech with the selected provider when supported; otherwise ask the renderer to use the browser. */
+/** Synthesize speech with the selected TTS backend; otherwise ask the renderer to use the browser. */
 export async function voiceSpeak(
   text: string,
   settings: AiSettings,
-  key: string | null,
+  keys: VoiceKeyFlags,
+  getKey: (provider: 'openai' | 'xai') => string | null,
   fetcher: Fetcher,
 ): Promise<VoiceSpeakResult> {
   const trimmed = text.trim();
   if (!trimmed) throw new Error('Nothing to speak.');
-  const caps = voiceCapabilities(settings, !!key);
-  if (caps.tts === 'browser' || !key) return { kind: 'browser', text: trimmed };
+  const pref = normalizeTtsBackend(settings.ttsBackend);
+  const backend = resolveTtsBackend(settings, keys);
+  if (backend === 'browser') {
+    if (pref === 'openai' || pref === 'xai') {
+      throw new Error(
+        `Add your ${pref === 'openai' ? 'OpenAI' : 'xAI'} API key in Settings › AI to use that voice.`,
+      );
+    }
+    return { kind: 'browser', text: trimmed };
+  }
 
-  if (settings.provider === 'openai') {
+  const key = getKey(backend);
+  if (!key) {
+    throw new Error(
+      `Add your ${backend === 'openai' ? 'OpenAI' : 'xAI'} API key in Settings › AI to use voice.`,
+    );
+  }
+
+  if (backend === 'openai') {
     const res = await fetcher(`${openaiBase(settings)}/audio/speech`, {
       method: 'POST',
       headers: {
@@ -115,9 +159,8 @@ export async function voiceSpeak(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // HD + nova reads warmer than tts-1/alloy (less “robot announcer”).
         model: 'tts-1-hd',
-        voice: 'nova',
+        voice: resolveOpenAiTtsVoice(settings),
         input: trimmed.slice(0, 4096),
       }),
     });
@@ -125,31 +168,36 @@ export async function voiceSpeak(
       const body = await res.text().catch(() => '');
       throw new Error(readableVoiceError('OpenAI', res.status, body));
     }
-    return { kind: 'audio', mime: 'audio/mpeg', base64: await bufferToBase64(await res.arrayBuffer()) };
+    const bytes = await res.arrayBuffer();
+    if (!bytes.byteLength) throw new Error('OpenAI returned empty audio.');
+    return { kind: 'audio', mime: 'audio/mpeg', base64: await bufferToBase64(bytes) };
   }
 
-  if (settings.provider === 'xai') {
-    const res = await fetcher(`${xaiBase(settings)}/tts`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: trimmed.slice(0, 60000),
-        voice_id: 'eve',
-        language: 'en',
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      throw new Error(readableVoiceError('xAI', res.status, body));
-    }
-    const mime = res.headers.get('content-type')?.split(';')[0] || 'audio/mpeg';
-    return { kind: 'audio', mime, base64: await bufferToBase64(await res.arrayBuffer()) };
+  const res = await fetcher(`${xaiBase(settings)}/tts`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      text: trimmed.slice(0, 60000),
+      voice_id: resolveXaiTtsVoice(settings),
+      language: 'en',
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(readableVoiceError('xAI', res.status, body));
   }
-
-  return { kind: 'browser', text: trimmed };
+  const bytes = await res.arrayBuffer();
+  if (!bytes.byteLength) throw new Error('xAI returned empty audio.');
+  const mime = res.headers.get('content-type')?.split(';')[0]?.trim() || 'audio/mpeg';
+  // Some gateways return JSON errors with a 2xx status; reject those before playback.
+  if (mime.includes('json')) {
+    const snip = Buffer.from(bytes).toString('utf8').replace(/\s+/g, ' ').trim().slice(0, 160);
+    throw new Error(snip ? `xAI voice failed: ${snip}` : 'xAI voice returned JSON instead of audio.');
+  }
+  return { kind: 'audio', mime: mime.startsWith('audio/') ? mime : 'audio/mpeg', base64: await bufferToBase64(bytes) };
 }
 
 /** Short tool-free chat turn for the voice loop. */
