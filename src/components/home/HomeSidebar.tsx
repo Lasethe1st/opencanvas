@@ -1,6 +1,4 @@
 import { ChevronDown, Plus, Search } from 'lucide-react';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { LayoutAlignRightIcon } from '@hugeicons/core-free-icons';
 import { useId, useState, type ComponentType } from 'react';
 import homeMark from '../../assets/home-mark.png';
 import { Button } from '@/components/ui/button';
@@ -45,7 +43,6 @@ export function HomeSidebar({
   onSearch,
   busy,
   open,
-  onClose,
 }: {
   label: string;
   items: SidebarItem[];
@@ -53,7 +50,6 @@ export function HomeSidebar({
   onSearch: () => void;
   busy?: boolean;
   open: boolean;
-  onClose: () => void;
 }) {
   const regionId = useId();
   const [expanded, setExpanded] = useState<string[]>(loadSections);
@@ -88,22 +84,6 @@ export function HomeSidebar({
             </Button>
           </TooltipTrigger>
           <TooltipContent side={side}>Search</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              data-home-nav-close=""
-              className="ms-auto size-9 shrink-0 rounded-[8px] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]"
-              aria-label="Close navigation"
-              aria-expanded={open}
-              aria-controls={regionId}
-              onClick={onClose}
-            >
-              <HugeiconsIcon icon={LayoutAlignRightIcon} strokeWidth={2} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side={side}>Close navigation</TooltipContent>
         </Tooltip>
       </div>
 
