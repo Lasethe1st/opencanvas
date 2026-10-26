@@ -171,7 +171,7 @@ export function NewProjectDialog({
           <Button
             data-tw=""
             variant="ghost"
-            className="absolute start-14 top-3 z-20 h-9 gap-2 rounded-[8px] bg-muted px-3 text-xs text-foreground hover:bg-secondary [&_svg]:size-3.5"
+            className="absolute start-14 top-3 z-20 h-9 gap-2 rounded-[var(--pill)] bg-muted px-3.5 text-xs text-foreground hover:bg-secondary [&_svg]:size-3.5"
             onClick={onRestore}
             aria-label={`Resume new project, ${TITLES[step]}`}
           >
