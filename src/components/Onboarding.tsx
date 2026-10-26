@@ -219,9 +219,9 @@ export function Onboarding() {
   return (
     <LucideProvider strokeWidth={1.5} absoluteStrokeWidth>
       <TooltipProvider>
-        <div data-tw="" className="flex h-full bg-muted text-foreground">
+        <div data-tw="" className="flex h-full bg-[var(--home-bg)] text-foreground">
           <HomeSidebar label="Home" items={items} active={rightPanel} busy={busy} open={navOpen} onClose={() => setNav(false)} onSearch={() => setSearchOpen(true)} />
-          <div className="relative m-2 min-w-0 flex-1 overflow-hidden rounded-[20px] border border-border bg-card shadow-sm motion-safe:transition-[margin] motion-safe:duration-200">
+          <div className="relative m-2 min-w-0 flex-1 overflow-hidden rounded-[10px] border border-foreground/[0.08] bg-[var(--home-card)] motion-safe:transition-[margin] motion-safe:duration-200">
           {!navOpen && (
             <Tooltip>
               <TooltipTrigger asChild>

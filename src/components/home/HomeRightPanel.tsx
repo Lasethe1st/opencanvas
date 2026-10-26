@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-export const HOME_RIGHT_PANEL_WIDTH = 340;
+export const HOME_RIGHT_PANEL_WIDTH = 200;
 
 /** Docked home right column — stays open while switching tabs; body fades. */
 export function HomeRightPanel({
@@ -28,10 +28,10 @@ export function HomeRightPanel({
       className={cn(
         'relative z-0 flex h-full shrink-0 flex-col overflow-hidden',
         'motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]',
-        open ? "w-[340px]" : "w-0",
+        open ? "w-[200px]" : "w-0",
       )}
     >
-      <div className="flex h-full w-[340px] flex-col" style={{ pointerEvents: open ? 'auto' : 'none' }}>
+      <div className="flex h-full w-[200px] flex-col" style={{ pointerEvents: open ? 'auto' : 'none' }}>
         {open && (
           <div
             key={contentKey}
