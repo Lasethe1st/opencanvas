@@ -1,4 +1,4 @@
-import { FolderOpen, History, LucideProvider, MessageCircle, Plus } from 'lucide-react';
+import { FolderOpen, History, LucideProvider, MessageCircle, PanelLeftOpen, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { RecentProject } from '../../shared/types';
 import { api } from '../lib/api';
@@ -17,7 +17,7 @@ import { HomeStatusPills } from './home/HomeStatusPills';
 import { SearchOverlay } from './home/SearchOverlay';
 import { VoiceOrbSession } from './home/VoiceOrbSession';
 import { Button } from '@/components/ui/button';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type PanelId = 'new' | 'chats' | 'projects';
 
@@ -52,6 +52,24 @@ export function Onboarding() {
   const [setupFrom, setSetupFrom] = useState<'prompt' | 'panel'>('panel');
   const [setupBrief, setSetupBrief] = useState('');
   const [voiceMode, setVoiceMode] = useState(false);
+  const [navOpen, setNavOpen] = useState(() => {
+    try {
+      return localStorage.getItem('oc-home-nav-open') === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const setNav = useCallback((open: boolean) => {
+    setNavOpen(open);
+    try {
+      localStorage.setItem('oc-home-nav-open', open ? '1' : '0');
+    } catch {
+      /* storage blocked */
+    }
+    // The control that had focus is about to disappear — hand focus to its counterpart.
+    setTimeout(() => document.querySelector<HTMLElement>(open ? '[data-home-nav-close]' : '[data-home-nav-open]')?.focus(), 220);
+  }, []);
 
   const chatActive = aiChat.length > 0 || !!aiTurnId || voiceMode;
 
@@ -199,13 +217,24 @@ export function Onboarding() {
   return (
     <LucideProvider strokeWidth={1.5} absoluteStrokeWidth>
       <TooltipProvider>
-        <div data-tw="" className="flex h-full bg-background text-foreground">
-          <HomeSidebar label="Home" items={items} active={rightPanel} busy={busy} onSearch={() => setSearchOpen(true)} />
+        <div data-tw="" className="flex h-full bg-muted text-foreground">
+          <HomeSidebar label="Home" items={items} active={rightPanel} busy={busy} open={navOpen} onClose={() => setNav(false)} onSearch={() => setSearchOpen(true)} />
+          <div className="relative m-2 min-w-0 flex-1 overflow-hidden rounded-[20px] border border-border bg-card shadow-sm motion-safe:transition-[margin] motion-safe:duration-200">
+          {!navOpen && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" data-home-nav-open="" className="absolute start-3 top-3 z-20 size-9 rounded-[8px] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label="Open navigation" aria-expanded={false} onClick={() => setNav(true)}>
+                  <PanelLeftOpen strokeWidth={2} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side={document.dir === 'rtl' ? 'left' : 'right'}>Open navigation</TooltipContent>
+            </Tooltip>
+          )}
           <main
             className={
               chatActive
-                ? 'relative flex min-w-0 flex-1 flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
-                : 'flex min-w-0 flex-1 flex-col items-center justify-center overflow-y-auto px-8 py-16'
+                ? 'relative flex h-full min-w-0 flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+                : 'flex h-full min-w-0 flex-col items-center justify-center overflow-y-auto px-8 py-16'
             }
           >
             {chatActive ? (
@@ -280,6 +309,7 @@ export function Onboarding() {
               </div>
             )}
           </main>
+          </div>
           <HomeRightPanel
             open={!!rightPanel}
             title={panelTitle}
