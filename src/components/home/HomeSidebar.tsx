@@ -15,7 +15,7 @@ export interface SidebarItem {
   onSelect?: () => void;
 }
 
-export const HOME_NAV_WIDTH = 256;
+export const HOME_NAV_WIDTH = 200;
 
 /** Home nav. Panel items highlight via `active`; no flyout overlays. */
 export function HomeSidebar({
