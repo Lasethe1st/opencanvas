@@ -63,10 +63,8 @@ export function ToolFlyout({ title, children, anchor }) {
   if (!anchor || !rect) return null;
 
   const top = Math.min(rect.top, window.innerHeight - 24);
-  // Clear the floating left panel (same idea as HomeSidebar’s aside edge).
-  const leftPanel = document.querySelector('.workspace > .panel--left, .workspace--bleed > .panel--left');
-  const panelRight = leftPanel?.getBoundingClientRect().right ?? 0;
-  const left = Math.max(rect.right + 12, panelRight + 8);
+  // Rails sit between the left panel and the canvas — open just past the button.
+  const left = rect.right + 12;
 
   return createPortal(
     <div

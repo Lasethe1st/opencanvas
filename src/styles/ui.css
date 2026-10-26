@@ -159,10 +159,14 @@
   top: calc(100% + 7px);
   left: 50%;
   transform: translateX(-50%);
-  padding: 4px 8px;
-  border-radius: var(--r-sm);
-  background: var(--inverse);
-  color: var(--inverse-fg);
+  padding: 5px 10px;
+  border: 1px solid var(--frost-border, var(--line));
+  border-radius: var(--pill);
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   font-size: 11px;
   font-weight: 500;
   white-space: nowrap;
@@ -198,6 +202,7 @@
   border-radius: calc(var(--r) + 1px);
   background: var(--surface-3);
   border: 1px solid var(--line);
+  box-shadow: none;
 }
 
 .segmented button {
@@ -231,7 +236,7 @@
   z-index: 0;
   border-radius: inherit;
   background: var(--surface);
-  box-shadow: var(--shadow-sm), 0 0 0 1px var(--line);
+  box-shadow: 0 0 0 1px var(--line);
 }
 
 .segmented__label {
@@ -483,17 +488,17 @@ kbd,
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
+  width: 2px;
   cursor: col-resize;
   background: transparent;
 }
 
 .panel--left .panel__resizer {
-  right: -7px;
+  right: -1px;
 }
 
 .panel--right .panel__resizer {
-  left: -7px;
+  left: -1px;
 }
 
 /* Vertical pill handle, centered on the panel edge — appears when hovering the resize zone. */
@@ -591,7 +596,7 @@ kbd,
   gap: 6px;
   height: 28px;
   padding-right: 6px;
-  border-radius: var(--r-sm);
+  border-radius: 8px;
   color: var(--fg-2);
   cursor: default;
   white-space: nowrap;
@@ -1351,7 +1356,7 @@ kbd,
   height: 32px;
   padding: 0;
   border: none;
-  border-radius: var(--r);
+  border-radius: var(--r-pill);
   background: transparent;
   color: var(--fg-2);
   transition: background 0.12s var(--ease), color 0.12s var(--ease);
@@ -1381,11 +1386,11 @@ kbd,
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 8px;
-  border-radius: 20px;
+  border-radius: var(--pill);
   border-color: var(--frost-border, var(--line));
-  background: var(--frost-bg, var(--surface));
-  -webkit-backdrop-filter: var(--frost-filter, blur(20px) saturate(1.5));
-  backdrop-filter: var(--frost-filter, blur(20px) saturate(1.5));
+  background: var(--surface);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   box-shadow: var(--shadow-md);
 }
 
@@ -4326,19 +4331,10 @@ body.is-resizing-rows iframe {
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
 }
-.workspace-pane__page {
-  flex: 1;
-  min-width: 0;
-  height: 22px;
-  border: 0;
-  background: transparent;
-  color: var(--fg);
-  font: inherit;
-  font-size: 12px;
-}
 .workspace-pane__actions {
   display: flex;
   gap: 2px;
+  margin-left: auto;
 }
 .workspace-pane__body {
   position: relative;

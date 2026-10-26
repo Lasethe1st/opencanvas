@@ -9,6 +9,7 @@ import {
   FileText,
   Home,
   LayoutTemplate,
+  Link2,
   Plus,
   Terminal,
   Trash2,
@@ -18,12 +19,25 @@ import { PAGE_VIEW_TYPES, type PageViewType } from '../../shared/project-config'
 import { runtimeOnlyPaths } from '../../shared/source/routes';
 import { setLeafPage } from '../../shared/workspace-layout';
 import { sendToFrame } from '../lib/bridge';
+import { setSyncScroll } from '../lib/canvas';
 import { plural } from '../lib/plural';
 import { createPage, deletePage, duplicatePage, focusPage, framesOf, movePage, renamePage } from '../lib/pages';
 import { activeFrame, getState, pageOf, setState, useStore } from '../lib/store';
 import { scheduleWorkspaceSave } from '../lib/workspace';
 import { FrameRow } from '../ui/FramesPanel.jsx';
 import { IconButton, SectionLabel } from '../ui/primitives.jsx';
+
+/** Sync-scroll toggle for the Pages sidebar tab (formerly under Frames). */
+export function SyncScrollOption() {
+  const syncScroll = useStore((s) => s.syncScroll);
+  return (
+    <label className="frame-list__option">
+      <input type="checkbox" checked={syncScroll} onChange={(e) => setSyncScroll(e.target.checked)} />
+      <Link2 size={13} />
+      Sync scrolling between frames
+    </label>
+  );
+}
 
 export function RowRename({ value, label, onCommit, onCancel }: { value: string; label: string; onCommit: (v: string) => void; onCancel: () => void }) {
   const done = useRef(false);

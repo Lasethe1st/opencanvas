@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, Code2, Maximize2, Minimize2, Monitor, MousePointer2, Play, Smartphone, Tablet } from 'lucide-react';
+import { ChevronDown, ChevronRight, Code2, Maximize2, Minimize2, Monitor, MousePointer2, Play, Smartphone, Tablet, Waypoints } from 'lucide-react';
 import { Badge, IconButton, Segmented } from './primitives.jsx';
 
 export const VIEWPORTS = [
@@ -58,13 +58,15 @@ export function ViewportSwitch({ value, onChange, width }) {
   );
 }
 
+/** Relationships (canvas) · Interact (click the page) · Code */
 export function ModeSwitch({ value, onChange }) {
   return (
     <Segmented
       label="Editor mode"
       options={[
-        { id: 'visual', label: 'Visual', icon: <MousePointer2 size={15} /> },
-        { id: 'code', label: 'Code', icon: <Code2 size={15} /> },
+        { id: 'visual', label: 'Relationships', icon: <Waypoints size={15} strokeWidth={1.75} /> },
+        { id: 'interact', label: 'Interact', icon: <MousePointer2 size={15} strokeWidth={1.75} /> },
+        { id: 'code', label: 'Code', icon: <Code2 size={15} strokeWidth={1.75} /> },
       ]}
       value={value}
       onChange={onChange}

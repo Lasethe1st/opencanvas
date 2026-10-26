@@ -298,6 +298,8 @@ export interface RecentProject {
   openedAt: number;
   /** The project's favicon as a data URL, when it has one. */
   icon?: string | null;
+  /** Approximate on-disk size in bytes (excludes node_modules, .git, dist). */
+  bytes?: number;
 }
 
 export type GoLiveResult =

@@ -1,19 +1,17 @@
-import { Copy, Focus, Link2, Plus, Ruler, Trash2 } from 'lucide-react';
+import { Copy, Focus, Plus, Ruler, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { breakpointFor, PRESETS } from '../../shared/canvas';
-import { addFrame, deleteFrame, displayRect, duplicateFrame, fitFrame, renameFrame, setActiveFrame, setSyncScroll } from '../lib/canvas';
+import { addFrame, deleteFrame, displayRect, duplicateFrame, fitFrame, renameFrame, setActiveFrame } from '../lib/canvas';
 import { pageOf, useStore } from '../lib/store';
 import { FrameRow } from '../ui/FramesPanel.jsx';
 import { IconButton, Menu, MenuItem, SectionLabel } from '../ui/primitives.jsx';
 import { SCOPE_LABEL } from './Canvas';
-import { PagesSection } from './PagesSection';
 
 export function FramesPanel() {
   const frames = useStore((s) => s.frames);
   const activeFrameId = useStore((s) => s.activeFrameId);
   const runtime = useStore((s) => s.frameRuntime);
   const project = useStore((s) => s.project)!;
-  const syncScroll = useStore((s) => s.syncScroll);
   const projectConfig = useStore((s) => s.projectConfig);
   const multiPage = (projectConfig?.pages.length ?? 0) > 1;
   const [adding, setAdding] = useState(false);
@@ -21,7 +19,6 @@ export function FramesPanel() {
 
   return (
     <>
-      <PagesSection />
       <SectionLabel
         actions={
           <span style={{ position: 'relative' }}>
@@ -101,11 +98,6 @@ export function FramesPanel() {
           );
         })}
       </div>
-      <label className="frame-list__option">
-        <input type="checkbox" checked={syncScroll} onChange={(e) => setSyncScroll(e.target.checked)} />
-        <Link2 size={13} />
-        Sync scrolling between frames
-      </label>
       <p className="frame-list__hint">
         {multiPage ? 'Each frame shows one page; new frames show the page of the selected frame.' : 'Each frame shows the same page.'} Styles you change apply to the scope of the frame you edit in: Base above {project.breakpoints.tablet}px, Tablet up to {project.breakpoints.tablet}px, Mobile up to {project.breakpoints.mobile}px.
       </p>

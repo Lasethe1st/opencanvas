@@ -796,6 +796,46 @@
   text-wrap: pretty;
 }
 
+/* Compact variant for the home right panel */
+.setup--panel {
+  background: transparent;
+  min-height: 100%;
+  height: 100%;
+  padding: 0 12px 12px;
+  box-sizing: border-box;
+}
+.setup--panel .setup__bar {
+  height: auto;
+  min-height: 36px;
+  padding: 8px 0;
+  -webkit-app-region: no-drag;
+}
+.setup--panel .setup__content {
+  width: 100%;
+  margin: 0;
+  padding: 0 0 16px;
+  gap: 16px;
+}
+.setup--panel .setup__title {
+  font-size: 18px;
+}
+.setup--panel .setup__lead {
+  margin: -8px 0 0;
+  font-size: 12px;
+}
+.setup--panel .setup__foot {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+}
+.setup--panel .setup__foot .btn {
+  width: 100%;
+  justify-content: center;
+}
+
 /* ---------- Dock ---------- */
 
 .stage {

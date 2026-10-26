@@ -261,20 +261,20 @@ try {
   await page.getByRole('button', { name: 'New project' }).click();
   await page.getByPlaceholder('Project name').fill('E2E Site');
   await page.getByRole('button', { name: 'Create project' }).click();
-  await page.getByText('This page is empty').waitFor({ timeout: 60000 });
+  await waitFor(async () => (await frameCount()) === 3, 'blank canvas with default frames', 60000);
   ok(`project created at ${projectRoot()}`);
   await shot('02-blank-canvas');
 
   step('Free canvas: three frames of the same page');
-  await waitFor(async () => (await frameCount()) === 3, 'desktop, tablet and mobile frames');
   const labels = await page.locator('.frame-chrome__name').allTextContents();
   assert.deepEqual(labels, ['Desktop', 'Tablet', 'Mobile']);
   const scopes = await page.locator('.frame-chrome__scope').allTextContents();
   assert.deepEqual(scopes, ['Base', 'Tablet', 'Mobile']);
   ok('default frames fitted with their scopes inferred from width');
 
-  step('Add a section from the empty state, then a container from the tool rail');
-  await page.getByRole('button', { name: 'Add section' }).click();
+  step('Add a section from the tool rail, then a container');
+  await page.locator('.stage__viewport').click({ position: { x: 8, y: 8 } });
+  await page.keyboard.press('f');
   await frame.locator('h2', { hasText: 'New section' }).waitFor({ timeout: 20000 });
   await mobile.locator('h2', { hasText: 'New section' }).waitFor({ timeout: 20000 });
   ok('section rendered in every frame');

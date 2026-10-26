@@ -6,7 +6,6 @@ import {
   collectDesignPaneIds,
   firstLeafId,
   leafLayout,
-  setLeafPage,
   splitPane,
   type SplitNode,
 } from '../../shared/workspace-layout';
@@ -177,7 +176,8 @@ function Pane({
 
   const split = workspace.layout.type !== 'leaf' || !!workspace.maximizedPaneId;
   // Single design leaf: hide pane chrome so it doesn't stack under the floating top bar.
-  const showHead = split || pages.length > 1 || viewType !== 'design';
+  // Page switching lives in the left sidebar Pages tab — multi-page alone does not force chrome.
+  const showHead = split || viewType !== 'design';
 
   return (
     <section
@@ -186,18 +186,6 @@ function Pane({
     >
       {showHead && (
         <header className="workspace-pane__head">
-          <select
-            className="workspace-pane__page"
-            aria-label="Page"
-            value={leaf.pageId}
-            onChange={(e) => patchWorkspace(setLeafPage(getState().workspace.layout, leaf.id, e.target.value), { activePageId: e.target.value })}
-          >
-            {pages.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
           <div className="workspace-pane__actions">
             <IconButton
               size="sm"

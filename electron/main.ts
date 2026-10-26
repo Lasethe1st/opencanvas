@@ -99,6 +99,33 @@ function readRecent(): RecentProject[] {
   }
 }
 
+const SIZE_SKIP = new Set(['node_modules', '.git', 'dist', '.vite', 'coverage']);
+
+/** Approximate project size on disk, skipping heavy / generated folders. */
+function projectBytes(root: string): number {
+  let total = 0;
+  const walk = (dir: string) => {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (SIZE_SKIP.has(entry.name)) continue;
+      const full = path.join(dir, entry.name);
+      try {
+        if (entry.isDirectory()) walk(full);
+        else if (entry.isFile()) total += fs.statSync(full).size;
+      } catch {
+        /* unreadable */
+      }
+    }
+  };
+  walk(root);
+  return total;
+}
+
 function rememberProject(info: ProjectInfo) {
   const list = [{ root: info.root, name: info.name, openedAt: Date.now() }, ...readRecent().filter((p) => p.root !== info.root)].slice(0, 8);
   fs.mkdirSync(path.dirname(recentFile()), { recursive: true });
@@ -615,7 +642,9 @@ function handle<A extends unknown[], R>(channel: string, fn: (...args: A) => R |
 
 function registerIpc() {
   handle('templates:list', () => TEMPLATES);
-  handle('projects:recent', () => readRecent().map((p) => ({ ...p, icon: projectFavicon(p.root) })));
+  handle('projects:recent', () =>
+    readRecent().map((p) => ({ ...p, icon: projectFavicon(p.root), bytes: projectBytes(p.root) })),
+  );
   handle('projects:defaultLocation', () => projectsDir());
 
   handle('project:create', (template: TemplateId, name: string, setup?: ProjectSetup) => {

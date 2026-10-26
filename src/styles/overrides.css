@@ -242,10 +242,10 @@ body {
 .segmented {
   gap: 2px;
   padding: 3px;
-  border: none;
+  border: 1px solid var(--line);
   border-radius: var(--pill);
   background: var(--surface-3);
-  box-shadow: inset 0 0 0 1px var(--line);
+  box-shadow: none;
   corner-shape: round;
 }
 
@@ -257,21 +257,26 @@ body {
 }
 
 .segmented button.is-active {
-  background: transparent;
+  background: var(--line);
   box-shadow: none;
   color: var(--fg);
 }
 
 .segmented__pill {
   border-radius: var(--pill);
-  background: color-mix(in srgb, var(--fg) 8%, var(--surface));
-  box-shadow: var(--shadow-sm);
+  background: var(--line);
+  box-shadow: none;
   corner-shape: round;
 }
 
 [data-theme='dark'] .segmented__pill {
-  background: color-mix(in srgb, #fff 16%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 8%, transparent);
+  background: var(--line);
+  box-shadow: none;
+}
+
+.topbar .segmented__pill {
+  background: var(--line);
+  box-shadow: none;
 }
 
 /* Panel headers: one hairline, padded to fit content */
@@ -328,7 +333,7 @@ body {
 }
 
 .tree-row {
-  border-radius: var(--r);
+  border-radius: 8px;
 }
 
 /* Tool rail: frosted capsules matching home collapsed nav */
@@ -355,13 +360,13 @@ body {
 .tool-btn {
   width: 36px;
   height: 36px;
-  border-radius: var(--r-lg);
+  border-radius: var(--r-pill);
   color: var(--fg-2);
 }
 
 .tool-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   stroke-width: 1.75;
 }
 
@@ -516,7 +521,7 @@ body {
 .workspace--bleed > .tool-rails > .tool-rail {
   overflow: visible;
 }
-.workspace__center { border-radius: var(--r-lg); }
+.workspace__center { border-radius: 40px; }
 .topbar { background: var(--bg); border-bottom: 0 !important; box-shadow: none; }
 
 /* Bottom chrome: dock centered, zoom pill stacked under minimap at bottom right */
@@ -583,7 +588,7 @@ kbd, .kbd,
   align-items: center;
   gap: 4px;
   height: 44px;
-  padding: 0 8px 0 16px;
+  padding: 0 8px;
   border-bottom: none;
   background: var(--surface);
 }
@@ -591,7 +596,8 @@ kbd, .kbd,
   height: 28px;
   padding: 0 8px 0 12px;
   border-right: none;
-  border-radius: var(--r);
+  border-radius: var(--r-pill);
+  corner-shape: round;
 }
 .code-tab:hover { background: var(--hover); }
 .code-tab.is-active {
@@ -668,8 +674,10 @@ kbd, .kbd,
   gap: 6px;
   width: fit-content;
   max-width: var(--pill-l-max, none);
-  height: fit-content;
-  padding: 6px;
+  height: 40px;
+  min-height: 40px;
+  padding: 4px;
+  box-sizing: border-box;
   border: 1px solid var(--frost-border);
   border-radius: var(--pill);
   background: var(--frost-bg);
@@ -682,11 +690,12 @@ kbd, .kbd,
 }
 .topbar .project-btn {
   max-width: 100%;
-  height: fit-content;
-  padding: 8px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 8px;
   border-radius: var(--r-pill);
   background: transparent;
-  line-height: 17.6px;
+  line-height: 32px;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
@@ -705,9 +714,6 @@ kbd, .kbd,
 .project-place[data-place='cloud'],
 .project-place[data-place='both'] {
   color: var(--fg-2);
-}
-.topbar .icon-btn {
-  border-radius: var(--r-pill);
 }
 .topbar .badge {
   height: fit-content;
@@ -729,13 +735,13 @@ kbd, .kbd,
   justify-self: center;
   height: fit-content;
   max-width: min(520px, 42vw);
-  padding: 4px 6px;
-  border: 1px solid var(--frost-border);
+  padding: 0;
+  border: 1px solid transparent;
   border-radius: var(--pill);
-  background: var(--frost-bg);
-  box-shadow: var(--shadow-sm);
-  -webkit-backdrop-filter: var(--frost-filter);
-  backdrop-filter: var(--frost-filter);
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   pointer-events: auto;
   corner-shape: round;
 }
@@ -755,8 +761,74 @@ kbd, .kbd,
   box-shadow: none;
   backdrop-filter: none;
 }
-/* Icon-only controls: every button is a square, so the pill stays compact. */
-.topbar .segmented button { position: relative; width: 32px; padding: 0; }
+/* Mode switch matches the frosted side pills (same 40px height). */
+.topbar .segmented {
+  gap: 2px;
+  height: 40px;
+  min-height: 40px;
+  padding: 4px;
+  box-sizing: border-box;
+  border: 1px solid var(--frost-border);
+  border-radius: var(--pill);
+  background: var(--frost-bg);
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: var(--frost-filter);
+  backdrop-filter: var(--frost-filter);
+  corner-shape: round;
+}
+.topbar .segmented button {
+  position: relative;
+  width: auto;
+  min-width: 48px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 18px;
+  border-radius: var(--r-pill);
+}
+.topbar .icon-btn {
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  border-radius: var(--r-pill);
+}
+.topbar .segmented__pill {
+  background: var(--line);
+  box-shadow: none;
+}
+[data-theme='dark'] .topbar .segmented__pill {
+  background: var(--line);
+  box-shadow: none;
+}
+.user-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--frost-border);
+  border-radius: 50%;
+  background: var(--surface-2);
+  cursor: pointer;
+  corner-shape: round;
+}
+.user-avatar:hover {
+  border-color: color-mix(in srgb, var(--fg) 28%, var(--frost-border));
+}
+.user-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+/* Publish / Update dialog: center on the viewport (start-dialog defaults to top). */
+.dialog-backdrop:has(.golive) {
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
 .publish-action { display: inline-flex; align-items: center; }
 .publish-action__status {
   display: inline-flex;
@@ -778,7 +850,13 @@ kbd, .kbd,
   color: var(--fg);
 }
 .publish-action__status.is-error {
-  color: var(--danger);
+  color: #ef4444;
+  border-color: color-mix(in srgb, #ef4444 50%, var(--frost-border, var(--line)));
+  background: color-mix(in srgb, #ef4444 14%, var(--frost-bg, var(--surface)));
+}
+.publish-action__status.is-error:hover:not(:disabled) {
+  color: #f87171;
+  background: color-mix(in srgb, #ef4444 22%, var(--frost-bg, var(--surface)));
 }
 .publish-action__status.is-unsaved .publish-action__dot,
 .publish-action__dot {
@@ -816,10 +894,11 @@ kbd, .kbd,
 }
 .workspace--bleed > .tool-rails > .tool-rail,
 .workspace--bleed > .panel { border-radius: var(--r-lg); }
-/* The canvas runs under the header, so the strip behind the two pills is the canvas itself. */
-.shell:has(.workspace--bleed) { position: relative; grid-template-rows: minmax(0, 1fr); }
-.shell:has(.workspace--bleed) > .topbar { position: absolute; inset: 8px 8px auto; height: var(--topbar-h); margin: 0; z-index: 4; }
-.shell:has(.workspace--bleed) .workspace { margin-top: 0; padding-top: calc(var(--topbar-h) + 16px); }
+/* Float the topbar in every project mode so rails/panels clear it the same as visual bleed. */
+.shell:has(.workspace) { position: relative; grid-template-rows: minmax(0, 1fr); }
+/* Above floating panels (z 5) so project / account menus aren’t trapped under them. */
+.shell:has(.workspace) > .topbar { position: absolute; inset: 8px 8px auto; height: var(--topbar-h); margin: 0; z-index: 10; }
+.shell:has(.workspace) .workspace { margin-top: 0; padding-top: calc(var(--topbar-h) + 16px); }
 /* Pane chrome must clear the floating top bar (center is absolute inset 0). */
 .workspace--bleed .workspace-pane__head {
   position: relative;
@@ -830,27 +909,35 @@ kbd, .kbd,
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: var(--frost-filter, blur(50px) saturate(1.5));
 }
-/* Left panels + rails above the absolute canvas; insert flyouts portaled above chrome. */
-.workspace--bleed > .tool-rails,
+/* Rails above panels so tool tips (data-tip) aren’t covered by the left panel. */
 .workspace--bleed > .panel {
   z-index: 5;
+}
+.workspace--bleed > .tool-rails {
+  z-index: 6;
+}
+/* Lock tip chrome — don’t let later .popover / squircle rules reshape the label. */
+.tool-btn[data-tip]:hover::after,
+[data-tip]:hover::after {
+  border-radius: var(--pill);
+  background: var(--surface);
+  color: var(--fg);
 }
 .popover.tool-flyout.tool-flyout--portal {
   /* Above floating panels (z 5) and topbar (z 4); match home flyout stacking. */
   z-index: 400;
   color: var(--fg);
   border: 1px solid var(--frost-border, var(--line));
-  border-radius: 1.5rem;
-  /* Near-opaque dark surface — same family as home `bg-card/80`. */
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  backdrop-filter: blur(20px) saturate(1.5);
+  border-radius: var(--pill);
+  background: var(--surface);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   box-shadow: var(--shadow-md);
   color-scheme: inherit;
 }
 .popover.tool-flyout.tool-flyout--portal[data-theme='dark'] {
   color-scheme: dark;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  background: var(--surface);
   border-color: var(--frost-border, var(--line));
   color: var(--fg);
 }
@@ -885,7 +972,19 @@ kbd, .kbd,
 .workspace--bleed .workspace__center[data-nav-stacked] .canvas-nav { bottom: 16px; }
 
 /* Layer right-click menu */
-.layer-menu { position: fixed; z-index: 200; }
+.layer-menu { position: fixed; z-index: 400; }
+/* Frame chrome menus are portaled — same stack as tool flyouts. */
+.frame-menu--portal {
+  position: fixed;
+  z-index: 400;
+}
+.frame-menu--portal .popover {
+  position: static;
+  box-shadow: var(--shadow-md, var(--shadow-lg));
+}
+.popover.font-menu {
+  z-index: 400;
+}
 .layer-menu .popover { min-width: 200px; padding: 4px; border-radius: var(--r-lg); box-shadow: var(--shadow-md, var(--shadow-lg)); }
 .layer-menu .menu-item { height: 28px; border-radius: var(--r); }
 .layer-menu .menu-item__hint { margin-left: auto; color: var(--fg-4); font-size: 11px; }
@@ -1050,6 +1149,7 @@ kbd, .kbd,
   kbd { corner-shape: superellipse(2); }
   .search-pill__hint,
   .canvas-nav__bar,
+  .code-tab,
   .dock,
   .dock__tool,
   .scope-tag,
@@ -1065,10 +1165,8 @@ kbd, .kbd,
   .tag { corner-shape: round; }
 }
 
-/* Floating sidebars and tool rail: larger squircle panel radius. Content keeps clear of the deeper corners. */
-.workspace > .tool-rails > .tool-rail,
+/* Floating sidebars: larger squircle panel radius. Rails stay capsules (set below). */
 .workspace > .panel,
-.workspace--bleed > .tool-rails > .tool-rail,
 .workspace--bleed > .panel { border-radius: var(--r-panel); }
 .workspace > .panel--left,
 .workspace--bleed > .panel--left,
@@ -1076,13 +1174,14 @@ kbd, .kbd,
 .workspace--bleed > .panel--right { border-radius: 40px; }
 .workspace > .panel > .panel__head { height: fit-content; padding: 16px; }
 .workspace > .panel > .panel__body { padding-bottom: 8px; }
-.workspace > .tool-rails > .tool-rail { padding-block: 10px; }
+.workspace > .tool-rails > .tool-rail,
+.workspace--bleed > .tool-rails > .tool-rail { padding-block: 10px; }
 
 /* Short controls stay rounded rectangles (not capsules) under the squircle boost. */
-.tree-row,
 .menu-item,
 .layer-menu .menu-item,
 .btn { border-radius: var(--r-sm); }
+.tree-row { border-radius: 8px; }
 /* State cards keep capsule actions — the global .btn rule above is what forced 4px. */
 .state-card .btn {
   border-radius: var(--r-pill);
@@ -1110,10 +1209,24 @@ kbd, .kbd,
 .align-grid__toggle.is-active .align-grid__dist i { background: var(--accent); }
 .align-grid__dist.is-column { flex-direction: column; }
 .align-grid__dist.is-column i { width: 9px; height: 3px; }
-/* Focus mode: dismissable side panels. The canvas stays put underneath; panels slide + fade out. */
-.workspace > .panel { transition: transform 150ms ease-out, opacity 150ms ease-out, visibility 0s linear 0s; }
-.workspace > .panel.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; transition: transform 150ms ease-out, opacity 150ms ease-out, visibility 0s linear 150ms; }
-.workspace > .panel--left.is-hidden { transform: translateX(-16px); }
+/* Focus mode: dismissable side panels. Collapse flex space so rails slide to the edge. */
+.workspace > .panel { transition: transform 150ms ease-out, opacity 150ms ease-out, visibility 0s linear 0s, width 150ms ease-out, margin 150ms ease-out; }
+.workspace > .panel.is-hidden {
+  flex: 0 0 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 150ms ease-out, opacity 150ms ease-out, visibility 0s linear 150ms, width 150ms ease-out, margin 150ms ease-out;
+}
+/* Cancel workspace gap so tool-rails sit on the padding edge when a side is hidden. */
+.workspace > .panel--left.is-hidden { margin-inline-end: -8px; transform: none; }
+.workspace > .panel--right.is-hidden { margin-inline-start: -8px; transform: none; }
 
 .segmented {
   height: fit-content;
@@ -1140,7 +1253,7 @@ kbd, .kbd,
   corner-shape: round;
 }
 .tool-btn {
-  border-radius: var(--r-lg);
+  border-radius: var(--r-pill);
   corner-shape: round;
 }
 /* Collapsed bar is a capsule; open panel uses a softer card radius so content isn’t clipped into a stadium. */
@@ -1204,12 +1317,15 @@ kbd, .kbd,
   stroke: var(--line-strong);
 }
 
+/* Same capsule chrome in visual (bleed) and code — only bleed used to get the pill. */
+.workspace > .tool-rails > .tool-rail,
 .workspace--bleed > .tool-rails > .tool-rail {
+  height: fit-content;
   border-radius: 999px;
   corner-shape: round;
 }
 
-.workspace > .panel--right.is-hidden { transform: translateX(16px); }
+/* right-panel hide: space collapse handled with .panel.is-hidden above */
 .panel__head > :first-child { flex: 1; min-width: 0; }
 .panel__head > .segmented { flex: 1; min-width: 0; }
 .panel__title { flex: 1; min-width: 0; }

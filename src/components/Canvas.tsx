@@ -1,12 +1,9 @@
 import {
   ArrowDown,
   ArrowUp,
-  Box,
   Code2,
   Copy,
   CornerLeftUp,
-  Heading,
-  LayoutTemplate,
   MoveVertical,
   PackageOpen,
   Pencil,
@@ -18,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { createPortal } from 'react-dom';
 import {
   breakpointFor,
   PRESETS,
@@ -34,7 +32,6 @@ import type { Breakpoint } from '../../shared/types';
 import {
   cancelInstall,
   importDroppedFiles,
-  insertElement,
   insertImages,
   installDependencies,
   moveSelected,
@@ -338,30 +335,6 @@ function StatusCard() {
   );
 }
 
-function EmptyPageCard() {
-  return (
-    <StateCard
-      icon={<LayoutTemplate size={18} />}
-      title="This page is empty"
-      actions={
-        <>
-          <Button variant="primary" icon={<LayoutTemplate size={13} />} onClick={() => void insertElement('section')}>
-            Add section
-          </Button>
-          <Button icon={<Heading size={13} />} onClick={() => void insertElement('heading')}>
-            Heading
-          </Button>
-          <Button icon={<Box size={13} />} onClick={() => void insertElement('div')}>
-            Container
-          </Button>
-        </>
-      }
-    >
-      Add your first element here, or use the tools on the left to insert text, images, buttons and layouts.
-    </StateCard>
-  );
-}
-
 /* ---------- Frame menu ---------- */
 
 /** Shown inside a frame whose page has dynamic segments, until each one has an example value. */
@@ -397,6 +370,26 @@ function RouteValuesForm({ frame, route }: { frame: FrameLayout; route: string }
 function FrameMenu({ frame, onClose, onRename }: { frame: FrameLayout; onClose: () => void; onRename: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [custom, setCustom] = useState({ width: String(frame.width), height: String(frame.height) });
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const btn = document.querySelector<HTMLElement>(`button[aria-label="${CSS.escape(`${frame.name} options`)}"]`);
+    if (!btn) return;
+    const update = () => {
+      const r = btn.getBoundingClientRect();
+      const width = 220;
+      const left = Math.min(Math.max(8, r.right - width), window.innerWidth - width - 8);
+      setPos({ top: Math.min(r.bottom + 6, window.innerHeight - 24), left });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [frame.name]);
+
   useEffect(() => {
     const onDown = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && onClose();
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -419,9 +412,16 @@ function FrameMenu({ frame, onClose, onRename }: { frame: FrameLayout; onClose: 
       resizeFrame(frame.id, w, h, 'Set custom size');
     }
   };
-  return (
-    <div ref={ref} className="frame-menu" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-      <Menu style={{ right: 0, top: 'calc(100% + 6px)', minWidth: 220 }}>
+  if (!pos) return null;
+  return createPortal(
+    <div
+      ref={ref}
+      className="frame-menu frame-menu--portal"
+      style={{ top: pos.top, left: pos.left }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Menu style={{ position: 'static', minWidth: 220 }}>
         <MenuItem icon={<Pencil size={14} />} onClick={run(onRename)}>
           Rename
         </MenuItem>
@@ -465,7 +465,8 @@ function FrameMenu({ frame, onClose, onRename }: { frame: FrameLayout; onClose: 
           Delete frame
         </MenuItem>
       </Menu>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -656,8 +657,6 @@ export function Canvas({ hidden }: { hidden: boolean }) {
 
   const running = status.state === 'running';
   const activeFrame = frames.find((f) => f.id === activeFrameId) ?? frames[0];
-  const activeTree = (activeFrame && runtime[activeFrame.id]?.tree) || [];
-  const isEmpty = running && activeTree.length === 1 && activeTree[0].children.length === 0;
 
   const effective = (f: FrameLayout): FrameLayout => {
     if (!manip || manip.id !== f.id) return f;
@@ -816,7 +815,7 @@ export function Canvas({ hidden }: { hidden: boolean }) {
       panning={panning}
       onPointerDown={onStagePointerDown}
       notice={(inlineNotice || (running && project.missingDependencies.length > 0)) && notices}
-      overlay={(!running || isEmpty) && !interact ? running ? <EmptyPageCard /> : <StatusCard /> : undefined}
+      overlay={!running && !interact ? <StatusCard /> : undefined}
       world={
         running && (
           <>

@@ -37,7 +37,7 @@ import { findPath, setState, useStore, type TreeNode } from '../lib/store';
 import { Panel, SearchField, Tree, TreeRow } from '../ui/Panels.jsx';
 import { IconButton, Menu, MenuItem, SectionLabel, Segmented } from '../ui/primitives.jsx';
 import { createPortal } from 'react-dom';
-import { FramesPanel } from './FramesPanel';
+import { PagesSection, SyncScrollOption } from './PagesSection';
 import { Resizer } from './Resizer';
 
 function fileIcon(name: string) {
@@ -524,7 +524,8 @@ function LayersPanel({ query }: { query: string }) {
 }
 
 export function LeftSidebar() {
-  const tab = useStore((s) => s.leftTab);
+  const rawTab = useStore((s) => s.leftTab);
+  const tab = rawTab === 'frames' ? 'pages' : rawTab;
   const width = useStore((s) => s.leftWidth);
   const hiddenPanel = useStore((s) => s.panelsHidden.left);
   const [queries, setQueries] = useState({ files: '', layers: '' });
@@ -538,20 +539,29 @@ export function LeftSidebar() {
         <Segmented
           label="Sidebar"
           value={tab}
-          onChange={(id) => setState({ leftTab: id })}
+          onChange={(id) => setState({ leftTab: id as typeof tab })}
           options={[
             { id: 'layers', label: 'Layers', text: 'Layers' },
             { id: 'files', label: 'Files', text: 'Files' },
-            { id: 'frames', label: 'Frames', text: 'Frames' },
+            { id: 'pages', label: 'Pages', text: 'Pages' },
           ]}
         />
       }
       resizer={<Resizer value={width} min={200} max={460} onChange={(v) => setState({ leftWidth: v })} />}
     >
-      {tab !== 'frames' && (
+      {(tab === 'layers' || tab === 'files') && (
         <SearchField placeholder={tab === 'files' ? 'Search files' : 'Search layers'} value={queries[tab]} onChange={(v) => setQueries((q) => ({ ...q, [tab]: v }))} />
       )}
-      {tab === 'files' ? <FilesPanel query={queries.files} /> : tab === 'layers' ? <LayersPanel query={queries.layers} /> : <FramesPanel />}
+      {tab === 'files' ? (
+        <FilesPanel query={queries.files} />
+      ) : tab === 'layers' ? (
+        <LayersPanel query={queries.layers} />
+      ) : (
+        <>
+          <PagesSection />
+          <SyncScrollOption />
+        </>
+      )}
     </Panel>
   );
 }

@@ -39,34 +39,284 @@ const icon = (bg: string, letter: string) =>
 
 const now = Date.now();
 const RECENT: RecentProject[] = [
-  { root: `${ROOT}\\ad-agency`, name: 'ad-agency', openedAt: now - 6 * 60_000, icon: icon('#ff4d2e', 'N') },
-  { root: `${ROOT}\\fieldday-launch`, name: 'Field Day launch', openedAt: now - 3 * 3600_000, icon: icon('#111111', 'F') },
-  { root: `${ROOT}\\portfolio-2026`, name: 'Portfolio 2026', openedAt: now - 2 * 86_400_000 },
-  { root: `${ROOT}\\kin-dashboard`, name: 'Kin dashboard', openedAt: now - 5 * 86_400_000, icon: icon('#2f6b4f', 'K') },
+  { root: `${ROOT}\\email-collect`, name: 'Email Collect', openedAt: now - 2 * 60_000, icon: icon('#1a1916', 'S'), bytes: 184_320 },
+  { root: `${ROOT}\\ad-agency`, name: 'ad-agency', openedAt: now - 6 * 60_000, icon: icon('#ff4d2e', 'N'), bytes: 1_248_000 },
+  { root: `${ROOT}\\fieldday-launch`, name: 'Field Day launch', openedAt: now - 3 * 3600_000, icon: icon('#111111', 'F'), bytes: 892_160 },
+  { root: `${ROOT}\\portfolio-2026`, name: 'Portfolio 2026', openedAt: now - 2 * 86_400_000, bytes: 512_000 },
+  { root: `${ROOT}\\kin-dashboard`, name: 'Kin dashboard', openedAt: now - 5 * 86_400_000, icon: icon('#2f6b4f', 'K'), bytes: 2_150_400 },
 ];
 
 const APP_JSX = `export default function App() {
   return (
-    <main data-oc-name="Page">
-      <section data-oc-name="Hero">
-        <p>Independent creative agency</p>
-        <h1>We make brands people can't scroll past.</h1>
-        <p>Strategy, identity and campaigns for challenger brands.</p>
-        <a href="#contact">Start a project</a>
+    <main className="page" data-oc-name="Home">
+      <header className="site-header" data-oc-name="Header">
+        <a className="logo" href="/" data-oc-name="Logo">
+          Signal
+        </a>
+        <nav className="nav" data-oc-name="Nav">
+          <a href="/" data-oc-name="Nav Home">
+            Home
+          </a>
+          <a href="/contact" data-oc-name="Nav Contact">
+            Contact
+          </a>
+        </nav>
+      </header>
+      <section className="hero" data-oc-name="Hero">
+        <p className="eyebrow" data-oc-name="Eyebrow">
+          Email list
+        </p>
+        <h1 data-oc-name="Heading">Stay in the loop</h1>
+        <p className="lead" data-oc-name="Lead">
+          Join for occasional notes — no spam, unsubscribe anytime.
+        </p>
+        <form className="signup" data-oc-name="Signup form" onSubmit={(e) => e.preventDefault()}>
+          <label className="field" data-oc-name="Email field">
+            <span className="field__label">Email</span>
+            <input type="email" name="email" required placeholder="you@example.com" data-oc-name="Email input" />
+          </label>
+          <button type="submit" className="button" data-oc-name="Submit">
+            Subscribe
+          </button>
+        </form>
       </section>
     </main>
   );
 }
 `;
 
+const CONTACT_JSX = `export default function Contact() {
+  return (
+    <main className="page" data-oc-name="Contact">
+      <header className="site-header" data-oc-name="Header">
+        <a className="logo" href="/" data-oc-name="Logo">
+          Signal
+        </a>
+        <nav className="nav" data-oc-name="Nav">
+          <a href="/" data-oc-name="Nav Home">
+            Home
+          </a>
+          <a href="/contact" data-oc-name="Nav Contact">
+            Contact
+          </a>
+        </nav>
+      </header>
+      <section className="contact" data-oc-name="Contact section">
+        <p className="eyebrow" data-oc-name="Eyebrow">
+          Get in touch
+        </p>
+        <h1 data-oc-name="Heading">Contact</h1>
+        <p className="lead" data-oc-name="Lead">
+          Questions about the list, partnerships, or press — reach us here.
+        </p>
+        <ul className="details" data-oc-name="Details">
+          <li data-oc-name="Email row">
+            <span className="details__label">Email</span>
+            <a href="mailto:hello@signal.example">hello@signal.example</a>
+          </li>
+          <li data-oc-name="Phone row">
+            <span className="details__label">Phone</span>
+            <a href="tel:+15550199">+1 (555) 0199</a>
+          </li>
+          <li data-oc-name="Address row">
+            <span className="details__label">Studio</span>
+            <span>184 Mercer Street, New York, NY 10012</span>
+          </li>
+          <li data-oc-name="Hours row">
+            <span className="details__label">Hours</span>
+            <span>Mon–Fri, 9am–6pm ET</span>
+          </li>
+        </ul>
+      </section>
+    </main>
+  );
+}
+`;
+
+const INDEX_CSS = `/* Email Collect — blank canvas site */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:wght@400;700&display=swap');
+
+:root {
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Libre Baskerville', 'Times New Roman', serif;
+  --bg: #f7f4ef;
+  --fg: #1a1916;
+  --muted: #6b6560;
+  --line: #e4ddd3;
+  --surface: #ffffff;
+  --accent: #1a1916;
+  --accent-fg: #f7f4ef;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--fg);
+  background: var(--bg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 28px 32px 64px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 40px;
+}
+
+.logo {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.nav { display: flex; gap: 18px; }
+.nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+.nav a:hover { color: var(--fg); }
+
+.eyebrow {
+  margin: 0 0 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hero h1,
+.contact h1 {
+  margin: 0 0 16px;
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+}
+
+.lead {
+  margin: 0 0 32px;
+  font-size: 1.1rem;
+  color: var(--muted);
+  max-width: 36ch;
+}
+
+.signup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 220px;
+}
+
+.field__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.field input {
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.field input:focus {
+  outline: 2px solid var(--fg);
+  outline-offset: 1px;
+}
+
+.button {
+  height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover { filter: brightness(1.08); }
+
+.details {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+}
+
+.details li {
+  display: grid;
+  gap: 4px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.details__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.details a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+`;
+
 /** The elements of APP_JSX, keyed by the data-oc-id the sample page (scripts/browser-preview.html) carries. */
 const ELEMENTS: Record<string, { tag: string; name: string | null; text: string | null; attributes?: Record<string, string> }> = {
-  'src/App.jsx:3:4': { tag: 'main', name: 'Page', text: null },
-  'src/App.jsx:4:6': { tag: 'section', name: 'Hero', text: null },
-  'src/App.jsx:5:8': { tag: 'p', name: null, text: 'Independent creative agency' },
-  'src/App.jsx:6:8': { tag: 'h1', name: null, text: "We make brands people can't scroll past." },
-  'src/App.jsx:7:8': { tag: 'p', name: null, text: 'Strategy, identity and campaigns for challenger brands.' },
-  'src/App.jsx:8:8': { tag: 'a', name: null, text: 'Start a project', attributes: { href: '#contact' } },
+  'src/App.jsx:3:4': { tag: 'main', name: 'Home', text: null },
+  'src/App.jsx:4:6': { tag: 'header', name: 'Header', text: null },
+  'src/App.jsx:5:8': { tag: 'a', name: 'Logo', text: 'Signal', attributes: { href: '/' } },
+  'src/App.jsx:8:8': { tag: 'nav', name: 'Nav', text: null },
+  'src/App.jsx:9:10': { tag: 'a', name: 'Nav Home', text: 'Home', attributes: { href: '/' } },
+  'src/App.jsx:12:10': { tag: 'a', name: 'Nav Contact', text: 'Contact', attributes: { href: '/contact' } },
+  'src/App.jsx:17:6': { tag: 'section', name: 'Hero', text: null },
+  'src/App.jsx:18:8': { tag: 'p', name: 'Eyebrow', text: 'Email list' },
+  'src/App.jsx:21:8': { tag: 'h1', name: 'Heading', text: 'Stay in the loop' },
+  'src/App.jsx:22:8': { tag: 'p', name: 'Lead', text: 'Join for occasional notes — no spam, unsubscribe anytime.' },
+  'src/App.jsx:25:8': { tag: 'form', name: 'Signup form', text: null },
+  'src/App.jsx:26:10': { tag: 'label', name: 'Email field', text: null },
+  'src/App.jsx:28:12': { tag: 'input', name: 'Email input', text: null, attributes: { type: 'email', name: 'email', placeholder: 'you@example.com' } },
+  'src/App.jsx:30:10': { tag: 'button', name: 'Submit', text: 'Subscribe' },
 };
 
 function inspectElement(id: string): SourceElementInfo | { error: string } {
@@ -92,15 +342,42 @@ function inspectElement(id: string): SourceElementInfo | { error: string } {
 
 const FILES: Record<string, string> = {
   'src/App.jsx': APP_JSX,
-  'src/main.jsx': "import { createRoot } from 'react-dom/client';\nimport App from './App.jsx';\nimport './index.css';\nimport './open-canvas.css';\n\ncreateRoot(document.getElementById('root')).render(<App />);\n",
-  'src/index.css': 'body {\n  margin: 0;\n  font-family: Inter, system-ui, sans-serif;\n}\n',
+  'src/pages/Contact.jsx': CONTACT_JSX,
+  'src/routes.jsx': `// Managed by OpenCanvas: maps URL paths to pages. Plain React, no router dependency.
+import Home from './App.jsx';
+import Contact from './pages/Contact.jsx';
+
+const ROUTES = {
+  '/': Home,
+  '/contact': Contact,
+};
+
+export default function Routes() {
+  const path = window.location.pathname.replace(/\\/+$/, '') || '/';
+  const Page = ROUTES[path] ?? Home;
+  return <Page />;
+}
+`,
+  'src/main.jsx': `import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import Routes from './routes.jsx';
+import './index.css';
+import './open-canvas.css';
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <Routes />
+  </StrictMode>,
+);
+`,
+  'src/index.css': INDEX_CSS,
   'src/open-canvas.css': '',
   'index.html': '<!doctype html>\n<html lang="en">\n  <body>\n    <div id="root"></div>\n    <script type="module" src="/src/main.jsx"></script>\n  </body>\n</html>\n',
-  'package.json': '{\n  "name": "ad-agency",\n  "private": true\n}\n',
+  'package.json': '{\n  "name": "email-collect",\n  "private": true\n}\n',
 };
 
 function tree(): FileNode {
-  const root: FileNode = { name: 'ad-agency', path: '', type: 'dir', children: [] };
+  const root: FileNode = { name: 'email-collect', path: '', type: 'dir', children: [] };
   for (const file of Object.keys(FILES)) {
     const parts = file.split('/');
     let node = root;
@@ -118,7 +395,7 @@ function tree(): FileNode {
   return root;
 }
 
-function demoProject(root = RECENT[0].root, name = 'ad-agency'): ProjectInfo {
+function demoProject(root = RECENT[0].root, name = 'Email Collect'): ProjectInfo {
   return {
     root,
     name,
@@ -142,12 +419,12 @@ const GIT: GitStatus = {
   repo: true,
   parentRepo: null,
   branch: 'main',
-  remote: 'https://github.com/you/ad-agency.git',
+  remote: 'https://github.com/you/email-collect.git',
   upstream: 'origin/main',
   ahead: 0,
   behind: 0,
-  files: [{ path: 'src/App.jsx', state: 'modified' }],
-  lastCommit: { hash: '5178e8c', message: 'Ignore Vercel project link', when: '1 hour ago' },
+  files: [{ path: 'src/App.jsx', state: 'modified' }, { path: 'src/pages/Contact.jsx', state: 'added' }],
+  lastCommit: { hash: '5178e8c', message: 'Add email signup and contact pages', when: '1 hour ago' },
   identity: { name: 'You', email: 'you@example.com' },
 };
 
@@ -159,9 +436,27 @@ const refuse = async (): Promise<never> => {
 };
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+function emailCollectConfig(): ProjectConfig {
+  return {
+    version: 2,
+    pages: [
+      { id: 'home', name: 'Home', path: '/', file: 'src/App.jsx', viewType: 'design', icon: 'layout-template' },
+      { id: 'contact', name: 'Contact', path: '/contact', file: 'src/pages/Contact.jsx', viewType: 'design', icon: 'layout-template' },
+    ],
+    direction: normalizeDirection({
+      visualStyle: { minimalExpressive: 0.45, casualProfessional: 0.65 },
+      font: null,
+      iconPack: 'lucide',
+      references: [],
+      designSystem: null,
+    }),
+    defaultPageId: 'home',
+  };
+}
+
 /** In-memory pages and direction, so the page navigator and direction UI can be exercised without disk access. */
 function memoryConfig() {
-  let config: ProjectConfig = defaultProjectConfig('src/App.jsx');
+  let config: ProjectConfig = emailCollectConfig();
   const state = (): ProjectPagesState => ({ config, routing: config.pages.length > 1 ? 'managed' : 'single', pages: config.pages, canEditPages: true, pagesNote: null });
   const mutate = (fn: (pages: PageConfig[]) => PageConfig | null): PageMutation => {
     const pages = config.pages.map((p) => ({ ...p }));
@@ -182,7 +477,7 @@ function memoryConfig() {
     return page;
   };
   return {
-    reset: () => void (config = defaultProjectConfig('src/App.jsx')),
+    reset: () => void (config = emailCollectConfig()),
     setDirection: (direction: DirectionConfig) => {
       config = { ...config, direction: normalizeDirection(direction) };
       return state();

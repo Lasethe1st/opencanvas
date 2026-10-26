@@ -24,7 +24,7 @@ export function SettingsButton() {
   const state = mcpState(status);
   return (
     <ToolButton label="Settings" active={open} onClick={() => setState({ settingsOpen: !open })}>
-      <SettingsIcon size={16} />
+      <SettingsIcon size={15} />
       {state !== 'off' && <span className={`mcp-dot is-${state}`} aria-hidden />}
     </ToolButton>
   );

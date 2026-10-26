@@ -142,7 +142,7 @@ export function GitMenu() {
       onClick={() => setState({ gitOpen: !open, insertPanel: null })}
       aria-expanded={open}
     >
-      <GitBranch size={16} />
+      <GitBranch size={15} />
       {status?.repo && changes > 0 && <span className="git-badge">{changes > 99 ? '99+' : changes}</span>}
     </ToolButton>
   );

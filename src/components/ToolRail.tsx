@@ -1,4 +1,6 @@
 import {
+  ChevronDown,
+  ChevronUp,
   ClipboardList,
   List,
   MessageSquareText,
@@ -16,21 +18,19 @@ import {
   Pilcrow,
   Plus,
   RectangleHorizontal,
-  Ruler,
   Square,
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { PRESETS } from '../../shared/canvas';
 import type { InsertKind } from '../../shared/types';
 import { insertElement, insertImageFromDisk } from '../lib/actions';
-import { addCustomFrame, addFrame } from '../lib/canvas';
 import { getState, setState, useStore, type InsertPanel as InsertPanelId } from '../lib/store';
-import { Button, cx, IconButton, MenuItem } from '../ui/primitives.jsx';
+import { cx, IconButton, MenuItem } from '../ui/primitives.jsx';
 import { Panel, PanelTitle } from '../ui/Panels.jsx';
 import { ToolButton, ToolFlyout, ToolGroup, ToolRail as Rail, ToolRails } from '../ui/ToolRail.jsx';
 import { BugCheckButton } from './BugCheck';
 import { CONTROL_MODES, openDock } from './Dock';
+import { FramesPanel } from './FramesPanel';
 import { GitMenu } from './GitMenu';
 import { Resizer } from './Resizer';
 import { SettingsButton } from './Settings';
@@ -60,7 +60,7 @@ const SECTION_KINDS: InsertKind[] = ['section', 'header', 'nav', 'footer', 'flex
 const CONTAINER_TAGS = new Set(['div', 'section', 'main', 'header', 'footer', 'nav', 'article', 'aside', 'form', 'ul', 'ol', 'li', 'figure', 'fieldset', 'label']);
 
 const PANEL_TITLES: Record<InsertPanelId, string> = {
-  frame: 'Add frame',
+  frame: 'Frames',
   section: 'Insert section',
   more: 'Insert element',
 };
@@ -124,45 +124,6 @@ function InsertList({ kinds, search, onDone }: { kinds?: InsertKind[]; search?: 
   );
 }
 
-function FrameOfferings({ onDone }: { onDone: () => void }) {
-  const [size, setSize] = useState({ width: '1024', height: '768' });
-  return (
-    <>
-      {(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((p) => (
-        <MenuItem
-          key={p}
-          icon={<Ruler size={14} />}
-          hint={`${PRESETS[p].width} × ${PRESETS[p].height}`}
-          onClick={() => {
-            onDone();
-            addFrame(p);
-          }}
-        >
-          {PRESETS[p].name}
-        </MenuItem>
-      ))}
-      <form
-        className="frame-menu__custom"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const w = Number(size.width);
-          const h = Number(size.height);
-          if (!Number.isFinite(w) || !Number.isFinite(h)) return;
-          onDone();
-          addCustomFrame(w, h);
-        }}
-      >
-        <input className="frame-menu__num" aria-label="New frame width" inputMode="numeric" value={size.width} onChange={(e) => setSize((s) => ({ ...s, width: e.target.value }))} />
-        <span>×</span>
-        <input className="frame-menu__num" aria-label="New frame height" inputMode="numeric" value={size.height} onChange={(e) => setSize((s) => ({ ...s, height: e.target.value }))} />
-        <Button size="sm" type="submit">
-          Add
-        </Button>
-      </form>
-    </>
-  );
-}
-
 export function InsertPanel() {
   const panel = useStore((s) => s.insertPanel)!;
   const width = useStore((s) => s.leftWidth);
@@ -179,7 +140,7 @@ export function InsertPanel() {
   }, []);
 
   let body: ReactNode;
-  if (panel === 'frame') body = <FrameOfferings onDone={closeInsertPanel} />;
+  if (panel === 'frame') body = <FramesPanel />;
   else if (panel === 'section') body = <InsertList kinds={SECTION_KINDS} onDone={closeInsertPanel} />;
   else body = <InsertList search onDone={closeInsertPanel} />;
 
@@ -232,6 +193,8 @@ export function ToolRail() {
     const onDown = (e: PointerEvent) => {
       const t = e.target as Node | null;
       if (!t) return;
+      // Frames opens as a left panel (like Git); don't dismiss on outside click.
+      if (getState().insertPanel === 'frame') return;
       if (frameBtn.current?.contains(t) || sectionBtn.current?.contains(t) || moreBtn.current?.contains(t)) return;
       if (t instanceof Element && t.closest('.tool-flyout')) return;
       closeInsertPanel();
@@ -247,59 +210,62 @@ export function ToolRail() {
   const canInsert = editable && !interact;
   const flyoutAnchor = insertPanel === 'frame' ? frameBtn.current : insertPanel === 'section' ? sectionBtn.current : insertPanel === 'more' ? moreBtn.current : null;
 
-  const controlRail = (
-    <Rail label="Ask and explore">
-      <ToolGroup>
-        {CONTROL_MODES.map((m) => (
-          <ToolButton
-            key={m.id}
-            label={m.label}
-            active={dockMode === m.id}
-            aria-expanded={dockMode === m.id}
-            onClick={() => (dockMode === m.id ? setState({ dockMode: null }) : openDock(m.id))}
-          >
-            {m.icon}
-          </ToolButton>
-        ))}
-      </ToolGroup>
-    </Rail>
-  );
+  /** Three tools per page; canvas insert tools first, then ask & explore. Terminal is one of the slots. */
+  const RAIL_PAGE_SIZE = 3;
+  const canvasToolIds = ['frame', 'section', 'container', 'image', 'button', 'more', 'terminal'] as const;
+  type CanvasToolId = (typeof canvasToolIds)[number];
+  const canvasPages = Math.ceil(canvasToolIds.length / RAIL_PAGE_SIZE);
+  const exploreCount = CONTROL_MODES.length + 1; /* + Terminal */
+  const explorePages = Math.ceil(exploreCount / RAIL_PAGE_SIZE);
+  const showCanvasPages = mode === 'visual';
+  const pageCount = (showCanvasPages ? canvasPages : 0) + explorePages;
+  const firstExplorePage = showCanvasPages ? canvasPages : 0;
+
+  const [railPage, setRailPage] = useState(0);
+  const page = Math.min(railPage, Math.max(0, pageCount - 1));
+
+  useEffect(() => {
+    if (mode === 'code') setRailPage(0);
+  }, [mode]);
+
+  useEffect(() => {
+    setRailPage((p) => Math.min(p, Math.max(0, pageCount - 1)));
+  }, [pageCount]);
+
+  const goPage = (next: number) => {
+    setRailPage(next);
+    closeInsertPanel();
+  };
 
   const projectRail = (
     <Rail label="Project">
       <ToolGroup>
         <BugCheckButton />
-        <TerminalButton />
         <GitMenu />
         <SettingsButton />
       </ToolGroup>
     </Rail>
   );
 
-  if (mode === 'code') {
-    return (
-      <ToolRails>
-        {controlRail}
-        <div className="tool-rails__spacer" />
-        {projectRail}
-      </ToolRails>
-    );
-  }
-
-  return (
-    <ToolRails>
-      <Rail label="Canvas tools">
-        <ToolGroup>
+  const renderCanvasTool = (id: CanvasToolId) => {
+    switch (id) {
+      case 'frame':
+        return (
           <ToolButton
+            key={id}
             ref={frameBtn}
             label="Frame"
             active={insertPanel === 'frame'}
             aria-expanded={insertPanel === 'frame'}
             onClick={() => toggleInsertPanel('frame')}
           >
-            <Frame size={16} />
+            <Frame size={15} />
           </ToolButton>
+        );
+      case 'section':
+        return (
           <ToolButton
+            key={id}
             ref={sectionBtn}
             label="Section"
             shortcut="F"
@@ -308,18 +274,31 @@ export function ToolRail() {
             aria-expanded={insertPanel === 'section'}
             onClick={() => toggleInsertPanel('section')}
           >
-            <LayoutTemplate size={16} />
+            <LayoutTemplate size={15} />
           </ToolButton>
-          <ToolButton label="Container" shortcut="R" disabled={!canInsert} onClick={() => void insertElement('div')}>
-            <Square size={16} />
+        );
+      case 'container':
+        return (
+          <ToolButton key={id} label="Container" shortcut="R" disabled={!canInsert} onClick={() => void insertElement('div')}>
+            <Square size={15} />
           </ToolButton>
-          <ToolButton label="Image" shortcut="I" disabled={!canInsert} onClick={() => void insertImageFromDisk()}>
-            <Image size={16} />
+        );
+      case 'image':
+        return (
+          <ToolButton key={id} label="Image" shortcut="I" disabled={!canInsert} onClick={() => void insertImageFromDisk()}>
+            <Image size={15} />
           </ToolButton>
-          <ToolButton label="Button" shortcut="B" disabled={!canInsert} onClick={() => void insertElement('button')}>
-            <RectangleHorizontal size={16} />
+        );
+      case 'button':
+        return (
+          <ToolButton key={id} label="Button" shortcut="B" disabled={!canInsert} onClick={() => void insertElement('button')}>
+            <RectangleHorizontal size={15} />
           </ToolButton>
+        );
+      case 'more':
+        return (
           <ToolButton
+            key={id}
             ref={moreBtn}
             label="More elements"
             shortcut="/"
@@ -328,18 +307,72 @@ export function ToolRail() {
             aria-expanded={insertPanel === 'more'}
             onClick={() => toggleInsertPanel('more')}
           >
-            <Plus size={16} />
+            <Plus size={15} />
           </ToolButton>
-        </ToolGroup>
+        );
+      case 'terminal':
+        return <TerminalButton key={id} />;
+    }
+  };
+
+  const onCanvasPage = showCanvasPages && page < canvasPages;
+  const exploreStart = (page - firstExplorePage) * RAIL_PAGE_SIZE;
+  const pageTools = onCanvasPage ? (
+    <ToolGroup>
+      {canvasToolIds.slice(page * RAIL_PAGE_SIZE, page * RAIL_PAGE_SIZE + RAIL_PAGE_SIZE).map(renderCanvasTool)}
+    </ToolGroup>
+  ) : (
+    <ToolGroup>
+      {Array.from({ length: RAIL_PAGE_SIZE }, (_, i) => {
+        const slot = exploreStart + i;
+        if (slot < CONTROL_MODES.length) {
+          const m = CONTROL_MODES[slot];
+          return (
+            <ToolButton
+              key={m.id}
+              label={m.label}
+              active={dockMode === m.id}
+              aria-expanded={dockMode === m.id}
+              onClick={() => (dockMode === m.id ? setState({ dockMode: null }) : openDock(m.id))}
+            >
+              {m.icon}
+            </ToolButton>
+          );
+        }
+        if (slot === CONTROL_MODES.length) return <TerminalButton key="terminal" />;
+        return null;
+      })}
+    </ToolGroup>
+  );
+
+  const showPager = pageCount > 1;
+  // Frame uses the left InsertPanel; only section/more use the rail flyout.
+  const flyoutPanel = insertPanel === 'section' || insertPanel === 'more' ? insertPanel : null;
+  const flyoutOnThisPage =
+    onCanvasPage &&
+    flyoutPanel &&
+    canvasToolIds.slice(page * RAIL_PAGE_SIZE, page * RAIL_PAGE_SIZE + RAIL_PAGE_SIZE).includes(flyoutPanel);
+
+  return (
+    <ToolRails>
+      <Rail label={onCanvasPage ? 'Canvas tools' : 'Ask and explore'}>
+        {showPager && (
+          <ToolButton label="Previous tools" disabled={page === 0} onClick={() => goPage(page - 1)}>
+            <ChevronUp size={15} />
+          </ToolButton>
+        )}
+        {pageTools}
+        {showPager && (
+          <ToolButton label="Next tools" disabled={page >= pageCount - 1} onClick={() => goPage(page + 1)}>
+            <ChevronDown size={15} />
+          </ToolButton>
+        )}
       </Rail>
-      {controlRail}
       <div className="tool-rails__spacer" />
       {projectRail}
-      {insertPanel && flyoutAnchor && (
-        <ToolFlyout title={PANEL_TITLES[insertPanel]} anchor={flyoutAnchor}>
-          {insertPanel === 'frame' ? (
-            <FrameOfferings onDone={closeInsertPanel} />
-          ) : insertPanel === 'section' ? (
+      {flyoutOnThisPage && flyoutAnchor && flyoutPanel && (
+        <ToolFlyout title={PANEL_TITLES[flyoutPanel]} anchor={flyoutAnchor}>
+          {flyoutPanel === 'section' ? (
             <InsertList kinds={SECTION_KINDS} onDone={closeInsertPanel} />
           ) : (
             <InsertList search onDone={closeInsertPanel} />

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
 import { IconButton } from './primitives.jsx';
 
@@ -43,7 +44,8 @@ export function Dialog({ title, onClose, children, ...rest }) {
       if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus({ preventScroll: true });
     };
   }, []);
-  return (
+  // Portal to body so fixed positioning isn’t trapped by topbar frost (backdrop-filter).
+  return createPortal(
     <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
       <div className="dialog" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={ref} {...rest}>
         <div className="dialog__head">
@@ -54,7 +56,8 @@ export function Dialog({ title, onClose, children, ...rest }) {
         </div>
         <div className="dialog__body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight, FileText, FolderOpen, LayoutTemplate, MessagesCircle, Search, Sparkles } from 'lucide-react';
+import { ArrowLeft, ChevronRight, FileText, FolderOpen, MessagesCircle, Search, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import type { RecentProject, TemplateId, TemplateMeta } from '../../../shared/types';
 import type { HomeChat } from '../../lib/home-chats';
@@ -43,19 +43,18 @@ function Foot({ children }: { children: ReactNode }) {
   );
 }
 
-export function NewProjectPanel({ location, busy, onSetup }: { location: string; busy: boolean; onSetup: () => void }) {
+export function NewProjectPanel({ busy, onSetup }: { busy: boolean; onSetup: () => void }) {
   const [name, setName] = useState('');
   const create = () => void createProject('blank', name.trim() || 'Untitled project');
   return (
     <div className="flex flex-col gap-2">
-      <Lead>A React + Vite app with an empty page, ready for your first section.</Lead>
       <button
         type="button"
         disabled={busy}
         onClick={onSetup}
-        className="flex w-full items-start gap-3 rounded-2xl border-0 bg-muted/50 p-3 text-start transition-colors duration-150 hover:bg-accent focus-visible:bg-accent disabled:opacity-50"
+        className="flex w-full flex-col items-start gap-2 rounded-2xl border-0 bg-muted/50 p-3 text-start transition-colors duration-150 hover:bg-accent focus-visible:bg-accent disabled:opacity-50"
       >
-        <Sparkles className="mt-0.5 shrink-0" aria-hidden />
+        <Sparkles className="shrink-0" aria-hidden />
         <span className="grid gap-0.5">
           <strong className="text-sm font-medium">Get help from AI</strong>
           <span className="text-xs text-muted-foreground">Set a visual direction, fonts and references first, then hand the brief to your agent.</span>
@@ -65,7 +64,6 @@ export function NewProjectPanel({ location, busy, onSetup }: { location: string;
       <Button disabled={busy} onClick={create}>
         {busy ? 'Creating…' : 'Create project'}
       </Button>
-      {location && <Foot>Saved to {location}</Foot>}
     </div>
   );
 }
@@ -205,10 +203,9 @@ export function RecentChatsPanel({ chats, onPick }: { chats: HomeChat[]; onPick:
   );
 }
 
-export type NewView = 'start' | 'templates' | 'github' | 'open';
+export type NewView = 'start' | 'github' | 'open';
 
 const MORE_WAYS: { id: Exclude<NewView, 'start'>; label: string; icon: ComponentType<{ className?: string }> }[] = [
-  { id: 'templates', label: 'Use a template', icon: LayoutTemplate },
   { id: 'github', label: 'Import from GitHub', icon: GithubIconSmall },
   { id: 'open', label: 'Open folder or file', icon: FolderOpen },
 ];
@@ -228,7 +225,6 @@ export function NewProjectFlow({
   repoDraft,
   location,
   busy,
-  templates,
   onSetup,
 }: {
   view: NewView;
@@ -236,7 +232,6 @@ export function NewProjectFlow({
   repoDraft: string;
   location: string;
   busy: boolean;
-  templates: TemplateMeta[];
   onSetup: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -249,10 +244,7 @@ export function NewProjectFlow({
   if (view === 'start')
     return (
       <div ref={ref} className="flex flex-col gap-3">
-        {/* px-2 matches ProjectRow inset used in other nav flyouts */}
-        <div className="px-2">
-          <NewProjectPanel location={location} busy={busy} onSetup={onSetup} />
-        </div>
+        <NewProjectPanel busy={busy} onSetup={onSetup} />
         <div className="flex flex-col gap-0.5 border-t border-border pt-2">
           <p className="mb-1 px-2 text-xs text-muted-foreground">Other ways to start</p>
           {MORE_WAYS.map(({ id, label, icon: Icon }) => (
@@ -272,9 +264,7 @@ export function NewProjectFlow({
         <ArrowLeft />
         <span className="truncate">{title}</span>
       </Button>
-      <div className="px-2">
-        {view === 'templates' ? <TemplatesPanel templates={templates} location={location} busy={busy} /> : view === 'github' ? <GithubPanel key={repoDraft} initial={repoDraft} location={location} busy={busy} /> : <OpenPanel />}
-      </div>
+      {view === 'github' ? <GithubPanel key={repoDraft} initial={repoDraft} location={location} busy={busy} /> : <OpenPanel />}
     </div>
   );
 }

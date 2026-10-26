@@ -11,7 +11,7 @@ import { LeftSidebar } from './components/LeftSidebar';
 import { Onboarding } from './components/Onboarding';
 import { Toasts } from './components/Toasts';
 import { TerminalPanel } from './components/TerminalPanel';
-import { ToolRail } from './components/ToolRail';
+import { InsertPanel, ToolRail } from './components/ToolRail';
 import { TopBar } from './components/TopBar';
 import { WorkspaceSplit } from './components/WorkspaceSplit';
 import { handleMcpRequest, recordExternalEdit, refreshSourceInfo, refreshTree, reloadProjectConfig, saveFile, syncBuffersFromDisk } from './lib/actions';
@@ -34,6 +34,7 @@ export default function App() {
   const mode = useStore((s) => s.mode);
   const auditOpen = useStore((s) => s.auditOpen);
   const gitOpen = useStore((s) => s.gitOpen);
+  const insertPanel = useStore((s) => s.insertPanel);
 
   useEffect(() => {
     const offStatus = api.onPreviewStatus((status) => setState({ previewStatus: status }));
@@ -137,8 +138,8 @@ export default function App() {
     <div className="shell">
       <TopBar />
       <div className={`workspace${mode === 'visual' ? ' workspace--bleed' : ''}${focus ? ' is-focus' : ''}`} ref={workspaceRef}>
+        {gitOpen ? <GitPanel /> : insertPanel === 'frame' ? <InsertPanel /> : <LeftSidebar />}
         <ToolRail />
-        {gitOpen ? <GitPanel /> : <LeftSidebar />}
         <div className="workspace__center">
           <WorkspaceSplit />
           <TerminalPanel />

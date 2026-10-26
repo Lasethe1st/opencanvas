@@ -1,12 +1,146 @@
 <!doctype html>
-<html>
-  <body style="margin: 0; font-family: Inter, system-ui, sans-serif; background: #f6f3ee; color: #111">
-    <main data-oc-id="src/App.jsx:3:4" data-oc-name="Page">
-      <section data-oc-id="src/App.jsx:4:6" data-oc-name="Hero" style="padding: 96px 48px">
-        <p data-oc-id="src/App.jsx:5:8" style="text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; color: #ff4d2e; font-weight: 700">Independent creative agency</p>
-        <h1 data-oc-id="src/App.jsx:6:8" style="font-size: 72px; line-height: 1; letter-spacing: -0.04em; max-width: 14ch; margin: 16px 0 24px">We make brands people can't scroll past.</h1>
-        <p data-oc-id="src/App.jsx:7:8" style="font-size: 19px; color: #555; max-width: 44ch">Strategy, identity and campaigns for challenger brands.</p>
-        <a data-oc-id="src/App.jsx:8:8" href="#contact" style="display: inline-block; margin-top: 16px; padding: 12px 20px; border-radius: 999px; background: #111; color: #fff; text-decoration: none">Start a project</a>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --font-body: 'Inter', system-ui, sans-serif;
+        --font-heading: 'Libre Baskerville', 'Times New Roman', serif;
+        --bg: #f7f4ef;
+        --fg: #1a1916;
+        --muted: #6b6560;
+        --line: #e4ddd3;
+        --surface: #ffffff;
+        --accent: #1a1916;
+        --accent-fg: #f7f4ef;
+      }
+      * { box-sizing: border-box; }
+      html, body { min-height: 100%; }
+      body {
+        margin: 0;
+        font-family: var(--font-body);
+        color: var(--fg);
+        background: var(--bg);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      h1 {
+        font-family: var(--font-heading);
+        font-weight: 700;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+      .page {
+        min-height: 100vh;
+        padding: 28px 32px 64px;
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      .site-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 40px;
+      }
+      .logo {
+        font-family: var(--font-heading);
+        font-size: 1.15rem;
+        color: var(--fg);
+        text-decoration: none;
+      }
+      .nav { display: flex; gap: 18px; }
+      .nav a {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: 500;
+      }
+      .eyebrow {
+        margin: 0 0 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .hero h1 {
+        margin: 0 0 16px;
+        font-size: clamp(2.4rem, 5vw, 3.4rem);
+      }
+      .lead {
+        margin: 0 0 32px;
+        font-size: 1.1rem;
+        color: var(--muted);
+        max-width: 36ch;
+      }
+      .signup {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: end;
+        padding: 20px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+      }
+      .field {
+        display: grid;
+        gap: 6px;
+        flex: 1 1 220px;
+      }
+      .field__label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .field input {
+        height: 44px;
+        padding: 0 14px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font: inherit;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      .button {
+        height: 44px;
+        padding: 0 20px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--accent);
+        color: var(--accent-fg);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page" data-oc-id="src/App.jsx:3:4" data-oc-name="Home">
+      <header class="site-header" data-oc-id="src/App.jsx:4:6" data-oc-name="Header">
+        <a class="logo" href="/" data-oc-id="src/App.jsx:5:8" data-oc-name="Logo">Signal</a>
+        <nav class="nav" data-oc-id="src/App.jsx:8:8" data-oc-name="Nav">
+          <a href="/" data-oc-id="src/App.jsx:9:10" data-oc-name="Nav Home">Home</a>
+          <a href="/contact" data-oc-id="src/App.jsx:12:10" data-oc-name="Nav Contact">Contact</a>
+        </nav>
+      </header>
+      <section class="hero" data-oc-id="src/App.jsx:17:6" data-oc-name="Hero">
+        <p class="eyebrow" data-oc-id="src/App.jsx:18:8" data-oc-name="Eyebrow">Email list</p>
+        <h1 data-oc-id="src/App.jsx:21:8" data-oc-name="Heading">Stay in the loop</h1>
+        <p class="lead" data-oc-id="src/App.jsx:22:8" data-oc-name="Lead">
+          Join for occasional notes — no spam, unsubscribe anytime.
+        </p>
+        <form class="signup" data-oc-id="src/App.jsx:25:8" data-oc-name="Signup form" onsubmit="return false">
+          <label class="field" data-oc-id="src/App.jsx:26:10" data-oc-name="Email field">
+            <span class="field__label">Email</span>
+            <input type="email" name="email" required placeholder="you@example.com" data-oc-id="src/App.jsx:28:12" data-oc-name="Email input" />
+          </label>
+          <button type="submit" class="button" data-oc-id="src/App.jsx:30:10" data-oc-name="Submit">Subscribe</button>
+        </form>
       </section>
     </main>
   </body>

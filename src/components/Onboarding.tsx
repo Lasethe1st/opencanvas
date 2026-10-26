@@ -1,15 +1,17 @@
 import { FolderOpen, History, LucideProvider, MessageCircle, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { RecentProject, TemplateMeta } from '../../shared/types';
+import type { RecentProject } from '../../shared/types';
 import { api } from '../lib/api';
 import { sendToAi } from '../lib/ai';
 import { addHomeChat, loadHomeChats, type HomeChat as HomeChatRecord } from '../lib/home-chats';
 import { setState, useStore } from '../lib/store';
 import { ProjectSetup } from './ProjectSetup';
+import { AllProjectsList } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
-import { NewProjectFlow, RecentChatsPanel, RecentPanel, SearchPanel, type NewView } from './home/HomePanels';
+import { NewProjectFlow, RecentChatsPanel, SearchPanel, type NewView } from './home/HomePanels';
 import { HomePrompt } from './home/HomePrompt';
+import { HomeRightPanel } from './home/HomeRightPanel';
 import { HomeSidebar, type SidebarItem } from './home/HomeSidebar';
 import { HomeStatusPills } from './home/HomeStatusPills';
 import { SearchOverlay } from './home/SearchOverlay';
@@ -38,11 +40,10 @@ export function Onboarding() {
   const aiTurnId = useStore((s) => s.aiTurnId);
   const aiReady = useStore((s) => !!s.aiStatus?.ready);
   const dockDraft = useStore((s) => s.dockDraft);
-  const [templates, setTemplates] = useState<TemplateMeta[]>([]);
   const [recent, setRecent] = useState<RecentProject[] | null>(null);
   const [location, setLocation] = useState('');
   const [chats, setChats] = useState<HomeChatRecord[]>(loadHomeChats);
-  const [active, setActive] = useState<PanelId | null>(null);
+  const [rightPanel, setRightPanel] = useState<PanelId | null>(null);
   const [newView, setNewView] = useState<NewView>('start');
   const [repoDraft, setRepoDraft] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -53,6 +54,24 @@ export function Onboarding() {
   const [voiceMode, setVoiceMode] = useState(false);
 
   const chatActive = aiChat.length > 0 || !!aiTurnId || voiceMode;
+
+  const openPanel = useCallback((id: PanelId) => {
+    setSetup(false);
+    if (id === 'new') setNewView('start');
+    setRightPanel((cur) => (cur === id ? null : id));
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setSetup(false);
+    setRightPanel(null);
+  }, []);
+
+  const openAiSetup = useCallback((from: 'prompt' | 'panel', brief = '') => {
+    setSetupBrief(brief);
+    setSetupFrom(from);
+    setSetup(true);
+    setRightPanel('new');
+  }, []);
 
   const startVoice = useCallback(() => {
     if (busy || !!aiTurnId) return;
@@ -66,7 +85,6 @@ export function Onboarding() {
   const canContinue = aiChat.some((i) => i.kind === 'user') && !aiTurnId;
 
   useEffect(() => {
-    void api.templates().then(setTemplates);
     void api.recentProjects().then(setRecent);
     void api.defaultLocation().then(setLocation);
   }, []);
@@ -77,20 +95,21 @@ export function Onboarding() {
       if ((e.key === 'k' && (e.ctrlKey || e.metaKey)) || (e.key === '/' && !typing)) {
         e.preventDefault();
         setSearchOpen(true);
+        return;
+      }
+      if (e.key === 'Escape' && rightPanel && !document.querySelector('.dialog-backdrop, .settings-page, [data-home-search]')) {
+        e.preventDefault();
+        closePanel();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
-  const onActiveChange = useCallback((id: string | null) => {
-    if (id === 'new') setNewView('start');
-    setActive(id as PanelId | null);
-  }, []);
+  }, [rightPanel, closePanel]);
 
   const pickChat = useCallback((chat: HomeChatRecord) => {
     setState({ dockDraft: chat.text });
-    setActive(null);
+    setSetup(false);
+    setRightPanel(null);
     focusPrompt();
   }, []);
 
@@ -109,10 +128,8 @@ export function Onboarding() {
   }, [aiTurnId, chatActive]);
 
   const continueToSetup = useCallback(() => {
-    setSetupBrief(briefFromChat(aiChat) || dockDraft.trim());
-    setSetupFrom('prompt');
-    setSetup(true);
-  }, [aiChat, dockDraft]);
+    openAiSetup('prompt', briefFromChat(aiChat) || dockDraft.trim());
+  }, [aiChat, dockDraft, openAiSetup]);
 
   const items: SidebarItem[] = useMemo(
     () => [
@@ -121,7 +138,8 @@ export function Onboarding() {
         label: 'New chat',
         icon: MessageCircle,
         onSelect: () => {
-          setActive(null);
+          setSetup(false);
+          setRightPanel(null);
           setState({ dockDraft: '', aiChat: [], aiTurnId: null });
           void api.ai.reset();
           focusPrompt();
@@ -131,45 +149,58 @@ export function Onboarding() {
         id: 'new',
         label: 'New project',
         icon: Plus,
-        content: (
-          <NewProjectFlow
-            view={newView}
-            onView={setNewView}
-            repoDraft={repoDraft}
-            location={location}
-            busy={busy}
-            templates={templates}
-            onSetup={() => {
-              setSetupBrief('');
-              setSetupFrom('panel');
-              setSetup(true);
-            }}
-          />
-        ),
+        onSelect: () => openPanel('new'),
       },
-      { id: 'chats', label: 'Recent chats', icon: History, content: <RecentChatsPanel chats={chats} onPick={pickChat} /> },
-      { id: 'projects', label: 'All projects', icon: FolderOpen, content: <RecentPanel recent={recent} /> },
+      {
+        id: 'chats',
+        label: 'Recent chats',
+        icon: History,
+        onSelect: () => openPanel('chats'),
+      },
+      {
+        id: 'projects',
+        label: 'All projects',
+        icon: FolderOpen,
+        onSelect: () => openPanel('projects'),
+      },
     ],
-    [newView, repoDraft, location, busy, templates, chats, recent, pickChat],
+    [openPanel],
   );
 
-  if (setup)
-    return (
+  const panelTitle = setup && rightPanel === 'new' ? 'Get help from AI' : rightPanel === 'new' ? 'New project' : rightPanel === 'chats' ? 'Recent chats' : rightPanel === 'projects' ? 'All projects' : '';
+
+  const panelBody =
+    rightPanel === 'new' && setup ? (
       <ProjectSetup
+        panel
         location={location}
         initialRequest={setupBrief}
         onBack={() => {
           setSetup(false);
-          if (setupFrom === 'prompt') setActive(null);
+          if (setupFrom === 'prompt') setRightPanel(null);
+          else setRightPanel('new');
         }}
       />
-    );
+    ) : rightPanel === 'new' ? (
+      <NewProjectFlow
+        view={newView}
+        onView={setNewView}
+        repoDraft={repoDraft}
+        location={location}
+        busy={busy}
+        onSetup={() => openAiSetup('panel')}
+      />
+    ) : rightPanel === 'chats' ? (
+      <RecentChatsPanel chats={chats} onPick={pickChat} />
+    ) : rightPanel === 'projects' ? (
+      <AllProjectsList recent={recent} />
+    ) : null;
 
   return (
     <LucideProvider strokeWidth={1.5} absoluteStrokeWidth>
       <TooltipProvider>
         <div data-tw="" className="flex h-full bg-background text-foreground">
-          <HomeSidebar label="Home" items={items} active={active} onActiveChange={onActiveChange} busy={busy} onSearch={() => setSearchOpen(true)} />
+          <HomeSidebar label="Home" items={items} active={rightPanel} busy={busy} onSearch={() => setSearchOpen(true)} />
           <main
             className={
               chatActive
@@ -190,7 +221,7 @@ export function Onboarding() {
                           className="min-w-0 px-0"
                           recentProjectName={recent?.[0]?.name ?? null}
                           onOpenProjects={() => {
-                            setActive('projects');
+                            setRightPanel('projects');
                           }}
                         />
                         {(canContinue || (aiChat.some((i) => i.kind === 'user') && !aiReady)) && (
@@ -249,6 +280,14 @@ export function Onboarding() {
               </div>
             )}
           </main>
+          <HomeRightPanel
+            open={!!rightPanel}
+            title={panelTitle}
+            contentKey={rightPanel === 'new' && setup ? 'setup' : rightPanel ?? 'closed'}
+            flush={rightPanel === 'new' && setup}
+          >
+            {panelBody}
+          </HomeRightPanel>
         </div>
         {searchOpen && (
           <SearchOverlay onClose={() => setSearchOpen(false)}>
@@ -260,7 +299,7 @@ export function Onboarding() {
               onGithub={(repo) => {
                 setRepoDraft(repo);
                 setNewView('github');
-                setActive('new');
+                setRightPanel('new');
               }}
             />
           </SearchOverlay>

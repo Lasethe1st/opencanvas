@@ -22,7 +22,7 @@ export function TerminalButton() {
   const open = useStore((s) => s.terminalOpen);
   return (
     <ToolButton label="Terminal" shortcut="Ctrl+`" active={open} onClick={toggleTerminal}>
-      <SquareTerminal size={16} />
+      <SquareTerminal size={15} />
     </ToolButton>
   );
 }

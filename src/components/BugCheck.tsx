@@ -34,7 +34,7 @@ export function BugCheckButton() {
         if (!open && !getState().audit && !getState().auditRunning) startAudit();
       }}
     >
-      <Bug size={16} />
+      <Bug size={15} />
       {errors > 0 && <span className="bug-check-trigger__dot" aria-hidden />}
     </ToolButton>
   );
