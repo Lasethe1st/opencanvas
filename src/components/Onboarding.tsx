@@ -52,6 +52,7 @@ export function Onboarding() {
   const [dialog, setDialog] = useState<HomeDialogState | null>(null);
   const [newMinimized, setNewMinimized] = useState(false);
   const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
+  const [chipHost, setChipHost] = useState<HTMLDivElement | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
   const [navOpen, setNavOpen] = useState(() => {
@@ -82,6 +83,11 @@ export function Onboarding() {
     setDialog(null);
     setNewMinimized(false);
   }, []);
+
+  const chatTitle = useMemo(() => {
+    const first = aiChat.find((i) => i.kind === 'user');
+    return first && first.kind === 'user' && first.text.trim() ? first.text.trim().replace(/\s+/g, ' ') : 'New chat';
+  }, [aiChat]);
 
   const sources = useSources(aiChat);
   // New sources reveal the panel; closing it by hand sticks until the next new source arrives.
@@ -199,6 +205,12 @@ export function Onboarding() {
             </TooltipTrigger>
             <TooltipContent side={document.dir === 'rtl' ? 'left' : 'right'}>{navOpen ? 'Close navigation' : 'Open navigation'}</TooltipContent>
           </Tooltip>
+          <div className="absolute start-14 top-3 z-20 flex max-w-[calc(100%-9rem)] items-center gap-2">
+            <span title={chatTitle} className="inline-flex h-9 min-w-0 items-center rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground">
+              <span className="truncate">{chatTitle}</span>
+            </span>
+            <div ref={setChipHost} className="contents" />
+          </div>
           {(sources.length > 0 || sourcesOpen) && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -311,7 +323,7 @@ export function Onboarding() {
             key={`${dialog.path}:${dialog.brief}:${dialog.repo}`}
             location={location}
             minimized={newMinimized}
-            chipHost={cardEl}
+            chipHost={chipHost}
             initialPath={dialog.path}
             initialBrief={dialog.brief}
             initialRepo={dialog.repo}
