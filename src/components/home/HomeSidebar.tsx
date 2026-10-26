@@ -1,4 +1,6 @@
-import { PanelLeftClose, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { LayoutAlignRightIcon } from '@hugeicons/core-free-icons';
 import { useId, type ComponentType } from 'react';
 import homeMark from '../../assets/home-mark.png';
 import { Button } from '@/components/ui/button';
@@ -67,7 +69,7 @@ export function HomeSidebar({
               aria-controls={regionId}
               onClick={onClose}
             >
-              <PanelLeftClose strokeWidth={2} />
+              <HugeiconsIcon icon={LayoutAlignRightIcon} strokeWidth={2} />
             </Button>
           </TooltipTrigger>
           <TooltipContent side={side}>Close navigation</TooltipContent>
