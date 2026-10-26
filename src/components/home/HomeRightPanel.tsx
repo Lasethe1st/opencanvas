@@ -23,11 +23,12 @@ export function HomeRightPanel({
     <aside
       data-tw=""
       aria-hidden={!open}
+      inert={!open}
       aria-label={open ? title : undefined}
       className={cn(
-        'relative z-10 flex h-full shrink-0 flex-col overflow-hidden border-border bg-card/80 backdrop-blur-[20px] backdrop-saturate-150',
+        'relative z-0 flex h-full shrink-0 flex-col overflow-hidden',
         'motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]',
-        open ? 'w-[340px] border-s' : 'w-0 border-s-0',
+        open ? "w-[340px]" : "w-0",
       )}
     >
       <div className="flex h-full w-[340px] flex-col" style={{ pointerEvents: open ? 'auto' : 'none' }}>
