@@ -1,10 +1,11 @@
-import { FolderOpen, History, LucideProvider, MessageCircle, Plus } from 'lucide-react';
+import { FolderOpen, LucideProvider, MessageCircle } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { LayoutAlignLeftIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { RecentProject } from '../../shared/types';
 import { api } from '../lib/api';
 import { sendToAi } from '../lib/ai';
+import { openRecent } from '../lib/actions';
 import { addHomeChat, loadHomeChats, type HomeChat as HomeChatRecord } from '../lib/home-chats';
 import { setState, useStore } from '../lib/store';
 import { ProjectSetup } from './ProjectSetup';
@@ -151,41 +152,43 @@ export function Onboarding() {
     openAiSetup('prompt', briefFromChat(aiChat) || dockDraft.trim());
   }, [aiChat, dockDraft, openAiSetup]);
 
-  const items: SidebarItem[] = useMemo(
-    () => [
+  const items: SidebarItem[] = useMemo(() => {
+    const RECENT = 5;
+    const newChat = () => {
+      setSetup(false);
+      setRightPanel(null);
+      setState({ dockDraft: '', aiChat: [], aiTurnId: null });
+      void api.ai.reset();
+      focusPrompt();
+    };
+    const shown = (recent ?? []).slice(0, RECENT);
+    return [
       {
         id: 'chat',
-        label: 'New chat',
+        label: 'Chat',
         icon: MessageCircle,
-        onSelect: () => {
-          setSetup(false);
-          setRightPanel(null);
-          setState({ dockDraft: '', aiChat: [], aiTurnId: null });
-          void api.ai.reset();
-          focusPrompt();
+        add: { label: 'New chat', onSelect: newChat },
+        recents: {
+          toggleLabel: 'Recent chats',
+          empty: 'No chats yet',
+          items: chats.slice(0, RECENT).map((c) => ({ id: c.id, label: c.text, onSelect: () => pickChat(c) })),
+          viewAll: chats.length > RECENT ? { label: 'View all chats', onSelect: () => openPanel('chats') } : undefined,
         },
       },
       {
-        id: 'new',
-        label: 'New project',
-        icon: Plus,
-        onSelect: () => openPanel('new'),
-      },
-      {
-        id: 'chats',
-        label: 'Recent chats',
-        icon: History,
-        onSelect: () => openPanel('chats'),
-      },
-      {
         id: 'projects',
-        label: 'All projects',
+        label: 'Projects',
         icon: FolderOpen,
-        onSelect: () => openPanel('projects'),
+        add: { label: 'New project', onSelect: () => openPanel('new') },
+        recents: {
+          toggleLabel: 'Recent projects',
+          empty: recent === null ? 'Loading…' : 'No projects yet',
+          items: shown.map((p) => ({ id: p.root, label: p.name, onSelect: () => void openRecent(p.root) })),
+          viewAll: { label: 'View all projects', onSelect: () => openPanel('projects') },
+        },
       },
-    ],
-    [openPanel],
-  );
+    ];
+  }, [openPanel, chats, recent, pickChat]);
 
   const panelTitle = setup && rightPanel === 'new' ? 'Get help from AI' : rightPanel === 'new' ? 'New project' : rightPanel === 'chats' ? 'Recent chats' : rightPanel === 'projects' ? 'All projects' : '';
 
@@ -220,7 +223,7 @@ export function Onboarding() {
     <LucideProvider strokeWidth={1.5} absoluteStrokeWidth>
       <TooltipProvider>
         <div data-tw="" className="flex h-full bg-[var(--home-bg)] text-foreground">
-          <HomeSidebar label="Home" items={items} active={rightPanel} busy={busy} open={navOpen} onClose={() => setNav(false)} onSearch={() => setSearchOpen(true)} />
+          <HomeSidebar label="Home" items={items} active={rightPanel === 'new' || rightPanel === 'projects' ? 'projects' : rightPanel === 'chats' ? 'chat' : null} busy={busy} open={navOpen} onClose={() => setNav(false)} onSearch={() => setSearchOpen(true)} />
           <div className="relative m-2 min-w-0 flex-1 overflow-hidden rounded-[10px] border border-foreground/[0.08] bg-[var(--home-card)] motion-safe:transition-[margin] motion-safe:duration-200">
           {!navOpen && (
             <Tooltip>
