@@ -1,18 +1,20 @@
-import { FolderOpen, LucideProvider, MessageCircle } from 'lucide-react';
+import { FolderOpen, Library, LucideProvider, MessageCircle } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { LayoutAlignLeftIcon } from '@hugeicons/core-free-icons';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { LayoutAlignLeftIcon, LayoutAlignRightIcon } from '@hugeicons/core-free-icons';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentProject } from '../../shared/types';
 import { api } from '../lib/api';
 import { sendToAi } from '../lib/ai';
 import { openRecent } from '../lib/actions';
 import { addHomeChat, loadHomeChats, type HomeChat as HomeChatRecord } from '../lib/home-chats';
 import { setState, useStore } from '../lib/store';
-import { ProjectSetup } from './ProjectSetup';
 import { AllProjectsList } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
-import { NewProjectFlow, RecentChatsPanel, SearchPanel, type NewView } from './home/HomePanels';
+import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
+import { HomeDialog } from './home/HomeDialog';
+import { NewProjectDialog, type StartPath } from './home/NewProjectDialog';
+import { SourcesPanel, useSources } from './home/SourcesPanel';
 import { HomePrompt } from './home/HomePrompt';
 import { HomeRightPanel } from './home/HomeRightPanel';
 import { HomeSidebar, type SidebarItem } from './home/HomeSidebar';
@@ -22,7 +24,7 @@ import { VoiceOrbSession } from './home/VoiceOrbSession';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-type PanelId = 'new' | 'chats' | 'projects';
+type HomeDialogState = { kind: 'new'; path: StartPath | null; brief: string; repo: string } | { kind: 'projects' } | { kind: 'chats' };
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -46,14 +48,11 @@ export function Onboarding() {
   const [recent, setRecent] = useState<RecentProject[] | null>(null);
   const [location, setLocation] = useState('');
   const [chats, setChats] = useState<HomeChatRecord[]>(loadHomeChats);
-  const [rightPanel, setRightPanel] = useState<PanelId | null>(null);
-  const [newView, setNewView] = useState<NewView>('start');
-  const [repoDraft, setRepoDraft] = useState('');
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [dialog, setDialog] = useState<HomeDialogState | null>(null);
+  const [newMinimized, setNewMinimized] = useState(false);
+  const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [setup, setSetup] = useState(false);
-  /** Where "Back" from the setup page returns to: the home prompt, or the New project panel. */
-  const [setupFrom, setSetupFrom] = useState<'prompt' | 'panel'>('panel');
-  const [setupBrief, setSetupBrief] = useState('');
   const [voiceMode, setVoiceMode] = useState(false);
   const [navOpen, setNavOpen] = useState(() => {
     try {
@@ -70,29 +69,27 @@ export function Onboarding() {
     } catch {
       /* storage blocked */
     }
-    // The control that had focus is about to disappear — hand focus to its counterpart.
-    setTimeout(() => document.querySelector<HTMLElement>(open ? '[data-home-nav-close]' : '[data-home-nav-open]')?.focus(), 220);
   }, []);
 
   const chatActive = aiChat.length > 0 || !!aiTurnId || voiceMode;
 
-  const openPanel = useCallback((id: PanelId) => {
-    setSetup(false);
-    if (id === 'new') setNewView('start');
-    setRightPanel((cur) => (cur === id ? null : id));
+  const openNew = useCallback((init?: { path?: StartPath; brief?: string; repo?: string }) => {
+    setNewMinimized(false);
+    setDialog({ kind: 'new', path: init?.path ?? null, brief: init?.brief ?? '', repo: init?.repo ?? '' });
   }, []);
 
-  const closePanel = useCallback(() => {
-    setSetup(false);
-    setRightPanel(null);
+  const closeDialog = useCallback(() => {
+    setDialog(null);
+    setNewMinimized(false);
   }, []);
 
-  const openAiSetup = useCallback((from: 'prompt' | 'panel', brief = '') => {
-    setSetupBrief(brief);
-    setSetupFrom(from);
-    setSetup(true);
-    setRightPanel('new');
-  }, []);
+  const sources = useSources(aiChat);
+  // New sources reveal the panel; closing it by hand sticks until the next new source arrives.
+  const seenSources = useRef(0);
+  useEffect(() => {
+    if (sources.length > seenSources.current) setSourcesOpen(true);
+    seenSources.current = sources.length;
+  }, [sources.length]);
 
   const startVoice = useCallback(() => {
     if (busy || !!aiTurnId) return;
@@ -118,19 +115,18 @@ export function Onboarding() {
         setSearchOpen(true);
         return;
       }
-      if (e.key === 'Escape' && rightPanel && !document.querySelector('.dialog-backdrop, .settings-page, [data-home-search]')) {
+      if (e.key === 'Escape' && sourcesOpen && !dialog && !document.querySelector('.dialog-backdrop, .settings-page, [data-home-search]')) {
         e.preventDefault();
-        closePanel();
+        setSourcesOpen(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [rightPanel, closePanel]);
+  }, [sourcesOpen, dialog]);
 
   const pickChat = useCallback((chat: HomeChatRecord) => {
     setState({ dockDraft: chat.text });
-    setSetup(false);
-    setRightPanel(null);
+    setDialog(null);
     focusPrompt();
   }, []);
 
@@ -149,14 +145,13 @@ export function Onboarding() {
   }, [aiTurnId, chatActive]);
 
   const continueToSetup = useCallback(() => {
-    openAiSetup('prompt', briefFromChat(aiChat) || dockDraft.trim());
-  }, [aiChat, dockDraft, openAiSetup]);
+    openNew({ path: 'ai', brief: briefFromChat(aiChat) || dockDraft.trim() });
+  }, [aiChat, dockDraft, openNew]);
 
   const items: SidebarItem[] = useMemo(() => {
     const RECENT = 5;
     const newChat = () => {
-      setSetup(false);
-      setRightPanel(null);
+      setDialog(null);
       setState({ dockDraft: '', aiChat: [], aiTurnId: null });
       void api.ai.reset();
       focusPrompt();
@@ -172,67 +167,47 @@ export function Onboarding() {
           toggleLabel: 'Recent chats',
           empty: 'No chats yet',
           items: chats.slice(0, RECENT).map((c) => ({ id: c.id, label: c.text, onSelect: () => pickChat(c) })),
-          viewAll: chats.length > RECENT ? { label: 'View all chats', onSelect: () => openPanel('chats') } : undefined,
+          viewAll: chats.length > RECENT ? { label: 'View all chats', onSelect: () => setDialog({ kind: 'chats' }) } : undefined,
         },
       },
       {
         id: 'projects',
         label: 'Projects',
         icon: FolderOpen,
-        add: { label: 'New project', onSelect: () => openPanel('new') },
+        add: { label: 'New project', onSelect: () => openNew() },
         recents: {
           toggleLabel: 'Recent projects',
           empty: recent === null ? 'Loading…' : 'No projects yet',
           items: shown.map((p) => ({ id: p.root, label: p.name, onSelect: () => void openRecent(p.root) })),
-          viewAll: { label: 'View all projects', onSelect: () => openPanel('projects') },
+          viewAll: { label: 'View all projects', onSelect: () => setDialog({ kind: 'projects' }) },
         },
       },
     ];
-  }, [openPanel, chats, recent, pickChat]);
-
-  const panelTitle = setup && rightPanel === 'new' ? 'Get help from AI' : rightPanel === 'new' ? 'New project' : rightPanel === 'chats' ? 'Recent chats' : rightPanel === 'projects' ? 'All projects' : '';
-
-  const panelBody =
-    rightPanel === 'new' && setup ? (
-      <ProjectSetup
-        panel
-        location={location}
-        initialRequest={setupBrief}
-        onBack={() => {
-          setSetup(false);
-          if (setupFrom === 'prompt') setRightPanel(null);
-          else setRightPanel('new');
-        }}
-      />
-    ) : rightPanel === 'new' ? (
-      <NewProjectFlow
-        view={newView}
-        onView={setNewView}
-        repoDraft={repoDraft}
-        location={location}
-        busy={busy}
-        onSetup={() => openAiSetup('panel')}
-      />
-    ) : rightPanel === 'chats' ? (
-      <RecentChatsPanel chats={chats} onPick={pickChat} />
-    ) : rightPanel === 'projects' ? (
-      <AllProjectsList recent={recent} />
-    ) : null;
+  }, [openNew, chats, recent, pickChat]);
 
   return (
     <LucideProvider strokeWidth={1.5} absoluteStrokeWidth>
       <TooltipProvider>
         <div data-tw="" className="flex h-full bg-[var(--home-bg)] text-foreground">
-          <HomeSidebar label="Home" items={items} active={rightPanel === 'new' || rightPanel === 'projects' ? 'projects' : rightPanel === 'chats' ? 'chat' : null} busy={busy} open={navOpen} onClose={() => setNav(false)} onSearch={() => setSearchOpen(true)} />
-          <div className="relative m-2 min-w-0 flex-1 overflow-hidden rounded-[10px] border border-foreground/[0.08] bg-[var(--home-card)] motion-safe:transition-[margin] motion-safe:duration-200">
-          {!navOpen && (
+          <HomeSidebar label="Home" items={items} active={dialog?.kind === 'new' || dialog?.kind === 'projects' ? 'projects' : dialog?.kind === 'chats' ? 'chat' : null} busy={busy} open={navOpen} onSearch={() => setSearchOpen(true)} />
+          <div ref={setCardEl} className="relative m-2 min-w-0 flex-1 overflow-hidden rounded-[10px] border border-foreground/[0.08] bg-[var(--home-card)] motion-safe:transition-[margin] motion-safe:duration-200">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[8px] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
+                <HugeiconsIcon icon={navOpen ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side={document.dir === 'rtl' ? 'left' : 'right'}>{navOpen ? 'Close navigation' : 'Open navigation'}</TooltipContent>
+          </Tooltip>
+          {(sources.length > 0 || sourcesOpen) && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" data-home-nav-open="" className="absolute start-3 top-3 z-20 size-9 rounded-[8px] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label="Open navigation" aria-expanded={false} onClick={() => setNav(true)}>
-                  <HugeiconsIcon icon={LayoutAlignLeftIcon} strokeWidth={2} />
+                <Button variant="ghost" data-home-sources-toggle="" className="absolute end-3 top-3 z-20 h-9 gap-1.5 rounded-[8px] px-2.5 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={sourcesOpen ? 'Hide sources' : 'Show sources'} aria-expanded={sourcesOpen} onClick={() => setSourcesOpen((o) => !o)}>
+                  <Library strokeWidth={2} />
+                  {sources.length > 0 && <span className="text-xs tabular-nums">{sources.length}</span>}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side={document.dir === 'rtl' ? 'left' : 'right'}>Open navigation</TooltipContent>
+              <TooltipContent side={document.dir === 'rtl' ? 'right' : 'left'}>{sourcesOpen ? 'Hide sources' : 'Show sources'}</TooltipContent>
             </Tooltip>
           )}
           <main
@@ -254,9 +229,7 @@ export function Onboarding() {
                         <HomeStatusPills
                           className="min-w-0 px-0"
                           recentProjectName={recent?.[0]?.name ?? null}
-                          onOpenProjects={() => {
-                            setRightPanel('projects');
-                          }}
+                          onOpenProjects={() => setDialog({ kind: 'projects' })}
                         />
                         {(canContinue || (aiChat.some((i) => i.kind === 'user') && !aiReady)) && (
                           <div className="flex shrink-0 items-center gap-2">
@@ -315,13 +288,8 @@ export function Onboarding() {
             )}
           </main>
           </div>
-          <HomeRightPanel
-            open={!!rightPanel}
-            title={panelTitle}
-            contentKey={rightPanel === 'new' && setup ? 'setup' : rightPanel ?? 'closed'}
-            flush={rightPanel === 'new' && setup}
-          >
-            {panelBody}
+          <HomeRightPanel open={sourcesOpen} title="Sources" contentKey={`sources-${sources.length}`}>
+            <SourcesPanel sources={sources} />
           </HomeRightPanel>
         </div>
         {searchOpen && (
@@ -332,12 +300,35 @@ export function Onboarding() {
               onDone={() => setSearchOpen(false)}
               onChat={pickChat}
               onGithub={(repo) => {
-                setRepoDraft(repo);
-                setNewView('github');
-                setRightPanel('new');
+                setSearchOpen(false);
+                openNew({ path: 'github', repo });
               }}
             />
           </SearchOverlay>
+        )}
+        {dialog?.kind === 'new' && (
+          <NewProjectDialog
+            key={`${dialog.path}:${dialog.brief}:${dialog.repo}`}
+            location={location}
+            minimized={newMinimized}
+            chipHost={cardEl}
+            initialPath={dialog.path}
+            initialBrief={dialog.brief}
+            initialRepo={dialog.repo}
+            onClose={closeDialog}
+            onMinimize={() => setNewMinimized(true)}
+            onRestore={() => setNewMinimized(false)}
+          />
+        )}
+        {dialog?.kind === 'projects' && (
+          <HomeDialog title="All projects" onClose={closeDialog}>
+            <AllProjectsList recent={recent} />
+          </HomeDialog>
+        )}
+        {dialog?.kind === 'chats' && (
+          <HomeDialog title="Recent chats" onClose={closeDialog}>
+            <RecentChatsPanel chats={chats} onPick={pickChat} />
+          </HomeDialog>
         )}
       </TooltipProvider>
     </LucideProvider>
