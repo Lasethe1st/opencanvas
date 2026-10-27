@@ -1,4 +1,4 @@
-import { FileText, FolderOpen, Globe, MessageCircle, Search, type LucideIcon } from 'lucide-react';
+import { ChatCircle, FileText, FolderSimple, Globe, MagnifyingGlass, type Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { useMemo } from 'react';
 import type { AiChatItem } from '../../../shared/ai';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
@@ -6,20 +6,20 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/u
 export type SourceKind = 'file' | 'web' | 'google' | 'project' | 'chat';
 
 /** One icon and one colour per kind of source, used by the @ picker, the inline highlight and the Sources panel. */
-export const SOURCE_META: Record<SourceKind, { icon: LucideIcon; label: string; color: string }> = {
-  project: { icon: FolderOpen, label: 'Project', color: 'var(--src-project)' },
-  chat: { icon: MessageCircle, label: 'Chat', color: 'var(--src-chat)' },
+export const SOURCE_META: Record<SourceKind, { icon: PhosphorIcon; label: string; color: string }> = {
+  project: { icon: FolderSimple, label: 'Project', color: 'var(--src-project)' },
+  chat: { icon: ChatCircle, label: 'Chat', color: 'var(--src-chat)' },
   file: { icon: FileText, label: 'File', color: 'var(--src-file)' },
   web: { icon: Globe, label: 'Web', color: 'var(--src-web)' },
-  google: { icon: Search, label: 'Google', color: 'var(--src-google)' },
+  google: { icon: MagnifyingGlass, label: 'Google', color: 'var(--src-google)' },
 };
 
-/** The coloured square that carries a source's icon. */
+/** A source's icon: solid, in the colour of its kind. */
 export function SourceIcon({ kind, className = 'size-4' }: { kind: SourceKind; className?: string }) {
   const { icon: Icon, label, color } = SOURCE_META[kind];
   return (
     <span className="inline-flex shrink-0 items-center justify-center" style={{ color }} title={label}>
-      <Icon className={className} strokeWidth={2} aria-hidden />
+      <Icon className={className} weight="fill" aria-hidden />
       <span className="sr-only">{label}</span>
     </span>
   );

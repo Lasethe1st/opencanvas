@@ -158,7 +158,7 @@ export function Onboarding() {
     const text = dockDraft.trim();
     if (!text || !aiReady) return;
     const first = aiChat.length === 0;
-    const refs = [...mentioned, ...chatSources].filter((x) => text.includes(`@${x.title}`));
+    const refs = [...mentioned, ...chatSources].filter((x) => text.includes(x.title));
     const full = refs.length ? `${text}\n\nReferenced:\n${refs.map((x) => `- ${x.title} (${x.detail})`).join('\n')}` : text;
     const ok = await sendToAi(full);
     // sendToAi only clears the draft when it matches what was sent, and `full` adds the references.

@@ -60,28 +60,33 @@ export function HomePrompt({
 
   useEffect(() => setActive(0), [query]);
 
-  // Picked references show as chips inside the text: a highlight drawn behind the matching `@name`.
+  // Picked references read as coloured words inside the text. The textarea's own text is invisible and
+  // everything is drawn on a layer behind it, so only the names that were picked get their kind's colour.
   const overlayRef = useRef<HTMLDivElement>(null);
+  const [picked, setPicked] = useState<Map<string, SourceKind>>(() => new Map());
+  useEffect(() => {
+    if (!value && picked.size) setPicked(new Map());
+  }, [value, picked.size]);
   const parts = useMemo(() => {
-    const labels = [...new Set(mentions.map((m) => m.label))].filter(Boolean).sort((a, b) => b.length - a.length);
-    if (!labels.length || !value.includes("@")) return [{ text: value, hit: false }];
-    const re = new RegExp(`(^|\\s)@(${labels.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?=\\s|$)`, "g");
-    const out: { text: string; hit: boolean; kind?: SourceKind }[] = [];
-    const kindOf = new Map(mentions.map((m) => [m.label, m.kind] as const));
+    const labels = [...picked.keys()].filter(Boolean).sort((a, b) => b.length - a.length);
+    if (!labels.length) return [{ text: value, kind: undefined as SourceKind | undefined }];
+    const re = new RegExp(`(^|\\s)(${labels.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?=[\\s,.;:!?)]|$)`, "g");
+    const out: { text: string; kind?: SourceKind }[] = [];
     let last = 0;
     for (const m of value.matchAll(re)) {
       const start = (m.index ?? 0) + m[1].length;
-      if (start > last) out.push({ text: value.slice(last, start), hit: false });
-      out.push({ text: `@${m[2]}`, hit: true, kind: kindOf.get(m[2]) });
-      last = start + m[2].length + 1;
+      if (start > last) out.push({ text: value.slice(last, start) });
+      out.push({ text: m[2], kind: picked.get(m[2]) });
+      last = start + m[2].length;
     }
-    if (last < value.length) out.push({ text: value.slice(last), hit: false });
+    if (last < value.length) out.push({ text: value.slice(last) });
     return out;
-  }, [mentions, value]);
+  }, [picked, value]);
 
   const pick = (option: MentionOption) => {
-    const next = `${value.slice(0, triggerStart)}@${option.label} ${value.slice(caret)}`;
-    const pos = triggerStart + option.label.length + 2;
+    const next = `${value.slice(0, triggerStart)}${option.label} ${value.slice(caret)}`;
+    const pos = triggerStart + option.label.length + 1;
+    setPicked((cur) => new Map(cur).set(option.label, option.kind));
     onChange(next);
     onMention?.(option);
     requestAnimationFrame(() => {
@@ -177,17 +182,13 @@ export function HomePrompt({
         <div
           ref={overlayRef}
           aria-hidden
-          className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words px-4 py-2.5 text-base leading-6 text-transparent"
+          className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words px-4 py-2.5 text-base leading-6 text-foreground"
         >
-          {parts.map((part, i) =>
-            part.hit ? (
-              <mark key={i} className="rounded-[6px] text-transparent" style={{ backgroundColor: `color-mix(in srgb, ${SOURCE_META[part.kind ?? "file"].color} 20%, transparent)` }}>
-                {part.text}
-              </mark>
-            ) : (
-              <span key={i}>{part.text}</span>
-            ),
-          )}
+          {parts.map((part, i) => (
+            <span key={i} style={part.kind ? { color: SOURCE_META[part.kind].color } : undefined}>
+              {part.text}
+            </span>
+          ))}
           {value.endsWith("\n") ? "\u200b" : null}
         </div>
         <InputGroupTextarea
@@ -197,7 +198,7 @@ export function HomePrompt({
           data-home-prompt=""
           aria-label="Message the AI"
           placeholder="Message…"
-          className="field-sizing-content relative max-h-60 min-h-11 w-full bg-transparent px-4 py-2.5 leading-6 focus-visible:bg-transparent"
+          className="field-sizing-content relative max-h-60 text-transparent caret-foreground min-h-11 w-full bg-transparent px-4 py-2.5 leading-6 focus-visible:bg-transparent"
           onScroll={(e) => {
             if (overlayRef.current) overlayRef.current.scrollTop = e.currentTarget.scrollTop;
           }}
