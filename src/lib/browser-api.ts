@@ -624,7 +624,7 @@ function mockAi(): OpenCanvasApi['ai'] {
     baseUrl: providerMeta('anthropic').defaultBaseUrl,
     thinkingEffort: 'medium',
   };
-  const keys = new Set<AiProviderKind>(['anthropic', 'openai', 'xai']);
+  const keys = new Set<AiProviderKind>(['anthropic', 'openai', 'gemini', 'xai']);
   let listeners: ((e: AiEvent) => void)[] = [];
   let pending: { id: string; turnId: string; resolve: (answer: string) => void } | null = null;
   let busy = false;
@@ -645,6 +645,11 @@ function mockAi(): OpenCanvasApi['ai'] {
           { id: 'gpt-6', label: 'GPT-6' },
           { id: 'gpt-4o', label: 'GPT-4o' },
           { id: 'clade', label: 'Clade' },
+        ];
+      case 'gemini':
+        return [
+          { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+          { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
         ];
       case 'xai':
         return [

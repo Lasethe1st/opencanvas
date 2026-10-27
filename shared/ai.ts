@@ -1,11 +1,11 @@
 /** In-app AI: provider settings and the events a turn streams to the editor. Keys never leave the main process. */
 
-export type AiProviderKind = 'anthropic' | 'openai' | 'xai' | 'ollama' | 'lmstudio' | 'custom';
+export type AiProviderKind = 'anthropic' | 'openai' | 'gemini' | 'xai' | 'ollama' | 'lmstudio' | 'custom';
 
 export interface AiProviderMeta {
   id: AiProviderKind;
   label: string;
-  /** Short product name for the composer (Claude, ChatGPT, Grok…). */
+  /** Short product name for the composer (Claude, ChatGPT, Gemini, Grok…). */
   product: string;
   /** Wire protocol the provider speaks. */
   protocol: 'anthropic' | 'openai';
@@ -18,6 +18,7 @@ export interface AiProviderMeta {
 export const AI_PROVIDERS: AiProviderMeta[] = [
   { id: 'anthropic', label: 'Anthropic', product: 'Claude', protocol: 'anthropic', defaultBaseUrl: 'https://api.anthropic.com', needsKey: true, local: false },
   { id: 'openai', label: 'OpenAI', product: 'ChatGPT', protocol: 'openai', defaultBaseUrl: 'https://api.openai.com/v1', needsKey: true, local: false },
+  { id: 'gemini', label: 'Google Gemini', product: 'Gemini', protocol: 'openai', defaultBaseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', needsKey: true, local: false },
   { id: 'xai', label: 'xAI', product: 'Grok', protocol: 'openai', defaultBaseUrl: 'https://api.x.ai/v1', needsKey: true, local: false },
   { id: 'ollama', label: 'Ollama', product: 'Ollama', protocol: 'openai', defaultBaseUrl: 'http://localhost:11434/v1', needsKey: false, local: true },
   { id: 'lmstudio', label: 'LM Studio', product: 'LM Studio', protocol: 'openai', defaultBaseUrl: 'http://localhost:1234/v1', needsKey: false, local: true },

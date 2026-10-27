@@ -230,7 +230,7 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
       /* clipboard blocked */
     }
   };
-  const btn = "size-7 rounded-[8px] p-0 text-muted-foreground hover:text-foreground [&_svg]:size-4";
+  const btn = "size-7 rounded-[8px] p-0 text-muted-foreground hover:text-foreground [&_svg]:size-3.5";
   const rate = (v: Vote) => setVote(id, v);
   return (
     <div className="flex items-center gap-0.5 ps-1" role="group" aria-label="Reply actions">

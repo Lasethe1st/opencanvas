@@ -12,6 +12,15 @@
 @source '../components/shapeshift-shapes.tsx';
 @source '../components/CanvasShapeshift.tsx';
 
+.model-logo--monochrome {
+  filter: brightness(0);
+  opacity: 0.58;
+}
+
+[data-theme='dark'] .model-logo--monochrome {
+  filter: brightness(0) invert(1);
+}
+
 /* Scoped stand-in for Tailwind's preflight. Everything inside an element marked data-tw (the new shadcn-based
    screens, plus their portalled dialogs and menus) gets a modern reset. :where() keeps specificity at zero, so the
    utilities below and any component class always win, and nothing outside [data-tw] is touched. */

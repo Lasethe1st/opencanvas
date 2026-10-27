@@ -176,6 +176,18 @@ test('listModels reads OpenAI-compatible /models', async (t) => {
   assert.equal(server.requests[0].url, '/v1/models');
 });
 
+test('Gemini uses the Google OpenAI-compatible model endpoint', async (t) => {
+  const server = await mockServer(t, [(_req, res) => res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ data: [{ id: 'gemini-2.5-flash' }] }))]);
+  const models = await h.listModels(
+    { provider: 'gemini', model: '', baseUrl: `${server.url}/v1beta/openai` },
+    KEY,
+    fetch,
+  );
+  assert.deepEqual(models.map((m) => m.id), ['gemini-2.5-flash']);
+  assert.equal(server.requests[0].url, '/v1beta/openai/models');
+  assert.equal(server.requests[0].headers.authorization, `Bearer ${KEY}`);
+});
+
 /* ---------- Agent loop ---------- */
 
 const openaiTurn = ({ text = '', calls = [] }) => {
