@@ -16,6 +16,28 @@ export interface MentionOption {
   kind: SourceKind;
 }
 
+/** A number followed by a CSS unit, standing on its own (not inside a word, a hex colour or an identifier). */
+const UNIT_RE = /(?<![\w.#-])(-?\d*\.?\d+)(px|rem|em|%|vh|vw|vmin|vmax|svh|dvh|lvh|pt|pc|cm|mm|in|ch|ex|lh|fr|deg|rad|turn|ms|s)(?![\w%])/g;
+
+/** `corner-shape` isn't in the CSS typings yet; browsers without it fall back to a plain rounded corner. */
+const SQUIRCLE = { cornerShape: "squircle" } as React.CSSProperties;
+
+const UNIT_COLORS = {
+  absolute: "var(--src-project)",
+  font: "var(--src-web)",
+  percent: "var(--src-file)",
+  viewport: "var(--src-chat)",
+  other: "var(--src-google)",
+} as const;
+
+function unitFamily(unit: string): keyof typeof UNIT_COLORS {
+  if (["px", "pt", "pc", "cm", "mm", "in"].includes(unit)) return "absolute";
+  if (["rem", "em", "ch", "ex", "lh"].includes(unit)) return "font";
+  if (unit === "%") return "percent";
+  if (["vh", "vw", "vmin", "vmax", "svh", "dvh", "lvh"].includes(unit)) return "viewport";
+  return "other";
+}
+
 /** The large home composer. Enter sends to AI, Shift+Enter adds a line. */
 export function HomePrompt({
   value,
@@ -69,17 +91,35 @@ export function HomePrompt({
   }, [value, picked.size]);
   const parts = useMemo(() => {
     const labels = [...picked.keys()].filter(Boolean).sort((a, b) => b.length - a.length);
-    if (!labels.length) return [{ text: value, kind: undefined as SourceKind | undefined }];
-    const re = new RegExp(`(^|\\s)(${labels.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?=[\\s,.;:!?)]|$)`, "g");
-    const out: { text: string; kind?: SourceKind }[] = [];
-    let last = 0;
-    for (const m of value.matchAll(re)) {
-      const start = (m.index ?? 0) + m[1].length;
-      if (start > last) out.push({ text: value.slice(last, start) });
-      out.push({ text: m[2], kind: picked.get(m[2]) });
-      last = start + m[2].length;
+    const named: { text: string; kind?: SourceKind }[] = [];
+    if (!labels.length) named.push({ text: value });
+    else {
+      const re = new RegExp(`(^|\\s)(${labels.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?=[\\s,.;:!?)]|$)`, "g");
+      let last = 0;
+      for (const m of value.matchAll(re)) {
+        const start = (m.index ?? 0) + m[1].length;
+        if (start > last) named.push({ text: value.slice(last, start) });
+        named.push({ text: m[2], kind: picked.get(m[2]) });
+        last = start + m[2].length;
+      }
+      if (last < value.length) named.push({ text: value.slice(last) });
     }
-    if (last < value.length) out.push({ text: value.slice(last) });
+    // CSS measurements typed in plain text (16px, 1.5rem, 50%) get a tinted box of their own.
+    const out: { text: string; kind?: SourceKind; unit?: string }[] = [];
+    for (const part of named) {
+      if (part.kind) {
+        out.push(part);
+        continue;
+      }
+      let last = 0;
+      for (const m of part.text.matchAll(UNIT_RE)) {
+        const start = m.index ?? 0;
+        if (start > last) out.push({ text: part.text.slice(last, start) });
+        out.push({ text: m[0], unit: UNIT_COLORS[unitFamily(m[2])] });
+        last = start + m[0].length;
+      }
+      if (last < part.text.length) out.push({ text: part.text.slice(last) });
+    }
     return out;
   }, [picked, value]);
 
@@ -212,7 +252,23 @@ export function HomePrompt({
           className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words px-4 py-2.5 text-base leading-6 text-foreground"
         >
           {parts.map((part, i) => (
-            <span key={i} style={part.kind ? { color: SOURCE_META[part.kind].color } : undefined}>
+            <span
+              key={i}
+              style={
+                part.kind
+                  ? { color: SOURCE_META[part.kind].color }
+                  : part.unit
+                    ? {
+                        color: part.unit,
+                        backgroundColor: `color-mix(in srgb, ${part.unit} 16%, transparent)`,
+                        borderRadius: 6,
+                        padding: "0 2px",
+                        margin: "0 -2px",
+                        ...SQUIRCLE,
+                      }
+                    : undefined
+              }
+            >
               {part.text}
             </span>
           ))}

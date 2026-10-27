@@ -1,4 +1,5 @@
 /** In-app AI from the editor's side: the conversation lives in the store, the model and keys in the main process. */
+import { memoryLines } from './ai-memory';
 import type { AiEvent } from '../../shared/ai';
 import { reduceAiChat } from '../../shared/ai-chat';
 import { EMPTY_AGENT_GRAPH, reduceAgentGraph } from '../../shared/agent-graph';
@@ -78,6 +79,7 @@ function turnContext(): AiTurnContext {
     selection: s.selection ? { id: s.selection.id, name: s.selection.name, tag: s.selection.tag } : null,
     page: page ? { name: page.name, path: page.path } : null,
     frameWidth: activeFrame(s)?.width ?? null,
+    memory: memoryLines(),
   };
 }
 

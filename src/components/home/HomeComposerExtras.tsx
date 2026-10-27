@@ -24,6 +24,7 @@ import {
   type AiThinkingEffort,
 } from "../../../shared/ai";
 import { openAiSettings, refreshAiStatus } from "../../lib/ai";
+import { ModelLogo } from "./ModelLogo";
 import { api } from "../../lib/api";
 import { useStore } from "../../lib/store";
 import { Button } from "@/components/ui/button";
@@ -629,6 +630,7 @@ export function HomeComposerExtras() {
             size="sm"
             className="h-7 max-w-[220px] gap-1 rounded-[var(--pill)] px-2 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=open]:bg-transparent"
           >
+            <ModelLogo provider={settings.provider} />
             <span className="truncate">{label}</span>
             <ChevronDown className="size-3.5 shrink-0 opacity-60" />
           </Button>
@@ -655,6 +657,7 @@ export function HomeComposerExtras() {
                   )}
                   onClick={() => pickModel(m)}
                 >
+                  <ModelLogo provider={m.provider} />
                   <span className="min-w-0 flex-1 truncate">{m.label}</span>
                   {settings.model === m.id && <Check className="size-3.5 shrink-0 opacity-80" />}
                 </button>
@@ -801,6 +804,7 @@ function AllModelsDialog({
                   )}
                   onClick={() => onPick(m)}
                 >
+                  <ModelLogo provider={m.provider} />
                   <span className="min-w-0 flex-1 truncate">{m.label}</span>
                   {selected && <Check className="size-3.5 shrink-0 opacity-80" />}
                 </button>

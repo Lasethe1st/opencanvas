@@ -52,6 +52,8 @@ export interface AiTurnContext {
   page?: { name: string; path: string } | null;
   /** Width of the active frame, to hint which breakpoint the user is designing. */
   frameWidth?: number | null;
+  /** Replies the user chose to remember; shown to the model at the start of every turn. */
+  memory?: string[];
 }
 
 export interface OpenCanvasApi {

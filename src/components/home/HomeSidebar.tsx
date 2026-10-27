@@ -1,5 +1,5 @@
 import { ChevronDown, Plus, Search } from 'lucide-react';
-import { useId, useState, type ComponentType } from 'react';
+import { useId, useState, type ComponentType, type ReactNode } from 'react';
 import homeMark from '../../assets/home-mark.png';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -16,7 +16,7 @@ export interface SidebarItem {
   /** Makes the row a dropdown of recent entries. */
   recents?: {
     toggleLabel: string;
-    items: { id: string; label: string; meta?: string; onSelect: () => void }[];
+    items: { id: string; label: string; meta?: string; icon?: ReactNode; onSelect: () => void }[];
     empty: string;
     viewAll?: { label: string; onSelect: () => void };
   };
@@ -75,7 +75,7 @@ export function HomeSidebar({
       style={{ width: open ? HOME_NAV_WIDTH : 0 }}
     >
       <div className="flex h-full flex-col" style={{ width: HOME_NAV_WIDTH }}>
-      <div className="flex h-14 shrink-0 items-center gap-1 px-3">
+      <div className="flex h-14 shrink-0 items-center gap-1 ps-2 pe-0">
         <img src={homeMark} alt="" width={28} height={28} className="home-mark box-border size-9 shrink-0 object-contain p-1.5 opacity-90" aria-hidden />
         <Tooltip>
           <TooltipTrigger asChild>
@@ -91,14 +91,14 @@ export function HomeSidebar({
         id={regionId}
         aria-label={label}
         className={cn(
-          'flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pb-2 pt-1',
+          'flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden overscroll-contain pb-2 ps-2 pe-0 pt-1',
         )}
       >
         {items.map((item) => {
           const isActive = active === item.id;
           const open = !!item.recents && expanded.includes(item.id);
           const listId = `${regionId}-${item.id}`;
-          const iconBtn = 'size-7 shrink-0 rounded-[6px] px-0 py-0 text-muted-foreground hover:bg-accent hover:text-foreground [&_svg]:size-4';
+          const iconBtn = 'size-6 shrink-0 rounded-[6px] px-0 py-0 text-muted-foreground hover:bg-accent hover:text-foreground [&_svg]:size-4';
           return (
             <div key={item.id}>
               <div
@@ -132,7 +132,7 @@ export function HomeSidebar({
                 {item.add && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" className={iconBtn} aria-label={item.add.label} disabled={busy && item.id !== 'chat'} onClick={item.add.onSelect}>
+                      <Button variant="ghost" className={cn(iconBtn, item.recents && '-ms-0.5')} aria-label={item.add.label} disabled={busy && item.id !== 'chat'} onClick={item.add.onSelect}>
                         <Plus strokeWidth={2} />
                       </Button>
                     </TooltipTrigger>
@@ -147,7 +147,7 @@ export function HomeSidebar({
                   className="grid motion-safe:transition-[grid-template-rows] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]"
                   style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
                 >
-                  <ul className="m-0 flex min-h-0 list-none flex-col gap-px overflow-hidden ps-5 pe-0">
+                  <ul className="m-0 flex min-h-0 list-none flex-col gap-px overflow-hidden ps-3 pe-0">
                     {item.recents.items.length === 0 ? (
                       <li className="px-2 py-1.5 text-xs text-muted-foreground">{item.recents.empty}</li>
                     ) : (
@@ -159,8 +159,13 @@ export function HomeSidebar({
                             className="block w-full rounded-[6px] px-2 py-1.5 text-start text-[color:var(--fg-2)] transition-colors duration-150 hover:bg-secondary hover:text-foreground focus-visible:bg-secondary focus-visible:text-foreground"
                             onClick={entry.onSelect}
                           >
-                            <span className="block truncate text-xs leading-4">{entry.label}</span>
-                            {entry.meta && <span className="block truncate text-[11px] leading-4 text-muted-foreground">{entry.meta}</span>}
+                            <span className="flex items-center gap-2">
+                              {entry.icon && <span className="inline-flex shrink-0">{entry.icon}</span>}
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-xs leading-4">{entry.label}</span>
+                                {entry.meta && <span className="block truncate text-[11px] leading-4 text-muted-foreground">{entry.meta}</span>}
+                              </span>
+                            </span>
                           </button>
                         </li>
                       ))
