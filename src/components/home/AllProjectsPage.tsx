@@ -42,9 +42,9 @@ function shortPath(path: string) {
   return parts.length > 3 ? `…${sep}${parts.slice(-2).join(sep)}` : path;
 }
 
-function ProjectThumb({ icon, name }: { icon?: string | null; name: string }) {
+export function ProjectThumb({ icon, name, className = 'size-10' }: { icon?: string | null; name: string; className?: string }) {
   const shell =
-    'size-10 shrink-0 overflow-hidden rounded-[28%] bg-muted shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--border)_70%,transparent)] [corner-shape:squircle]';
+    cn(className, 'shrink-0 overflow-hidden rounded-[28%] bg-muted shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--border)_70%,transparent)] [corner-shape:squircle]');
   if (icon) {
     return (
       <span className={shell}>
@@ -54,7 +54,7 @@ function ProjectThumb({ icon, name }: { icon?: string | null; name: string }) {
   }
   return (
     <span
-      className={cn(shell, 'flex items-center justify-center text-sm font-medium text-white/95')}
+      className={cn(shell, className === 'size-10' ? 'flex items-center justify-center text-sm font-medium text-white/95' : 'flex items-center justify-center text-[10px] font-medium text-white/95')}
       style={{ background: `hsl(${coverHue(name)} 42% 42%)` }}
       aria-hidden
     >

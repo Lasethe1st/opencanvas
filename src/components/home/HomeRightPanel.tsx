@@ -37,7 +37,7 @@ export function HomeRightPanel({
             key={contentKey}
             className={cn(
               'min-h-0 flex-1 overscroll-contain motion-safe:animate-[fade-in_0.18s_ease-out]',
-              flush ? 'flex flex-col overflow-hidden' : 'overflow-y-auto p-2',
+              flush ? 'flex flex-col overflow-hidden' : 'overflow-y-auto py-2 pe-2 ps-0',
             )}
           >
             {children}

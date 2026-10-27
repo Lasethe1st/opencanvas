@@ -8,7 +8,7 @@ import { sendToAi } from '../lib/ai';
 import { openRecent } from '../lib/actions';
 import { addHomeChat, loadHomeChats, type HomeChat as HomeChatRecord } from '../lib/home-chats';
 import { getState, setState, useStore } from '../lib/store';
-import { AllProjectsList, timeAgo } from './home/AllProjectsPage';
+import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
 import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
@@ -22,6 +22,7 @@ import { HomeStatusPills } from './home/HomeStatusPills';
 import { SearchOverlay } from './home/SearchOverlay';
 import { VoiceOrbSession } from './home/VoiceOrbSession';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type HomeDialogState = { kind: 'new'; path: StartPath | null; brief: string; repo: string } | { kind: 'projects' } | { kind: 'chats' };
@@ -86,7 +87,7 @@ export function Onboarding() {
 
   const chatTitle = useMemo(() => {
     const first = aiChat.find((i) => i.kind === 'user');
-    return first && first.kind === 'user' && first.text.trim() ? first.text.trim().replace(/\s+/g, ' ') : 'New chat';
+    return first && first.kind === 'user' && first.text.trim() ? first.text.split('\n\nReferenced:\n')[0].trim().replace(/\s+/g, ' ') : 'New chat';
   }, [aiChat]);
 
   const chatSources = useSources(aiChat);
@@ -159,7 +160,7 @@ export function Onboarding() {
     if (!text || !aiReady) return;
     const first = aiChat.length === 0;
     const refs = [...mentioned, ...chatSources].filter((x) => text.includes(x.title));
-    const full = refs.length ? `${text}\n\nReferenced:\n${refs.map((x) => `- ${x.title} (${x.detail})`).join('\n')}` : text;
+    const full = refs.length ? `${text}\n\nReferenced:\n${refs.map((x) => `- [${x.kind}] ${x.title} (${x.detail.replace(/\s+/g, ' ').slice(0, 500)})`).join('\n')}` : text;
     const ok = await sendToAi(full);
     // sendToAi only clears the draft when it matches what was sent, and `full` adds the references.
     if (ok && getState().dockDraft.trim() === text) setState({ dockDraft: '' });
@@ -194,7 +195,7 @@ export function Onboarding() {
         recents: {
           toggleLabel: 'Recent chats',
           empty: 'No chats yet',
-          items: chats.slice(0, RECENT).map((c) => ({ id: c.id, label: c.text, meta: timeAgo(c.at), onSelect: () => pickChat(c) })),
+          items: chats.slice(0, RECENT).map((c) => ({ id: c.id, label: c.text, meta: timeAgo(c.at), icon: <MessageCircle className="size-5 p-0.5" style={{ color: 'var(--src-chat)' }} strokeWidth={2} aria-hidden />, onSelect: () => pickChat(c) })),
           viewAll: chats.length > RECENT ? { label: 'View all chats', onSelect: () => setDialog({ kind: 'chats' }) } : undefined,
         },
       },
@@ -206,7 +207,7 @@ export function Onboarding() {
         recents: {
           toggleLabel: 'Recent projects',
           empty: recent === null ? 'Loading…' : 'No projects yet',
-          items: shown.map((p) => ({ id: p.root, label: p.name, meta: timeAgo(p.openedAt), onSelect: () => void openRecent(p.root) })),
+          items: shown.map((p) => ({ id: p.root, label: p.name, meta: timeAgo(p.openedAt), icon: <ProjectThumb icon={p.icon} name={p.name} className="size-5" />, onSelect: () => void openRecent(p.root) })),
           viewAll: { label: 'View all projects', onSelect: () => setDialog({ kind: 'projects' }) },
         },
       },
@@ -218,7 +219,7 @@ export function Onboarding() {
       <TooltipProvider>
         <div data-tw="" className="flex h-full bg-[var(--home-bg)] text-foreground">
           <HomeSidebar label="Home" items={items} active={dialog?.kind === 'new' || dialog?.kind === 'projects' ? 'projects' : dialog?.kind === 'chats' ? 'chat' : null} busy={busy} open={navOpen} onSearch={() => setSearchOpen(true)} />
-          <div ref={setCardEl} className="relative m-2 min-w-0 flex-1 overflow-hidden rounded-[10px] border border-foreground/[0.08] bg-[var(--home-card)] motion-safe:transition-[margin] motion-safe:duration-200">
+          <div ref={setCardEl} className={cn('relative min-w-0 flex-1 overflow-hidden border bg-[var(--home-card)] motion-safe:transition-[margin,border-radius,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', navOpen || sourcesOpen ? 'm-2 rounded-[10px] border-foreground/[0.08]' : 'm-0 rounded-none border-transparent')}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[8px] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
@@ -256,7 +257,7 @@ export function Onboarding() {
                 <div className="mx-auto w-full max-w-[680px] flex-1 px-8 pt-6">
                   <HomeChat />
                 </div>
-                <div className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-background from-[40%] via-background/60 via-[55%] to-transparent to-75% px-8 pb-6 pt-8">
+                <div className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-[var(--home-card)] from-[40%] via-[color-mix(in_srgb,var(--home-card)_60%,transparent)] via-[55%] to-transparent to-75% px-8 pb-6 pt-8">
                   <div className="mx-auto flex w-full max-w-[680px] flex-col gap-2">
                     {!voiceMode && (
                       <div className="flex items-center justify-between gap-3 px-1">

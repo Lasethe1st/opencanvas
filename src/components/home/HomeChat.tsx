@@ -1,5 +1,5 @@
-import { Check, CircleAlert, Loader2, ShieldQuestion, Wrench, X } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Brain, Check, CircleAlert, Copy, Loader2, ShieldQuestion, ThumbsDown, ThumbsUp, Wrench, X } from "lucide-react";
+import { Component, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { AiChatItem } from "../../../shared/ai";
 import { answerAi, approveAi, openAiSettings } from "../../lib/ai";
 import { useStore } from "../../lib/store";
@@ -14,7 +14,10 @@ import {
 } from "@/components/ui/code-block";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
 import { Trace, TraceIcon, TraceLine, TraceTitle } from "@/components/ui/trace";
-import { dynamicPillRadius } from "../../lib/pill-radius";
+import { getVote, isRemembered, setVote, subscribeMemory, toggleRemember, type Vote } from "../../lib/ai-memory";
+import { Orb } from "@/components/ui/orb";
+import { useOrbColors } from "@/lib/orb-colors";
+import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { cn } from "@/lib/utils";
 
 const TOOL_LABELS: Record<string, string> = {
@@ -49,9 +52,10 @@ export function HomeChat() {
           <ChatItem key={item.id} item={item} />
         ))}
         {thinking && (
-          <p className="text-[length:var(--chat-font-size-sm)]" aria-live="polite">
+          <div className="flex items-center gap-2" aria-live="polite">
+            <ThinkingOrb />
             <ShimmeringText text="Thinking…" className="text-[length:var(--chat-font-size-sm)]" startOnView={false} />
-          </p>
+          </div>
         )}
         <div ref={endRef} aria-hidden />
       </div>
@@ -62,27 +66,63 @@ export function HomeChat() {
   );
 }
 
+const REF_RE = /\n\nReferenced:\n([\s\S]*)$/;
+const REF_LINE = /^- \[(project|chat|file|web|google)\] (.+?) \((.*)\)$/;
+
+/** Splits the references the home prompt appends from what the user actually typed. */
+function splitReferences(text: string): { body: string; refs: { kind: SourceKind; title: string }[] } {
+  const m = REF_RE.exec(text);
+  if (!m) return { body: text, refs: [] };
+  const refs = m[1]
+    .split("\n")
+    .map((line) => REF_LINE.exec(line))
+    .filter((x): x is RegExpExecArray => !!x)
+    .map((x) => ({ kind: x[1] as SourceKind, title: x[2] }));
+  return { body: text.slice(0, m.index), refs };
+}
+
+/** Your own message: plain text on the left, with its references as tags underneath. */
 function UserBubble({ text }: { text: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [radius, setRadius] = useState("var(--r-pill)");
-
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const measure = () => setRadius(dynamicPillRadius(el.offsetHeight));
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [text]);
-
+  const { body, refs } = splitReferences(text);
   return (
-    <div
-      ref={ref}
-      className="ml-auto max-w-[min(85%,28rem)] break-words bg-[var(--chat-user-bg)] px-3 py-1 text-[length:var(--chat-font-size)] leading-relaxed text-[var(--chat-user-fg)] [overflow-wrap:anywhere] whitespace-pre-wrap"
-      style={{ borderRadius: radius }}
-    >
-      {text}
+    <div className="flex max-w-full flex-col gap-1.5">
+      <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{body}</p>
+      {refs.length > 0 && (
+        <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label="References">
+          {refs.map((r, i) => (
+            <li
+              key={`${r.kind}:${r.title}:${i}`}
+              className="inline-flex max-w-[16rem] items-center gap-1.5 rounded-[8px] px-2 py-1 text-xs"
+              style={{ color: SOURCE_META[r.kind].color, backgroundColor: `color-mix(in srgb, ${SOURCE_META[r.kind].color} 14%, transparent)` }}
+            >
+              <SourceIcon kind={r.kind} className="size-3.5" />
+              <span className="truncate">{r.title}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+class OrbBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? <div className="size-full rounded-full bg-muted" aria-hidden /> : this.props.children;
+  }
+}
+
+/** The orb in its thinking state, shown while the AI works on a reply. */
+function ThinkingOrb() {
+  const colors = useOrbColors();
+  return (
+    <div className="size-7 shrink-0" aria-hidden>
+      <OrbBoundary>
+        <Orb colors={colors} agentState="thinking" className="relative size-full" />
+      </OrbBoundary>
     </div>
   );
 }
@@ -92,7 +132,7 @@ function ChatItem({ item }: { item: AiChatItem }) {
     case "user":
       return <UserBubble text={item.text} />;
     case "assistant":
-      return <AssistantMessage text={item.text} />;
+      return <AssistantMessage id={item.id} text={item.text} />;
     case "error":
       return (
         <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-[length:var(--chat-font-size-sm)] text-destructive" role="alert">
@@ -142,29 +182,77 @@ function ToolTrace({ item }: { item: Extract<AiChatItem, { kind: "tool" }> }) {
   );
 }
 
-function AssistantMessage({ text }: { text: string }) {
+function AssistantMessage({ id, text }: { id: string; text: string }) {
   const parts = splitFenced(text);
   return (
-    <div className="flex max-w-[95%] flex-col gap-2 text-[length:var(--chat-font-size)] leading-relaxed text-foreground">
-      {parts.map((part, i) =>
-        part.type === "code" ? (
-          <CodeBlock key={i} size="sm">
-            <CodeBlockHeader>
-              <CodeBlockTitle>{part.lang || "Code"}</CodeBlockTitle>
-              <CodeBlockActions>
-                <CodeBlockCopyButton value={part.code} />
-              </CodeBlockActions>
-            </CodeBlockHeader>
-            <CodeBlockContent wrap className="max-h-64">
-              {part.code}
-            </CodeBlockContent>
-          </CodeBlock>
-        ) : (
-          <p key={i} className="whitespace-pre-wrap">
-            {part.text}
-          </p>
-        ),
-      )}
+    <div className="flex max-w-full flex-col gap-1.5">
+      <div className="flex max-w-full flex-col gap-2 rounded-[12px] bg-muted px-4 py-3 text-[length:var(--chat-font-size)] leading-relaxed text-foreground">
+        {parts.map((part, i) =>
+          part.type === "code" ? (
+            <CodeBlock key={i} size="sm">
+              <CodeBlockHeader>
+                <CodeBlockTitle>{part.lang || "Code"}</CodeBlockTitle>
+                <CodeBlockActions>
+                  <CodeBlockCopyButton value={part.code} />
+                </CodeBlockActions>
+              </CodeBlockHeader>
+              <CodeBlockContent wrap className="max-h-64">
+                {part.code}
+              </CodeBlockContent>
+            </CodeBlock>
+          ) : (
+            <p key={i} className="m-0 whitespace-pre-wrap">
+              {part.text}
+            </p>
+          ),
+        )}
+      </div>
+      <ReplyActions id={id} text={text} />
+    </div>
+  );
+}
+
+/** Copy, rate, and remember. Ratings and memory stay on this computer; memory is shown to the model on later turns. */
+function ReplyActions({ id, text }: { id: string; text: string }) {
+  const [copied, setCopied] = useState(false);
+  const vote = useSyncExternalStore(subscribeMemory, () => getVote(id));
+  const remembered = useSyncExternalStore(subscribeMemory, () => isRemembered(id));
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked */
+    }
+  };
+  const btn = "size-7 rounded-[8px] p-0 text-muted-foreground hover:text-foreground [&_svg]:size-4";
+  const rate = (v: Vote) => setVote(id, v);
+  return (
+    <div className="flex items-center gap-0.5 ps-1" role="group" aria-label="Reply actions">
+      <Button variant="ghost" className={btn} aria-label={copied ? "Copied" : "Copy reply"} title={copied ? "Copied" : "Copy"} onClick={() => void copy()}>
+        {copied ? <Check strokeWidth={2} /> : <Copy strokeWidth={2} />}
+      </Button>
+      <Button variant="ghost" className={cn(btn, vote === "up" && "text-foreground")} aria-label="Good reply" aria-pressed={vote === "up"} title="Good reply" onClick={() => rate("up")}>
+        <ThumbsUp strokeWidth={2} className={vote === "up" ? "fill-current" : undefined} />
+      </Button>
+      <Button variant="ghost" className={cn(btn, vote === "down" && "text-foreground")} aria-label="Bad reply" aria-pressed={vote === "down"} title="Bad reply" onClick={() => rate("down")}>
+        <ThumbsDown strokeWidth={2} className={vote === "down" ? "fill-current" : undefined} />
+      </Button>
+      <Button
+        variant="ghost"
+        className={cn(btn, remembered && "text-[var(--src-chat)] hover:text-[var(--src-chat)]")}
+        aria-label={remembered ? "Forget this reply" : "Remember this reply"}
+        aria-pressed={remembered}
+        title={remembered ? "Remembered — click to forget" : "Remember this"}
+        onClick={() => toggleRemember(id, text)}
+      >
+        <Brain strokeWidth={2} />
+      </Button>
     </div>
   );
 }
@@ -206,7 +294,7 @@ function QuestionCard({ item }: { item: Extract<AiChatItem, { kind: "question" }
     return (
       <div data-home-chat="" className="flex flex-col gap-1.5">
         <p className="text-[length:var(--chat-font-size-sm)] text-muted-foreground">{question.question}</p>
-        <div className="ml-auto max-w-[85%] rounded-[var(--r-lg)] bg-muted px-3 py-1.5 text-[length:var(--chat-font-size-sm)] text-foreground">{answer}</div>
+        <p className="m-0 max-w-full text-[length:var(--chat-font-size-sm)] text-foreground">{answer}</p>
       </div>
     );
   }
