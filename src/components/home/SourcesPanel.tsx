@@ -1,11 +1,33 @@
-import { FileText, FolderOpen, Globe, Search } from 'lucide-react';
+import { FileText, FolderOpen, Globe, MessageCircle, Search, type LucideIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import type { AiChatItem } from '../../../shared/ai';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 
+export type SourceKind = 'file' | 'web' | 'google' | 'project' | 'chat';
+
+/** One icon and one colour per kind of source, used by the @ picker, the inline highlight and the Sources panel. */
+export const SOURCE_META: Record<SourceKind, { icon: LucideIcon; label: string; color: string }> = {
+  project: { icon: FolderOpen, label: 'Project', color: 'var(--src-project)' },
+  chat: { icon: MessageCircle, label: 'Chat', color: 'var(--src-chat)' },
+  file: { icon: FileText, label: 'File', color: 'var(--src-file)' },
+  web: { icon: Globe, label: 'Web', color: 'var(--src-web)' },
+  google: { icon: Search, label: 'Google', color: 'var(--src-google)' },
+};
+
+/** The coloured square that carries a source's icon. */
+export function SourceIcon({ kind, className = 'size-6' }: { kind: SourceKind; className?: string }) {
+  const { icon: Icon, label, color } = SOURCE_META[kind];
+  return (
+    <span className={`inline-flex shrink-0 items-center justify-center rounded-[6px] ${className}`} style={{ color, backgroundColor: `color-mix(in srgb, ${color} 16%, transparent)` }} title={label}>
+      <Icon className="size-3.5" strokeWidth={2} aria-hidden />
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
+
 export interface Source {
   id: string;
-  kind: 'file' | 'web' | 'google' | 'project';
+  kind: SourceKind;
   title: string;
   detail: string;
   href?: string;
@@ -43,8 +65,6 @@ export function useSources(chat: AiChatItem[]): Source[] {
   return useMemo(() => sourcesFromChat(chat), [chat]);
 }
 
-const ICONS = { file: FileText, web: Globe, google: Search, project: FolderOpen } as const;
-
 export function SourcesPanel({ sources }: { sources: Source[] }) {
   if (!sources.length)
     return (
@@ -58,10 +78,9 @@ export function SourcesPanel({ sources }: { sources: Source[] }) {
   return (
     <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
       {sources.map((s) => {
-        const Icon = ICONS[s.kind];
         const body = (
           <>
-            <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" strokeWidth={2} aria-hidden />
+            <SourceIcon kind={s.kind} />
             <span className="min-w-0 flex-1">
               <strong className="block truncate text-xs font-medium">{s.title}</strong>
               <span className="block truncate text-xs text-muted-foreground">{s.detail}</span>

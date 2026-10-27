@@ -1,6 +1,7 @@
 import { ArrowUp, AudioLines, Square } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
+import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { dynamicPillRadius } from "../../lib/pill-radius";
 import {
   InputGroup,
@@ -12,7 +13,7 @@ export interface MentionOption {
   id: string;
   label: string;
   detail: string;
-  group: "Projects" | "Sources";
+  kind: SourceKind;
 }
 
 /** The large home composer. Enter sends to AI, Shift+Enter adds a line. */
@@ -65,12 +66,13 @@ export function HomePrompt({
     const labels = [...new Set(mentions.map((m) => m.label))].filter(Boolean).sort((a, b) => b.length - a.length);
     if (!labels.length || !value.includes("@")) return [{ text: value, hit: false }];
     const re = new RegExp(`(^|\\s)@(${labels.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?=\\s|$)`, "g");
-    const out: { text: string; hit: boolean }[] = [];
+    const out: { text: string; hit: boolean; kind?: SourceKind }[] = [];
+    const kindOf = new Map(mentions.map((m) => [m.label, m.kind] as const));
     let last = 0;
     for (const m of value.matchAll(re)) {
       const start = (m.index ?? 0) + m[1].length;
       if (start > last) out.push({ text: value.slice(last, start), hit: false });
-      out.push({ text: `@${m[2]}`, hit: true });
+      out.push({ text: `@${m[2]}`, hit: true, kind: kindOf.get(m[2]) });
       last = start + m[2].length + 1;
     }
     if (last < value.length) out.push({ text: value.slice(last), hit: false });
@@ -156,9 +158,9 @@ export function HomePrompt({
                 e.preventDefault();
                 pick(m);
               }}
-              className={`flex cursor-pointer items-baseline gap-2 rounded-[8px] px-2.5 py-1.5 ${i === active ? "bg-accent" : ""}`}
+              className={`flex cursor-pointer items-center gap-2 rounded-[8px] px-2.5 py-1.5 ${i === active ? "bg-accent" : ""}`}
             >
-              <span className="shrink-0 text-xs text-muted-foreground">{m.group === "Projects" ? "Project" : "Source"}</span>
+              <SourceIcon kind={m.kind} className="size-5 self-center" />
               <strong className="min-w-0 truncate text-sm font-medium">{m.label}</strong>
               <span className="ms-auto min-w-0 max-w-[45%] truncate text-xs text-muted-foreground">{m.detail}</span>
             </li>
@@ -179,7 +181,7 @@ export function HomePrompt({
         >
           {parts.map((part, i) =>
             part.hit ? (
-              <mark key={i} className="rounded-[6px] bg-foreground/10 text-transparent">
+              <mark key={i} className="rounded-[6px] text-transparent" style={{ backgroundColor: `color-mix(in srgb, ${SOURCE_META[part.kind ?? "file"].color} 20%, transparent)` }}>
                 {part.text}
               </mark>
             ) : (

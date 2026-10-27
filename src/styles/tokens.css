@@ -12,6 +12,12 @@
   /* Home layers: the background sits behind the raised chat card. */
   --home-bg: #f5f5f7;
   --home-card: #ffffff;
+  /* Source kinds: project, chat, file, web, google. */
+  --src-project: #2f6fe4;
+  --src-chat: #8a4fd6;
+  --src-file: #c47a12;
+  --src-web: #1c9a6c;
+  --src-google: #d64545;
   --canvas: #e8e8ea;
   --canvas-dot: #c4c4ca;
   --line: #e0e0e3;
@@ -97,6 +103,11 @@
   --surface-3: #1c1c1c;
   --home-bg: var(--color-black, #000);
   --home-card: var(--code-bg);
+  --src-project: #6ea0ff;
+  --src-chat: #b88cf2;
+  --src-file: #e8a53d;
+  --src-web: #4cc79a;
+  --src-google: #ff7a7a;
   --canvas: #0c0c0c;
   --canvas-dot: #222222;
   --line: #222222;

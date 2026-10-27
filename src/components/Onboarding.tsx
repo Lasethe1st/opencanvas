@@ -98,14 +98,16 @@ export function Onboarding() {
 
   const mentionOptions: MentionOption[] = useMemo(
     () => [
-      ...(recent ?? []).map((p) => ({ id: `project:${p.root}`, label: p.name, detail: p.root, group: 'Projects' as const })),
-      ...chatSources.map((x) => ({ id: x.id, label: x.title, detail: x.detail, group: 'Sources' as const })),
+      ...(recent ?? []).map((p) => ({ id: `project:${p.root}`, label: p.name, detail: p.root, kind: 'project' as const })),
+      ...chats.map((c) => ({ id: `chat:${c.id}`, label: c.text.replace(/\s+/g, ' ').slice(0, 28).trim() + (c.text.length > 28 ? '…' : ''), detail: c.text, kind: 'chat' as const })),
+      ...chatSources.map((x) => ({ id: x.id, label: x.title, detail: x.detail, kind: x.kind })),
     ],
-    [recent, chatSources],
+    [recent, chats, chatSources],
   );
   const onMention = useCallback((o: MentionOption) => {
-    if (o.group === 'Projects') setMentioned((cur) => (cur.some((x) => x.id === o.id) ? cur : [{ id: o.id, kind: 'project', title: o.label, detail: o.detail }, ...cur]));
+    if (o.kind === 'project' || o.kind === 'chat') setMentioned((cur) => (cur.some((x) => x.id === o.id) ? cur : [{ id: o.id, kind: o.kind, title: o.label, detail: o.detail }, ...cur]));
   }, []);
+
   // New sources reveal the panel; closing it by hand sticks until the next new source arrives.
   const seenSources = useRef(0);
   useEffect(() => {
