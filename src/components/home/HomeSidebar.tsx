@@ -16,7 +16,7 @@ export interface SidebarItem {
   /** Makes the row a dropdown of recent entries. */
   recents?: {
     toggleLabel: string;
-    items: { id: string; label: string; onSelect: () => void }[];
+    items: { id: string; label: string; meta?: string; onSelect: () => void }[];
     empty: string;
     viewAll?: { label: string; onSelect: () => void };
   };
@@ -156,10 +156,11 @@ export function HomeSidebar({
                           <button
                             type="button"
                             title={entry.label}
-                            className="block w-full truncate rounded-[6px] px-2 py-1.5 text-start text-xs text-[color:var(--fg-2)] transition-colors duration-150 hover:bg-secondary hover:text-foreground focus-visible:bg-secondary focus-visible:text-foreground"
+                            className="block w-full rounded-[6px] px-2 py-1.5 text-start text-[color:var(--fg-2)] transition-colors duration-150 hover:bg-secondary hover:text-foreground focus-visible:bg-secondary focus-visible:text-foreground"
                             onClick={entry.onSelect}
                           >
-                            {entry.label}
+                            <span className="block truncate text-xs leading-4">{entry.label}</span>
+                            {entry.meta && <span className="block truncate text-[11px] leading-4 text-muted-foreground">{entry.meta}</span>}
                           </button>
                         </li>
                       ))
