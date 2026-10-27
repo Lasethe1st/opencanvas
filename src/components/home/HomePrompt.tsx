@@ -160,7 +160,7 @@ export function HomePrompt({
               }}
               className={`flex cursor-pointer items-center gap-2 rounded-[8px] px-2.5 py-1.5 ${i === active ? "bg-accent" : ""}`}
             >
-              <SourceIcon kind={m.kind} className="size-5 self-center" />
+              <SourceIcon kind={m.kind} className="size-4" />
               <strong className="min-w-0 truncate text-sm font-medium">{m.label}</strong>
               <span className="ms-auto min-w-0 max-w-[45%] truncate text-xs text-muted-foreground">{m.detail}</span>
             </li>

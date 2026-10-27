@@ -15,11 +15,11 @@ export const SOURCE_META: Record<SourceKind, { icon: LucideIcon; label: string; 
 };
 
 /** The coloured square that carries a source's icon. */
-export function SourceIcon({ kind, className = 'size-6' }: { kind: SourceKind; className?: string }) {
+export function SourceIcon({ kind, className = 'size-4' }: { kind: SourceKind; className?: string }) {
   const { icon: Icon, label, color } = SOURCE_META[kind];
   return (
-    <span className={`inline-flex shrink-0 items-center justify-center rounded-[6px] ${className}`} style={{ color, backgroundColor: `color-mix(in srgb, ${color} 16%, transparent)` }} title={label}>
-      <Icon className="size-3.5" strokeWidth={2} aria-hidden />
+    <span className="inline-flex shrink-0 items-center justify-center" style={{ color }} title={label}>
+      <Icon className={className} strokeWidth={2} aria-hidden />
       <span className="sr-only">{label}</span>
     </span>
   );
@@ -80,7 +80,7 @@ export function SourcesPanel({ sources }: { sources: Source[] }) {
       {sources.map((s) => {
         const body = (
           <>
-            <SourceIcon kind={s.kind} />
+            <SourceIcon kind={s.kind} className="mt-0.5 size-4" />
             <span className="min-w-0 flex-1">
               <strong className="block truncate text-xs font-medium">{s.title}</strong>
               <span className="block truncate text-xs text-muted-foreground">{s.detail}</span>
