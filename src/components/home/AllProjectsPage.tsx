@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 const HUES = [12, 36, 150, 190, 222, 262, 300, 340];
 
-function timeAgo(ms: number) {
+export function timeAgo(ms: number) {
   const minutes = Math.round((Date.now() - ms) / 60_000);
   if (minutes < 1) return 'Just now';
   if (minutes < 60) return `${minutes}m ago`;

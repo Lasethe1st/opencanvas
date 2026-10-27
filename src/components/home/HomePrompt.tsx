@@ -83,6 +83,32 @@ export function HomePrompt({
     return out;
   }, [picked, value]);
 
+  /** Where each picked name sits in the text, so Backspace and Delete can remove one as a whole. */
+  const ranges = useMemo(() => {
+    const out: { start: number; end: number }[] = [];
+    let at = 0;
+    for (const part of parts) {
+      if (part.kind) out.push({ start: at, end: at + part.text.length });
+      at += part.text.length;
+    }
+    return out;
+  }, [parts]);
+
+  const removeWholeName = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
+    if (el.selectionStart !== el.selectionEnd) return false;
+    const at = el.selectionStart;
+    const hit = ranges.find((r) => (e.key === "Backspace" ? at > r.start && at <= r.end : at >= r.start && at < r.end));
+    if (!hit) return false;
+    e.preventDefault();
+    onChange(value.slice(0, hit.start) + value.slice(hit.end));
+    requestAnimationFrame(() => {
+      textareaRef.current?.setSelectionRange(hit.start, hit.start);
+      setCaret(hit.start);
+    });
+    return true;
+  };
+
   const pick = (option: MentionOption) => {
     const next = `${value.slice(0, triggerStart)}${option.label} ${value.slice(caret)}`;
     const pos = triggerStart + option.label.length + 1;
@@ -120,6 +146,7 @@ export function HomePrompt({
   }, [value, textareaHeight]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.key === "Backspace" || e.key === "Delete") && !e.nativeEvent.isComposing && removeWholeName(e)) return;
     if (open) {
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();

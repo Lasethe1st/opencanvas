@@ -8,7 +8,7 @@ import { sendToAi } from '../lib/ai';
 import { openRecent } from '../lib/actions';
 import { addHomeChat, loadHomeChats, type HomeChat as HomeChatRecord } from '../lib/home-chats';
 import { getState, setState, useStore } from '../lib/store';
-import { AllProjectsList } from './home/AllProjectsPage';
+import { AllProjectsList, timeAgo } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
 import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
@@ -194,7 +194,7 @@ export function Onboarding() {
         recents: {
           toggleLabel: 'Recent chats',
           empty: 'No chats yet',
-          items: chats.slice(0, RECENT).map((c) => ({ id: c.id, label: c.text, onSelect: () => pickChat(c) })),
+          items: chats.slice(0, RECENT).map((c) => ({ id: c.id, label: c.text, meta: timeAgo(c.at), onSelect: () => pickChat(c) })),
           viewAll: chats.length > RECENT ? { label: 'View all chats', onSelect: () => setDialog({ kind: 'chats' }) } : undefined,
         },
       },
@@ -206,7 +206,7 @@ export function Onboarding() {
         recents: {
           toggleLabel: 'Recent projects',
           empty: recent === null ? 'Loading…' : 'No projects yet',
-          items: shown.map((p) => ({ id: p.root, label: p.name, onSelect: () => void openRecent(p.root) })),
+          items: shown.map((p) => ({ id: p.root, label: p.name, meta: timeAgo(p.openedAt), onSelect: () => void openRecent(p.root) })),
           viewAll: { label: 'View all projects', onSelect: () => setDialog({ kind: 'projects' }) },
         },
       },

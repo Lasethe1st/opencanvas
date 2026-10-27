@@ -171,7 +171,7 @@ export function NewProjectDialog({
           <Button
             data-tw=""
             variant="ghost"
-            className="h-9 shrink-0 gap-2 rounded-[var(--pill)] bg-muted px-3.5 text-xs text-foreground hover:bg-secondary [&_svg]:size-3.5"
+            className="h-9 shrink-0 gap-2 rounded-[var(--pill)] bg-muted px-3.5 text-xs motion-safe:animate-[home-dialog-in_0.18s_cubic-bezier(0.2,0,0,1)] text-foreground hover:bg-secondary [&_svg]:size-3.5"
             onClick={onRestore}
             aria-label={`Resume new project, ${TITLES[step]}`}
           >
@@ -191,9 +191,13 @@ export function NewProjectDialog({
       {!minimized && (
         <HomeDialog
           title="New project"
-          subtitle={step === 'start' ? undefined : `Step ${index + 1} of ${steps.length}`}
+          progress={step === 'start' ? undefined : { value: index + 1, max: steps.length }}
           onClose={onClose}
           onMinimize={onMinimize}
+          minimizeTarget={() => {
+            const r = chipHost?.parentElement?.getBoundingClientRect();
+            return r ? new DOMRect(r.right + 8, r.top, 150, r.height) : null;
+          }}
           wide={step === 'direction'}
           footer={
             step === 'start' || step === 'open' ? (
