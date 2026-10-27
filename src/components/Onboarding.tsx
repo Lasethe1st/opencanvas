@@ -236,7 +236,7 @@ export function Onboarding() {
           {(sources.length > 0 || sourcesOpen) && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" data-home-sources-toggle="" className="absolute end-3 top-3 z-20 h-9 gap-1.5 rounded-[8px] px-2.5 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={sourcesOpen ? 'Hide sources' : 'Show sources'} aria-expanded={sourcesOpen} onClick={() => setSourcesOpen((o) => !o)}>
+                <Button variant="ghost" data-home-sources-toggle="" className="absolute end-3 top-3 z-20 h-9 gap-1.5 rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground hover:bg-secondary [&_svg]:size-4" aria-label={sourcesOpen ? 'Hide sources' : 'Show sources'} aria-expanded={sourcesOpen} onClick={() => setSourcesOpen((o) => !o)}>
                   <Library strokeWidth={2} />
                   {sources.length > 0 && <span className="text-xs tabular-nums">{sources.length}</span>}
                 </Button>
