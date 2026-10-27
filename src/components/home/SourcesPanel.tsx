@@ -1,11 +1,11 @@
-import { FileText, Globe, Search } from 'lucide-react';
+import { FileText, FolderOpen, Globe, Search } from 'lucide-react';
 import { useMemo } from 'react';
 import type { AiChatItem } from '../../../shared/ai';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 
 export interface Source {
   id: string;
-  kind: 'file' | 'web' | 'google';
+  kind: 'file' | 'web' | 'google' | 'project';
   title: string;
   detail: string;
   href?: string;
@@ -43,7 +43,7 @@ export function useSources(chat: AiChatItem[]): Source[] {
   return useMemo(() => sourcesFromChat(chat), [chat]);
 }
 
-const ICONS = { file: FileText, web: Globe, google: Search } as const;
+const ICONS = { file: FileText, web: Globe, google: Search, project: FolderOpen } as const;
 
 export function SourcesPanel({ sources }: { sources: Source[] }) {
   if (!sources.length)

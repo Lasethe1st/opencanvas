@@ -7,15 +7,15 @@ import { api } from '../lib/api';
 import { sendToAi } from '../lib/ai';
 import { openRecent } from '../lib/actions';
 import { addHomeChat, loadHomeChats, type HomeChat as HomeChatRecord } from '../lib/home-chats';
-import { setState, useStore } from '../lib/store';
+import { getState, setState, useStore } from '../lib/store';
 import { AllProjectsList } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
 import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
 import { HomeDialog } from './home/HomeDialog';
 import { NewProjectDialog, type StartPath } from './home/NewProjectDialog';
-import { SourcesPanel, useSources } from './home/SourcesPanel';
-import { HomePrompt } from './home/HomePrompt';
+import { SourcesPanel, useSources, type Source } from './home/SourcesPanel';
+import { HomePrompt, type MentionOption } from './home/HomePrompt';
 import { HomeRightPanel } from './home/HomeRightPanel';
 import { HomeSidebar, type SidebarItem } from './home/HomeSidebar';
 import { HomeStatusPills } from './home/HomeStatusPills';
@@ -89,7 +89,23 @@ export function Onboarding() {
     return first && first.kind === 'user' && first.text.trim() ? first.text.trim().replace(/\s+/g, ' ') : 'New chat';
   }, [aiChat]);
 
-  const sources = useSources(aiChat);
+  const chatSources = useSources(aiChat);
+  const [mentioned, setMentioned] = useState<Source[]>([]);
+  const sources = useMemo(() => {
+    const seen = new Set<string>();
+    return [...mentioned, ...chatSources].filter((x) => !seen.has(x.id) && !!seen.add(x.id));
+  }, [mentioned, chatSources]);
+
+  const mentionOptions: MentionOption[] = useMemo(
+    () => [
+      ...(recent ?? []).map((p) => ({ id: `project:${p.root}`, label: p.name, detail: p.root, group: 'Projects' as const })),
+      ...chatSources.map((x) => ({ id: x.id, label: x.title, detail: x.detail, group: 'Sources' as const })),
+    ],
+    [recent, chatSources],
+  );
+  const onMention = useCallback((o: MentionOption) => {
+    if (o.group === 'Projects') setMentioned((cur) => (cur.some((x) => x.id === o.id) ? cur : [{ id: o.id, kind: 'project', title: o.label, detail: o.detail }, ...cur]));
+  }, []);
   // New sources reveal the panel; closing it by hand sticks until the next new source arrives.
   const seenSources = useRef(0);
   useEffect(() => {
@@ -140,10 +156,14 @@ export function Onboarding() {
     const text = dockDraft.trim();
     if (!text || !aiReady) return;
     const first = aiChat.length === 0;
-    const ok = await sendToAi(text);
+    const refs = [...mentioned, ...chatSources].filter((x) => text.includes(`@${x.title}`));
+    const full = refs.length ? `${text}\n\nReferenced:\n${refs.map((x) => `- ${x.title} (${x.detail})`).join('\n')}` : text;
+    const ok = await sendToAi(full);
+    // sendToAi only clears the draft when it matches what was sent, and `full` adds the references.
+    if (ok && getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     if (ok && first) setChats((current) => addHomeChat(current, text));
     if (ok) focusPrompt();
-  }, [dockDraft, aiReady, aiChat.length]);
+  }, [dockDraft, aiReady, aiChat.length, mentioned, chatSources]);
 
   // Keep the composer ready for the next turn — chat should feel continuous, not transactional.
   useEffect(() => {
@@ -264,6 +284,8 @@ export function Onboarding() {
                           onVoice={startVoice}
                           disabled={busy || !aiReady}
                           sending={!!aiTurnId}
+                          mentions={mentionOptions}
+                          onMention={onMention}
                         />
                         <HomeComposerExtras />
                         {!(canContinue || (aiChat.some((i) => i.kind === 'user') && !aiReady)) && (
@@ -287,6 +309,8 @@ export function Onboarding() {
                     onVoice={startVoice}
                     disabled={busy || !aiReady}
                     sending={!!aiTurnId}
+                    mentions={mentionOptions}
+                    onMention={onMention}
                   />
                   <HomeComposerExtras />
                   <HomeAiHint className="text-center" />
