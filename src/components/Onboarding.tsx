@@ -219,14 +219,9 @@ export function Onboarding() {
         <div data-tw="" className="flex h-full bg-[var(--home-bg)] text-foreground">
           <HomeSidebar label="Home" items={items} active={dialog?.kind === 'new' || dialog?.kind === 'projects' ? 'projects' : dialog?.kind === 'chats' ? 'chat' : null} busy={busy} open={navOpen} onSearch={() => setSearchOpen(true)} />
           <div ref={setCardEl} className="relative m-2 min-w-0 flex-1 overflow-hidden rounded-[10px] border border-foreground/[0.08] bg-[var(--home-card)] motion-safe:transition-[margin] motion-safe:duration-200">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[8px] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
-                <HugeiconsIcon icon={navOpen ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side={document.dir === 'rtl' ? 'left' : 'right'}>{navOpen ? 'Close navigation' : 'Open navigation'}</TooltipContent>
-          </Tooltip>
+        <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[8px] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
+          <HugeiconsIcon icon={navOpen ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
+        </Button>
           <div className="absolute start-14 top-3 z-20 flex max-w-[calc(100%-9rem)] items-center gap-2">
             <span title={chatTitle} className="inline-flex h-9 min-w-0 items-center rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground">
               <span className="truncate">{chatTitle}</span>
