@@ -199,7 +199,7 @@ export function AiSettingsPanel() {
               }}
             >
               <InputShell>
-                <input type="password" aria-label="API key" placeholder={settings.provider === 'anthropic' ? 'sk-ant-…' : 'sk-…'} value={key} autoComplete="off" spellCheck={false} onChange={(e) => setKey(e.target.value)} />
+                <input type="password" aria-label="API key" placeholder={settings.provider === 'anthropic' ? 'sk-ant-…' : settings.provider === 'gemini' ? 'AIza…' : 'sk-…'} value={key} autoComplete="off" spellCheck={false} onChange={(e) => setKey(e.target.value)} />
               </InputShell>
               <Button size="sm" variant="primary" type="submit" disabled={!key.trim()}>
                 Save key

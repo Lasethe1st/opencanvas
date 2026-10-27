@@ -42,8 +42,8 @@ import { cn } from "@/lib/utils";
 
 const EFFORTS: { id: AiThinkingEffort; label: string; hint: string }[] = [
   { id: "low", label: "Instant", hint: "Faster, lighter replies" },
-  { id: "medium", label: "Think", hint: "Balanced" },
-  { id: "high", label: "Think hard", hint: "Slower, deeper reasoning" },
+  { id: "medium", label: "Balanced", hint: "Balanced" },
+  { id: "high", label: "Harder", hint: "Slower, deeper reasoning" },
 ];
 
 const PREVIEW = 5;
@@ -56,6 +56,8 @@ const CATALOG: { id: string; label: string; provider: AiProviderKind }[] = [
   { id: "fable-5.1", label: "Fable 5.1", provider: "openai" },
   { id: "gpt-6", label: "GPT-6", provider: "openai" },
   { id: "gpt-4o", label: "GPT-4o", provider: "openai" },
+  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", provider: "gemini" },
+  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", provider: "gemini" },
   { id: "astra", label: "Astra", provider: "xai" },
   { id: "grok-3", label: "Grok 3", provider: "xai" },
   { id: "clade", label: "Clade", provider: "openai" },
@@ -85,6 +87,7 @@ function modelLabel(settings: AiSettings, models: PickerModel[], loading: boolea
 function contextWindow(model: string): number {
   const id = model.toLowerCase();
   if (id.includes("claude") || id.includes("opus") || id.includes("sonnet") || id.includes("haiku")) return 200_000;
+  if (id.includes("gemini")) return 1_000_000;
   if (id.includes("grok") || id.includes("astra")) return 131_072;
   if (id.includes("gpt-4o") || id.includes("gpt-6") || id.includes("fable") || id.includes("clade")) return 128_000;
   if (id.includes("llama")) return 128_000;
@@ -693,7 +696,8 @@ export function HomeComposerExtras() {
             variant="ghost"
             size="sm"
             className="h-7 gap-1 rounded-[var(--pill)] px-2 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=open]:bg-transparent"
-            aria-label="How hard to think"
+            aria-label={`Thinking effort: ${effortMeta.label}`}
+            title={effortMeta.hint}
           >
             <Brain className="size-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
             <span>{effortMeta.label}</span>

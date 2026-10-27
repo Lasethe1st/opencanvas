@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, net, safeStorage, shell, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, safeStorage, shell, type IpcMainInvokeEvent } from 'electron';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -1058,6 +1058,7 @@ const windowBackground = () => (nativeTheme.shouldUseDarkColors ? '#181818' : '#
 function createWindow() {
   const icon = appIconPath();
   win = new BrowserWindow({
+    frame: true,
     width: 1480,
     height: 920,
     minWidth: 1100,
@@ -1105,6 +1106,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(null);
   initAi();
   registerIpc();
   createWindow();
