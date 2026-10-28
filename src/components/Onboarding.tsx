@@ -173,7 +173,7 @@ export function Onboarding() {
     const text = dockDraft.trim();
     if (!text || !aiReady) return;
     const first = aiChat.length === 0;
-    const refs = [...mentioned, ...chatSources].filter((x) => text.includes(x.title));
+    const refs = [...mentioned, ...chatSources].filter((x) => text.includes(x.title)).sort((a, b) => text.indexOf(a.title) - text.indexOf(b.title));
     const full = refs.length ? `${text}\n\nReferenced:\n${refs.map((x) => `- [${x.kind}] ${x.title} (${x.detail.replace(/\s+/g, ' ').slice(0, 500)})`).join('\n')}` : text;
     const used = refs.filter((x) => x.kind === 'skill');
     const skills = (await Promise.all(used.map(async (x) => ({ name: x.title, body: await api.skills.read(x.id.replace(/^skill:/, '')).catch(() => '') })))).filter((k) => k.body);
