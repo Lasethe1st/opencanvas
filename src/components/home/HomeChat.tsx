@@ -67,7 +67,7 @@ export function HomeChat() {
 }
 
 const REF_RE = /\n\nReferenced:\n([\s\S]*)$/;
-const REF_LINE = /^- \[(project|chat|file|web|google)\] (.+?) \((.*)\)$/;
+const REF_LINE = /^- \[(project|chat|file|web|google|skill)\] (.+?) \((.*)\)$/;
 
 /** Splits the references the home prompt appends from what the user actually typed. */
 function splitReferences(text: string): { body: string; refs: { kind: SourceKind; title: string }[] } {

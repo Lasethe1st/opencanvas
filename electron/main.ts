@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, safeStorage, shell, type IpcMainInvokeEvent } from 'electron';
+import { ensureSkillsDir, listSkills, readSkill } from './services/skills';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -65,6 +66,7 @@ import { TerminalManager, type SpawnPty } from './services/terminal';
 const APP_ROOT = app.getAppPath();
 const DEV_URL = process.env.OC_DEV_SERVER_URL;
 if (process.env.OC_USER_DATA) app.setPath('userData', process.env.OC_USER_DATA);
+const skillsDir = () => process.env.OC_SKILLS_DIR ?? path.join(app.getPath('documents'), 'OpenCanvas Skills');
 const projectsDir = () => process.env.OC_PROJECTS_DIR ?? path.join(app.getPath('documents'), 'OpenCanvas Projects');
 
 /** Window / dock icon — replace `src/assets/brand-mark.png` to change the app mark. */
@@ -646,6 +648,36 @@ function registerIpc() {
     readRecent().map((p) => ({ ...p, icon: projectFavicon(p.root), bytes: projectBytes(p.root) })),
   );
   handle('projects:defaultLocation', () => projectsDir());
+  // Browsing is limited to projects in the recent list, never outside the project folder, and never into build or dependency folders.
+  const projectPath = (root: string, rel: string) => {
+    if (!readRecent().some((p) => p.root === root)) throw new Error('That project is not in your recent list.');
+    const base = path.resolve(root);
+    const target = path.resolve(base, String(rel ?? ''));
+    if (target !== base && !target.startsWith(base + path.sep)) throw new Error('That path is outside the project.');
+    return target;
+  };
+  const HIDDEN = new Set(['node_modules', '.git', 'dist', 'dist-electron', '.next', '.DS_Store']);
+  handle('projectFiles:list', (root: string, rel: string) =>
+    fs
+      .readdirSync(projectPath(root, rel), { withFileTypes: true })
+      .filter((e) => !HIDDEN.has(e.name))
+      .map((e) => ({ name: e.name, dir: e.isDirectory() }))
+      .sort((a, b) => Number(b.dir) - Number(a.dir) || a.name.localeCompare(b.name))
+      .slice(0, 300),
+  );
+  handle('projectFiles:read', (root: string, rel: string) => {
+    const file = projectPath(root, rel);
+    const buf = fs.readFileSync(file);
+    if (buf.subarray(0, 8000).includes(0)) throw new Error('This file is not text, so it can’t be shown here.');
+    return buf.subarray(0, 200_000).toString('utf8');
+  });
+  handle('skills:list', () => listSkills(skillsDir()));
+  handle('skills:read', (id: string) => readSkill(skillsDir(), String(id)));
+  handle('skills:openFolder', async () => {
+    const dir = ensureSkillsDir(skillsDir());
+    await shell.openPath(dir);
+    return dir;
+  });
 
   handle('project:create', (template: TemplateId, name: string, setup?: ProjectSetup) => {
     if (!TEMPLATES.some((t) => t.id === template)) throw new ProjectError('Unknown template.');

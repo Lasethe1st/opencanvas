@@ -1,8 +1,9 @@
-import { FolderOpen, Library, LucideProvider, MessageCircle } from 'lucide-react';
+import { Library, LucideProvider } from 'lucide-react';
+import { ChatCircle, FolderSimple } from '@phosphor-icons/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { LayoutAlignLeftIcon, LayoutAlignRightIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { RecentProject } from '../../shared/types';
+import type { RecentProject, SkillMeta } from '../../shared/types';
 import { api } from '../lib/api';
 import { sendToAi } from '../lib/ai';
 import { openRecent } from '../lib/actions';
@@ -92,6 +93,7 @@ export function Onboarding() {
 
   const chatSources = useSources(aiChat);
   const [mentioned, setMentioned] = useState<Source[]>([]);
+  const [skillList, setSkillList] = useState<SkillMeta[]>([]);
   const sources = useMemo(() => {
     const seen = new Set<string>();
     return [...mentioned, ...chatSources].filter((x) => !seen.has(x.id) && !!seen.add(x.id));
@@ -105,8 +107,12 @@ export function Onboarding() {
     ],
     [recent, chats, chatSources],
   );
+  const skillOptions: MentionOption[] = useMemo(() => skillList.map((k) => ({ id: `skill:${k.id}`, label: k.name, detail: k.description, kind: 'skill' as const })), [skillList]);
+  const openSkills = useCallback(() => {
+    void api.skills.openFolder().then(() => api.skills.list()).then(setSkillList).catch(() => undefined);
+  }, []);
   const onMention = useCallback((o: MentionOption) => {
-    if (o.kind === 'project' || o.kind === 'chat') setMentioned((cur) => (cur.some((x) => x.id === o.id) ? cur : [{ id: o.id, kind: o.kind, title: o.label, detail: o.detail }, ...cur]));
+    if (o.kind === 'project' || o.kind === 'chat' || o.kind === 'skill') setMentioned((cur) => (cur.some((x) => x.id === o.id) ? cur : [{ id: o.id, kind: o.kind, title: o.label, detail: o.detail }, ...cur]));
   }, []);
 
   // New sources reveal the panel; closing it by hand sticks until the next new source arrives.
@@ -130,6 +136,7 @@ export function Onboarding() {
   useEffect(() => {
     void api.recentProjects().then(setRecent);
     void api.defaultLocation().then(setLocation);
+    void api.skills.list().then(setSkillList).catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -161,7 +168,9 @@ export function Onboarding() {
     const first = aiChat.length === 0;
     const refs = [...mentioned, ...chatSources].filter((x) => text.includes(x.title));
     const full = refs.length ? `${text}\n\nReferenced:\n${refs.map((x) => `- [${x.kind}] ${x.title} (${x.detail.replace(/\s+/g, ' ').slice(0, 500)})`).join('\n')}` : text;
-    const ok = await sendToAi(full);
+    const used = refs.filter((x) => x.kind === 'skill');
+    const skills = (await Promise.all(used.map(async (x) => ({ name: x.title, body: await api.skills.read(x.id.replace(/^skill:/, '')).catch(() => '') })))).filter((k) => k.body);
+    const ok = await sendToAi(full, skills.length ? { skills } : undefined);
     // sendToAi only clears the draft when it matches what was sent, and `full` adds the references.
     if (ok && getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     if (ok && first) setChats((current) => addHomeChat(current, text));
@@ -190,19 +199,19 @@ export function Onboarding() {
       {
         id: 'chat',
         label: 'Chat',
-        icon: MessageCircle,
+        icon: ChatCircle,
         add: { label: 'New chat', onSelect: newChat },
         recents: {
           toggleLabel: 'Recent chats',
           empty: 'No chats yet',
-          items: chats.slice(0, RECENT).map((c) => ({ id: c.id, label: c.text, meta: timeAgo(c.at), icon: <MessageCircle className="size-5 p-0.5" style={{ color: 'var(--src-chat)' }} strokeWidth={2} aria-hidden />, onSelect: () => pickChat(c) })),
+          items: chats.slice(0, RECENT).map((c) => ({ id: c.id, label: c.text, meta: timeAgo(c.at), icon: <ChatCircle weight="fill" className="size-5 p-0.5" style={{ color: 'var(--src-chat)' }} aria-hidden />, onSelect: () => pickChat(c) })),
           viewAll: chats.length > RECENT ? { label: 'View all chats', onSelect: () => setDialog({ kind: 'chats' }) } : undefined,
         },
       },
       {
         id: 'projects',
         label: 'Projects',
-        icon: FolderOpen,
+        icon: FolderSimple,
         add: { label: 'New project', onSelect: () => openNew() },
         recents: {
           toggleLabel: 'Recent projects',
@@ -284,6 +293,8 @@ export function Onboarding() {
                           sending={!!aiTurnId}
                           mentions={mentionOptions}
                           onMention={onMention}
+                          skills={skillOptions}
+                          onOpenSkills={openSkills}
                         />
                         <HomeComposerExtras />
                         {!(canContinue || (aiChat.some((i) => i.kind === 'user') && !aiReady)) && (
@@ -309,6 +320,8 @@ export function Onboarding() {
                     sending={!!aiTurnId}
                     mentions={mentionOptions}
                     onMention={onMention}
+                          skills={skillOptions}
+                          onOpenSkills={openSkills}
                   />
                   <HomeComposerExtras />
                   <HomeAiHint className="text-center" />

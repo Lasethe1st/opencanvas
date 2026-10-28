@@ -1,4 +1,4 @@
-import { ArrowUp, AudioLines, Square } from "lucide-react";
+import { ArrowUp, AudioLines, FolderOpen, Square } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
@@ -38,6 +38,9 @@ function unitFamily(unit: string): keyof typeof UNIT_COLORS {
   return "other";
 }
 
+const SKILLS_FOLDER = "__skills-folder";
+const FOLDER_ROW: MentionOption = { id: SKILLS_FOLDER, label: "Open skills folder", detail: "", kind: "skill" };
+
 /** The large home composer. Enter sends to AI, Shift+Enter adds a line. */
 export function HomePrompt({
   value,
@@ -48,6 +51,8 @@ export function HomePrompt({
   sending,
   mentions = [],
   onMention,
+  skills = [],
+  onOpenSkills,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -59,6 +64,10 @@ export function HomePrompt({
   /** Things `@` can reference. */
   mentions?: MentionOption[];
   onMention?: (option: MentionOption) => void;
+  /** Skills that `/` can call. */
+  skills?: MentionOption[];
+  /** Opens the folder skills are kept in. */
+  onOpenSkills?: () => void;
 }) {
   const shellRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -70,14 +79,16 @@ export function HomePrompt({
   const [active, setActive] = useState(0);
   const [dismissed, setDismissed] = useState<number | null>(null);
 
-  // An `@` at the start of a word, up to the caret, opens the picker.
-  const trigger = /(^|\s)@([^\s@]*)$/.exec(value.slice(0, caret));
-  const query = trigger ? trigger[2].toLowerCase() : null;
-  const triggerStart = trigger ? caret - trigger[2].length - 1 : -1;
-  const matches = useMemo(
-    () => (query === null ? [] : mentions.filter((m) => m.label.toLowerCase().includes(query)).slice(0, 8)),
-    [mentions, query],
-  );
+  // An `@` (references) or `/` (skills) at the start of a word, up to the caret, opens the picker.
+  const trigger = /(^|\s)([@/])([^\s@/]*)$/.exec(value.slice(0, caret));
+  const symbol = trigger ? trigger[2] : null;
+  const query = trigger ? trigger[3].toLowerCase() : null;
+  const triggerStart = trigger ? caret - trigger[3].length - 1 : -1;
+  const matches = useMemo(() => {
+    if (query === null) return [];
+    if (symbol === "/") return [...skills.filter((m) => m.label.toLowerCase().includes(query)).slice(0, 7), ...(onOpenSkills ? [FOLDER_ROW] : [])];
+    return mentions.filter((m) => m.label.toLowerCase().includes(query)).slice(0, 8);
+  }, [mentions, skills, onOpenSkills, query, symbol]);
   const open = query !== null && matches.length > 0 && dismissed !== triggerStart && !!onMention;
 
   useEffect(() => setActive(0), [query]);
@@ -150,6 +161,12 @@ export function HomePrompt({
   };
 
   const pick = (option: MentionOption) => {
+    if (option.id === SKILLS_FOLDER) {
+      const next = `${value.slice(0, triggerStart)}${value.slice(caret)}`;
+      onChange(next);
+      onOpenSkills?.();
+      return;
+    }
     const next = `${value.slice(0, triggerStart)}${option.label} ${value.slice(caret)}`;
     const pos = triggerStart + option.label.length + 1;
     setPicked((cur) => new Map(cur).set(option.label, option.kind));
@@ -216,7 +233,7 @@ export function HomePrompt({
         <ul
           id={listId}
           role="listbox"
-          aria-label="Reference"
+          aria-label={symbol === "/" ? "Skills" : "Reference"}
           className="absolute inset-x-0 bottom-full z-30 m-0 mb-2 flex max-h-64 list-none flex-col gap-px overflow-y-auto overscroll-contain rounded-[12px] border border-foreground/[0.08] bg-[var(--home-card)] p-1.5 motion-safe:animate-[fade-in_0.12s_ease-out]"
         >
           {matches.map((m, i) => (
@@ -232,8 +249,8 @@ export function HomePrompt({
               }}
               className={`flex cursor-pointer items-center gap-2 rounded-[8px] px-2.5 py-1.5 ${i === active ? "bg-accent" : ""}`}
             >
-              <SourceIcon kind={m.kind} className="size-4" />
-              <strong className="min-w-0 truncate text-sm font-medium">{m.label}</strong>
+              {m.id === SKILLS_FOLDER ? <FolderOpen className="size-4 shrink-0 text-muted-foreground" strokeWidth={2} aria-hidden /> : <SourceIcon kind={m.kind} className="size-4" />}
+              <strong className={`min-w-0 truncate text-sm font-medium ${m.id === SKILLS_FOLDER ? "text-muted-foreground" : ""}`}>{m.label}</strong>
               <span className="ms-auto min-w-0 max-w-[45%] truncate text-xs text-muted-foreground">{m.detail}</span>
             </li>
           ))}
