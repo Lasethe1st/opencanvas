@@ -96,7 +96,7 @@ function UserBubble({ text }: { text: string }) {
   const { body, refs } = splitReferences(text);
   const [radius, setRadius] = useState("var(--pill)");
   const [wrapped, setWrapped] = useState(false);
-  const boxRef = useRef<HTMLParagraphElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = boxRef.current;
     if (!el) return;
@@ -108,17 +108,21 @@ function UserBubble({ text }: { text: string }) {
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [body]);
+  }, [body, refs.length]);
   return (
-    <div className="flex max-w-full flex-col gap-1.5">
-      <p ref={boxRef} style={{ borderRadius: radius, cornerShape: wrapped ? "squircle" : "round" } as React.CSSProperties} className="m-0 w-fit max-w-full break-words bg-muted px-4 py-3 motion-safe:transition-[border-radius] motion-safe:duration-150 text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{body}</p>
+    <div
+      ref={boxRef}
+      style={{ borderRadius: radius, cornerShape: wrapped ? "squircle" : "round" } as React.CSSProperties}
+      className="flex w-fit max-w-full flex-col gap-2 bg-muted px-4 py-3 motion-safe:transition-[border-radius] motion-safe:duration-150"
+    >
+      <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{body}</p>
       {refs.length > 0 && (
         <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label="References">
           {refs.map((r, i) => (
             <li
               key={`${r.kind}:${r.title}:${i}`}
-              className="inline-flex max-w-[16rem] items-center gap-1.5 rounded-[8px] px-2 py-1 text-xs"
-              style={{ color: SOURCE_META[r.kind].color, backgroundColor: `color-mix(in srgb, ${SOURCE_META[r.kind].color} 14%, transparent)` }}
+              className="inline-flex max-w-[16rem] items-center gap-1.5 rounded-[var(--pill)] px-2.5 py-1 text-xs"
+              style={{ color: SOURCE_META[r.kind].color, backgroundColor: `color-mix(in srgb, ${SOURCE_META[r.kind].color} 14%, var(--home-card))` }}
             >
               <SourceIcon kind={r.kind} className="size-3.5" />
               <span className="truncate">{r.title}</span>
