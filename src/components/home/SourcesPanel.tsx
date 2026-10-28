@@ -1,5 +1,4 @@
-import { ChatCircle, FileText, FolderSimple, Globe, Lightning, MagnifyingGlass, type Icon as PhosphorIcon } from '@phosphor-icons/react';
-import { ChevronRight, FolderOpen as FolderIcon, FileText as FileIcon, X } from 'lucide-react';
+import { CaretRight, ChatCircle, FileText, FileText as FileIcon, FolderOpen as FolderIcon, FolderSimple, Globe, Lightning, MagnifyingGlass, X, type Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { useEffect, useMemo, useState } from 'react';
 import type { DirEntry } from '../../../shared/types';
 import { api } from '../../lib/api';
@@ -112,8 +111,8 @@ function TreeLevel({ root, rel, depth, selected, onFile }: { root: string; rel: 
                   : onFile({ root, rel: path })
               }
             >
-              {e.dir ? <ChevronRight className={cn('size-3 shrink-0 motion-safe:transition-transform motion-safe:duration-150', expanded && 'rotate-90')} strokeWidth={2} aria-hidden /> : <span className="size-3 shrink-0" aria-hidden />}
-              {e.dir ? <FolderIcon className="size-3.5 shrink-0 text-[color:var(--src-project)]" strokeWidth={2} aria-hidden /> : <FileIcon className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={2} aria-hidden />}
+              {e.dir ? <CaretRight className={cn('size-3 shrink-0 motion-safe:transition-transform motion-safe:duration-150', expanded && 'rotate-90')} aria-hidden /> : <span className="size-3 shrink-0" aria-hidden />}
+              {e.dir ? <FolderIcon className="size-3.5 shrink-0 text-[color:var(--src-project)]" aria-hidden /> : <FileIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />}
               <span className="min-w-0 truncate">{e.name}</span>
             </button>
             {e.dir && expanded && <TreeLevel root={root} rel={path} depth={depth + 1} selected={selected} onFile={onFile} />}
@@ -161,7 +160,7 @@ export function FileViewer({ file, onClose }: { file: OpenFile; onClose: () => v
           {copied ? 'Copied' : 'Copy'}
         </button>
         <button type="button" aria-label="Close file" className="inline-flex size-6 items-center justify-center rounded-[6px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" onClick={onClose}>
-          <X className="size-3.5" strokeWidth={2} />
+          <X className="size-3.5" />
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-auto rounded-[10px] bg-muted">
@@ -220,7 +219,7 @@ export function SourcesPanel({ sources, file, onFile }: { sources: Source[]; fil
                   }
                 >
                   {body}
-                  <ChevronRight className={cn('mt-0.5 size-3.5 shrink-0 text-muted-foreground motion-safe:transition-transform motion-safe:duration-150', isOpen && 'rotate-90')} strokeWidth={2} aria-hidden />
+                  <CaretRight className={cn('mt-0.5 size-3.5 shrink-0 text-muted-foreground motion-safe:transition-transform motion-safe:duration-150', isOpen && 'rotate-90')} aria-hidden />
                 </button>
                 {isOpen && <TreeLevel root={root} rel="" depth={0} selected={file} onFile={onFile} />}
               </li>

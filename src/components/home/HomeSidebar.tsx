@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { Plus } from '@phosphor-icons/react';
 import { useId, type ComponentType, type CSSProperties, type ReactNode } from 'react';
 import homeMark from '../../assets/home-mark.png';
 import { Button } from '@/components/ui/button';
@@ -106,7 +106,7 @@ export function HomeSidebar({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant="ghost" className="size-6 shrink-0 rounded-[6px] p-0 text-muted-foreground hover:bg-accent hover:text-foreground [&_svg]:size-3.5" aria-label={section.add.label} onClick={section.add.onSelect}>
-                        <Plus strokeWidth={2} />
+                        <Plus />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side={side}>{section.add.label}</TooltipContent>

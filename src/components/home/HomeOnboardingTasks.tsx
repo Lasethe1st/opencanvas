@@ -1,4 +1,4 @@
-import { Check, X } from 'lucide-react';
+import { Check, X } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -62,7 +62,7 @@ export function HomeOnboardingTasks({ tasks, onDismiss, onAutoDone }: { tasks: O
             {finished} of {tasks.length}
           </span>
           <button type="button" aria-label="Dismiss getting started" className="inline-flex size-5 items-center justify-center rounded-[5px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" onClick={onDismiss}>
-            <X className="size-3" strokeWidth={2} />
+            <X className="size-3" />
           </button>
         </span>
       </div>
@@ -74,7 +74,7 @@ export function HomeOnboardingTasks({ tasks, onDismiss, onAutoDone }: { tasks: O
           <li key={t.id}>
             <button type="button" disabled={t.done} className="flex w-full items-center gap-2 rounded-[6px] px-0.5 py-1 text-start text-xs transition-colors hover:text-foreground disabled:pointer-events-none" onClick={t.onSelect}>
               <span className={cn('inline-flex size-3.5 shrink-0 items-center justify-center rounded-full border', t.done ? 'border-transparent bg-foreground text-background' : 'border-foreground/30')} aria-hidden>
-                {t.done && <Check className="size-2.5" strokeWidth={3} />}
+                {t.done && <Check className="size-2.5" />}
               </span>
               <span className={cn('min-w-0 truncate', t.done ? 'text-muted-foreground line-through' : 'text-[color:var(--fg-2)]')}>{t.label}</span>
             </button>

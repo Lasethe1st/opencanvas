@@ -1,4 +1,4 @@
-import { Minus, X } from 'lucide-react';
+import { Minus, X } from '@phosphor-icons/react';
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
@@ -103,11 +103,11 @@ export function HomeDialog({
           </div>
           {onMinimize && (
             <Button variant="ghost" size="icon-sm" className="rounded-[8px] text-muted-foreground hover:text-foreground" aria-label="Minimize" title="Minimize" onClick={minimize}>
-              <Minus strokeWidth={2} />
+              <Minus />
             </Button>
           )}
           <Button variant="ghost" size="icon-sm" className="rounded-[8px] text-muted-foreground hover:text-foreground" aria-label="Close" title="Close" onClick={onClose}>
-            <X strokeWidth={2} />
+            <X />
           </Button>
         </header>
         {progress && (

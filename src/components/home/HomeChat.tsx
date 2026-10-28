@@ -1,5 +1,5 @@
 import { highlight } from "../../lib/highlight";
-import { Brain, Check, CircleAlert, Copy, Loader2, ShieldQuestion, ThumbsDown, ThumbsUp, Wrench, X } from "lucide-react";
+import { Brain, Check, CircleNotch, Copy, ShieldWarning, ThumbsDown, ThumbsUp, WarningCircle, Wrench, X } from "@phosphor-icons/react";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AiChatItem } from "../../../shared/ai";
 import { answerAi, approveAi, openAiSettings } from "../../lib/ai";
@@ -116,7 +116,7 @@ function ChatItem({ item }: { item: AiChatItem }) {
     case "error":
       return (
         <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-[length:var(--chat-font-size-sm)] text-destructive" role="alert">
-          <CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          <WarningCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           <span>{item.text}</span>
         </div>
       );
@@ -147,7 +147,7 @@ function ToolTrace({ item }: { item: Extract<AiChatItem, { kind: "tool" }> }) {
       <TraceLine status={status}>
         <TraceIcon>
           {item.state === "running" ? (
-            <Loader2 className="animate-spin" />
+            <CircleNotch className="animate-spin" />
           ) : item.state === "done" ? (
             <Check />
           ) : item.state === "failed" ? (
@@ -215,13 +215,13 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
   return (
     <div className="flex items-center gap-0.5 -ms-2" role="group" aria-label="Reply actions">
       <Button variant="ghost" className={btn} aria-label={copied ? "Copied" : "Copy reply"} title={copied ? "Copied" : "Copy"} onClick={() => void copy()}>
-        {copied ? <Check strokeWidth={2} /> : <Copy strokeWidth={2} />}
+        {copied ? <Check /> : <Copy />}
       </Button>
       <Button variant="ghost" className={cn(btn, vote === "up" && "text-foreground")} aria-label="Good reply" aria-pressed={vote === "up"} title="Good reply" onClick={() => rate("up")}>
-        <ThumbsUp strokeWidth={2} className={vote === "up" ? "fill-current" : undefined} />
+        <ThumbsUp className={vote === "up" ? "fill-current" : undefined} />
       </Button>
       <Button variant="ghost" className={cn(btn, vote === "down" && "text-foreground")} aria-label="Bad reply" aria-pressed={vote === "down"} title="Bad reply" onClick={() => rate("down")}>
-        <ThumbsDown strokeWidth={2} className={vote === "down" ? "fill-current" : undefined} />
+        <ThumbsDown className={vote === "down" ? "fill-current" : undefined} />
       </Button>
       <Button
         variant="ghost"
@@ -231,7 +231,7 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
         title={remembered ? "Remembered — click to forget" : "Remember this"}
         onClick={() => toggleRemember(id, text)}
       >
-        <Brain strokeWidth={2} />
+        <Brain />
       </Button>
     </div>
   );
@@ -335,7 +335,7 @@ function ApprovalCard({ item }: { item: Extract<AiChatItem, { kind: "approval" }
       aria-label="Permission needed"
     >
       <div className="flex items-center gap-2 text-[length:var(--chat-font-size-sm)] font-medium">
-        <ShieldQuestion className="size-3.5" aria-hidden />
+        <ShieldWarning className="size-3.5" aria-hidden />
         {TOOL_LABELS[approval.tool] ?? approval.tool}
       </div>
       {approval.command && (

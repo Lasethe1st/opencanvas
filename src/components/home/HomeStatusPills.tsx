@@ -1,4 +1,4 @@
-import { FolderOpen, Loader2 } from "lucide-react";
+import { CircleNotch, FolderOpen } from "@phosphor-icons/react";
 import type { AiChatItem } from "../../../shared/ai";
 import { useStore } from "../../lib/store";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,7 @@ export function HomeStatusPills({
         title={projectLabel}
         onClick={onOpenProjects}
       >
-        <FolderOpen className="size-3.5 shrink-0 opacity-80" strokeWidth={1.75} aria-hidden />
+        <FolderOpen className="size-3.5 shrink-0 opacity-80" aria-hidden />
         <span className="min-w-0 truncate">{projectLabel}</span>
       </button>
       {run && (
@@ -49,7 +49,7 @@ export function HomeStatusPills({
           role="status"
           aria-live="polite"
         >
-          <Loader2 className="size-3.5 shrink-0 animate-spin opacity-80" strokeWidth={1.75} aria-hidden />
+          <CircleNotch className="size-3.5 shrink-0 animate-spin opacity-80" aria-hidden />
           <span className="min-w-0 truncate">{run}</span>
         </div>
       )}

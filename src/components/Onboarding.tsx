@@ -1,7 +1,4 @@
-import { Library, LucideProvider } from 'lucide-react';
-import { Brain, ChatCircle, FolderSimple, Lightning, MagnifyingGlass, PencilSimpleLine } from '@phosphor-icons/react';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { LayoutAlignLeftIcon, LayoutAlignRightIcon } from '@hugeicons/core-free-icons';
+import { Books, Brain, ChatCircle, FolderSimple, Lightning, MagnifyingGlass, PencilSimpleLine, SidebarSimple } from '@phosphor-icons/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentProject, SkillMeta } from '../../shared/types';
 import { api } from '../lib/api';
@@ -252,7 +249,7 @@ export function Onboarding() {
   );
 
   return (
-    <LucideProvider strokeWidth={1.5} absoluteStrokeWidth>
+    <>
       <TooltipProvider>
         <div data-tw="" className="flex h-full bg-[var(--home-bg)] text-foreground">
           <HomeSidebar
@@ -270,7 +267,7 @@ export function Onboarding() {
           />
           <div ref={setCardEl} className={cn('relative min-w-0 flex-1 overflow-hidden border bg-[var(--home-card)] motion-safe:transition-[margin,border-radius,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', navOpen || sourcesOpen ? 'm-2 rounded-[10px] border-foreground/[0.08]' : 'm-0 rounded-none border-transparent')}>
           <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[8px] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
-            <HugeiconsIcon icon={navOpen ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
+            <SidebarSimple weight={navOpen ? 'fill' : 'regular'} />
           </Button>
           <div className="absolute start-14 top-3 z-20 flex max-w-[calc(100%-9rem)] items-center gap-2">
             <span title={chatTitle} className="inline-flex h-9 min-w-0 items-center rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground">
@@ -282,7 +279,7 @@ export function Onboarding() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" data-home-sources-toggle="" className="absolute end-3 top-3 z-20 h-9 gap-1.5 rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground hover:bg-secondary [&_svg]:size-4" aria-label={sourcesOpen ? 'Hide sources' : 'Show sources'} aria-expanded={sourcesOpen} onClick={() => setSourcesOpen((o) => !o)}>
-                  <Library strokeWidth={2} />
+                  <Books />
                   {sources.length > 0 && <span className="text-xs tabular-nums">{sources.length}</span>}
                 </Button>
               </TooltipTrigger>
@@ -423,6 +420,6 @@ export function Onboarding() {
           </HomeDialog>
         )}
       </TooltipProvider>
-    </LucideProvider>
+    </>
   );
 }
