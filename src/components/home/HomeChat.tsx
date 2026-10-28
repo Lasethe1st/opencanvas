@@ -82,12 +82,12 @@ function splitReferences(text: string): { body: string; refs: { kind: SourceKind
   return { body: text.slice(0, m.index), refs };
 }
 
-/** Your own message: plain text on the left, with its references as tags underneath. */
+/** Your own message: a boxed bubble on the left, with its references as tags underneath. */
 function UserBubble({ text }: { text: string }) {
   const { body, refs } = splitReferences(text);
   return (
     <div className="flex max-w-full flex-col gap-1.5">
-      <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{body}</p>
+      <p className="m-0 w-fit max-w-full break-words rounded-[12px] bg-muted px-4 py-3 text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{body}</p>
       {refs.length > 0 && (
         <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label="References">
           {refs.map((r, i) => (
@@ -165,7 +165,7 @@ function AssistantMessage({ id, text }: { id: string; text: string }) {
   const parts = splitFenced(text);
   return (
     <div className="flex max-w-full flex-col gap-1.5">
-      <div className="flex max-w-full flex-col gap-2 rounded-[12px] bg-muted px-4 py-3 text-[length:var(--chat-font-size)] leading-relaxed text-foreground">
+      <div className="flex max-w-full flex-col gap-2 text-[length:var(--chat-font-size)] leading-relaxed text-foreground">
         {parts.map((part, i) =>
           part.type === "code" ? (
             <CodeBlock key={i} size="sm">
@@ -212,7 +212,7 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
   const btn = "size-7 rounded-[8px] p-0 text-muted-foreground hover:text-foreground [&_svg]:size-3.5";
   const rate = (v: Vote) => setVote(id, v);
   return (
-    <div className="flex items-center gap-0.5 ps-1" role="group" aria-label="Reply actions">
+    <div className="flex items-center gap-0.5 -ms-2" role="group" aria-label="Reply actions">
       <Button variant="ghost" className={btn} aria-label={copied ? "Copied" : "Copy reply"} title={copied ? "Copied" : "Copy"} onClick={() => void copy()}>
         {copied ? <Check strokeWidth={2} /> : <Copy strokeWidth={2} />}
       </Button>

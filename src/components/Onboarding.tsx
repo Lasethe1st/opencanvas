@@ -1,5 +1,5 @@
 import { Library, LucideProvider } from 'lucide-react';
-import { ChatCircle, FolderSimple } from '@phosphor-icons/react';
+import { Brain, ChatCircle, FolderSimple, Lightning, MagnifyingGlass, PencilSimpleLine } from '@phosphor-icons/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { LayoutAlignLeftIcon, LayoutAlignRightIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -15,10 +15,13 @@ import { HomeComposerExtras } from './home/HomeComposerExtras';
 import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
 import { HomeDialog } from './home/HomeDialog';
 import { NewProjectDialog, type StartPath } from './home/NewProjectDialog';
-import { SourcesPanel, useSources, type Source } from './home/SourcesPanel';
+import { FileViewer, SourcesPanel, useSources, type OpenFile, type Source } from './home/SourcesPanel';
 import { HomePrompt, type MentionOption } from './home/HomePrompt';
 import { HomeRightPanel } from './home/HomeRightPanel';
-import { HomeSidebar, type SidebarItem } from './home/HomeSidebar';
+import { HomeAccount } from './home/HomeAccount';
+import { MemoryList } from './home/HomeMemory';
+import { HomeOnboardingTasks, useOnboarding, type OnboardingTask } from './home/HomeOnboardingTasks';
+import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
 import { HomeStatusPills } from './home/HomeStatusPills';
 import { SearchOverlay } from './home/SearchOverlay';
 import { VoiceOrbSession } from './home/VoiceOrbSession';
@@ -26,7 +29,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-type HomeDialogState = { kind: 'new'; path: StartPath | null; brief: string; repo: string } | { kind: 'projects' } | { kind: 'chats' };
+type HomeDialogState = { kind: 'new'; path: StartPath | null; brief: string; repo: string } | { kind: 'projects' } | { kind: 'chats' } | { kind: 'memory' };
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -51,6 +54,8 @@ export function Onboarding() {
   const [location, setLocation] = useState('');
   const [chats, setChats] = useState<HomeChatRecord[]>(loadHomeChats);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [openFile, setOpenFile] = useState<OpenFile | null>(null);
+  const onboarding = useOnboarding();
   const [dialog, setDialog] = useState<HomeDialogState | null>(null);
   const [newMinimized, setNewMinimized] = useState(false);
   const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
@@ -112,8 +117,13 @@ export function Onboarding() {
     void api.skills.openFolder().then(() => api.skills.list()).then(setSkillList).catch(() => undefined);
   }, []);
   const onMention = useCallback((o: MentionOption) => {
+    onboarding.complete(o.kind === 'skill' ? 'skill' : 'mention');
     if (o.kind === 'project' || o.kind === 'chat' || o.kind === 'skill') setMentioned((cur) => (cur.some((x) => x.id === o.id) ? cur : [{ id: o.id, kind: o.kind, title: o.label, detail: o.detail }, ...cur]));
-  }, []);
+  }, [onboarding.complete]);
+
+  useEffect(() => {
+    if (!sourcesOpen) setOpenFile(null);
+  }, [sourcesOpen]);
 
   // New sources reveal the panel; closing it by hand sticks until the next new source arrives.
   const seenSources = useRef(0);
@@ -186,48 +196,78 @@ export function Onboarding() {
     openNew({ path: 'ai', brief: briefFromChat(aiChat) || dockDraft.trim() });
   }, [aiChat, dockDraft, openNew]);
 
-  const items: SidebarItem[] = useMemo(() => {
-    const RECENT = 5;
-    const newChat = () => {
-      setDialog(null);
-      setState({ dockDraft: '', aiChat: [], aiTurnId: null });
-      void api.ai.reset();
-      focusPrompt();
-    };
-    const shown = (recent ?? []).slice(0, RECENT);
-    return [
+  const RECENT = 4;
+  const newChat = useCallback(() => {
+    setDialog(null);
+    setState({ dockDraft: '', aiChat: [], aiTurnId: null });
+    void api.ai.reset();
+    focusPrompt();
+  }, []);
+  const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform);
+
+  const actions: NavRow[] = useMemo(
+    () => [
+      { id: 'new-chat', label: 'New chat', icon: PencilSimpleLine, onSelect: newChat },
+      { id: 'search', label: 'Search', icon: MagnifyingGlass, shortcut: isMac ? '⌘K' : 'Ctrl K', onSelect: () => setSearchOpen(true) },
+    ],
+    [newChat, isMac],
+  );
+  const library: NavRow[] = useMemo(
+    () => [
+      { id: 'chats', label: 'Chats', icon: ChatCircle, color: 'var(--src-chat)', onSelect: () => setDialog({ kind: 'chats' }) },
+      { id: 'projects', label: 'Projects', icon: FolderSimple, color: 'var(--src-project)', disabled: busy, onSelect: () => setDialog({ kind: 'projects' }) },
+      { id: 'skills', label: 'Skills', icon: Lightning, color: 'var(--src-skill)', onSelect: openSkills },
+      { id: 'memory', label: 'Memory', icon: Brain, onSelect: () => setDialog({ kind: 'memory' }) },
+    ],
+    [busy, openSkills],
+  );
+  const sections: NavSection[] = useMemo(
+    () => [
       {
-        id: 'chat',
-        label: 'Chat',
-        icon: ChatCircle,
-        add: { label: 'New chat', onSelect: newChat },
-        recents: {
-          toggleLabel: 'Recent chats',
-          empty: 'No chats yet',
-          items: chats.slice(0, RECENT).map((c) => ({ id: c.id, label: c.text, meta: timeAgo(c.at), icon: <ChatCircle weight="fill" className="size-5 p-0.5" style={{ color: 'var(--src-chat)' }} aria-hidden />, onSelect: () => pickChat(c) })),
-          viewAll: chats.length > RECENT ? { label: 'View all chats', onSelect: () => setDialog({ kind: 'chats' }) } : undefined,
-        },
+        id: 'recent-chats',
+        title: 'Recent chats',
+        empty: 'No chats yet',
+        entries: chats.slice(0, RECENT).map((c) => ({ id: c.id, label: c.text, meta: timeAgo(c.at), icon: <ChatCircle weight="fill" className="size-5 p-0.5" style={{ color: 'var(--src-chat)' }} aria-hidden />, onSelect: () => pickChat(c) })),
+        more: chats.length > RECENT ? { label: 'View all chats', onSelect: () => setDialog({ kind: 'chats' }) } : undefined,
       },
       {
-        id: 'projects',
-        label: 'Projects',
-        icon: FolderSimple,
+        id: 'recent-projects',
+        title: 'Recent projects',
         add: { label: 'New project', onSelect: () => openNew() },
-        recents: {
-          toggleLabel: 'Recent projects',
-          empty: recent === null ? 'Loading…' : 'No projects yet',
-          items: shown.map((p) => ({ id: p.root, label: p.name, meta: timeAgo(p.openedAt), icon: <ProjectThumb icon={p.icon} name={p.name} className="size-5" />, onSelect: () => void openRecent(p.root) })),
-          viewAll: { label: 'View all projects', onSelect: () => setDialog({ kind: 'projects' }) },
-        },
+        empty: recent === null ? 'Loading…' : 'No projects yet',
+        entries: (recent ?? []).slice(0, RECENT).map((p) => ({ id: p.root, label: p.name, meta: timeAgo(p.openedAt), disabled: busy, icon: <ProjectThumb icon={p.icon} name={p.name} className="size-5" />, onSelect: () => void openRecent(p.root) })),
+        more: (recent?.length ?? 0) > RECENT ? { label: 'View all projects', onSelect: () => setDialog({ kind: 'projects' }) } : undefined,
       },
-    ];
-  }, [openNew, chats, recent, pickChat]);
+    ],
+    [chats, recent, busy, pickChat, openNew],
+  );
+  const tasks: OnboardingTask[] = useMemo(
+    () => [
+      { id: 'key', label: 'Add an AI provider key', done: aiReady, onSelect: () => setState({ settingsOpen: true }) },
+      { id: 'project', label: 'Create your first project', done: (recent?.length ?? 0) > 0 || onboarding.done.includes('project'), onSelect: () => openNew() },
+      { id: 'skill', label: 'Try a skill with /', done: onboarding.done.includes('skill'), onSelect: () => { setState({ dockDraft: '/' }); focusPrompt(); } },
+      { id: 'mention', label: 'Reference something with @', done: onboarding.done.includes('mention'), onSelect: () => { setState({ dockDraft: '@' }); focusPrompt(); } },
+    ],
+    [aiReady, recent, onboarding.done, openNew],
+  );
 
   return (
     <LucideProvider strokeWidth={1.5} absoluteStrokeWidth>
       <TooltipProvider>
         <div data-tw="" className="flex h-full bg-[var(--home-bg)] text-foreground">
-          <HomeSidebar label="Home" items={items} active={dialog?.kind === 'new' || dialog?.kind === 'projects' ? 'projects' : dialog?.kind === 'chats' ? 'chat' : null} busy={busy} open={navOpen} onSearch={() => setSearchOpen(true)} />
+          <HomeSidebar
+            label="Home"
+            open={navOpen}
+            actions={actions}
+            library={library}
+            sections={sections}
+            footer={
+              <>
+                {!onboarding.dismissed && <HomeOnboardingTasks tasks={tasks} onDismiss={onboarding.dismiss} onAutoDone={onboarding.complete} />}
+                <HomeAccount onSettings={() => setState({ settingsOpen: true })} />
+              </>
+            }
+          />
           <div ref={setCardEl} className={cn('relative min-w-0 flex-1 overflow-hidden border bg-[var(--home-card)] motion-safe:transition-[margin,border-radius,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', navOpen || sourcesOpen ? 'm-2 rounded-[10px] border-foreground/[0.08]' : 'm-0 rounded-none border-transparent')}>
           <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[8px] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
             <HugeiconsIcon icon={navOpen ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
@@ -258,7 +298,7 @@ export function Onboarding() {
           >
             {chatActive ? (
               <>
-                <div className="mx-auto w-full max-w-[680px] flex-1 px-8 pt-6">
+                <div className="mx-auto w-full max-w-[680px] flex-1 px-8 pt-16">
                   <HomeChat />
                 </div>
                 <div className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-[var(--home-card)] from-[40%] via-[color-mix(in_srgb,var(--home-card)_60%,transparent)] via-[55%] to-transparent to-75% px-8 pb-6 pt-8">
@@ -335,8 +375,8 @@ export function Onboarding() {
             )}
           </main>
           </div>
-          <HomeRightPanel open={sourcesOpen} title="Sources" contentKey={`sources-${sources.length}`}>
-            <SourcesPanel sources={sources} />
+          <HomeRightPanel open={sourcesOpen} title="Sources" contentKey={`sources-${sources.length}`} file={openFile ? <FileViewer file={openFile} onClose={() => setOpenFile(null)} /> : undefined}>
+            <SourcesPanel sources={sources} file={openFile} onFile={setOpenFile} />
           </HomeRightPanel>
         </div>
         {searchOpen && (
@@ -370,6 +410,11 @@ export function Onboarding() {
         {dialog?.kind === 'projects' && (
           <HomeDialog title="All projects" onClose={closeDialog}>
             <AllProjectsList recent={recent} />
+          </HomeDialog>
+        )}
+        {dialog?.kind === 'memory' && (
+          <HomeDialog title="Memory" onClose={closeDialog}>
+            <MemoryList />
           </HomeDialog>
         )}
         {dialog?.kind === 'chats' && (

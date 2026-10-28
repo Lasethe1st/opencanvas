@@ -1,9 +1,8 @@
 import { ChatCircle, FileText, FolderSimple, Globe, Lightning, MagnifyingGlass, type Icon as PhosphorIcon } from '@phosphor-icons/react';
-import { ChevronRight, FolderOpen as FolderIcon, FileText as FileIcon } from 'lucide-react';
+import { ChevronRight, FolderOpen as FolderIcon, FileText as FileIcon, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { DirEntry } from '../../../shared/types';
 import { api } from '../../lib/api';
-import { HomeDialog } from './HomeDialog';
 import { cn } from '@/lib/utils';
 import type { AiChatItem } from '../../../shared/ai';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
@@ -71,10 +70,10 @@ export function useSources(chat: AiChatItem[]): Source[] {
   return useMemo(() => sourcesFromChat(chat), [chat]);
 }
 
-type OpenFile = { root: string; rel: string };
+export type OpenFile = { root: string; rel: string };
 
 /** One folder level, loaded when it first appears. Folders open in place; files open in a dialog. */
-function TreeLevel({ root, rel, depth, onFile }: { root: string; rel: string; depth: number; onFile: (f: OpenFile) => void }) {
+function TreeLevel({ root, rel, depth, selected, onFile }: { root: string; rel: string; depth: number; selected: OpenFile | null; onFile: (f: OpenFile) => void }) {
   const [entries, setEntries] = useState<DirEntry[] | null>(null);
   const [error, setError] = useState('');
   const [open, setOpen] = useState<Set<string>>(() => new Set());
@@ -100,7 +99,7 @@ function TreeLevel({ root, rel, depth, onFile }: { root: string; rel: string; de
               type="button"
               title={path}
               aria-expanded={e.dir ? expanded : undefined}
-              className="flex w-full items-center gap-1.5 rounded-[6px] py-1 pe-2 text-start text-xs text-[color:var(--fg-2)] transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:bg-accent"
+              className={cn('flex w-full items-center gap-1.5 rounded-[6px] py-1 pe-2 text-start text-xs text-[color:var(--fg-2)] transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:bg-accent', !e.dir && selected?.root === root && selected.rel === path && 'bg-accent text-foreground')}
               style={pad}
               onClick={() =>
                 e.dir
@@ -116,7 +115,7 @@ function TreeLevel({ root, rel, depth, onFile }: { root: string; rel: string; de
               {e.dir ? <FolderIcon className="size-3.5 shrink-0 text-[color:var(--src-project)]" strokeWidth={2} aria-hidden /> : <FileIcon className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={2} aria-hidden />}
               <span className="min-w-0 truncate">{e.name}</span>
             </button>
-            {e.dir && expanded && <TreeLevel root={root} rel={path} depth={depth + 1} onFile={onFile} />}
+            {e.dir && expanded && <TreeLevel root={root} rel={path} depth={depth + 1} selected={selected} onFile={onFile} />}
           </li>
         );
       })}
@@ -124,32 +123,60 @@ function TreeLevel({ root, rel, depth, onFile }: { root: string; rel: string; de
   );
 }
 
-function FileDialog({ file, onClose }: { file: OpenFile; onClose: () => void }) {
+/** An opened file, shown inside the panel (read-only). */
+export function FileViewer({ file, onClose }: { file: OpenFile; onClose: () => void }) {
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
   useEffect(() => {
     let live = true;
+    setText(null);
+    setError('');
     api.projectFiles.read(file.root, file.rel).then((t) => live && setText(t), (err) => live && setError(err instanceof Error ? err.message : 'Could not open this file.'));
     return () => {
       live = false;
     };
   }, [file.root, file.rel]);
+  const name = file.rel.split('/').pop() ?? file.rel;
+  const copy = async () => {
+    if (text === null) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked */
+    }
+  };
   return (
-    <HomeDialog title={file.rel.split('/').pop() ?? file.rel} subtitle={file.rel.includes("/") ? file.rel : undefined} onClose={onClose} wide>
-      {error ? (
-        <p className="m-0 text-sm text-muted-foreground">{error}</p>
-      ) : text === null ? (
-        <p className="m-0 text-sm text-muted-foreground">Loading…</p>
-      ) : (
-        <pre className="m-0 max-h-[60vh] overflow-auto whitespace-pre-wrap break-words rounded-[10px] bg-muted p-3 font-mono text-xs leading-5 text-foreground">{text}</pre>
-      )}
-    </HomeDialog>
+    <section aria-label={`File ${name}`} className="flex h-full min-h-0 flex-col py-2 pe-2">
+      <div className="flex shrink-0 items-center gap-1 pb-1.5">
+        <div className="min-w-0 flex-1 ps-1">
+          <strong className="block truncate text-xs font-medium">{name}</strong>
+          {file.rel.includes('/') && <span className="block truncate text-[11px] text-muted-foreground">{file.rel}</span>}
+        </div>
+        <button type="button" disabled={text === null} className="inline-flex h-6 items-center rounded-[6px] px-2 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40" onClick={() => void copy()}>
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+        <button type="button" aria-label="Close file" className="inline-flex size-6 items-center justify-center rounded-[6px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" onClick={onClose}>
+          <X className="size-3.5" strokeWidth={2} />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto rounded-[10px] bg-muted">
+        {error ? (
+          <p className="m-0 p-3 text-xs text-muted-foreground">{error}</p>
+        ) : text === null ? (
+          <p className="m-0 p-3 text-xs text-muted-foreground">Loading…</p>
+        ) : (
+          <pre className="m-0 min-w-max p-3 font-mono text-xs leading-5 text-foreground">{text}</pre>
+        )}
+      </div>
+    </section>
   );
 }
 
-export function SourcesPanel({ sources }: { sources: Source[] }) {
+export function SourcesPanel({ sources, file, onFile }: { sources: Source[]; file: OpenFile | null; onFile: (f: OpenFile) => void }) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
-  const [file, setFile] = useState<OpenFile | null>(null);
   if (!sources.length)
     return (
       <Empty className="border-0 py-10">
@@ -193,7 +220,7 @@ export function SourcesPanel({ sources }: { sources: Source[] }) {
                   {body}
                   <ChevronRight className={cn('mt-0.5 size-3.5 shrink-0 text-muted-foreground motion-safe:transition-transform motion-safe:duration-150', isOpen && 'rotate-90')} strokeWidth={2} aria-hidden />
                 </button>
-                {isOpen && <TreeLevel root={root} rel="" depth={0} onFile={setFile} />}
+                {isOpen && <TreeLevel root={root} rel="" depth={0} selected={file} onFile={onFile} />}
               </li>
             );
           }
@@ -210,7 +237,6 @@ export function SourcesPanel({ sources }: { sources: Source[] }) {
           );
         })}
       </ul>
-      {file && <FileDialog file={file} onClose={() => setFile(null)} />}
     </>
   );
 }
