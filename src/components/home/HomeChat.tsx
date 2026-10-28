@@ -1,3 +1,4 @@
+import { highlight } from "../../lib/highlight";
 import { Brain, Check, CircleAlert, Copy, Loader2, ShieldQuestion, ThumbsDown, ThumbsUp, Wrench, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AiChatItem } from "../../../shared/ai";
@@ -175,8 +176,8 @@ function AssistantMessage({ id, text }: { id: string; text: string }) {
                   <CodeBlockCopyButton value={part.code} />
                 </CodeBlockActions>
               </CodeBlockHeader>
-              <CodeBlockContent wrap className="max-h-64">
-                {part.code}
+              <CodeBlockContent wrap className="code-hl max-h-64">
+                <code dangerouslySetInnerHTML={{ __html: highlight(part.code, `x.${part.lang.toLowerCase()}`) }} />
               </CodeBlockContent>
             </CodeBlock>
           ) : (

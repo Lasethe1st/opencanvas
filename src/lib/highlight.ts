@@ -20,6 +20,7 @@ const BY_EXT: Record<string, string> = {
   md: 'markdown', mdx: 'markdown',
   py: 'python', sh: 'bash', bash: 'bash', zsh: 'bash',
   yml: 'yaml', yaml: 'yaml',
+  javascript: 'javascript', typescript: 'typescript', python: 'python', shell: 'bash',
 };
 
 /** The language we can colour for this file name, or null for plain text. */
