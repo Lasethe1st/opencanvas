@@ -1,4 +1,4 @@
-import { ArrowsOutCardinal, Code, Columns, CursorClick, EyeSlash, Info, Minus, Question, Square, SquaresFour, TextAlignCenter, TextAlignJustify, TextAlignLeft, TextAlignRight, TextT, UploadSimple, Crosshair } from '@phosphor-icons/react';
+import { Article, Code, Palette, Ruler, TextAa, SquaresFour as LayoutIcon, Columns, CursorClick, EyeSlash, Info, Question, Square, SquaresFour, TextAlignCenter, TextAlignJustify, TextAlignLeft, TextAlignRight, TextT, UploadSimple } from '@phosphor-icons/react';
 import { LayerIcon } from '../lib/layer-icons';
 import { useEffect, useState } from 'react';
 import { RETAGGABLE_TAGS, type StyleState } from '../../shared/types';
@@ -97,7 +97,7 @@ function ContentSection() {
   if (!isText && !hasSpecific) return null;
 
   return (
-    <Section title="Content">
+    <Section title="Content" icon={<Article size={14} weight="fill" />}>
       {isText &&
         (info.textEditable ? (
           <textarea
@@ -197,7 +197,7 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
   const isGrid = display === 'grid' || display === 'inline-grid';
   const positioned = !!position && position !== 'static';
   return (
-    <Section title="Layout">
+    <Section title="Layout" icon={<LayoutIcon size={14} weight="fill" />}>
       {!grouped && <TagSelect disabled={disabled} />}
       <ToggleGroup
         prop="display"
@@ -220,9 +220,9 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
         disabled={disabled}
         extra={['fixed', 'sticky']}
         options={[
-          { value: 'static', icon: <Minus size={13} />, title: 'Static' },
-          { value: 'relative', icon: <ArrowsOutCardinal size={13} />, title: 'Relative' },
-          { value: 'absolute', icon: <Crosshair size={13} />, title: 'Absolute' },
+          { value: 'static', text: 'Static', title: 'Static: follows the normal flow' },
+          { value: 'relative', text: 'Relative', title: 'Relative: offset from its normal place' },
+          { value: 'absolute', text: 'Absolute', title: 'Absolute: placed against its positioned parent' },
         ]}
       />
       <div className="grid-2">
@@ -281,11 +281,13 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
 
 function TypographySection({ disabled }: { disabled: boolean }) {
   return (
-    <Section title="Typography">
+    <Section title="Typography" icon={<TextAa size={14} weight="fill" />}>
       <FontPicker disabled={disabled} />
       <div className="grid-2">
         <CompactInput prop="font-size" prefix="Size" disabled={disabled} />
         <CompactSelect prop="font-weight" prefix="Weight" options={FONT_WEIGHTS} disabled={disabled} />
+        <CompactInput prop="line-height" prefix="Line" disabled={disabled} />
+        <CompactInput prop="letter-spacing" prefix="Track" disabled={disabled} />
       </div>
       <ToggleGroup
         prop="text-align"
@@ -300,10 +302,6 @@ function TypographySection({ disabled }: { disabled: boolean }) {
       />
       <ColorInput prop="color" label="Color" disabled={disabled} />
       <More>
-        <div className="grid-2">
-          <CompactInput prop="line-height" prefix="Line" disabled={disabled} />
-          <CompactInput prop="letter-spacing" prefix="Spacing" disabled={disabled} />
-        </div>
         <StyleSelect prop="text-decoration" label="Decoration" options={['none', 'underline', 'line-through', 'overline']} disabled={disabled} />
         <StyleSelect prop="text-transform" label="Transform" options={['none', 'uppercase', 'lowercase', 'capitalize']} disabled={disabled} />
       </More>
@@ -313,7 +311,7 @@ function TypographySection({ disabled }: { disabled: boolean }) {
 
 function AppearanceSection({ disabled, isMedia }: { disabled: boolean; isMedia: boolean }) {
   return (
-    <Section title="Appearance">
+    <Section title="Appearance" icon={<Palette size={14} weight="fill" />}>
       <ColorInput prop="background-color" label="Fill" disabled={disabled} />
       <div className="grid-2">
         <CompactInput prop="border-radius" prefix="Radius" disabled={disabled} />
@@ -364,13 +362,15 @@ function VisualPanel({
 }) {
   return (
     <>
-      {grouped ? <GroupHeader /> : <ElementHeader />}
-      <StateToggle />
+      <div className="inspector-sticky">
+        {grouped ? <GroupHeader /> : <ElementHeader />}
+        <StateToggle />
+      </div>
       {sourceError && <Notice>{sourceError}</Notice>}
       {!sourceError && !info && <div className="empty-note">Reading source…</div>}
       {!grouped && <ContentSection />}
       <LayoutSection disabled={disabled} grouped={grouped} />
-      <Section title="Spacing">
+      <Section title="Spacing" icon={<Ruler size={14} weight="fill" />}>
         <BoxModel disabled={disabled} />
       </Section>
       {(grouped || !NO_TEXT_TAGS.has(selection.tag)) && <TypographySection disabled={disabled} />}

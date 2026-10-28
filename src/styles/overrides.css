@@ -1512,3 +1512,38 @@ kbd, .kbd,
   border: 0; border-radius: var(--r-pill); background: transparent; color: var(--fg-3); cursor: help;
 }
 .kv-help:hover { color: var(--fg); background: var(--hover); }
+
+/* ---------- Inspector v2 ---------- */
+.inspector-sticky {
+  position: sticky; top: 0; z-index: 3;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-bottom: 1px solid color-mix(in srgb, var(--fg) 7%, transparent);
+}
+.inspector-sticky .inspector-head, .inspector-sticky .state-toggle { border-bottom: 0; }
+.inspector-sticky .state-toggle { padding-top: 0; }
+
+.panel--right .section__head { gap: 8px; padding: 14px 16px 8px; font-size: 12.5px; }
+.panel--right .section__icon { display: inline-flex; color: var(--fg-3); }
+.panel--right .section__icon svg { order: 0; margin: 0; transform: none; }
+.panel--right .section__head > svg { order: 1; margin-inline-start: auto; }
+.panel--right .section__title { min-width: 0; }
+.panel--right .section + .section { margin-top: 0; border-top: 1px solid color-mix(in srgb, var(--fg) 7%, transparent) !important; }
+.panel--right .section__body { gap: 10px; padding: 0 16px 16px; }
+
+.field--stack { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.field__value { margin-inline-start: auto; color: var(--fg-3); font-size: 11px; font-weight: 400; text-transform: capitalize; }
+.field--stack .toggle-row button { height: 28px; gap: 5px; font-size: 12px; grid-auto-flow: column; }
+.field--stack .toggle-more .toggle-row button { min-height: 28px; }
+.field--stack .toggle-more__select { height: 28px; }
+
+.scrub { position: relative; display: inline-block; padding: 5px 6px 5px 0; cursor: ew-resize; user-select: none; touch-action: none; }
+.scrub:hover { color: var(--fg); }
+.scrub__tip {
+  position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 5; padding: 2px 7px; border-radius: 6px;
+  background: var(--fg); color: var(--bg, #fff); font-size: 11px; white-space: nowrap; pointer-events: none;
+}
+.input__prefix:has(.scrub) { padding-left: 8px; }
+
+.legend-lite .marker { position: static; flex: none; }
+.legend-lite { padding: 4px 16px 8px; margin: 0; }
