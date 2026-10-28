@@ -1,4 +1,4 @@
-import { PhoneOff } from "lucide-react";
+import { PhoneDisconnect } from "@phosphor-icons/react";
 import { Component, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { AiChatItem } from "../../../shared/ai";
 import type { VoiceCapabilities, VoiceChatMessage } from "../../../shared/voice";
@@ -227,7 +227,7 @@ export function VoiceOrbSession({ onClose }: { onClose: () => void }) {
         )}
         onClick={endSession}
       >
-        <PhoneOff className="size-4" strokeWidth={1.75} />
+        <PhoneDisconnect className="size-4" />
         End voice
       </Button>
     </div>

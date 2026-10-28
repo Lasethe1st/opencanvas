@@ -1,4 +1,4 @@
-import { ArrowUp, AudioLines, FolderOpen, Square } from "lucide-react";
+import { ArrowUp, FolderOpen, Stop, Waveform } from "@phosphor-icons/react";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
@@ -249,7 +249,7 @@ export function HomePrompt({
               }}
               className={`flex cursor-pointer items-center gap-2 rounded-[8px] px-2.5 py-1.5 ${i === active ? "bg-accent" : ""}`}
             >
-              {m.id === SKILLS_FOLDER ? <FolderOpen className="size-4 shrink-0 text-muted-foreground" strokeWidth={2} aria-hidden /> : <SourceIcon kind={m.kind} className="size-4" />}
+              {m.id === SKILLS_FOLDER ? <FolderOpen className="size-4 shrink-0 text-muted-foreground" aria-hidden /> : <SourceIcon kind={m.kind} className="size-4" />}
               <strong className={`min-w-0 truncate text-sm font-medium ${m.id === SKILLS_FOLDER ? "text-muted-foreground" : ""}`}>{m.label}</strong>
               <span className="ms-auto min-w-0 max-w-[45%] truncate text-xs text-muted-foreground">{m.detail}</span>
             </li>
@@ -324,7 +324,7 @@ export function HomePrompt({
         >
           {sending ? (
             <InputGroupButton variant="default" size="icon" className="rounded-[var(--pill)]" aria-label="Stop" onClick={stopAi}>
-              <Square className="size-3.5 fill-current" strokeWidth={2} />
+              <Stop weight="fill" className="size-3.5" />
             </InputGroupButton>
           ) : hasText ? (
             <InputGroupButton
@@ -335,7 +335,7 @@ export function HomePrompt({
               disabled={disabled}
               onClick={onSubmit}
             >
-              <ArrowUp strokeWidth={2} />
+              <ArrowUp />
             </InputGroupButton>
           ) : (
             <InputGroupButton
@@ -346,7 +346,7 @@ export function HomePrompt({
               disabled={disabled || !onVoice}
               onClick={onVoice}
             >
-              <AudioLines strokeWidth={2} />
+              <Waveform />
             </InputGroupButton>
           )}
         </InputGroupAddon>

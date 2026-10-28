@@ -236,12 +236,12 @@ async function mockOpenAi() {
 
 try {
   step('Launch and onboarding');
-  for (const name of ['Search', 'New chat', 'New project', 'Recent chats', 'All projects']) await page.getByRole('button', { name }).waitFor();
-  await page.getByRole('button', { name: 'All projects' }).click();
+  for (const name of ['Search', 'New chat', 'New project', 'Chats', 'Projects', 'Skills', 'Memory']) await page.getByRole('button', { name, exact: true }).first().waitFor();
+  await page.getByRole('button', { name: 'Projects', exact: true }).click();
   await page.getByText('Projects you open or create will show up here.').waitFor();
   await shot('01-onboarding');
   await page.keyboard.press('Escape');
-  ok('start page shows the five sidebar items and an empty project list');
+  ok('start page shows the sidebar actions and library and an empty project list');
 
   await page.getByRole('button', { name: 'Search' }).click();
   await page.getByLabel('Search projects and chats').fill('github.com/octo/hello-world');

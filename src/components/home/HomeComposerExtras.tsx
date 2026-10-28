@@ -1,19 +1,4 @@
-import {
-  Brain,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  CircleHelp,
-  GripVertical,
-  Loader2,
-  MoreHorizontal,
-  Pause,
-  Pencil,
-  RotateCcw,
-  ListOrdered,
-  Trash2,
-  X,
-} from "lucide-react";
+import { ArrowCounterClockwise, Brain, CaretDown, CaretRight, Check, CircleNotch, DotsSixVertical, DotsThree, ListNumbers, Pause, Pencil, Question, Trash, X } from "@phosphor-icons/react";
 import { useEffect, useId, useMemo, useRef, useState, type DragEvent } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -259,7 +244,7 @@ function ContextUsageRing({ used, limit, className }: { used: number; limit: num
               openDetail();
             }}
           >
-            <CircleHelp className="size-3.5 shrink-0 opacity-80" strokeWidth={1.75} />
+            <Question className="size-3.5 shrink-0 opacity-80" />
             What does this mean?
           </button>
         </TooltipContent>
@@ -340,7 +325,7 @@ function UsageDetailDialog({
               aria-label="Close"
               onClick={onClose}
             >
-              <X className="size-4" strokeWidth={1.75} />
+              <X className="size-4" />
             </button>
           </div>
 
@@ -469,17 +454,17 @@ function UsageTaskQueue({ chat }: { chat: AiChatItem[] }) {
               className="inline-flex size-5 shrink-0 cursor-grab items-center justify-center text-muted-foreground active:cursor-grabbing"
               aria-hidden
             >
-              <GripVertical className="size-3.5 opacity-50" strokeWidth={1.75} />
+              <DotsSixVertical className="size-3.5 opacity-50" />
             </span>
             <span className="inline-flex size-4 shrink-0 items-center justify-center text-muted-foreground" aria-hidden>
               {task.status === "running" ? (
-                <Loader2 className="size-3.5 animate-spin" strokeWidth={1.75} />
+                <CircleNotch className="size-3.5 animate-spin" />
               ) : task.status === "done" ? (
-                <Check className="size-3.5 text-foreground" strokeWidth={1.75} />
+                <Check className="size-3.5 text-foreground" />
               ) : task.status === "paused" ? (
-                <Pause className="size-3.5" strokeWidth={1.75} />
+                <Pause className="size-3.5" />
               ) : (
-                <ListOrdered className="size-3.5" strokeWidth={1.75} />
+                <ListNumbers className="size-3.5" />
               )}
             </span>
             <span className="min-w-0 flex-1 truncate text-xs text-foreground">{task.label}</span>
@@ -490,7 +475,7 @@ function UsageTaskQueue({ chat }: { chat: AiChatItem[] }) {
                   className="inline-flex size-6 shrink-0 items-center justify-center rounded-[var(--pill)] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                   aria-label={`Actions for ${task.label}`}
                 >
-                  <MoreHorizontal className="size-3.5" strokeWidth={1.75} />
+                  <DotsThree className="size-3.5" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="bottom" align="end" sideOffset={4} className="min-w-[140px] rounded-2xl p-1">
@@ -509,7 +494,7 @@ function UsageTaskQueue({ chat }: { chat: AiChatItem[] }) {
                     className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-left text-xs hover:bg-accent"
                     onClick={() => patch(task.id, "queued")}
                   >
-                    <ListOrdered className="size-3.5 opacity-70" /> Queue
+                    <ListNumbers className="size-3.5 opacity-70" /> Queue
                   </button>
                 )}
                 {task.status === "queued" && (
@@ -518,7 +503,7 @@ function UsageTaskQueue({ chat }: { chat: AiChatItem[] }) {
                     className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-left text-xs hover:bg-accent"
                     onClick={() => patch(task.id, "running")}
                   >
-                    <Loader2 className="size-3.5 opacity-70" /> Run
+                    <CircleNotch className="size-3.5 opacity-70" /> Run
                   </button>
                 )}
                 <button
@@ -538,7 +523,7 @@ function UsageTaskQueue({ chat }: { chat: AiChatItem[] }) {
                   className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-left text-xs hover:bg-accent"
                   onClick={() => patch(task.id, "running")}
                 >
-                  <RotateCcw className="size-3.5 opacity-70" /> Try again
+                  <ArrowCounterClockwise className="size-3.5 opacity-70" /> Try again
                 </button>
                 <DropdownMenuSeparator className="bg-border/60" />
                 <button
@@ -546,7 +531,7 @@ function UsageTaskQueue({ chat }: { chat: AiChatItem[] }) {
                   className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-left text-xs text-destructive hover:bg-accent"
                   onClick={() => remove(task.id)}
                 >
-                  <Trash2 className="size-3.5 opacity-70" /> Delete
+                  <Trash className="size-3.5 opacity-70" /> Delete
                 </button>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -631,7 +616,7 @@ export function HomeComposerExtras() {
           >
             <ModelLogo provider={settings.provider} />
             <span className="truncate">{label}</span>
-            <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+            <CaretDown className="size-3.5 shrink-0 opacity-60" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -652,7 +637,7 @@ export function HomeComposerExtras() {
                     <ModelLogo provider={provider} />
                     <span className="min-w-0 flex-1 truncate">{providerMeta(provider).product}</span>
                     {settings.provider === provider && <Check className="size-3.5 shrink-0 opacity-80" />}
-                    <ChevronRight className="size-3.5 shrink-0 opacity-60" />
+                    <CaretRight className="size-3.5 shrink-0 opacity-60" />
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="min-w-[260px] rounded-3xl p-1.5">
                     {list.map((m) => (
@@ -689,7 +674,7 @@ export function HomeComposerExtras() {
             aria-label={`Thinking effort: ${effortMeta.label}`}
             title={effortMeta.hint}
           >
-            <Brain className="size-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
+            <Brain className="size-3.5 shrink-0 opacity-70" />
             <span>{effortMeta.label}</span>
           </Button>
         </DropdownMenuTrigger>

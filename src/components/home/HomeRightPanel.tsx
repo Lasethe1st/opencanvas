@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-export const HOME_RIGHT_PANEL_WIDTH = 200;
+export const HOME_RIGHT_PANEL_WIDTH = 250;
+/** Extra width the panel gains to the left while a file is open. */
+export const HOME_RIGHT_PANEL_FILE_WIDTH = 340;
 
 /** Docked home right column — stays open while switching tabs; body fades. */
 export function HomeRightPanel({
@@ -9,6 +11,7 @@ export function HomeRightPanel({
   title,
   contentKey,
   flush,
+  file,
   children,
 }: {
   open: boolean;
@@ -17,8 +20,11 @@ export function HomeRightPanel({
   contentKey: string;
   /** Drop body padding — for full-bleed nested views like ProjectSetup. */
   flush?: boolean;
+  /** A file viewer. Appears to the right of the list and widens the panel. */
+  file?: ReactNode;
   children: ReactNode;
 }) {
+  const width = HOME_RIGHT_PANEL_WIDTH + (file ? HOME_RIGHT_PANEL_FILE_WIDTH : 0);
   return (
     <aside
       data-tw=""
@@ -28,10 +34,11 @@ export function HomeRightPanel({
       className={cn(
         'relative z-0 flex h-full shrink-0 flex-col overflow-hidden',
         'motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]',
-        open ? "w-[200px]" : "w-0",
       )}
+      style={{ width: open ? width : 0 }}
     >
-      <div className="flex h-full w-[200px] flex-col" style={{ pointerEvents: open ? 'auto' : 'none' }}>
+      <div className="flex h-full flex-row" style={{ width, pointerEvents: open ? 'auto' : 'none' }}>
+        <div className="flex h-full shrink-0 flex-col" style={{ width: HOME_RIGHT_PANEL_WIDTH }}>
         {open && (
           <div
             key={contentKey}
@@ -43,6 +50,8 @@ export function HomeRightPanel({
             {children}
           </div>
         )}
+        </div>
+        {open && file && <div className="flex h-full min-w-0 flex-1 flex-col motion-safe:animate-[fade-in_0.18s_ease-out]">{file}</div>}
       </div>
     </aside>
   );

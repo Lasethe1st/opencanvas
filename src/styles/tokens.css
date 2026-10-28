@@ -248,3 +248,7 @@ button {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Syntax colours for code shown on the home page (file viewer). */
+:root { --hl-keyword:#a626a4; --hl-string:#2a8a3e; --hl-number:#b45f06; --hl-comment:#8a8f98; --hl-title:#2563eb; --hl-attr:#0f7c8a; --hl-tag:#c2362e; }
+:root[data-theme="dark"], .dark { --hl-keyword:#d291e4; --hl-string:#8fd18f; --hl-number:#f0b36b; --hl-comment:#7d8590; --hl-title:#7aa2ff; --hl-attr:#5fd0e0; --hl-tag:#ff8a80; }

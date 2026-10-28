@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight, FileText, FolderOpen, MessagesCircle, Search, Sparkles } from 'lucide-react';
+import { ArrowLeft, CaretRight, ChatsCircle, FileText, FolderOpen, MagnifyingGlass, Sparkle } from '@phosphor-icons/react';
 import { useEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import type { RecentProject, TemplateId, TemplateMeta } from '../../../shared/types';
 import type { HomeChat } from '../../lib/home-chats';
@@ -54,7 +54,7 @@ export function NewProjectPanel({ busy, onSetup }: { busy: boolean; onSetup: () 
         onClick={onSetup}
         className="flex w-full flex-col items-start gap-2 rounded-2xl border-0 bg-muted/50 p-3 text-start transition-colors duration-150 hover:bg-accent focus-visible:bg-accent disabled:opacity-50"
       >
-        <Sparkles className="shrink-0" aria-hidden />
+        <Sparkle className="shrink-0" aria-hidden />
         <span className="grid gap-0.5">
           <strong className="text-sm font-medium">Get help from AI</strong>
           <span className="text-xs text-muted-foreground">Set a visual direction, fonts and references first, then hand the brief to your agent.</span>
@@ -197,7 +197,7 @@ export function RecentChatsPanel({ chats, onPick }: { chats: HomeChat[]; onPick:
   return (
     <div className="flex flex-col gap-0.5">
       {chats.map((chat) => (
-        <ProjectRow key={chat.id} icon={<MessagesCircle className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={chat.text} detail={timeAgo(chat.at)} path={chat.text} onClick={() => onPick(chat)} />
+        <ProjectRow key={chat.id} icon={<ChatsCircle className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={chat.text} detail={timeAgo(chat.at)} path={chat.text} onClick={() => onPick(chat)} />
       ))}
     </div>
   );
@@ -251,7 +251,7 @@ export function NewProjectFlow({
             <Button key={id} variant="ghost" className="h-9 justify-start gap-3 px-2 [&_svg]:size-4" onClick={() => onView(id)}>
               <Icon />
               {label}
-              <ChevronRight className="ms-auto text-muted-foreground" />
+              <CaretRight className="ms-auto text-muted-foreground" />
             </Button>
           ))}
         </div>
@@ -314,7 +314,7 @@ export function SearchPanel({ recent, chats, onGithub, onChat, onDone }: { recen
       key: c.id,
       kind: 'chat',
       run: () => onChat(c),
-      render: (isActive, hover) => <ProjectRow icon={<MessagesCircle className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={c.text} detail={`Chat · ${timeAgo(c.at)}`} path={c.text} active={isActive} onMouseEnter={hover} onClick={() => onChat(c)} />,
+      render: (isActive, hover) => <ProjectRow icon={<ChatsCircle className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={c.text} detail={`Chat · ${timeAgo(c.at)}`} path={c.text} active={isActive} onMouseEnter={hover} onClick={() => onChat(c)} />,
     });
 
   const activeRow = Math.min(active, Math.max(0, rows.length - 1));
@@ -340,7 +340,7 @@ export function SearchPanel({ recent, chats, onGithub, onChat, onDone }: { recen
     <div className="flex flex-col gap-2">
       <InputGroup className="h-10">
         <InputGroupAddon>
-          <Search aria-hidden />
+          <MagnifyingGlass aria-hidden />
         </InputGroupAddon>
         <InputGroupInput data-autofocus aria-label="Search projects and chats" placeholder="Search projects and chats" value={query} onChange={(e) => { setQuery(e.target.value); setActive(0); }} onKeyDown={onKey} />
       </InputGroup>

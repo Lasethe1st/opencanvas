@@ -1,4 +1,5 @@
-import { Brain, Check, CircleAlert, Copy, Loader2, ShieldQuestion, ThumbsDown, ThumbsUp, Wrench, X } from "lucide-react";
+import { highlight } from "../../lib/highlight";
+import { Brain, Check, CircleNotch, Copy, ShieldWarning, ThumbsDown, ThumbsUp, WarningCircle, Wrench, X } from "@phosphor-icons/react";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AiChatItem } from "../../../shared/ai";
 import { answerAi, approveAi, openAiSettings } from "../../lib/ai";
@@ -48,7 +49,9 @@ export function HomeChat() {
     <div className="w-full px-1 py-2" aria-label="Conversation">
       <div className="flex w-full flex-col gap-4 pb-4">
         {items.map((item) => (
-          <ChatItem key={item.id} item={item} />
+          <div key={item.id} className={item.kind === "user" ? "pb-3" : undefined}>
+            <ChatItem item={item} />
+          </div>
         ))}
         {thinking && (
           <div className="flex items-center gap-2" aria-live="polite">
@@ -82,26 +85,65 @@ function splitReferences(text: string): { body: string; refs: { kind: SourceKind
   return { body: text.slice(0, m.index), refs };
 }
 
-/** Your own message: plain text on the left, with its references as tags underneath. */
+/** Your own message: a boxed bubble on the left, with its references as tags underneath. */
+/** Your text with each referenced name shown as a coloured pill right where you typed it. */
+function inlineRefs(body: string, refs: { kind: SourceKind; title: string }[]): React.ReactNode[] {
+  const found = refs
+    .map((r) => ({ r, at: body.indexOf(r.title) }))
+    .filter((x) => x.at >= 0)
+    .sort((a, b) => a.at - b.at)
+    .filter((x, i, all) => i === 0 || x.at >= all[i - 1].at + all[i - 1].r.title.length);
+  const out: React.ReactNode[] = [];
+  let cursor = 0;
+  for (const { r, at } of found) {
+    if (at > cursor) out.push(body.slice(cursor, at));
+    const color = SOURCE_META[r.kind].color;
+    out.push(
+      <span
+        key={`${r.kind}:${r.title}:${at}`}
+        className="mx-px inline-flex max-w-[16rem] items-center gap-1 rounded-[var(--pill)] px-2 align-baseline text-[0.92em] leading-[1.35]"
+        style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--home-card))` }}
+      >
+        <SourceIcon kind={r.kind} className="size-3.5 shrink-0" />
+        <span className="truncate">{r.title}</span>
+      </span>,
+    );
+    cursor = at + r.title.length;
+  }
+  if (cursor < body.length) out.push(body.slice(cursor));
+  return out;
+}
+
+/** One line is a full pill; as the text wraps the corners ease down to 18px, always as smooth squircle corners. */
+function bubbleRadius(height: number): string {
+  if (height <= 56) return `${Math.round(height / 2)}px`;
+  return `${Math.round(Math.max(18, Math.min(height / 2, 28 - (height - 56) * 0.15)))}px`;
+}
+
 function UserBubble({ text }: { text: string }) {
   const { body, refs } = splitReferences(text);
+  const [radius, setRadius] = useState("var(--pill)");
+  const [wrapped, setWrapped] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const measure = () => {
+      setRadius(bubbleRadius(el.offsetHeight));
+      setWrapped(el.offsetHeight > 56);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [body, refs.length]);
   return (
-    <div className="flex max-w-full flex-col gap-1.5">
-      <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{body}</p>
-      {refs.length > 0 && (
-        <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label="References">
-          {refs.map((r, i) => (
-            <li
-              key={`${r.kind}:${r.title}:${i}`}
-              className="inline-flex max-w-[16rem] items-center gap-1.5 rounded-[8px] px-2 py-1 text-xs"
-              style={{ color: SOURCE_META[r.kind].color, backgroundColor: `color-mix(in srgb, ${SOURCE_META[r.kind].color} 14%, transparent)` }}
-            >
-              <SourceIcon kind={r.kind} className="size-3.5" />
-              <span className="truncate">{r.title}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+    <div
+      ref={boxRef}
+      style={{ borderRadius: radius, cornerShape: wrapped ? "squircle" : "round" } as React.CSSProperties}
+      className="flex w-fit max-w-full flex-col gap-2 bg-muted px-4 py-3 motion-safe:transition-[border-radius] motion-safe:duration-150"
+    >
+      <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{inlineRefs(body, refs)}</p>
     </div>
   );
 }
@@ -115,7 +157,7 @@ function ChatItem({ item }: { item: AiChatItem }) {
     case "error":
       return (
         <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-[length:var(--chat-font-size-sm)] text-destructive" role="alert">
-          <CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          <WarningCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           <span>{item.text}</span>
         </div>
       );
@@ -146,7 +188,7 @@ function ToolTrace({ item }: { item: Extract<AiChatItem, { kind: "tool" }> }) {
       <TraceLine status={status}>
         <TraceIcon>
           {item.state === "running" ? (
-            <Loader2 className="animate-spin" />
+            <CircleNotch className="animate-spin" />
           ) : item.state === "done" ? (
             <Check />
           ) : item.state === "failed" ? (
@@ -165,7 +207,7 @@ function AssistantMessage({ id, text }: { id: string; text: string }) {
   const parts = splitFenced(text);
   return (
     <div className="flex max-w-full flex-col gap-1.5">
-      <div className="flex max-w-full flex-col gap-2 rounded-[12px] bg-muted px-4 py-3 text-[length:var(--chat-font-size)] leading-relaxed text-foreground">
+      <div className="flex max-w-full flex-col gap-2 text-[length:var(--chat-font-size)] leading-relaxed text-foreground">
         {parts.map((part, i) =>
           part.type === "code" ? (
             <CodeBlock key={i} size="sm">
@@ -175,8 +217,8 @@ function AssistantMessage({ id, text }: { id: string; text: string }) {
                   <CodeBlockCopyButton value={part.code} />
                 </CodeBlockActions>
               </CodeBlockHeader>
-              <CodeBlockContent wrap className="max-h-64">
-                {part.code}
+              <CodeBlockContent wrap className="code-hl max-h-64">
+                <code dangerouslySetInnerHTML={{ __html: highlight(part.code, `x.${part.lang.toLowerCase()}`) }} />
               </CodeBlockContent>
             </CodeBlock>
           ) : (
@@ -209,18 +251,18 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
       /* clipboard blocked */
     }
   };
-  const btn = "size-7 rounded-[8px] p-0 text-muted-foreground hover:text-foreground [&_svg]:size-3.5";
+  const btn = "size-6 rounded-[6px] p-0 text-muted-foreground hover:text-foreground [&_svg]:size-3";
   const rate = (v: Vote) => setVote(id, v);
   return (
-    <div className="flex items-center gap-0.5 ps-1" role="group" aria-label="Reply actions">
+    <div className="flex items-center gap-0.5 -ms-2" role="group" aria-label="Reply actions">
       <Button variant="ghost" className={btn} aria-label={copied ? "Copied" : "Copy reply"} title={copied ? "Copied" : "Copy"} onClick={() => void copy()}>
-        {copied ? <Check strokeWidth={2} /> : <Copy strokeWidth={2} />}
+        {copied ? <Check /> : <Copy />}
       </Button>
       <Button variant="ghost" className={cn(btn, vote === "up" && "text-foreground")} aria-label="Good reply" aria-pressed={vote === "up"} title="Good reply" onClick={() => rate("up")}>
-        <ThumbsUp strokeWidth={2} className={vote === "up" ? "fill-current" : undefined} />
+        <ThumbsUp className={vote === "up" ? "fill-current" : undefined} />
       </Button>
       <Button variant="ghost" className={cn(btn, vote === "down" && "text-foreground")} aria-label="Bad reply" aria-pressed={vote === "down"} title="Bad reply" onClick={() => rate("down")}>
-        <ThumbsDown strokeWidth={2} className={vote === "down" ? "fill-current" : undefined} />
+        <ThumbsDown className={vote === "down" ? "fill-current" : undefined} />
       </Button>
       <Button
         variant="ghost"
@@ -230,7 +272,7 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
         title={remembered ? "Remembered — click to forget" : "Remember this"}
         onClick={() => toggleRemember(id, text)}
       >
-        <Brain strokeWidth={2} />
+        <Brain />
       </Button>
     </div>
   );
@@ -334,7 +376,7 @@ function ApprovalCard({ item }: { item: Extract<AiChatItem, { kind: "approval" }
       aria-label="Permission needed"
     >
       <div className="flex items-center gap-2 text-[length:var(--chat-font-size-sm)] font-medium">
-        <ShieldQuestion className="size-3.5" aria-hidden />
+        <ShieldWarning className="size-3.5" aria-hidden />
         {TOOL_LABELS[approval.tool] ?? approval.tool}
       </div>
       {approval.command && (

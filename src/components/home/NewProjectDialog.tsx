@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, FolderOpen, LayoutTemplate, Maximize2, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowsOut, FolderOpen, Layout, Sparkle } from '@phosphor-icons/react';
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { defaultDirection } from '../../../shared/project-config';
@@ -40,8 +40,8 @@ const TITLES: Record<StepId, string> = {
 };
 
 const PATHS: { id: StartPath; label: string; hint: string; icon: ComponentType<{ className?: string }> }[] = [
-  { id: 'ai', label: 'Describe it to AI', hint: 'Set a direction, then hand the brief to your agent.', icon: Sparkles },
-  { id: 'template', label: 'Use a template', hint: 'Ready-made pages in regular React code you own.', icon: LayoutTemplate },
+  { id: 'ai', label: 'Describe it to AI', hint: 'Set a direction, then hand the brief to your agent.', icon: Sparkle },
+  { id: 'template', label: 'Use a template', hint: 'Ready-made pages in regular React code you own.', icon: Layout },
   { id: 'github', label: 'Import from GitHub', hint: 'Clone a React project and open it.', icon: ({ className }) => <span className={className}><GithubMark size={16} /></span> },
   { id: 'open', label: 'Open a folder or file', hint: 'Continue with a project on this computer.', icon: FolderOpen },
 ];
@@ -175,7 +175,7 @@ export function NewProjectDialog({
             onClick={onRestore}
             aria-label={`Resume new project, ${TITLES[step]}`}
           >
-            <Maximize2 strokeWidth={2} />
+            <ArrowsOut />
             <span>New project</span>
             <span className="text-muted-foreground">
               {step === 'start' ? 'Start' : `Step ${index + 1} of ${steps.length}`}
@@ -203,13 +203,13 @@ export function NewProjectDialog({
             step === 'start' || step === 'open' ? (
               step === 'open' ? (
                 <Button variant="ghost" className="gap-1.5 rounded-[var(--pill)]" onClick={() => setIndex(0)}>
-                  <ArrowLeft strokeWidth={2} /> Back
+                  <ArrowLeft /> Back
                 </Button>
               ) : null
             ) : (
               <>
                 <Button variant="ghost" className="gap-1.5 rounded-[var(--pill)]" disabled={busy} onClick={() => setIndex((i) => Math.max(0, i - 1))}>
-                  <ArrowLeft strokeWidth={2} /> Back
+                  <ArrowLeft /> Back
                 </Button>
                 <div className="ms-auto flex items-center gap-2">
                   {step === 'direction' && (
@@ -219,7 +219,7 @@ export function NewProjectDialog({
                   )}
                   <Button className="rounded-[var(--pill)]" disabled={!canNext || busy} onClick={next}>
                     {last ? finalLabel : 'Next'}
-                    {!last && <ArrowRight strokeWidth={2} />}
+                    {!last && <ArrowRight />}
                   </Button>
                 </div>
               </>
@@ -248,7 +248,7 @@ export function NewProjectDialog({
                         <strong className="text-sm font-medium">{label}</strong>
                         <span className="text-xs text-muted-foreground">{hint}</span>
                       </span>
-                      <ArrowRight className="ms-auto size-4 shrink-0 text-muted-foreground" strokeWidth={2} aria-hidden />
+                      <ArrowRight className="ms-auto size-4 shrink-0 text-muted-foreground" aria-hidden />
                     </button>
                   ))}
                 </div>
@@ -299,7 +299,7 @@ export function NewProjectDialog({
               <Question title={TITLES.open}>
                 <div className="flex flex-col gap-1.5">
                   <Button variant="outline" className="h-10 justify-start" data-autofocus onClick={() => void openProjectDialog()}>
-                    <FolderOpen strokeWidth={2} /> Open folder
+                    <FolderOpen /> Open folder
                   </Button>
                   <Button variant="outline" className="h-10 justify-start" onClick={() => void openFileFromDisk()}>
                     Open file
