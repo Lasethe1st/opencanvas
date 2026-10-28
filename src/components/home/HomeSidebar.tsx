@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 export interface SidebarItem {
   id: string;
   label: string;
-  icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+  icon: ComponentType<{ className?: string; weight?: 'fill' }>;
   /** Runs when the item is chosen (opens a right panel, starts a chat, etc.). */
   onSelect?: () => void;
   /** Plus button at the row's far end (start a new chat, new project…). */
@@ -116,7 +116,7 @@ export function HomeSidebar({
                   className="h-9 min-w-0 flex-1 justify-start gap-1.5 rounded-[var(--r-lg)] px-1.5 text-current hover:bg-transparent focus-visible:bg-transparent [&_svg]:shrink-0 [&_svg]:text-current"
                   onClick={() => (item.recents ? toggle(item.id) : item.onSelect?.())}
                 >
-                  <item.icon strokeWidth={2} className="size-[1.5cap] [block-size:1.5cap] [inline-size:1.5cap]" />
+                  <item.icon weight="fill" className="size-[1.5cap] [block-size:1.5cap] [inline-size:1.5cap]" />
                   <span className="truncate text-xs font-medium leading-none">{item.label}</span>
                 </Button>
                 {item.add && (

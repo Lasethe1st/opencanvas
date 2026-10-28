@@ -1,4 +1,5 @@
-import { FolderOpen, Library, LucideProvider, MessageCircle } from 'lucide-react';
+import { Library, LucideProvider } from 'lucide-react';
+import { ChatCircle, FolderSimple } from '@phosphor-icons/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { LayoutAlignLeftIcon, LayoutAlignRightIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -198,19 +199,19 @@ export function Onboarding() {
       {
         id: 'chat',
         label: 'Chat',
-        icon: MessageCircle,
+        icon: ChatCircle,
         add: { label: 'New chat', onSelect: newChat },
         recents: {
           toggleLabel: 'Recent chats',
           empty: 'No chats yet',
-          items: chats.slice(0, RECENT).map((c) => ({ id: c.id, label: c.text, meta: timeAgo(c.at), icon: <MessageCircle className="size-5 p-0.5" style={{ color: 'var(--src-chat)' }} strokeWidth={2} aria-hidden />, onSelect: () => pickChat(c) })),
+          items: chats.slice(0, RECENT).map((c) => ({ id: c.id, label: c.text, meta: timeAgo(c.at), icon: <ChatCircle weight="fill" className="size-5 p-0.5" style={{ color: 'var(--src-chat)' }} aria-hidden />, onSelect: () => pickChat(c) })),
           viewAll: chats.length > RECENT ? { label: 'View all chats', onSelect: () => setDialog({ kind: 'chats' }) } : undefined,
         },
       },
       {
         id: 'projects',
         label: 'Projects',
-        icon: FolderOpen,
+        icon: FolderSimple,
         add: { label: 'New project', onSelect: () => openNew() },
         recents: {
           toggleLabel: 'Recent projects',
