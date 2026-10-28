@@ -86,11 +86,32 @@ function splitReferences(text: string): { body: string; refs: { kind: SourceKind
 }
 
 /** Your own message: a boxed bubble on the left, with its references as tags underneath. */
+/** One line is a full pill; as the text wraps the corners ease down to 18px, always as smooth squircle corners. */
+function bubbleRadius(height: number): string {
+  if (height <= 56) return `${Math.round(height / 2)}px`;
+  return `${Math.round(Math.max(18, Math.min(height / 2, 28 - (height - 56) * 0.15)))}px`;
+}
+
 function UserBubble({ text }: { text: string }) {
   const { body, refs } = splitReferences(text);
+  const [radius, setRadius] = useState("var(--pill)");
+  const [wrapped, setWrapped] = useState(false);
+  const boxRef = useRef<HTMLParagraphElement>(null);
+  useLayoutEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const measure = () => {
+      setRadius(bubbleRadius(el.offsetHeight));
+      setWrapped(el.offsetHeight > 56);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [body]);
   return (
     <div className="flex max-w-full flex-col gap-1.5">
-      <p className="m-0 w-fit max-w-full break-words rounded-[12px] bg-muted px-4 py-3 text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{body}</p>
+      <p ref={boxRef} style={{ borderRadius: radius, cornerShape: wrapped ? "squircle" : "round" } as React.CSSProperties} className="m-0 w-fit max-w-full break-words bg-muted px-4 py-3 motion-safe:transition-[border-radius] motion-safe:duration-150 text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{body}</p>
       {refs.length > 0 && (
         <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label="References">
           {refs.map((r, i) => (
