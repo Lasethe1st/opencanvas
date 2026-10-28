@@ -49,7 +49,9 @@ export function HomeChat() {
     <div className="w-full px-1 py-2" aria-label="Conversation">
       <div className="flex w-full flex-col gap-4 pb-4">
         {items.map((item) => (
-          <ChatItem key={item.id} item={item} />
+          <div key={item.id} className={item.kind === "user" ? "pb-3" : undefined}>
+            <ChatItem item={item} />
+          </div>
         ))}
         {thinking && (
           <div className="flex items-center gap-2" aria-live="polite">
@@ -210,7 +212,7 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
       /* clipboard blocked */
     }
   };
-  const btn = "size-7 rounded-[8px] p-0 text-muted-foreground hover:text-foreground [&_svg]:size-3.5";
+  const btn = "size-6 rounded-[6px] p-0 text-muted-foreground hover:text-foreground [&_svg]:size-3";
   const rate = (v: Vote) => setVote(id, v);
   return (
     <div className="flex items-center gap-0.5 -ms-2" role="group" aria-label="Reply actions">

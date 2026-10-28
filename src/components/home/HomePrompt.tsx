@@ -324,7 +324,7 @@ export function HomePrompt({
         >
           {sending ? (
             <InputGroupButton variant="default" size="icon" className="rounded-[var(--pill)]" aria-label="Stop" onClick={stopAi}>
-              <Stop className="size-3.5 fill-current" />
+              <Stop weight="fill" className="size-3.5" />
             </InputGroupButton>
           ) : hasText ? (
             <InputGroupButton
