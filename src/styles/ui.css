@@ -4772,3 +4772,11 @@ body.is-resizing-rows iframe {
     transform: none;
   }
 }
+
+.code-hl .hljs-keyword,.code-hl .hljs-literal,.code-hl .hljs-built_in,.code-hl .hljs-selector-tag,.code-hl .hljs-doctag{color:var(--hl-keyword)}
+.code-hl .hljs-string,.code-hl .hljs-regexp,.code-hl .hljs-addition,.code-hl .hljs-symbol{color:var(--hl-string)}
+.code-hl .hljs-number,.code-hl .hljs-meta,.code-hl .hljs-variable,.code-hl .hljs-template-variable{color:var(--hl-number)}
+.code-hl .hljs-comment,.code-hl .hljs-quote{color:var(--hl-comment);font-style:italic}
+.code-hl .hljs-title,.code-hl .hljs-function,.code-hl .hljs-section,.code-hl .hljs-selector-class,.code-hl .hljs-selector-id{color:var(--hl-title)}
+.code-hl .hljs-attr,.code-hl .hljs-attribute,.code-hl .hljs-property,.code-hl .hljs-params{color:var(--hl-attr)}
+.code-hl .hljs-name,.code-hl .hljs-tag,.code-hl .hljs-deletion{color:var(--hl-tag)}

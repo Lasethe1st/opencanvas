@@ -3,6 +3,7 @@ import { ChevronRight, FolderOpen as FolderIcon, FileText as FileIcon, X } from 
 import { useEffect, useMemo, useState } from 'react';
 import type { DirEntry } from '../../../shared/types';
 import { api } from '../../lib/api';
+import { highlight } from '../../lib/highlight';
 import { cn } from '@/lib/utils';
 import type { AiChatItem } from '../../../shared/ai';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
@@ -138,6 +139,7 @@ export function FileViewer({ file, onClose }: { file: OpenFile; onClose: () => v
     };
   }, [file.root, file.rel]);
   const name = file.rel.split('/').pop() ?? file.rel;
+  const html = useMemo(() => (text === null ? '' : highlight(text, name)), [text, name]);
   const copy = async () => {
     if (text === null) return;
     try {
@@ -168,7 +170,7 @@ export function FileViewer({ file, onClose }: { file: OpenFile; onClose: () => v
         ) : text === null ? (
           <p className="m-0 p-3 text-xs text-muted-foreground">Loading…</p>
         ) : (
-          <pre className="m-0 min-w-max p-3 font-mono text-xs leading-5 text-foreground">{text}</pre>
+          <pre className="code-hl m-0 min-w-max p-3 font-mono text-xs leading-5 text-foreground"><code dangerouslySetInnerHTML={{ __html: html }} /></pre>
         )}
       </div>
     </section>
