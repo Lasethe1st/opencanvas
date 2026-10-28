@@ -2,6 +2,7 @@ import {
   Brain,
   Check,
   ChevronDown,
+  ChevronRight,
   CircleHelp,
   GripVertical,
   Loader2,
@@ -35,6 +36,9 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -49,22 +53,24 @@ const EFFORTS: { id: AiThinkingEffort; label: string; hint: string }[] = [
 const PREVIEW = 5;
 
 /** Flat catalog shown in the composer — picking one switches provider + model. */
-const CATALOG: { id: string; label: string; provider: AiProviderKind }[] = [
-  { id: "claude-opus", label: "Claude Opus", provider: "anthropic" },
-  { id: "claude-sonnet", label: "Claude Sonnet", provider: "anthropic" },
-  { id: "claude-haiku", label: "Claude Haiku", provider: "anthropic" },
-  { id: "fable-5.1", label: "Fable 5.1", provider: "openai" },
-  { id: "gpt-6", label: "GPT-6", provider: "openai" },
-  { id: "gpt-4o", label: "GPT-4o", provider: "openai" },
-  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", provider: "gemini" },
-  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", provider: "gemini" },
-  { id: "astra", label: "Astra", provider: "xai" },
-  { id: "grok-3", label: "Grok 3", provider: "xai" },
-  { id: "clade", label: "Clade", provider: "openai" },
-  { id: "llama3.2", label: "llama3.2", provider: "ollama" },
+const CATALOG: { id: string; label: string; hint?: string; provider: AiProviderKind }[] = [
+  { id: "claude-opus", hint: "Best for complex coding and long tasks", label: "Claude Opus", provider: "anthropic" },
+  { id: "claude-sonnet", hint: "Great for everyday coding and writing", label: "Claude Sonnet", provider: "anthropic" },
+  { id: "claude-haiku", hint: "Fastest, light on tokens", label: "Claude Haiku", provider: "anthropic" },
+  { id: "fable-5.1", hint: "Strong reasoning for hard problems", label: "Fable 5.1", provider: "openai" },
+  { id: "gpt-6", hint: "Top OpenAI model for demanding work", label: "GPT-6", provider: "openai" },
+  { id: "gpt-4o", hint: "Great for day-to-day tasks", label: "GPT-4o", provider: "openai" },
+  { id: "gemini-2.5-pro", hint: "Best for long documents and reasoning", label: "Gemini 2.5 Pro", provider: "gemini" },
+  { id: "gemini-2.5-flash", hint: "Fast and light on tokens", label: "Gemini 2.5 Flash", provider: "gemini" },
+  { id: "astra", hint: "Quick, conversational answers", label: "Astra", provider: "xai" },
+  { id: "grok-3", hint: "Great for day-to-day questions", label: "Grok 3", provider: "xai" },
+  { id: "clade", hint: "Balanced all-rounder", label: "Clade", provider: "openai" },
+  { id: "llama3.2", hint: "Runs on your computer, no tokens used", label: "llama3.2", provider: "ollama" },
 ];
 
-type PickerModel = { id: string; label: string; provider: AiProviderKind };
+type PickerModel = { id: string; label: string; hint?: string; provider: AiProviderKind };
+
+const PROVIDER_ORDER: AiProviderKind[] = ["anthropic", "openai", "gemini", "xai", "ollama", "lmstudio", "custom"];
 
 function mergeModels(live: AiModel[], provider: AiProviderKind): PickerModel[] {
   const byId = new Map<string, PickerModel>();
@@ -188,11 +194,15 @@ function ContextUsageRing({ used, limit, className }: { used: number; limit: num
   const tone = usageTone(pct);
   const title = `${formatTokens(used)} tokens used · ${formatTokens(remaining)} context left`;
   const tipW = popupWidth(TIP_METER);
+  // Nothing to report until the conversation has some content.
+  const empty = used <= 0;
 
   const openDetail = () => {
     setTipOpen(false);
     setDetailOpen(true);
   };
+
+  if (empty) return null;
 
   return (
     <>
@@ -206,7 +216,7 @@ function ContextUsageRing({ used, limit, className }: { used: number; limit: num
           <button
             type="button"
             className={cn(
-              "inline-flex size-6 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+              "inline-flex h-6 shrink-0 items-center justify-center rounded-[var(--pill)] px-2 text-[11px] font-medium tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               pct > 0 ? tone.ring : "text-muted-foreground hover:text-foreground",
               className,
             )}
@@ -215,20 +225,7 @@ function ContextUsageRing({ used, limit, className }: { used: number; limit: num
             aria-expanded={detailOpen}
             onClick={openDetail}
           >
-            <svg width={14} height={14} viewBox="0 0 14 14" aria-hidden className="-rotate-90">
-              <circle cx={7} cy={7} r={5.5} fill="none" stroke="currentColor" strokeWidth={1.75} className="opacity-25" />
-              <circle
-                cx={7}
-                cy={7}
-                r={5.5}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.75}
-                strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 5.5 * pct} ${2 * Math.PI * 5.5 * (1 - pct)}`}
-                className="opacity-90"
-              />
-            </svg>
+            {Math.max(1, Math.round(pct * 100))}%
           </button>
         </TooltipTrigger>
         <TooltipContent
@@ -604,8 +601,7 @@ export function HomeComposerExtras() {
   const effort = settings.thinkingEffort ?? "medium";
   const effortMeta = EFFORTS.find((e) => e.id === effort) ?? EFFORTS[1];
   const label = modelLabel(settings, models, loading);
-  const preview = models.slice(0, PREVIEW);
-  const hasMore = models.length > PREVIEW;
+  const providers = PROVIDER_ORDER.map((provider) => ({ provider, models: models.filter((m) => m.provider === provider) })).filter((g) => g.models.length > 0);
 
   const save = async (patch: Partial<AiSettings>) => {
     await api.ai.setSettings({ ...settings, ...patch });
@@ -650,34 +646,28 @@ export function HomeComposerExtras() {
             </div>
           ) : (
             <div className="flex flex-col gap-0.5">
-              {preview.map((m) => (
-                <button
-                  key={`${m.provider}:${m.id}`}
-                  type="button"
-                  className={cn(
-                    "flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-left text-xs transition-colors hover:bg-accent",
-                    settings.model === m.id ? "bg-accent text-foreground" : "text-foreground",
-                  )}
-                  onClick={() => pickModel(m)}
-                >
-                  <ModelLogo provider={m.provider} />
-                  <span className="min-w-0 flex-1 truncate">{m.label}</span>
-                  {settings.model === m.id && <Check className="size-3.5 shrink-0 opacity-80" />}
-                </button>
+              {providers.map(({ provider, models: list }) => (
+                <DropdownMenuSub key={provider}>
+                  <DropdownMenuSubTrigger className="rounded-xl text-xs">
+                    <ModelLogo provider={provider} />
+                    <span className="min-w-0 flex-1 truncate">{providerMeta(provider).product}</span>
+                    {settings.provider === provider && <Check className="size-3.5 shrink-0 opacity-80" />}
+                    <ChevronRight className="size-3.5 shrink-0 opacity-60" />
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="min-w-[260px] rounded-3xl p-1.5">
+                    {list.map((m) => (
+                      <DropdownMenuItem key={m.id} className="flex-col items-stretch gap-0 rounded-xl px-2.5 py-1.5" onSelect={() => pickModel(m)}>
+                        <span className="flex items-center gap-2 text-xs text-foreground">
+                          <span className="min-w-0 flex-1 truncate">{m.label}</span>
+                          {settings.model === m.id && settings.provider === m.provider && <Check className="size-3.5 shrink-0 opacity-80" />}
+                        </span>
+                        {m.hint && <span className="text-[11px] leading-4 text-muted-foreground">{m.hint}</span>}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
               ))}
             </div>
-          )}
-          {hasMore && (
-            <button
-              type="button"
-              className="mt-1 w-full rounded-xl px-2.5 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
-              onClick={() => {
-                setMenuOpen(false);
-                setAllOpen(true);
-              }}
-            >
-              Show more
-            </button>
           )}
           <DropdownMenuSeparator className="bg-border/60" />
           <DropdownMenuItem

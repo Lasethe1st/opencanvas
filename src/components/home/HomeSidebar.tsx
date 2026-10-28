@@ -1,4 +1,4 @@
-import { ChevronDown, Plus, Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { useId, useState, type ComponentType, type ReactNode } from 'react';
 import homeMark from '../../assets/home-mark.png';
 import { Button } from '@/components/ui/button';
@@ -119,20 +119,10 @@ export function HomeSidebar({
                   <item.icon strokeWidth={2} className="size-[1.5cap] [block-size:1.5cap] [inline-size:1.5cap]" />
                   <span className="truncate text-xs font-medium leading-none">{item.label}</span>
                 </Button>
-                {item.recents && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" className={iconBtn} aria-label={item.recents.toggleLabel} aria-expanded={open} aria-controls={listId} onClick={() => toggle(item.id)}>
-                        <ChevronDown strokeWidth={2} className="motion-safe:transition-transform motion-safe:duration-150" style={{ transform: open ? 'rotate(180deg)' : undefined }} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side={side}>{item.recents.toggleLabel}</TooltipContent>
-                  </Tooltip>
-                )}
                 {item.add && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" className={cn(iconBtn, item.recents && '-ms-0.5')} aria-label={item.add.label} disabled={busy && item.id !== 'chat'} onClick={item.add.onSelect}>
+                      <Button variant="ghost" className={iconBtn} aria-label={item.add.label} disabled={busy && item.id !== 'chat'} onClick={item.add.onSelect}>
                         <Plus strokeWidth={2} />
                       </Button>
                     </TooltipTrigger>
@@ -147,16 +137,16 @@ export function HomeSidebar({
                   className="grid motion-safe:transition-[grid-template-rows] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]"
                   style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
                 >
-                  <ul className="m-0 flex min-h-0 list-none flex-col gap-px overflow-hidden ps-3 pe-0">
+                  <ul className="m-0 flex min-h-0 list-none flex-col gap-px overflow-hidden ps-0 pe-0">
                     {item.recents.items.length === 0 ? (
-                      <li className="px-2 py-1.5 text-xs text-muted-foreground">{item.recents.empty}</li>
+                      <li className="px-2.5 py-1.5 text-xs text-muted-foreground">{item.recents.empty}</li>
                     ) : (
                       item.recents.items.map((entry) => (
                         <li key={entry.id}>
                           <button
                             type="button"
                             title={entry.label}
-                            className="block w-full rounded-[6px] px-2 py-1.5 text-start text-[color:var(--fg-2)] transition-colors duration-150 hover:bg-secondary hover:text-foreground focus-visible:bg-secondary focus-visible:text-foreground"
+                            className="block w-full rounded-[6px] px-2.5 py-1.5 text-start text-[color:var(--fg-2)] transition-colors duration-150 hover:bg-secondary hover:text-foreground focus-visible:bg-secondary focus-visible:text-foreground"
                             onClick={entry.onSelect}
                           >
                             <span className="flex items-center gap-2">
@@ -172,7 +162,7 @@ export function HomeSidebar({
                     )}
                     {item.recents.viewAll && (
                       <li>
-                        <button type="button" className="block w-full rounded-[6px] px-2 py-1.5 text-start text-xs text-muted-foreground transition-colors duration-150 hover:bg-secondary hover:text-foreground focus-visible:bg-secondary focus-visible:text-foreground" onClick={item.recents.viewAll.onSelect}>
+                        <button type="button" className="block w-full rounded-[6px] px-2.5 py-1.5 text-start text-xs text-muted-foreground transition-colors duration-150 hover:bg-secondary hover:text-foreground focus-visible:bg-secondary focus-visible:text-foreground" onClick={item.recents.viewAll.onSelect}>
                           {item.recents.viewAll.label}
                         </button>
                       </li>

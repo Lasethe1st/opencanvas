@@ -72,7 +72,7 @@ export async function refreshAiStatus() {
   }
 }
 
-function turnContext(): AiTurnContext {
+function turnContext(extra?: Pick<AiTurnContext, 'skills'>): AiTurnContext {
   const s = getState();
   const page = activePage();
   return {
@@ -80,11 +80,12 @@ function turnContext(): AiTurnContext {
     page: page ? { name: page.name, path: page.path } : null,
     frameWidth: activeFrame(s)?.width ?? null,
     memory: memoryLines(),
+    skills: extra?.skills,
   };
 }
 
 /** Sends the request to the in-app AI. Queues while a turn is already running. */
-export async function sendToAi(request: string): Promise<boolean> {
+export async function sendToAi(request: string, extra?: Pick<AiTurnContext, 'skills'>): Promise<boolean> {
   const text = request.trim();
   if (!text) return false;
 
@@ -96,7 +97,7 @@ export async function sendToAi(request: string): Promise<boolean> {
 
   sendLock = true;
   try {
-    await api.ai.send(text, turnContext());
+    await api.ai.send(text, turnContext(extra));
     if (getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     return true;
   } catch (err) {

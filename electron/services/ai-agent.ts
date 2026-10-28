@@ -173,9 +173,11 @@ function describeTurnContext(ctx: AiTurnContext | undefined): string {
   if (ctx.page) lines.push(`The user is looking at the page "${ctx.page.name}" (${ctx.page.path}).`);
   if (ctx.frameWidth) lines.push(`Active frame width: ${Math.round(ctx.frameWidth)}px.`);
   if (ctx.selection) lines.push(`Selected element: <${ctx.selection.tag}> "${ctx.selection.name}" (id ${ctx.selection.id}). "This", "it" or "here" most likely means this element.`);
+  const skills = (ctx.skills ?? []).slice(0, 5).map((k) => `### ${k.name}\n${k.body.slice(0, 6000)}`);
+  const invoked = skills.length ? `[Skills the user asked you to use for this message — follow their instructions]\n${skills.join('\n\n')}\n\n` : '';
   const memory = (ctx.memory ?? []).filter((m) => m.trim()).slice(0, 20);
   const remembered = memory.length ? `[Things the user asked you to remember]\n${memory.map((m) => `- ${m.replace(/\s+/g, ' ').slice(0, 600)}`).join('\n')}\n\n` : '';
-  return (lines.length ? `[Editor context]\n${lines.join('\n')}\n\n` : '') + remembered;
+  return (lines.length ? `[Editor context]\n${lines.join('\n')}\n\n` : '') + remembered + invoked;
 }
 
 type Pending = { turnId: string; resolve: (value: string) => void; reject: (err: Error) => void; kind: 'question' | 'approval' };

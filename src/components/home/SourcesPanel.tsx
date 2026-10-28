@@ -1,9 +1,14 @@
-import { ChatCircle, FileText, FolderSimple, Globe, MagnifyingGlass, type Icon as PhosphorIcon } from '@phosphor-icons/react';
-import { useMemo } from 'react';
+import { ChatCircle, FileText, FolderSimple, Globe, Lightning, MagnifyingGlass, type Icon as PhosphorIcon } from '@phosphor-icons/react';
+import { ChevronRight, FolderOpen as FolderIcon, FileText as FileIcon } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import type { DirEntry } from '../../../shared/types';
+import { api } from '../../lib/api';
+import { HomeDialog } from './HomeDialog';
+import { cn } from '@/lib/utils';
 import type { AiChatItem } from '../../../shared/ai';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 
-export type SourceKind = 'file' | 'web' | 'google' | 'project' | 'chat';
+export type SourceKind = 'file' | 'web' | 'google' | 'project' | 'chat' | 'skill';
 
 /** One icon and one colour per kind of source, used by the @ picker, the inline highlight and the Sources panel. */
 export const SOURCE_META: Record<SourceKind, { icon: PhosphorIcon; label: string; color: string }> = {
@@ -12,6 +17,7 @@ export const SOURCE_META: Record<SourceKind, { icon: PhosphorIcon; label: string
   file: { icon: FileText, label: 'File', color: 'var(--src-file)' },
   web: { icon: Globe, label: 'Web', color: 'var(--src-web)' },
   google: { icon: MagnifyingGlass, label: 'Google', color: 'var(--src-google)' },
+  skill: { icon: Lightning, label: 'Skill', color: 'var(--src-skill)' },
 };
 
 /** A source's icon: solid, in the colour of its kind. */
@@ -65,7 +71,85 @@ export function useSources(chat: AiChatItem[]): Source[] {
   return useMemo(() => sourcesFromChat(chat), [chat]);
 }
 
+type OpenFile = { root: string; rel: string };
+
+/** One folder level, loaded when it first appears. Folders open in place; files open in a dialog. */
+function TreeLevel({ root, rel, depth, onFile }: { root: string; rel: string; depth: number; onFile: (f: OpenFile) => void }) {
+  const [entries, setEntries] = useState<DirEntry[] | null>(null);
+  const [error, setError] = useState('');
+  const [open, setOpen] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    let live = true;
+    api.projectFiles.list(root, rel).then((e) => live && setEntries(e), (err) => live && setError(err instanceof Error ? err.message : 'Could not read this folder.'));
+    return () => {
+      live = false;
+    };
+  }, [root, rel]);
+  const pad = { paddingInlineStart: 8 + depth * 14 };
+  if (error) return <p className="m-0 py-1 pe-2 text-xs text-muted-foreground" style={pad}>{error}</p>;
+  if (!entries) return <p className="m-0 py-1 pe-2 text-xs text-muted-foreground" style={pad}>Loading…</p>;
+  if (!entries.length) return <p className="m-0 py-1 pe-2 text-xs text-muted-foreground" style={pad}>Empty folder</p>;
+  return (
+    <ul className="m-0 flex list-none flex-col p-0">
+      {entries.map((e) => {
+        const path = rel ? `${rel}/${e.name}` : e.name;
+        const expanded = open.has(path);
+        return (
+          <li key={path}>
+            <button
+              type="button"
+              title={path}
+              aria-expanded={e.dir ? expanded : undefined}
+              className="flex w-full items-center gap-1.5 rounded-[6px] py-1 pe-2 text-start text-xs text-[color:var(--fg-2)] transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:bg-accent"
+              style={pad}
+              onClick={() =>
+                e.dir
+                  ? setOpen((cur) => {
+                      const next = new Set(cur);
+                      if (!next.delete(path)) next.add(path);
+                      return next;
+                    })
+                  : onFile({ root, rel: path })
+              }
+            >
+              {e.dir ? <ChevronRight className={cn('size-3 shrink-0 motion-safe:transition-transform motion-safe:duration-150', expanded && 'rotate-90')} strokeWidth={2} aria-hidden /> : <span className="size-3 shrink-0" aria-hidden />}
+              {e.dir ? <FolderIcon className="size-3.5 shrink-0 text-[color:var(--src-project)]" strokeWidth={2} aria-hidden /> : <FileIcon className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={2} aria-hidden />}
+              <span className="min-w-0 truncate">{e.name}</span>
+            </button>
+            {e.dir && expanded && <TreeLevel root={root} rel={path} depth={depth + 1} onFile={onFile} />}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function FileDialog({ file, onClose }: { file: OpenFile; onClose: () => void }) {
+  const [text, setText] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let live = true;
+    api.projectFiles.read(file.root, file.rel).then((t) => live && setText(t), (err) => live && setError(err instanceof Error ? err.message : 'Could not open this file.'));
+    return () => {
+      live = false;
+    };
+  }, [file.root, file.rel]);
+  return (
+    <HomeDialog title={file.rel.split('/').pop() ?? file.rel} subtitle={file.rel.includes("/") ? file.rel : undefined} onClose={onClose} wide>
+      {error ? (
+        <p className="m-0 text-sm text-muted-foreground">{error}</p>
+      ) : text === null ? (
+        <p className="m-0 text-sm text-muted-foreground">Loading…</p>
+      ) : (
+        <pre className="m-0 max-h-[60vh] overflow-auto whitespace-pre-wrap break-words rounded-[10px] bg-muted p-3 font-mono text-xs leading-5 text-foreground">{text}</pre>
+      )}
+    </HomeDialog>
+  );
+}
+
 export function SourcesPanel({ sources }: { sources: Source[] }) {
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const [file, setFile] = useState<OpenFile | null>(null);
   if (!sources.length)
     return (
       <Empty className="border-0 py-10">
@@ -76,30 +160,57 @@ export function SourcesPanel({ sources }: { sources: Source[] }) {
       </Empty>
     );
   return (
-    <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
-      {sources.map((s) => {
-        const body = (
-          <>
-            <SourceIcon kind={s.kind} className="mt-0.5 size-4" />
-            <span className="min-w-0 flex-1">
-              <strong className="block truncate text-xs font-medium">{s.title}</strong>
-              <span className="block truncate text-xs text-muted-foreground">{s.detail}</span>
-            </span>
-          </>
-        );
-        const cls = 'flex items-start gap-2 rounded-[8px] px-2 py-1.5 text-start transition-colors duration-150 hover:bg-accent focus-visible:bg-accent';
-        return (
-          <li key={s.id} title={s.detail}>
-            {s.href ? (
-              <a href={s.href} target="_blank" rel="noopener noreferrer" className={cls}>
-                {body}
-              </a>
-            ) : (
-              <div className={cls}>{body}</div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+    <>
+      <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+        {sources.map((s) => {
+          const body = (
+            <>
+              <SourceIcon kind={s.kind} className="mt-0.5 size-4" />
+              <span className="min-w-0 flex-1">
+                <strong className="block truncate text-xs font-medium">{s.title}</strong>
+                <span className="block truncate text-xs text-muted-foreground">{s.detail}</span>
+              </span>
+            </>
+          );
+          const cls = 'flex w-full items-start gap-2 rounded-[8px] px-2 py-1.5 text-start transition-colors duration-150 hover:bg-accent focus-visible:bg-accent';
+          if (s.kind === 'project') {
+            const root = s.id.replace(/^project:/, '');
+            const isOpen = expanded.has(s.id);
+            return (
+              <li key={s.id} title={s.detail}>
+                <button
+                  type="button"
+                  className={cls}
+                  aria-expanded={isOpen}
+                  onClick={() =>
+                    setExpanded((cur) => {
+                      const next = new Set(cur);
+                      if (!next.delete(s.id)) next.add(s.id);
+                      return next;
+                    })
+                  }
+                >
+                  {body}
+                  <ChevronRight className={cn('mt-0.5 size-3.5 shrink-0 text-muted-foreground motion-safe:transition-transform motion-safe:duration-150', isOpen && 'rotate-90')} strokeWidth={2} aria-hidden />
+                </button>
+                {isOpen && <TreeLevel root={root} rel="" depth={0} onFile={setFile} />}
+              </li>
+            );
+          }
+          return (
+            <li key={s.id} title={s.detail}>
+              {s.href ? (
+                <a href={s.href} target="_blank" rel="noopener noreferrer" className={cls}>
+                  {body}
+                </a>
+              ) : (
+                <div className={cls}>{body}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {file && <FileDialog file={file} onClose={() => setFile(null)} />}
+    </>
   );
 }

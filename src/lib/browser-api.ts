@@ -26,6 +26,12 @@ import { normalizeWorkspace } from '../../shared/workspace-layout';
 const ROOT = 'C:\\Users\\you\\Documents\\OpenCanvas Projects';
 const UNAVAILABLE = 'Not available in the browser preview. Run OpenCanvas with npm start.';
 
+/** Sample skills for the browser harness; the desktop app reads real ones from the skills folder. */
+const SKILLS = [
+  { id: 'release-notes/SKILL.md', name: 'Release notes', description: 'Turn a list of changes into friendly release notes', body: 'Write short, friendly release notes grouped by feature, fix and improvement.' },
+  { id: 'accessibility-pass.md', name: 'Accessibility pass', description: 'Check the page for keyboard, contrast and label problems', body: 'Review the page for keyboard access, colour contrast and missing labels, then list fixes.' },
+];
+
 const TEMPLATES: TemplateMeta[] = [
   { id: 'blank', name: 'Blank', description: 'An empty page with a minimal React + Vite setup.' },
   { id: 'landing', name: 'Landing page', description: 'Header, hero, feature grid and footer split into components.' },
@@ -886,6 +892,23 @@ export function createBrowserApi(): OpenCanvasApi {
     templates: async () => TEMPLATES,
     recentProjects: async () => RECENT,
     defaultLocation: async () => ROOT,
+    projectFiles: {
+      list: async (_root, rel) => {
+        const names = Object.keys(FILES).filter((f) => (rel ? f.startsWith(rel + '/') : true)).map((f) => (rel ? f.slice(rel.length + 1) : f));
+        const seen = new Map<string, boolean>();
+        for (const n of names) {
+          const [head, ...rest] = n.split('/');
+          seen.set(head, rest.length > 0 || seen.get(head) === true);
+        }
+        return [...seen].map(([name, dir]) => ({ name, dir })).sort((a, b) => Number(b.dir) - Number(a.dir) || a.name.localeCompare(b.name));
+      },
+      read: async (_root, rel) => FILES[rel] ?? '',
+    },
+    skills: {
+      list: async () => SKILLS.map(({ id, name, description }) => ({ id, name, description })),
+      read: async (id) => SKILLS.find((k) => k.id === id)?.body ?? '',
+      openFolder: async () => `${ROOT}\\..\\OpenCanvas Skills`,
+    },
     createProject: async (_template, name, setup) => {
       const project = await open(`${ROOT}\\${name.toLowerCase().replace(/\W+/g, '-')}`, name);
       if (setup) memory.setDirection(setup.direction);

@@ -202,22 +202,22 @@ export function NewProjectDialog({
           footer={
             step === 'start' || step === 'open' ? (
               step === 'open' ? (
-                <Button variant="ghost" className="gap-1.5" onClick={() => setIndex(0)}>
+                <Button variant="ghost" className="gap-1.5 rounded-[var(--pill)]" onClick={() => setIndex(0)}>
                   <ArrowLeft strokeWidth={2} /> Back
                 </Button>
               ) : null
             ) : (
               <>
-                <Button variant="ghost" className="gap-1.5" disabled={busy} onClick={() => setIndex((i) => Math.max(0, i - 1))}>
+                <Button variant="ghost" className="gap-1.5 rounded-[var(--pill)]" disabled={busy} onClick={() => setIndex((i) => Math.max(0, i - 1))}>
                   <ArrowLeft strokeWidth={2} /> Back
                 </Button>
                 <div className="ms-auto flex items-center gap-2">
                   {step === 'direction' && (
-                    <Button variant="ghost" disabled={busy} onClick={next}>
+                    <Button variant="ghost" className="rounded-[var(--pill)]" disabled={busy} onClick={next}>
                       Skip
                     </Button>
                   )}
-                  <Button disabled={!canNext || busy} onClick={next}>
+                  <Button className="rounded-[var(--pill)]" disabled={!canNext || busy} onClick={next}>
                     {last ? finalLabel : 'Next'}
                     {!last && <ArrowRight strokeWidth={2} />}
                   </Button>

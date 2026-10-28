@@ -292,6 +292,19 @@ export interface BuildCheckResult {
   steps: { step: BuildCheckStep; ok: boolean; skipped?: boolean }[];
 }
 
+export interface DirEntry {
+  name: string;
+  dir: boolean;
+}
+
+/** A skill kept in the user's skills folder. */
+export interface SkillMeta {
+  /** Path inside the skills folder. */
+  id: string;
+  name: string;
+  description: string;
+}
+
 export interface RecentProject {
   root: string;
   name: string;

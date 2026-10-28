@@ -15,6 +15,15 @@ const api: OpenCanvasApi = {
   templates: () => invoke('templates:list'),
   recentProjects: () => invoke('projects:recent'),
   defaultLocation: () => invoke('projects:defaultLocation'),
+  projectFiles: {
+    list: (root, rel) => invoke('projectFiles:list', root, rel),
+    read: (root, rel) => invoke('projectFiles:read', root, rel),
+  },
+  skills: {
+    list: () => invoke('skills:list'),
+    read: (id) => invoke('skills:read', id),
+    openFolder: () => invoke('skills:openFolder'),
+  },
   createProject: (template, name, setup) => invoke('project:create', template, name, setup),
   openProjectDialog: () => invoke('project:openDialog'),
   openProject: (root) => invoke('project:open', root),

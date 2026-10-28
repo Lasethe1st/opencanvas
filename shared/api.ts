@@ -27,6 +27,8 @@ import type {
   RecentProject,
   SourceElementInfo,
   TemplateId,
+  DirEntry,
+  SkillMeta,
   TemplateMeta,
   ThemePreference,
 } from './types';
@@ -52,6 +54,8 @@ export interface AiTurnContext {
   page?: { name: string; path: string } | null;
   /** Width of the active frame, to hint which breakpoint the user is designing. */
   frameWidth?: number | null;
+  /** Skills the user called with "/" for this message. */
+  skills?: { name: string; body: string }[];
   /** Replies the user chose to remember; shown to the model at the start of every turn. */
   memory?: string[];
 }
@@ -60,6 +64,18 @@ export interface OpenCanvasApi {
   templates(): Promise<TemplateMeta[]>;
   recentProjects(): Promise<RecentProject[]>;
   defaultLocation(): Promise<string>;
+  /** Browse a recent project's files without opening it. `rel` uses forward slashes; '' is the project root. */
+  projectFiles: {
+    list(root: string, rel: string): Promise<DirEntry[]>;
+    read(root: string, rel: string): Promise<string>;
+  };
+  skills: {
+    list(): Promise<SkillMeta[]>;
+    /** The skill's instructions, without its header. */
+    read(id: string): Promise<string>;
+    /** Creates the skills folder if needed, opens it in the file manager, and returns its path. */
+    openFolder(): Promise<string>;
+  };
   /** `setup` comes from "Get help from AI": its direction is saved with the project; uploads map reference ids to picked image files. */
   createProject(template: TemplateId, name: string, setup?: ProjectSetup): Promise<ProjectInfo>;
   openProjectDialog(): Promise<ProjectInfo | null>;
