@@ -86,6 +86,34 @@ function splitReferences(text: string): { body: string; refs: { kind: SourceKind
 }
 
 /** Your own message: a boxed bubble on the left, with its references as tags underneath. */
+/** Your text with each referenced name shown as a coloured pill right where you typed it. */
+function inlineRefs(body: string, refs: { kind: SourceKind; title: string }[]): React.ReactNode[] {
+  const found = refs
+    .map((r) => ({ r, at: body.indexOf(r.title) }))
+    .filter((x) => x.at >= 0)
+    .sort((a, b) => a.at - b.at)
+    .filter((x, i, all) => i === 0 || x.at >= all[i - 1].at + all[i - 1].r.title.length);
+  const out: React.ReactNode[] = [];
+  let cursor = 0;
+  for (const { r, at } of found) {
+    if (at > cursor) out.push(body.slice(cursor, at));
+    const color = SOURCE_META[r.kind].color;
+    out.push(
+      <span
+        key={`${r.kind}:${r.title}:${at}`}
+        className="mx-px inline-flex max-w-[16rem] items-center gap-1 rounded-[var(--pill)] px-2 align-baseline text-[0.92em] leading-[1.35]"
+        style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--home-card))` }}
+      >
+        <SourceIcon kind={r.kind} className="size-3.5 shrink-0" />
+        <span className="truncate">{r.title}</span>
+      </span>,
+    );
+    cursor = at + r.title.length;
+  }
+  if (cursor < body.length) out.push(body.slice(cursor));
+  return out;
+}
+
 /** One line is a full pill; as the text wraps the corners ease down to 18px, always as smooth squircle corners. */
 function bubbleRadius(height: number): string {
   if (height <= 56) return `${Math.round(height / 2)}px`;
@@ -115,21 +143,7 @@ function UserBubble({ text }: { text: string }) {
       style={{ borderRadius: radius, cornerShape: wrapped ? "squircle" : "round" } as React.CSSProperties}
       className="flex w-fit max-w-full flex-col gap-2 bg-muted px-4 py-3 motion-safe:transition-[border-radius] motion-safe:duration-150"
     >
-      <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{body}</p>
-      {refs.length > 0 && (
-        <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label="References">
-          {refs.map((r, i) => (
-            <li
-              key={`${r.kind}:${r.title}:${i}`}
-              className="inline-flex max-w-[16rem] items-center gap-1.5 rounded-[var(--pill)] px-2.5 py-1 text-xs"
-              style={{ color: SOURCE_META[r.kind].color, backgroundColor: `color-mix(in srgb, ${SOURCE_META[r.kind].color} 14%, var(--home-card))` }}
-            >
-              <SourceIcon kind={r.kind} className="size-3.5" />
-              <span className="truncate">{r.title}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{inlineRefs(body, refs)}</p>
     </div>
   );
 }
