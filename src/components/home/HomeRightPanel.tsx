@@ -20,7 +20,7 @@ export function HomeRightPanel({
   contentKey: string;
   /** Drop body padding — for full-bleed nested views like ProjectSetup. */
   flush?: boolean;
-  /** A file viewer. Appears on the left of the list and widens the panel. */
+  /** A file viewer. Appears to the right of the list and widens the panel. */
   file?: ReactNode;
   children: ReactNode;
 }) {
@@ -38,7 +38,6 @@ export function HomeRightPanel({
       style={{ width: open ? width : 0 }}
     >
       <div className="flex h-full flex-row" style={{ width, pointerEvents: open ? 'auto' : 'none' }}>
-        {open && file && <div className="flex h-full min-w-0 flex-1 flex-col motion-safe:animate-[fade-in_0.18s_ease-out]">{file}</div>}
         <div className="flex h-full shrink-0 flex-col" style={{ width: HOME_RIGHT_PANEL_WIDTH }}>
         {open && (
           <div
@@ -52,6 +51,7 @@ export function HomeRightPanel({
           </div>
         )}
         </div>
+        {open && file && <div className="flex h-full min-w-0 flex-1 flex-col motion-safe:animate-[fade-in_0.18s_ease-out]">{file}</div>}
       </div>
     </aside>
   );

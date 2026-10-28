@@ -149,7 +149,7 @@ export function FileViewer({ file, onClose }: { file: OpenFile; onClose: () => v
     }
   };
   return (
-    <section aria-label={`File ${name}`} className="flex h-full min-h-0 flex-col py-2 pe-2">
+    <section aria-label={`File ${name}`} className="flex h-full min-h-0 flex-col py-2 pe-2 ps-1">
       <div className="flex shrink-0 items-center gap-1 pb-1.5">
         <div className="min-w-0 flex-1 ps-1">
           <strong className="block truncate text-xs font-medium">{name}</strong>
