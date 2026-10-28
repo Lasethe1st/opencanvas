@@ -1,5 +1,5 @@
 import { Brain, Check, CircleAlert, Copy, Loader2, ShieldQuestion, ThumbsDown, ThumbsUp, Wrench, X } from "lucide-react";
-import { Component, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AiChatItem } from "../../../shared/ai";
 import { answerAi, approveAi, openAiSettings } from "../../lib/ai";
 import { useStore } from "../../lib/store";
@@ -15,8 +15,7 @@ import {
 import { ShimmeringText } from "@/components/ui/shimmering-text";
 import { Trace, TraceIcon, TraceLine, TraceTitle } from "@/components/ui/trace";
 import { getVote, isRemembered, setVote, subscribeMemory, toggleRemember, type Vote } from "../../lib/ai-memory";
-import { Orb } from "@/components/ui/orb";
-import { useOrbColors } from "@/lib/orb-colors";
+import { AgentOrb } from "@/components/ui/agent-orb";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { cn } from "@/lib/utils";
 
@@ -53,7 +52,9 @@ export function HomeChat() {
         ))}
         {thinking && (
           <div className="flex items-center gap-2" aria-live="polite">
-            <ThinkingOrb />
+            <span aria-hidden className="text-foreground">
+              <AgentOrb variant="S1" size={20} style={{ color: "currentColor" }} />
+            </span>
             <ShimmeringText text="Thinking…" className="text-[length:var(--chat-font-size-sm)]" startOnView={false} />
           </div>
         )}
@@ -101,28 +102,6 @@ function UserBubble({ text }: { text: string }) {
           ))}
         </ul>
       )}
-    </div>
-  );
-}
-
-class OrbBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  render() {
-    return this.state.failed ? <div className="size-full rounded-full bg-muted" aria-hidden /> : this.props.children;
-  }
-}
-
-/** The orb in its thinking state, shown while the AI works on a reply. */
-function ThinkingOrb() {
-  const colors = useOrbColors();
-  return (
-    <div className="size-7 shrink-0" aria-hidden>
-      <OrbBoundary>
-        <Orb colors={colors} agentState="thinking" className="relative size-full" />
-      </OrbBoundary>
     </div>
   );
 }
