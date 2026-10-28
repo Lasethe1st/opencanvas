@@ -1472,3 +1472,43 @@ kbd, .kbd,
   .workspace > .panel, .workspace > .panel.is-hidden, .workspace.is-focus .dock, .workspace.is-focus .canvas-nav { transition: none; }
   .workspace > .panel.is-hidden { transform: none; }
 }
+
+/* ---------- Canvas panels v2 ---------- */
+.search { position: relative; }
+.search__clear {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; margin-inline-end: -2px; padding: 0; border: 0;
+  border-radius: var(--r-pill); background: transparent; color: var(--fg-3); cursor: pointer;
+}
+.search__clear:hover { background: var(--hover); color: var(--fg); }
+.tree-row { min-height: 28px; }
+.tree-row__guide {
+  position: absolute; top: 0; bottom: 0; width: 1px; pointer-events: none;
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+}
+.tree-row:hover .tree-row__guide { background: color-mix(in srgb, var(--fg) 12%, transparent); }
+.section-label__count {
+  margin-inline-start: 6px; padding: 0 6px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--fg) 7%, transparent); color: var(--fg-3);
+  font-size: 10.5px; font-weight: 500; line-height: 16px; font-variant-numeric: tabular-nums;
+}
+.pages-fold { margin: 2px 0 6px; }
+.pages-fold__head {
+  display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 10px 4px;
+  border: 0; background: transparent; color: var(--fg-3); font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; text-align: start;
+}
+.pages-fold__head:hover { color: var(--fg); }
+.pages-fold__current { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; text-align: end; }
+.inspector-hint {
+  display: flex; gap: 10px; align-items: flex-start; margin: 4px 0 8px; padding: 10px 12px;
+  border-radius: 10px; background: color-mix(in srgb, var(--fg) 5%, transparent); color: var(--fg-2); font-size: 12px; line-height: 1.45;
+}
+.inspector-hint svg { flex: none; margin-top: 1px; color: var(--fg-3); }
+.inspector-hint strong { display: block; color: var(--fg); font-size: 12.5px; font-weight: 600; }
+.legend-lite { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 8px 2px 4px; color: var(--fg-3); font-size: 11px; }
+.legend-lite > span { display: inline-flex; align-items: center; gap: 5px; }
+.kv-help {
+  display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; padding: 0;
+  border: 0; border-radius: var(--r-pill); background: transparent; color: var(--fg-3); cursor: help;
+}
+.kv-help:hover { color: var(--fg); background: var(--hover); }

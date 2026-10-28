@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, Search } from 'lucide-react';
+import { CaretDown, CaretRight, MagnifyingGlass, X } from '@phosphor-icons/react';
 import { cx } from './primitives.jsx';
 
 export function Panel({ side, width, head, children, resizer, hidden, ...rest }) {
@@ -26,8 +26,13 @@ export function Rail({ side, children }) {
 export function SearchField({ value, onChange, placeholder = 'Search' }) {
   return (
     <label className="search">
-      <Search size={13} />
-      <input value={value} placeholder={placeholder} aria-label={placeholder} onChange={(e) => onChange?.(e.target.value)} />
+      <MagnifyingGlass size={13} />
+      <input value={value} placeholder={placeholder} aria-label={placeholder} onChange={(e) => onChange?.(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && value && (e.stopPropagation(), onChange?.(''))} />
+      {value && (
+        <button type="button" className="search__clear" aria-label="Clear search" onClick={(e) => (e.preventDefault(), onChange?.(''))}>
+          <X size={11} weight="bold" />
+        </button>
+      )}
     </label>
   );
 }
@@ -72,6 +77,9 @@ export function TreeRow({ depth = 0, icon, name, meta, active, hovered, expandab
       {...rest}
       onKeyDown={onKeyDown}
     >
+      {Array.from({ length: depth }, (_, i) => (
+        <span key={i} className="tree-row__guide" style={{ left: 4 + i * 14 + 10 }} aria-hidden="true" />
+      ))}
       <button
         className="tree-row__toggle"
         tabIndex={-1}
@@ -82,7 +90,7 @@ export function TreeRow({ depth = 0, icon, name, meta, active, hovered, expandab
           onToggle?.();
         }}
       >
-        {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        {expanded ? <CaretDown size={11} weight="bold" /> : <CaretRight size={11} weight="bold" />}
       </button>
       {icon}
       {children ?? <span className="tree-row__name">{name}</span>}

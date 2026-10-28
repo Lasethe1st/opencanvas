@@ -103,7 +103,7 @@ function iconFor(page: { viewType?: PageViewType; icon?: string; path?: string }
 }
 
 /** Pages of the project: design routes plus workspace views (agent/code/terminal). */
-export function PagesSection() {
+export function PagesSection({ bare = false }: { bare?: boolean }) {
   const state = useStore((s) => s.projectConfig);
   const activeId = useStore((s) => pageOf(activeFrame(s), s)?.id ?? s.workspace.activePageId);
   useStore((s) => s.frames);
@@ -126,7 +126,7 @@ export function PagesSection() {
           </IconButton>
         }
       >
-        Pages
+        {bare ? 'All pages' : 'Pages'}
       </SectionLabel>
       <div className="frame-list" role="list" aria-label="Pages">
         {pages.map((p, i) => {
