@@ -7,6 +7,7 @@ import { answerAi, approveAi, newAiChat, openAiSettings, sendToAi, stopAi } from
 import { createPage } from '../../lib/pages';
 import { getState, setState, useStore } from '../../lib/store';
 import { scheduleWorkspaceSave } from '../../lib/workspace';
+import { AgentOrb } from '@/components/ui/agent-orb';
 import { Button, IconButton, cx } from '../../ui/primitives.jsx';
 
 async function showAgentActivity() {
@@ -100,10 +101,8 @@ export function AiChat() {
         ))}
         {thinking && (
           <div className="ai-thinking">
-            <span className="ai-thinking__dots" aria-hidden>
-              <i />
-              <i />
-              <i />
+            <span aria-hidden>
+              <AgentOrb variant="S1" size={18} style={{ color: 'currentColor' }} />
             </span>
             Thinking…
           </div>
