@@ -1660,16 +1660,19 @@ kbd, .kbd,
 .workspace--bleed > .workspace__center + * { margin-left: 0; }
 .workspace > .workspace__center .stage, .workspace--bleed .stage { border-radius: 0; }
 
-/* Tool rail: its own slim column on the background layer, left of the card. */
-.workspace > .tool-rails {
-  position: relative; z-index: 6; inset: auto; height: auto; align-self: stretch;
-  margin-top: calc(var(--topbar-h) + 8px); padding: 0; flex: none; pointer-events: none;
+/* Tool rail: pill-shaped, floating on the card, vertically centred on its left edge. */
+.workspace__center > .tool-rails {
+  position: absolute; z-index: 6; left: 12px; top: 50%; bottom: auto; right: auto; height: auto; width: auto;
+  transform: translateY(-50%); display: flex; flex-direction: column; justify-content: center; gap: 8px;
+  align-self: auto; pointer-events: none;
 }
-.workspace > .tool-rails > .tool-rail {
-  pointer-events: auto; background: var(--home-card) !important; border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent) !important;
-  box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+.workspace__center > .tool-rails > .tool-rail {
+  pointer-events: auto; background: var(--surface) !important; border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent) !important;
+  border-radius: var(--pill) !important; corner-shape: round; box-shadow: var(--shadow-sm); -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 
+/* Code mode: reserve a gutter so the rail doesn't cover the editor. */
+.workspace:not(.workspace--bleed) > .workspace__center { padding-left: 68px; }
 
 /* Focus mode (both panels hidden): the card goes full-bleed, like the home page. */
 .workspace.is-focus { padding: 0; gap: 0; }
