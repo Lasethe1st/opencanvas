@@ -22,6 +22,7 @@ import { activeFrame, getState, setState, useStore, type DockMode, type TreeNode
 import { Button, cx } from '../ui/primitives.jsx';
 import { DirectionEditor, uploadPaths, type DirectionDraft } from './direction/DirectionEditor';
 import { AiChat } from './dock/AiChat';
+import { DockerChat } from './dock/DockerChat';
 import { DesignSystemPanel } from './dock/DesignSystem';
 import { VariantsPanel } from './dock/Variants';
 
@@ -102,7 +103,7 @@ function PanelHead({ title, children }: { title: string; children?: ReactNode })
 
 function InputPanel() {
   const useChat = useStore((s) => !!s.aiStatus?.ready || s.aiChat.length > 0);
-  return useChat ? <AiChat bare /> : <HandOffPanel />;
+  return useChat ? <DockerChat /> : <HandOffPanel />;
 }
 
 /** Without an AI provider set up, the request goes to the user's own agent as a prompt. */

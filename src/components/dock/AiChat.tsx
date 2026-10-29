@@ -10,7 +10,7 @@ import { scheduleWorkspaceSave } from '../../lib/workspace';
 import { AgentOrb } from '@/components/ui/agent-orb';
 import { Button, IconButton, cx } from '../../ui/primitives.jsx';
 
-async function showAgentActivity() {
+export async function showAgentActivity() {
   const s = getState();
   let page = s.projectConfig?.pages.find((p) => (p.viewType ?? 'design') === 'agent');
   if (!page) {

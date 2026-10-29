@@ -19,6 +19,7 @@ import { getVote, isRemembered, setVote, subscribeMemory, toggleRemember, type V
 import { AgentOrb } from "@/components/ui/agent-orb";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { cn } from "@/lib/utils";
+import { referencesIn } from "../assistant-shapes";
 
 const TOOL_LABELS: Record<string, string> = {
   git_commit: "Save a version (commit)",
@@ -31,7 +32,7 @@ const TOOL_LABELS: Record<string, string> = {
 const FENCE_RE = /```([\w-]*)\n?([\s\S]*?)```/g;
 
 /** Home conversation thread — grows with content; the parent column scrolls. */
-export function HomeChat() {
+export function HomeChat({ mentions = false }: { mentions?: boolean } = {}) {
   const items = useStore((s) => s.aiChat);
   const turnId = useStore((s) => s.aiTurnId);
   const endRef = useRef<HTMLDivElement>(null);
@@ -50,7 +51,7 @@ export function HomeChat() {
       <div className="flex w-full flex-col gap-4 pb-4">
         {items.map((item) => (
           <div key={item.id} className={item.kind === "user" ? "pb-3" : undefined}>
-            <ChatItem item={item} />
+            <ChatItem item={item} mentions={mentions} />
           </div>
         ))}
         {thinking && (
@@ -120,7 +121,42 @@ function bubbleRadius(height: number): string {
   return `${Math.round(Math.max(18, Math.min(height / 2, 28 - (height - 56) * 0.15)))}px`;
 }
 
-function UserBubble({ text }: { text: string }) {
+/** Canvas messages: each "@Name" you typed becomes a pill right where it was. */
+function inlineMentions(body: string): React.ReactNode[] {
+  const refs = referencesIn(body);
+  const found: { at: number; len: number; kind: string; name: string }[] = [];
+  const lower = body.toLowerCase();
+  for (const r of refs) {
+    const token = `@${r.name.toLowerCase()}`;
+    let i = lower.indexOf(token);
+    while (i >= 0) {
+      found.push({ at: i, len: token.length, kind: r.kind, name: r.name });
+      i = lower.indexOf(token, i + token.length);
+    }
+  }
+  found.sort((a, b) => a.at - b.at || b.len - a.len);
+  const out: React.ReactNode[] = [];
+  let cursor = 0;
+  for (const f of found) {
+    if (f.at < cursor) continue;
+    if (f.at > cursor) out.push(body.slice(cursor, f.at));
+    const color = f.kind === "page" ? "#3b82f6" : "#8b5cf6";
+    out.push(
+      <span
+        key={`${f.at}:${f.name}`}
+        className="mx-px inline-flex max-w-[16rem] items-center rounded-[var(--pill)] px-1.5 align-baseline text-[0.92em] leading-[1.35]"
+        style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--home-card))` }}
+      >
+        <span className="truncate">@{f.name}</span>
+      </span>,
+    );
+    cursor = f.at + f.len;
+  }
+  if (cursor < body.length) out.push(body.slice(cursor));
+  return out;
+}
+
+function UserBubble({ text, mentions = false }: { text: string; mentions?: boolean }) {
   const { body, refs } = splitReferences(text);
   const [radius, setRadius] = useState("var(--pill)");
   const [wrapped, setWrapped] = useState(false);
@@ -143,15 +179,15 @@ function UserBubble({ text }: { text: string }) {
       style={{ borderRadius: radius, cornerShape: wrapped ? "squircle" : "round" } as React.CSSProperties}
       className="flex w-fit max-w-full flex-col gap-2 bg-muted px-4 py-3 motion-safe:transition-[border-radius] motion-safe:duration-150"
     >
-      <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{inlineRefs(body, refs)}</p>
+      <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{mentions ? inlineMentions(body) : inlineRefs(body, refs)}</p>
     </div>
   );
 }
 
-function ChatItem({ item }: { item: AiChatItem }) {
+function ChatItem({ item, mentions }: { item: AiChatItem; mentions: boolean }) {
   switch (item.kind) {
     case "user":
-      return <UserBubble text={item.text} />;
+      return <UserBubble text={item.text} mentions={mentions} />;
     case "assistant":
       return <AssistantMessage id={item.id} text={item.text} />;
     case "error":
