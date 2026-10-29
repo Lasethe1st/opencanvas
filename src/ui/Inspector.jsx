@@ -32,13 +32,15 @@ export function BreakpointBanner({ icon, children }) {
   );
 }
 
-export function BoxModel({ margin, padding, size }) {
+export function BoxModel({ margin, padding, size, marginAction, paddingAction }) {
   return (
     <div className="boxmodel">
       <span className="boxmodel__caption">Margin</span>
+      {marginAction && <span className="boxmodel__action">{marginAction}</span>}
       {margin}
       <div className="boxmodel__padding">
         <span className="boxmodel__caption">Padding</span>
+        {paddingAction && <span className="boxmodel__action">{paddingAction}</span>}
         {padding}
         <div className="boxmodel__content">{size}</div>
       </div>

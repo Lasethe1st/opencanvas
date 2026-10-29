@@ -336,13 +336,14 @@ function AppearanceSection({ disabled, isMedia }: { disabled: boolean; isMedia: 
 
 type InspectorTab = 'visual' | 'code' | 'motion';
 
-function ElementEmpty({ message }: { message: string }) {
+function ElementEmpty({ title, message }: { title: string; message: string }) {
   return (
-    <div className="inspector-head">
-      <div className="inspector-head__meta inspector-empty">
-        <CursorClick size={20} aria-hidden="true" />
-        <span>{message}</span>
-      </div>
+    <div className="inspector-hint">
+      <CursorClick size={18} weight="fill" aria-hidden="true" />
+      <span>
+        <strong>{title}</strong>
+        {message}
+      </span>
     </div>
   );
 }
@@ -500,13 +501,13 @@ export function Inspector() {
         ))}
       {tab === 'code' &&
         (!selection ? (
-          <ElementEmpty message="Select an element to edit its code." />
+          <ElementEmpty title="No element selected" message="Pick an element to see and edit its source code here." />
         ) : (
           <ElementCodePanel />
         ))}
       {tab === 'motion' &&
         (!selection ? (
-          <ElementEmpty message="Select an element to animate it." />
+          <ElementEmpty title="No element selected" message="Pick an element to add hover, entrance or transition motion." />
         ) : (
           <ElementMotionPanel disabled={disabled} />
         ))}
