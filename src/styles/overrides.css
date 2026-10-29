@@ -1614,3 +1614,75 @@ kbd, .kbd,
   .panel--left .search, .panel--left .section-label__count, .panel--left .segmented, .panel--left .segmented button,
   .panel--right .segmented, .panel--right .segmented button, .panel--right .state-toggle .segmented { corner-shape: round; }
 }
+
+/* =====================================================================================
+   Canvas page v3 — same two layers as the home page.
+   Background: the side panels and floating top-bar pills sit flat on --home-bg.
+   Foreground: the canvas is one rounded card with the tool rail floating inside it.
+   ===================================================================================== */
+.shell:has(.workspace) { background: var(--home-bg); }
+.workspace, .workspace--bleed {
+  position: relative; display: flex; gap: 8px; padding: 8px; box-sizing: border-box; background: transparent;
+  transition: padding 200ms cubic-bezier(0.2, 0, 0, 1), gap 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+.shell:has(.workspace) .workspace { padding-top: 8px; }
+
+/* Panels: flat on the background, below the floating pills, no card chrome. */
+.workspace > .panel, .workspace--bleed > .panel,
+.workspace > .panel.panel--left, .workspace > .panel.panel--right,
+.workspace--bleed > .panel.panel--left, .workspace--bleed > .panel.panel--right {
+  z-index: 1; position: relative;
+  margin-top: calc(var(--topbar-h) + 8px);
+  border: 0 !important; border-radius: 0; background: transparent; box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.workspace > .panel > .panel__head, .workspace--bleed > .panel > .panel__head { padding: 0 0 10px; border-bottom: 0; }
+.workspace > .panel > .panel__body, .workspace--bleed > .panel > .panel__body { padding: 0; }
+.workspace > .panel .search { margin-inline: 0; }
+.workspace > .panel .section-label, .workspace > .panel .pages-fold__head { padding-inline: 4px; }
+.panel--right .section__head { padding-inline: 4px; }
+.panel--right .section__body { padding-inline: 4px; }
+.panel--right .inspector-hint { margin-inline: 4px; }
+.panel--right .legend-lite { padding-inline: 4px; }
+.inspector-sticky { background: color-mix(in srgb, var(--home-bg) 94%, transparent); }
+.inspector-sticky .inspector-head { padding-inline: 4px; }
+.inspector-sticky .state-toggle { padding-inline: 4px; }
+.workspace > .panel > .panel__head > .segmented { width: 100%; }
+.workspace > .panel .tree { padding-inline: 0; }
+
+/* The card. */
+.workspace > .workspace__center, .workspace--bleed > .workspace__center {
+  position: relative; inset: auto; z-index: 0; flex: 1; min-width: 0; margin: 0;
+  border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent); border-radius: 10px; overflow: hidden;
+  background: var(--home-card);
+  transition: border-radius 200ms cubic-bezier(0.2, 0, 0, 1), border-color 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+.workspace--bleed > .workspace__center + * { margin-left: 0; }
+.workspace > .workspace__center .stage, .workspace--bleed .stage { border-radius: 0; }
+
+/* Tool rail: floats inside the card, on its left edge. */
+.workspace__center > .tool-rails {
+  position: absolute; z-index: 6; inset: 12px auto 12px 12px; display: flex; flex-direction: column; justify-content: space-between;
+  align-self: auto; pointer-events: none; height: auto; bottom: 12px;
+}
+.workspace__center > .tool-rails > .tool-rail {
+  pointer-events: auto; background: var(--surface) !important; border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent) !important;
+  box-shadow: var(--shadow-sm); -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+
+/* Code mode: the rail would cover the editor, so reserve a gutter for it. */
+.workspace:not(.workspace--bleed) > .workspace__center { padding-left: 68px; }
+/* Focus mode: the rail starts below the floating pills. */
+.workspace.is-focus > .workspace__center > .tool-rails { top: calc(var(--topbar-h, 48px) + 12px); bottom: 12px; height: auto; }
+
+/* Focus mode (both panels hidden): the card goes full-bleed, like the home page. */
+.workspace.is-focus { padding: 0; gap: 0; }
+.workspace.is-focus > .workspace__center { border-radius: 0; border-color: transparent; }
+.workspace.is-focus > .panel { margin-inline: 0 !important; }
+
+@supports (corner-shape: squircle) {
+  .workspace > .workspace__center, .workspace--bleed > .workspace__center { corner-shape: squircle; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace, .workspace--bleed, .workspace > .workspace__center { transition: none; }
+}
