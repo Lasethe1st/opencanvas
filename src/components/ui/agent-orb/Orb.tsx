@@ -561,7 +561,7 @@ export interface OrbProps {
 }
 
 export function Orb({
-  variant = "S1",
+  variant = "S2",
   size = SIZE,
   label,
   pill,

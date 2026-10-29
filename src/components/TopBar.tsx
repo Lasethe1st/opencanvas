@@ -12,10 +12,7 @@ import { togglePanels } from '../lib/panels';
 import { CanvasBgControl } from './CanvasBgControl';
 import { openFullPreview } from './FullPreview';
 import { GoLiveButton } from './GoLive';
-
-/** House & tree painting — https://unsplash.com/photos/a-painting-of-a-house-and-a-tree-4ewHoDJOSf4 */
-const USER_AVATAR_SRC =
-  'https://images.unsplash.com/photo-1699391202798-bec3f1c894bc?w=96&h=96&fit=crop&auto=format&q=80';
+import { USER_AVATAR_SRC } from '../lib/user-avatar';
 
 const liveKey = (root: string) => `oc-live:${root}`;
 const publishedKey = (root: string) => `oc-published:${root}`;

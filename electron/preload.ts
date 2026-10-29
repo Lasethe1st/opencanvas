@@ -134,6 +134,7 @@ const api: OpenCanvasApi = {
     approve: (id, allow) => invoke('ai:approve', id, allow),
     cancel: () => invoke('ai:cancel'),
     reset: () => invoke('ai:reset'),
+    hydrate: (turns) => invoke('ai:hydrate', turns),
     onEvent: (cb) => subscribe('ai:event', cb),
     voiceCapabilities: () => invoke('ai:voiceCapabilities'),
     voiceReply: (messages) => invoke('ai:voiceReply', messages),

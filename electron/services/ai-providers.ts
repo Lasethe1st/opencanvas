@@ -18,9 +18,12 @@ export interface ToolResult {
   isError: boolean;
 }
 
+/** Anthropic thinking blocks must be passed back unchanged on the next tool-result turn. */
+export type ThinkingBlock = { thinking: string; signature: string };
+
 export type ChatMessage =
   | { role: 'user'; content: ChatPart[] }
-  | { role: 'assistant'; text: string; toolCalls: ToolCall[] }
+  | { role: 'assistant'; text: string; toolCalls: ToolCall[]; thinkingBlocks?: ThinkingBlock[] }
   | { role: 'tool'; results: ToolResult[] };
 
 export interface ToolDef {
@@ -37,12 +40,15 @@ export interface ChatRequest {
   tools: ToolDef[];
   signal?: AbortSignal;
   onText?: (delta: string) => void;
+  /** Streamed model reasoning / thinking summary (shown in the chat before the reply). */
+  onReasoning?: (delta: string) => void;
   maxTokens?: number;
 }
 
 export interface ChatResponse {
   text: string;
   toolCalls: ToolCall[];
+  thinkingBlocks?: ThinkingBlock[];
   /** "tool_use" when the model wants tool results next. */
   stopReason: string;
 }
@@ -182,6 +188,7 @@ function anthropicMessages(messages: ChatMessage[]) {
     if (m.role === 'user') return { role: 'user', content: anthropicParts(m.content) };
     if (m.role === 'assistant') {
       const content: unknown[] = [];
+      for (const block of m.thinkingBlocks ?? []) content.push({ type: 'thinking', thinking: block.thinking, signature: block.signature });
       if (m.text) content.push({ type: 'text', text: m.text });
       for (const c of m.toolCalls) content.push({ type: 'tool_use', id: c.id, name: c.name, input: c.args });
       return { role: 'assistant', content };
@@ -193,7 +200,25 @@ function anthropicMessages(messages: ChatMessage[]) {
   });
 }
 
-async function anthropicChat(req: ChatRequest, fetcher: Fetcher): Promise<ChatResponse> {
+/** Budget for classic extended thinking; must stay below max_tokens and ≥ 1024. */
+function thinkingBudget(maxTokens: number, effort: AiSettings['thinkingEffort']): number {
+  const want = effort === 'high' ? 10000 : effort === 'low' ? 1024 : 4096;
+  return Math.max(1024, Math.min(want, maxTokens - 1024));
+}
+
+function anthropicThinkingConfigs(settings: AiSettings, maxTokens: number): Record<string, unknown>[] {
+  const effort = settings.thinkingEffort ?? 'medium';
+  const budget = thinkingBudget(maxTokens, effort);
+  // Newer Claude models prefer adaptive + summarized display; older ones need enabled + budget.
+  return [
+    { thinking: { type: 'adaptive', display: 'summarized' } },
+    { thinking: { type: 'enabled', budget_tokens: budget, display: 'summarized' } },
+    { thinking: { type: 'enabled', budget_tokens: budget } },
+  ];
+}
+
+async function anthropicChatOnce(req: ChatRequest, fetcher: Fetcher, extra: Record<string, unknown> = {}): Promise<ChatResponse> {
+  const maxTokens = req.maxTokens ?? 8192;
   const res = await post(
     req.settings,
     fetcher,
@@ -201,17 +226,19 @@ async function anthropicChat(req: ChatRequest, fetcher: Fetcher): Promise<ChatRe
     anthropicHeaders(req.key),
     {
       model: req.settings.model,
-      max_tokens: req.maxTokens ?? 8192,
+      max_tokens: maxTokens,
       system: req.system,
       messages: anthropicMessages(req.messages),
       ...(req.tools.length ? { tools: req.tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.inputSchema })) } : {}),
       stream: true,
+      ...extra,
     },
     req.signal,
   );
   let text = '';
   let stopReason = 'end_turn';
   const blocks = new Map<number, { id: string; name: string; json: string }>();
+  const thinking = new Map<number, { thinking: string; signature: string }>();
   const calls: ToolCall[] = [];
   try {
     for await (const ev of readSse(res.body!, req.signal)) {
@@ -220,11 +247,22 @@ async function anthropicChat(req: ChatRequest, fetcher: Fetcher): Promise<ChatRe
       switch (msg.type) {
         case 'content_block_start':
           if (msg.content_block?.type === 'tool_use') blocks.set(msg.index, { id: msg.content_block.id, name: msg.content_block.name, json: '' });
+          else if (msg.content_block?.type === 'thinking') thinking.set(msg.index, { thinking: msg.content_block.thinking ?? '', signature: msg.content_block.signature ?? '' });
           break;
         case 'content_block_delta':
           if (msg.delta?.type === 'text_delta') {
             text += msg.delta.text;
             req.onText?.(msg.delta.text);
+          } else if (msg.delta?.type === 'thinking_delta') {
+            const chunk = msg.delta.thinking ?? '';
+            const block = thinking.get(msg.index) ?? { thinking: '', signature: '' };
+            block.thinking += chunk;
+            thinking.set(msg.index, block);
+            if (chunk) req.onReasoning?.(chunk);
+          } else if (msg.delta?.type === 'signature_delta') {
+            const block = thinking.get(msg.index) ?? { thinking: '', signature: '' };
+            block.signature += msg.delta.signature ?? '';
+            thinking.set(msg.index, block);
           } else if (msg.delta?.type === 'input_json_delta') {
             const b = blocks.get(msg.index);
             if (b) b.json += msg.delta.partial_json ?? '';
@@ -249,7 +287,29 @@ async function anthropicChat(req: ChatRequest, fetcher: Fetcher): Promise<ChatRe
     if (err instanceof AiProviderError) throw err;
     throw networkError(req.settings, err);
   }
-  return { text, toolCalls: calls, stopReason: calls.length ? 'tool_use' : stopReason };
+  const thinkingBlocks = [...thinking.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, b]) => b)
+    .filter((b) => b.signature);
+  return { text, toolCalls: calls, thinkingBlocks: thinkingBlocks.length ? thinkingBlocks : undefined, stopReason: calls.length ? 'tool_use' : stopReason };
+}
+
+async function anthropicChat(req: ChatRequest, fetcher: Fetcher): Promise<ChatResponse> {
+  const maxTokens = req.maxTokens ?? 8192;
+  const configs = anthropicThinkingConfigs(req.settings, maxTokens);
+  let lastErr: unknown;
+  for (const extra of [...configs, {}]) {
+    try {
+      return await anthropicChatOnce(req, fetcher, extra);
+    } catch (err) {
+      lastErr = err;
+      const msg = (err as Error)?.message ?? '';
+      // Thinking config rejected or unsupported — try the next shape, then none.
+      if (err instanceof AiProviderError && /thinking|budget_tokens|display|adaptive|enabled/i.test(msg)) continue;
+      throw err;
+    }
+  }
+  throw lastErr;
 }
 
 function parseArgs(json: string): Record<string, any> {
@@ -325,6 +385,13 @@ async function openaiChatOnce(req: ChatRequest, fetcher: Fetcher, images: boolea
         text += delta.content;
         req.onText?.(delta.content);
       }
+      // OpenAI-compatible reasoning streams (DeepSeek-R1, Grok reasoning, etc.).
+      const reasoning =
+        (typeof delta.reasoning_content === 'string' && delta.reasoning_content) ||
+        (typeof delta.reasoning === 'string' && delta.reasoning) ||
+        (typeof (delta as { reasoning_text?: string }).reasoning_text === 'string' && (delta as { reasoning_text: string }).reasoning_text) ||
+        '';
+      if (reasoning) req.onReasoning?.(reasoning);
       for (const tc of delta.tool_calls ?? []) {
         const index = typeof tc.index === 'number' ? tc.index : calls.size;
         const cur = calls.get(index) ?? { id: '', name: '', json: '' };

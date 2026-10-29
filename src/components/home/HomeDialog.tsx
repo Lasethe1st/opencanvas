@@ -92,11 +92,12 @@ export function HomeDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         onKeyDown={onKeyDown}
-        className={`flex max-h-[min(640px,calc(100dvh-2rem))] w-full flex-col overflow-hidden rounded-[15px] border border-foreground/[0.08] bg-[var(--home-card)] text-foreground motion-safe:animate-[home-dialog-in_0.18s_cubic-bezier(0.2,0,0,1)] ${wide ? 'max-w-[600px]' : 'max-w-[520px]'}`}
+        className={`flex max-h-[min(640px,calc(100dvh-2rem))] w-full flex-col overflow-hidden rounded-[15px] border border-foreground/[0.08] bg-[color-mix(in_srgb,var(--home-card)_80%,transparent)] text-foreground shadow-[var(--shadow-md)] backdrop-blur-[20px] backdrop-saturate-150 motion-safe:animate-[home-dialog-in_0.18s_cubic-bezier(0.2,0,0,1)] ${wide ? 'max-w-[600px]' : 'max-w-[450px]'}`}
+        style={{ WebkitBackdropFilter: 'blur(20px) saturate(1.5)' }}
       >
-        <header className="flex shrink-0 items-center gap-2 py-3 ps-5 pe-3">
+        <header className="flex shrink-0 items-center gap-1 px-2 py-3">
           <div className="min-w-0 flex-1">
-            <h2 id={titleId} className="m-0 truncate text-sm font-medium">
+            <h2 id={titleId} className="m-0 truncate text-[18px] font-medium tracking-[-0.01rem]">
               {title}
             </h2>
             {subtitle && <p className="m-0 truncate text-xs text-muted-foreground">{subtitle}</p>}
@@ -115,7 +116,7 @@ export function HomeDialog({
             <div className="h-full rounded-full bg-foreground motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]" style={{ width: `${(progress.value / progress.max) * 100}%` }} />
           </div>
         )}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 pt-1">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-2 pt-0">{children}</div>
         {footer && <footer className="flex shrink-0 items-center gap-2 border-t border-foreground/[0.08] px-5 py-3">{footer}</footer>}
       </div>
     </div>,

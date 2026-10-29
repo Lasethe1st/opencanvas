@@ -46,13 +46,15 @@ const PATHS: { id: StartPath; label: string; hint: string; icon: ComponentType<{
   { id: 'open', label: 'Open a folder or file', hint: 'Continue with a project on this computer.', icon: FolderOpen },
 ];
 
-function Question({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+function Question({ title, hint, children }: { title?: string; hint?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-3 motion-safe:animate-[fade-in_0.18s_ease-out]">
-      <div>
-        <h3 className="m-0 text-lg font-medium leading-tight tracking-[-0.01em]">{title}</h3>
-        {hint && <p className="m-0 mt-1 text-xs text-muted-foreground">{hint}</p>}
-      </div>
+      {(title || hint) && (
+        <div>
+          {title ? <h3 className="m-0 text-lg font-medium leading-tight tracking-[-0.01em]">{title}</h3> : null}
+          {hint && <p className={cn('m-0 text-xs text-muted-foreground', title && 'mt-1')}>{hint}</p>}
+        </div>
+      )}
       {children}
     </div>
   );
@@ -228,8 +230,8 @@ export function NewProjectDialog({
         >
           <div onKeyDown={onEnter}>
             {step === 'start' && (
-              <Question title={TITLES.start}>
-                <div role="radiogroup" aria-label="How do you want to start?" className="flex flex-col gap-1.5">
+              <Question>
+                <div role="radiogroup" aria-label={TITLES.start} className="flex flex-col gap-1.5">
                   {PATHS.map(({ id, label, hint, icon: Icon }) => (
                     <button
                       key={id}

@@ -80,8 +80,8 @@
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
   /* Home chat type scale — overridden by Settings › General › Font Size. */
-  --chat-font-size: 14px;
-  --chat-font-size-sm: 12.5px;
+  --chat-font-size: 13px;
+  --chat-font-size-sm: 12px;
 
   /* User chat bubble — overridden by [data-chat-bubble] presets. */
   --chat-user-bg: var(--fg);

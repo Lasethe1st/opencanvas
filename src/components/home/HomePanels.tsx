@@ -1,9 +1,10 @@
 import { ArrowLeft, CaretRight, ChatsCircle, FileText, FolderOpen, MagnifyingGlass, Sparkle } from '@phosphor-icons/react';
 import { useEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import type { RecentProject, TemplateId, TemplateMeta } from '../../../shared/types';
-import type { HomeChat } from '../../lib/home-chats';
+import { titleFromPrompt, type HomeChat } from '../../lib/home-chats';
 import { createProject, importFromGithub, importZip, openFileFromDisk, openProjectDialog, openRecent } from '../../lib/actions';
 import { GithubMark, ProjectIcon } from '../../ui/StartScreen.jsx';
+import type { HomeMenuAction } from './HomeItemMenu';
 import { ProjectRow, ProjectRowSkeletons } from './ProjectRow';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
@@ -184,7 +185,15 @@ export function RecentPanel({ recent }: { recent: RecentProject[] | null }) {
   );
 }
 
-export function RecentChatsPanel({ chats, onPick }: { chats: HomeChat[]; onPick: (chat: HomeChat) => void }) {
+export function RecentChatsPanel({
+  chats,
+  onPick,
+  menuFor,
+}: {
+  chats: HomeChat[];
+  onPick: (chat: HomeChat) => void;
+  menuFor?: (chat: HomeChat) => HomeMenuAction[];
+}) {
   if (!chats.length)
     return (
       <Empty>
@@ -197,7 +206,14 @@ export function RecentChatsPanel({ chats, onPick }: { chats: HomeChat[]; onPick:
   return (
     <div className="flex flex-col gap-0.5">
       {chats.map((chat) => (
-        <ProjectRow key={chat.id} icon={<ChatsCircle className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={chat.text} detail={timeAgo(chat.at)} path={chat.text} onClick={() => onPick(chat)} />
+        <ProjectRow
+          key={chat.id}
+          name={titleFromPrompt(chat.text)}
+          detail={timeAgo(chat.at)}
+          path={chat.text}
+          menu={menuFor?.(chat)}
+          onClick={() => onPick(chat)}
+        />
       ))}
     </div>
   );
@@ -314,7 +330,7 @@ export function SearchPanel({ recent, chats, onGithub, onChat, onDone }: { recen
       key: c.id,
       kind: 'chat',
       run: () => onChat(c),
-      render: (isActive, hover) => <ProjectRow icon={<ChatsCircle className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={c.text} detail={`Chat · ${timeAgo(c.at)}`} path={c.text} active={isActive} onMouseEnter={hover} onClick={() => onChat(c)} />,
+      render: (isActive, hover) => <ProjectRow icon={<ChatsCircle className="size-8 shrink-0 rounded-md bg-muted p-2" aria-hidden />} name={titleFromPrompt(c.text)} detail={`Chat · ${timeAgo(c.at)}`} path={c.text} active={isActive} onMouseEnter={hover} onClick={() => onChat(c)} />,
     });
 
   const activeRow = Math.min(active, Math.max(0, rows.length - 1));
@@ -337,13 +353,15 @@ export function SearchPanel({ recent, chats, onGithub, onChat, onDone }: { recen
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <InputGroup className="h-10">
-        <InputGroupAddon>
-          <MagnifyingGlass aria-hidden />
-        </InputGroupAddon>
-        <InputGroupInput data-autofocus aria-label="Search projects and chats" placeholder="Search projects and chats" value={query} onChange={(e) => { setQuery(e.target.value); setActive(0); }} onKeyDown={onKey} />
-      </InputGroup>
+    <div className="flex flex-col gap-4">
+      <div className="sticky top-0 z-10 -mx-2 bg-card px-2 pb-2 pt-2">
+        <InputGroup className="h-[35px] rounded-[var(--r-pill)]">
+          <InputGroupAddon>
+            <MagnifyingGlass aria-hidden />
+          </InputGroupAddon>
+          <InputGroupInput data-autofocus aria-label="Search projects and chats" placeholder="Search projects and chats" value={query} onChange={(e) => { setQuery(e.target.value); setActive(0); }} onKeyDown={onKey} />
+        </InputGroup>
+      </div>
       {recent !== null && rows.length === 0 ? (
         <Empty>
           <EmptyHeader>

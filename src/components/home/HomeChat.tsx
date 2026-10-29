@@ -1,5 +1,8 @@
 import { highlight } from "../../lib/highlight";
-import { Brain, Check, CircleNotch, Copy, ShieldWarning, ThumbsDown, ThumbsUp, WarningCircle, Wrench, X } from "@phosphor-icons/react";
+import { Brain, Check, ShieldWarning, WarningCircle, Wrench, X } from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Copy01Icon } from "@hugeicons/core-free-icons";
+import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AiChatItem } from "../../../shared/ai";
 import { answerAi, approveAi, openAiSettings } from "../../lib/ai";
@@ -14,7 +17,13 @@ import {
   CodeBlockTitle,
 } from "@/components/ui/code-block";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
-import { Trace, TraceIcon, TraceLine, TraceTitle } from "@/components/ui/trace";
+import {
+  Trace,
+  TraceIcon,
+  TraceLine,
+  TraceTitle,
+} from "@/components/ui/trace";
+import { ThinkingReasoning } from "@/components/ui/thinking-reasoning";
 import { getVote, isRemembered, setVote, subscribeMemory, toggleRemember, type Vote } from "../../lib/ai-memory";
 import { AgentOrb } from "@/components/ui/agent-orb";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
@@ -39,12 +48,18 @@ export function HomeChat({ mentions = false }: { mentions?: boolean } = {}) {
   const busy = !!turnId;
   const waiting = items.some((i) => (i.kind === "question" || i.kind === "approval") && i.answer === null);
   const last = items[items.length - 1];
-  const thinking =
-    busy && !waiting && !(last?.kind === "assistant" || (last?.kind === "tool" && last.state === "running"));
+  const waitingOnModel =
+    busy &&
+    !waiting &&
+    !(
+      last?.kind === "assistant" ||
+      last?.kind === "thinking" ||
+      (last?.kind === "tool" && last.state === "running")
+    );
 
   useLayoutEffect(() => {
     endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, [items, thinking]);
+  }, [items, waitingOnModel]);
 
   return (
     <div className="w-full px-1 py-2" aria-label="Conversation">
@@ -54,10 +69,10 @@ export function HomeChat({ mentions = false }: { mentions?: boolean } = {}) {
             <ChatItem item={item} mentions={mentions} />
           </div>
         ))}
-        {thinking && (
+        {waitingOnModel && (
           <div className="flex items-center gap-2" aria-live="polite">
             <span aria-hidden className="text-foreground">
-              <AgentOrb variant="S1" size={20} style={{ color: "currentColor" }} />
+              <AgentOrb variant="S2" size={20} style={{ color: "currentColor" }} />
             </span>
             <ShimmeringText text="Thinking…" className="text-[length:var(--chat-font-size-sm)]" startOnView={false} />
           </div>
@@ -190,6 +205,8 @@ function ChatItem({ item, mentions }: { item: AiChatItem; mentions: boolean }) {
       return <UserBubble text={item.text} mentions={mentions} />;
     case "assistant":
       return <AssistantMessage id={item.id} text={item.text} />;
+    case "thinking":
+      return <ThinkingTrace item={item} />;
     case "error":
       return (
         <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-[length:var(--chat-font-size-sm)] text-destructive" role="alert">
@@ -204,6 +221,11 @@ function ChatItem({ item, mentions }: { item: AiChatItem; mentions: boolean }) {
     case "approval":
       return <ApprovalCard item={item} />;
   }
+}
+
+/** Streamed model reasoning — aicss Thinking + Reasoning block. */
+function ThinkingTrace({ item }: { item: Extract<AiChatItem, { kind: "thinking" }> }) {
+  return <ThinkingReasoning text={item.text} done={item.done} />;
 }
 
 function ToolTrace({ item }: { item: Extract<AiChatItem, { kind: "tool" }> }) {
@@ -222,18 +244,21 @@ function ToolTrace({ item }: { item: Extract<AiChatItem, { kind: "tool" }> }) {
   return (
     <Trace>
       <TraceLine status={status}>
-        <TraceIcon>
-          {item.state === "running" ? (
-            <CircleNotch className="animate-spin" />
-          ) : item.state === "done" ? (
-            <Check />
-          ) : item.state === "failed" ? (
-            <X />
-          ) : (
-            <Wrench />
-          )}
-        </TraceIcon>
-        <TraceTitle>{title}</TraceTitle>
+        {item.state === "running" ? (
+          <>
+            <span aria-hidden className="text-foreground">
+              <AgentOrb variant="S3" size={14} style={{ color: "currentColor" }} />
+            </span>
+            <ShimmeringText text={title} className="text-[length:var(--chat-font-size-sm)]" startOnView={false} />
+          </>
+        ) : (
+          <>
+            <TraceIcon>
+              {item.state === "done" ? <Check /> : item.state === "failed" ? <X /> : <Wrench />}
+            </TraceIcon>
+            <TraceTitle>{title}</TraceTitle>
+          </>
+        )}
       </TraceLine>
     </Trace>
   );
@@ -292,13 +317,13 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
   return (
     <div className="flex items-center gap-0.5 -ms-2" role="group" aria-label="Reply actions">
       <Button variant="ghost" className={btn} aria-label={copied ? "Copied" : "Copy reply"} title={copied ? "Copied" : "Copy"} onClick={() => void copy()}>
-        {copied ? <Check /> : <Copy />}
+        {copied ? <Check /> : <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} />}
       </Button>
       <Button variant="ghost" className={cn(btn, vote === "up" && "text-foreground")} aria-label="Good reply" aria-pressed={vote === "up"} title="Good reply" onClick={() => rate("up")}>
-        <ThumbsUp className={vote === "up" ? "fill-current" : undefined} />
+        <ThumbsUp strokeWidth={2} className={vote === "up" ? "fill-current" : undefined} />
       </Button>
       <Button variant="ghost" className={cn(btn, vote === "down" && "text-foreground")} aria-label="Bad reply" aria-pressed={vote === "down"} title="Bad reply" onClick={() => rate("down")}>
-        <ThumbsDown className={vote === "down" ? "fill-current" : undefined} />
+        <ThumbsDown strokeWidth={2} className={vote === "down" ? "fill-current" : undefined} />
       </Button>
       <Button
         variant="ghost"

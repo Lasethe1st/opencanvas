@@ -1,22 +1,18 @@
 import { Plus } from '@phosphor-icons/react';
-import { useId, type ComponentType, type CSSProperties, type ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import homeMark from '../../assets/home-mark.png';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
+import { HomeContextMenu, type HomeMenuAction } from './HomeItemMenu';
 
 export const HOME_NAV_WIDTH = 250;
-
-export type NavIcon = ComponentType<{ className?: string; weight?: 'fill'; style?: CSSProperties }>;
 
 /** A plain navigation row: icon, label, optional trailing text. */
 export interface NavRow {
   id: string;
   label: string;
-  icon: NavIcon;
+  icon: ReactNode;
   onSelect: () => void;
-  /** Colour for the icon (a source token), so Chats and Projects read differently at a glance. */
-  color?: string;
   shortcut?: string;
   disabled?: boolean;
 }
@@ -29,6 +25,7 @@ export interface NavEntry {
   icon: ReactNode;
   onSelect: () => void;
   disabled?: boolean;
+  menu?: HomeMenuAction[];
 }
 
 export interface NavSection {
@@ -65,7 +62,7 @@ export function HomeSidebar({
   const renderRow = (row: NavRow) => (
     <li key={row.id}>
       <button type="button" className={rowCls} disabled={row.disabled} onClick={row.onSelect}>
-        <row.icon weight="fill" className="size-4 shrink-0" style={row.color ? { color: row.color } : undefined} />
+        <span className="inline-flex size-4 shrink-0 items-center justify-center [&_svg]:size-4">{row.icon}</span>
         <span className="min-w-0 flex-1 truncate">{row.label}</span>
         {row.shortcut && <span className="shrink-0 text-[11px] text-muted-foreground">{row.shortcut}</span>}
       </button>
@@ -86,7 +83,7 @@ export function HomeSidebar({
           <img src={homeMark} alt="" width={28} height={28} className="home-mark box-border size-9 shrink-0 object-contain p-1.5 opacity-90" aria-hidden />
         </div>
 
-        <nav id={regionId} aria-label={label} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-contain px-2 pb-3 pt-1">
+        <nav id={regionId} aria-label={label} className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto overflow-x-hidden overscroll-contain px-2 pb-3 pt-1">
           <ul className="m-0 flex list-none flex-col gap-0.5 p-0">{actions.map(renderRow)}</ul>
 
           <section aria-labelledby={`${regionId}-library`} className="flex flex-col gap-1">
@@ -98,27 +95,38 @@ export function HomeSidebar({
 
           {sections.map((section) => (
             <section key={section.id} aria-labelledby={`${regionId}-${section.id}`} className="flex flex-col gap-1">
-              <div className="flex items-center justify-between ps-2">
-                <h2 id={`${regionId}-${section.id}`} className="m-0 text-xs font-medium text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 ps-2 pe-0.5">
+                <h2 id={`${regionId}-${section.id}`} className="m-0 min-w-0 truncate text-xs font-medium text-muted-foreground">
                   {section.title}
                 </h2>
-                {section.add && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" className="size-6 shrink-0 rounded-[6px] p-0 text-muted-foreground hover:bg-accent hover:text-foreground [&_svg]:size-3.5" aria-label={section.add.label} onClick={section.add.onSelect}>
-                        <Plus />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side={side}>{section.add.label}</TooltipContent>
-                  </Tooltip>
-                )}
+                <div className="flex shrink-0 items-center gap-1">
+                  {section.more && (
+                    <button
+                      type="button"
+                      className="inline-flex h-5 items-center rounded-[var(--pill)] bg-[var(--surface-2)] px-2 text-[10px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-secondary focus-visible:bg-secondary"
+                      onClick={section.more.onSelect}
+                    >
+                      {section.more.label}
+                    </button>
+                  )}
+                  {section.add && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" className="size-6 shrink-0 rounded-[6px] p-0 text-muted-foreground hover:bg-accent hover:text-foreground [&_svg]:size-3.5" aria-label={section.add.label} onClick={section.add.onSelect}>
+                          <Plus />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side={side}>{section.add.label}</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
               </div>
-              <ul className="m-0 flex list-none flex-col gap-px p-0">
+              <ul className="m-0 flex list-none flex-col gap-0 p-0">
                 {section.entries.length === 0 ? (
                   <li className="px-2 py-1.5 text-xs text-muted-foreground">{section.empty}</li>
                 ) : (
-                  section.entries.map((entry) => (
-                    <li key={entry.id}>
+                  section.entries.map((entry) => {
+                    const btn = (
                       <button
                         type="button"
                         title={entry.label}
@@ -132,15 +140,13 @@ export function HomeSidebar({
                           {entry.meta && <span className="block truncate text-[11px] leading-4 text-muted-foreground">{entry.meta}</span>}
                         </span>
                       </button>
-                    </li>
-                  ))
-                )}
-                {section.more && (
-                  <li>
-                    <button type="button" className={cn(rowCls, 'h-7 text-xs text-muted-foreground')} onClick={section.more.onSelect}>
-                      {section.more.label}
-                    </button>
-                  </li>
+                    );
+                    return (
+                      <li key={entry.id}>
+                        {entry.menu?.length ? <HomeContextMenu actions={entry.menu}>{btn}</HomeContextMenu> : btn}
+                      </li>
+                    );
+                  })
                 )}
               </ul>
             </section>
