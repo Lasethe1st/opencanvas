@@ -1,4 +1,4 @@
-import { ArrowUp, Check, CircleAlert, Crosshair, GitBranch, MessageSquarePlus, ShieldQuestion, Square, X } from 'lucide-react';
+import { ArrowUp, Check, Crosshair, GitBranch, MessageSquarePlus, ShieldQuestion, Square, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { providerMeta, type AiChatItem } from '../../../shared/ai';
 import { setLeafPage } from '../../../shared/workspace-layout';
@@ -9,6 +9,7 @@ import { getState, setState, useStore } from '../../lib/store';
 import { scheduleWorkspaceSave } from '../../lib/workspace';
 import { AgentOrb } from '@/components/ui/agent-orb';
 import { ThinkingReasoning } from '@/components/ui/thinking-reasoning';
+import { humanizeAiError } from '../../lib/ai-errors';
 import { Button, IconButton, cx } from '../../ui/primitives.jsx';
 
 export async function showAgentActivity() {
@@ -173,9 +174,8 @@ function ChatItem({ item }: { item: AiChatItem }) {
       return <ThinkingReasoning text={item.text} done={item.done} />;
     case 'error':
       return (
-        <div className="ai-error" role="alert">
-          <CircleAlert size={14} aria-hidden />
-          <span>{item.text}</span>
+        <div className="ai-msg ai-msg--assistant" role="alert">
+          {humanizeAiError(item.text)}
         </div>
       );
     case 'tool':

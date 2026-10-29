@@ -1,6 +1,6 @@
 import { Brain, ChatCircle, FolderSimple, Lightning } from '@phosphor-icons/react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { LayoutAlignLeftIcon, LayoutAlignRightIcon, PenLineIcon, Search02Icon } from '@hugeicons/core-free-icons';
+import { LayoutAlignLeftIcon, LayoutAlignRightIcon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
 import { Library } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentProject, SkillMeta } from '../../shared/types';
@@ -291,7 +291,7 @@ export function Onboarding() {
 
   const actions: NavRow[] = useMemo(
     () => [
-      { id: 'new-chat', label: 'New chat', icon: <HugeiconsIcon icon={PenLineIcon} strokeWidth={2} />, onSelect: newChat },
+      { id: 'new-chat', label: 'New chat', icon: <HugeiconsIcon icon={SquarePenIcon} strokeWidth={2} />, onSelect: newChat },
       { id: 'search', label: 'Search', icon: <HugeiconsIcon icon={Search02Icon} strokeWidth={2} />, shortcut: isMac ? '⌘K' : 'Ctrl K', onSelect: () => setSearchOpen(true) },
     ],
     [newChat, isMac],

@@ -132,9 +132,9 @@ export function networkError(settings: AiSettings, err: unknown): AiProviderErro
   if ((err as Error)?.name === 'AbortError') return Object.assign(new AiProviderError('Stopped.'), { name: 'AbortError' });
   const meta = providerMeta(settings.provider);
   if (meta.local || /localhost|127\.0\.0\.1/.test(settings.baseUrl)) {
-    return new AiProviderError(`Can’t reach ${meta.local ? meta.label : 'the model server'} at ${settings.baseUrl}. Start it and try again.`);
+    return new AiProviderError(`I couldn’t reach ${meta.local ? meta.label : 'your local model'} at ${settings.baseUrl}. Make sure it’s running, then try again.`);
   }
-  return new AiProviderError(`Can’t reach ${hostOf(settings.baseUrl)}. Check your internet connection and the server URL.`);
+  return new AiProviderError(`I couldn’t reach ${hostOf(settings.baseUrl)} just now. Check your connection (and the server URL in Settings › AI), then try again.`);
 }
 
 async function httpError(settings: AiSettings, res: Response): Promise<AiProviderError> {

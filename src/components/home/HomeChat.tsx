@@ -1,5 +1,6 @@
 import { highlight } from "../../lib/highlight";
-import { Brain, Check, ShieldWarning, WarningCircle, Wrench, X } from "@phosphor-icons/react";
+import { Brain, Check, ShieldWarning, Wrench, X } from "@phosphor-icons/react";
+import { humanizeAiError } from "../../lib/ai-errors";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Copy01Icon } from "@hugeicons/core-free-icons";
 import { ThumbsDown, ThumbsUp } from "lucide-react";
@@ -208,12 +209,7 @@ function ChatItem({ item, mentions }: { item: AiChatItem; mentions: boolean }) {
     case "thinking":
       return <ThinkingTrace item={item} />;
     case "error":
-      return (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-[length:var(--chat-font-size-sm)] text-destructive" role="alert">
-          <WarningCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          <span>{item.text}</span>
-        </div>
-      );
+      return <ErrorMessage text={item.text} />;
     case "tool":
       return <ToolTrace item={item} />;
     case "question":
@@ -261,6 +257,17 @@ function ToolTrace({ item }: { item: Extract<AiChatItem, { kind: "tool" }> }) {
         )}
       </TraceLine>
     </Trace>
+  );
+}
+
+/** Failure phrased like a normal reply — same type treatment as assistant text. */
+function ErrorMessage({ text }: { text: string }) {
+  return (
+    <div className="flex max-w-full flex-col gap-1.5" role="alert">
+      <div className="flex max-w-full flex-col gap-2 text-[length:var(--chat-font-size)] leading-relaxed text-foreground">
+        <p className="m-0 break-words whitespace-pre-wrap [overflow-wrap:anywhere]">{humanizeAiError(text)}</p>
+      </div>
+    </div>
   );
 }
 

@@ -115,9 +115,30 @@ export function historyTurnsForHomeChat(chat: HomeChat): { role: 'user' | 'assis
 
 const MAX_TITLE = 48;
 
+const STOP = new Set([
+  'a', 'an', 'the', 'i', 'me', 'my', 'we', 'our', 'you', 'your', 'to', 'of', 'in', 'on', 'for', 'and', 'or',
+  'is', 'are', 'was', 'were', 'be', 'been', 'being', 'do', 'does', 'did', 'can', 'could', 'would', 'should',
+  'will', 'with', 'from', 'about', 'into', 'that', 'this', 'it', 'its', 'at', 'as', 'by', 'am', 'have', 'has',
+  'had', 'currently', 'please', 'just', 'also', 'any', 'some', 'there', 'here', 'so', 'if', 'then', 'than',
+  'too', 'very', 'really', 'like', 'get', 'got', 'make', 'made', 'want', 'need', 'help', 'tell', 'show',
+  'give', 'let', 'know', 'thanks', 'thank',
+]);
+
+function titleCaseWord(word: string): string {
+  if (/^[A-Z0-9]{2,}$/.test(word)) return word;
+  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+}
+
+function contentWords(text: string): string[] {
+  return text
+    .split(/[^a-zA-Z0-9+#-]+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length > 1 && !STOP.has(w.toLowerCase()));
+}
+
 /**
- * Short label for the chat pill / sidebar — prose only, no pasted SVG/code dumps.
- * Falls back to a kind hint when the message is mostly markup.
+ * Short human label for the chat pill / sidebar — derived from the first prompt,
+ * not a truncated copy of it (e.g. “what are the projects…” → “Number of Projects Enquiry”).
  */
 export function titleFromPrompt(raw: string): string {
   let text = raw.split('\n\nReferenced:\n')[0] ?? raw;
@@ -132,8 +153,39 @@ export function titleFromPrompt(raw: string): string {
 
   if (!text) return hadMarkup ? 'Code snippet' : 'New chat';
 
-  const clause = text.split(/(?<=[.!?])\s+|:\s+/)[0]?.trim() || text;
-  let title = clause.length <= MAX_TITLE ? clause : `${clause.slice(0, MAX_TITLE - 1).replace(/\s+\S*$/, '').trimEnd()}…`;
+  const question = /\?$/.test(text) || /^(what|how|why|when|where|who|which|can|could|do|does|is|are|should|would)\b/i.test(text);
+  const lower = text.toLowerCase();
+
+  // “what are / how many …” → “Number of X Enquiry”
+  if (/^(how many|what(?:'s| is| are)(?: the)?)\b/.test(lower)) {
+    const rest = text
+      .replace(/^(how many|what(?:'s| is| are)(?: the)?)\s+/i, '')
+      .replace(/\b(i|we|you)\b[\s\S]*$/i, '')
+      .replace(/[?.!]+$/g, '')
+      .trim();
+    const words = contentWords(rest).slice(0, 3).map(titleCaseWord);
+    if (words.length) {
+      const title = `Number of ${words.join(' ')} Enquiry`;
+      return title.length <= MAX_TITLE ? title : `${title.slice(0, MAX_TITLE - 1).trimEnd()}…`;
+    }
+  }
+
+  // Strip common ask/command openers, then keep a few content words.
+  let body = text
+    .replace(/^(can you|could you|would you|please|hey|hi|hello)[,!]?\s+/i, '')
+    .replace(/^(what|how|why|when|where|who|which|tell me|show me|explain|describe|list|find|help me(?: to)?)\b[\s,]*/gi, '')
+    .replace(/\b(i currently have|i have|for me|please|thanks|thank you)\b[?.!]*$/i, '')
+    .replace(/[?.!]+$/g, '')
+    .trim();
+
+  let words = contentWords(body);
+  if (!words.length) words = contentWords(text);
+  if (!words.length) return hadMarkup ? 'Code snippet' : 'New chat';
+
+  words = words.slice(0, question ? 4 : 5).map(titleCaseWord);
+  let title = words.join(' ');
+  if (question && !/\b(enquiry|question|help|request)\b/i.test(title)) title = `${title} Enquiry`;
+  if (title.length > MAX_TITLE) title = `${title.slice(0, MAX_TITLE - 1).replace(/\s+\S*$/, '').trimEnd()}…`;
   if (title.length < 3 && hadMarkup) return 'Code snippet';
   return title || 'New chat';
 }
