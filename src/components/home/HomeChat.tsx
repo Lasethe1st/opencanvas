@@ -101,10 +101,10 @@ function inlineRefs(body: string, refs: { kind: SourceKind; title: string }[]): 
     out.push(
       <span
         key={`${r.kind}:${r.title}:${at}`}
-        className="mx-px inline-flex max-w-[16rem] items-center gap-1 rounded-[var(--pill)] px-2 align-baseline text-[0.92em] leading-[1.35]"
+        className="mx-0.5 inline-flex max-w-[16rem] items-center gap-1.5 rounded-[var(--pill)] px-2.5 py-[3px] align-middle text-[0.92em] leading-[1.4]"
         style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--home-card))` }}
       >
-        <SourceIcon kind={r.kind} className="size-3.5 shrink-0" />
+        <SourceIcon kind={r.kind} className="size-4 shrink-0" />
         <span className="truncate">{r.title}</span>
       </span>,
     );
