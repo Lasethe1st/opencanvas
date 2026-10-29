@@ -1707,11 +1707,11 @@ kbd, .kbd,
 
 /* No corner radius anywhere on the canvas page. Exceptions: the assistant docker, round avatars/badges/spinners,
    dialogs, and the user's own design on the stage. */
-body:has(.shell .workspace) *:not(
+:where(body:has(.shell .workspace) *:not(
   .assistant-docker [data-slot='shapeshift-shell'], .assistant-docker [data-slot='shapeshift-shell'] *,
   [class*='avatar'], [class*='badge'], [class*='orb'], [class*='spin'], [class*='dot'],
   [role='dialog'], [role='dialog'] *, .stage__world *
-) { border-radius: 0 !important; }
+)) { border-radius: 0 !important; }
 body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data-tip]::before { border-radius: 0 !important; }
 
 /* Docker: a pill while it is short, a squircle once something opens in it. */
@@ -1724,3 +1724,18 @@ body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data
 .workspace > .tool-rails { overflow-y: auto; scrollbar-width: none; }
 .workspace > .tool-rails::-webkit-scrollbar { display: none; }
 .tool-rails__divider { width: 24px; height: 1px; margin: 4px 0; background: var(--line); }
+
+/* Soft corners on the things you press, pick and toggle. Layout (panels, rail, bars, canvas) stays square. */
+body:has(.shell .workspace) :is(
+  button, [role='button'], [role='tab'], [role='radio'], [role='menuitem'], [role='option'], select,
+  .btn, .icon-btn, .tool-btn, .menu-item, .tree-row, .segmented, .segmented button, .toggle-row, .toggle-row button,
+  .toggle-more__select, .state-switcher-select, .input, .search, .search input, textarea,
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
+  .swatch, .section__icon, .field-select, .ai-option, .ai-card__text input
+):not(.assistant-docker *, [class*='avatar'], .stage__world *) { border-radius: 6px !important; corner-shape: squircle; }
+/* Active, selected and pressed states follow the same soft corner. */
+body:has(.shell .workspace) :is(.is-active, .is-current, .is-selected, [aria-selected='true'], [aria-pressed='true'], [aria-current='true'], .segmented__pill):not(.assistant-docker *, .stage__world *) { border-radius: 6px !important; corner-shape: squircle; }
+/* Switches are pills; checkboxes and radios get a small radius. */
+body:has(.shell .workspace) :is([role='switch'], .switch, .toggle-switch, .toggle-switch *) { border-radius: 999px !important; corner-shape: round; }
+body:has(.shell .workspace) input[type='checkbox'] { border-radius: 4px !important; }
+body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important; }
