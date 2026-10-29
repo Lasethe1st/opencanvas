@@ -51,6 +51,19 @@ export function Onboarding() {
   const [location, setLocation] = useState('');
   const [chats, setChats] = useState<HomeChatRecord[]>(loadHomeChats);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  /** While you scroll the transcript the composer folds into a thin home indicator; a click opens it again. */
+  const [composerFolded, setComposerFolded] = useState(false);
+  const composerRef = useRef<HTMLDivElement>(null);
+  const foldOnScroll = (e: React.WheelEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
+    const el = e.currentTarget;
+    if (voiceMode || composerFolded || el.scrollHeight <= el.clientHeight + 1) return;
+    if (composerRef.current?.contains(e.target as Node)) return;
+    setComposerFolded(true);
+  };
+  const unfoldComposer = () => {
+    setComposerFolded(false);
+    requestAnimationFrame(() => composerRef.current?.querySelector<HTMLTextAreaElement>('textarea')?.focus());
+  };
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
   const onboarding = useOnboarding();
   const [dialog, setDialog] = useState<HomeDialogState | null>(null);
@@ -287,6 +300,8 @@ export function Onboarding() {
             </Tooltip>
           )}
           <main
+            onWheel={chatActive ? foldOnScroll : undefined}
+            onTouchMove={chatActive ? foldOnScroll : undefined}
             className={
               chatActive
                 ? 'relative flex h-full min-w-0 flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
@@ -298,7 +313,34 @@ export function Onboarding() {
                 <div className="mx-auto w-full max-w-[680px] flex-1 px-8 pt-16">
                   <HomeChat />
                 </div>
-                <div className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-[var(--home-card)] from-[40%] via-[color-mix(in_srgb,var(--home-card)_60%,transparent)] via-[55%] to-transparent to-75% px-8 pb-6 pt-8">
+                <div
+                  ref={composerRef}
+                  className={cn(
+                    'sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-[var(--home-card)] from-[40%] via-[color-mix(in_srgb,var(--home-card)_60%,transparent)] via-[55%] to-transparent to-75% px-8 transition-[padding] duration-300 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none',
+                    composerFolded && !voiceMode ? 'pb-2 pt-2' : 'pb-6 pt-8',
+                  )}
+                >
+                  <button
+                    type="button"
+                    aria-label="Show message input"
+                    title="Message"
+                    tabIndex={composerFolded && !voiceMode ? 0 : -1}
+                    onClick={unfoldComposer}
+                    className={cn(
+                      'group mx-auto flex h-5 w-full max-w-[680px] cursor-pointer items-center justify-center transition-opacity duration-300 motion-reduce:transition-none',
+                      composerFolded && !voiceMode ? 'opacity-100' : 'pointer-events-none absolute inset-x-8 bottom-2 opacity-0',
+                    )}
+                  >
+                    <span className="h-1 w-[120px] rounded-full bg-foreground/25 transition-[height,background-color] duration-150 group-hover:h-1.5 group-hover:bg-foreground/40" />
+                  </button>
+                  <div
+                    inert={composerFolded && !voiceMode ? true : undefined}
+                    className={cn(
+                      'mx-auto grid w-full max-w-[680px] transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none',
+                      composerFolded && !voiceMode ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100',
+                    )}
+                  >
+                  <div className={cn('min-h-0', composerFolded && !voiceMode ? 'overflow-hidden' : 'overflow-visible')}>
                   <div className="mx-auto flex w-full max-w-[680px] flex-col gap-2">
                     {!voiceMode && (
                       <div className="flex items-center justify-between gap-3 px-1">
@@ -341,6 +383,8 @@ export function Onboarding() {
                         )}
                       </>
                     )}
+                  </div>
+                  </div>
                   </div>
                 </div>
               </>

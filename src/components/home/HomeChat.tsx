@@ -1,5 +1,5 @@
 import { highlight } from "../../lib/highlight";
-import { Brain, Check, CircleNotch, Copy, ShieldWarning, ThumbsDown, ThumbsUp, WarningCircle, Wrench, X } from "@phosphor-icons/react";
+import { Brain, Check, CircleNotch, Copy, FileText, ShieldWarning, Stack, ThumbsDown, ThumbsUp, WarningCircle, Wrench, X } from "@phosphor-icons/react";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AiChatItem } from "../../../shared/ai";
 import { answerAi, approveAi, openAiSettings } from "../../lib/ai";
@@ -98,12 +98,10 @@ function inlineRefs(body: string, refs: { kind: SourceKind; title: string }[]): 
   let cursor = 0;
   for (const { r, at } of found) {
     if (at > cursor) out.push(body.slice(cursor, at));
-    const color = SOURCE_META[r.kind].color;
     out.push(
       <span
         key={`${r.kind}:${r.title}:${at}`}
-        className="mx-px inline-flex max-w-[16rem] items-center gap-1 rounded-[var(--pill)] px-2 align-baseline text-[0.92em] leading-[1.35]"
-        style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--home-card))` }}
+        className="mx-px inline-flex max-w-[16rem] items-center gap-1 rounded-[var(--pill)] bg-foreground/[0.07] px-2 align-baseline text-[0.92em] leading-[1.35] text-foreground"
       >
         <SourceIcon kind={r.kind} className="size-3.5 shrink-0" />
         <span className="truncate">{r.title}</span>
@@ -141,13 +139,14 @@ function inlineMentions(body: string): React.ReactNode[] {
     if (f.at < cursor) continue;
     if (f.at > cursor) out.push(body.slice(cursor, f.at));
     const color = f.kind === "page" ? "#3b82f6" : "#8b5cf6";
+    const MentionIcon = f.kind === "page" ? FileText : Stack;
     out.push(
       <span
         key={`${f.at}:${f.name}`}
-        className="mx-px inline-flex max-w-[16rem] items-center rounded-[var(--pill)] px-1.5 align-baseline text-[0.92em] leading-[1.35]"
-        style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--home-card))` }}
+        className="mx-px inline-flex max-w-[16rem] items-center gap-1 rounded-[var(--pill)] bg-foreground/[0.07] px-2 align-baseline text-[0.92em] leading-[1.35] text-foreground"
       >
-        <span className="truncate">@{f.name}</span>
+        <MentionIcon className="size-3.5 shrink-0" weight="fill" style={{ color }} aria-hidden />
+        <span className="truncate">{f.name}</span>
       </span>,
     );
     cursor = f.at + f.len;
