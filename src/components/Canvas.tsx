@@ -13,7 +13,7 @@ import {
   TextCursorInput,
   Trash2,
   X,
-} from 'lucide-react';
+} from '../lib/hugeicons';
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {

@@ -1,4 +1,4 @@
-import { Sparkles, X } from 'lucide-react';
+import { Sparkles, X } from '../lib/hugeicons';
 import { useRef } from 'react';
 import { selectElement } from '../lib/actions';
 import { sendToAi } from '../lib/ai';

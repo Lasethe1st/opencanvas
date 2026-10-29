@@ -9,7 +9,7 @@ import {
   SquareStack,
   SwatchBook,
   Type,
-} from 'lucide-react';
+} from '../lib/hugeicons';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { PageConfig } from '../../shared/project-config';
 import type { FileNode } from '../../shared/types';
