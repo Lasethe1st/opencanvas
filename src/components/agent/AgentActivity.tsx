@@ -59,14 +59,14 @@ function columnsOf(g: AgentGraph): Column[] {
   if (!g.rootId || !g.nodes[g.rootId]) return [];
   const root = g.nodes[g.rootId];
   const kids = (g.children[g.rootId] ?? []).map((id) => g.nodes[id]).filter(Boolean) as AgentGraphNode[];
-  const cols: Column[] = [{ node: root, number: 1, title: 'Your request', tools: [] }];
+  const cols: Column[] = [{ node: root, number: 0, title: 'Your request', tools: [] }];
   for (const n of kids) {
     if (n.kind === 'end') continue;
     const tools = (g.children[n.id] ?? []).map((id) => g.nodes[id]).filter(Boolean) as AgentGraphNode[];
-    cols.push({ node: n, number: cols.length + 1, title: n.kind === 'step' ? stepTitle(g, n.id) : n.label, tools });
+    cols.push({ node: n, number: cols.length, title: n.kind === 'step' ? stepTitle(g, n.id) : n.label, tools });
   }
   const end = kids.find((n) => n.kind === 'end');
-  if (end && end.status !== 'pending') cols.push({ node: end, number: cols.length + 1, title: end.label, tools: [] });
+  if (end && end.status !== 'pending') cols.push({ node: end, number: 0, title: end.label, tools: [] });
   return cols;
 }
 
@@ -119,7 +119,7 @@ export function AgentActivity() {
   useEffect(() => {
     if (!follow || !graph.activeNodeId || !scroller.current) return;
     const el = scroller.current.querySelector(`[data-node-id="${graph.activeNodeId}"]`);
-    el?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    el?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }, [follow, graph.activeNodeId]);
 
   const select = (id: string) => setState({ selectedAgentNodeId: id, followAgentNode: false });
@@ -135,8 +135,8 @@ export function AgentActivity() {
     );
   }
 
-  const mapCols = cols.filter((c) => c.node.kind !== 'end');
-  const activeNumber = activeCol >= 0 ? cols[activeCol].number : mapCols.length;
+  const stepCount = cols.filter((c) => c.number > 0).length;
+  const activeNumber = activeCol >= 0 ? cols[activeCol].number : stepCount;
   const elapsed = formatMs(agentGraphDurationMs(root));
   const statusLine =
     root.status === 'running'
@@ -154,7 +154,7 @@ export function AgentActivity() {
       <div className="agent-run__sheet">
         <header className="agent-run__head">
           <small>
-            Agent run · {running ? `step ${Math.min(activeNumber, mapCols.length)} of ${mapCols.length}` : `${mapCols.length} ${mapCols.length === 1 ? 'step' : 'steps'}`}
+            Agent run · {running && activeNumber > 0 ? `step ${Math.min(activeNumber, stepCount)} of ${stepCount}` : `${stepCount} ${stepCount === 1 ? 'step' : 'steps'}`}
           </small>
           <h1>{graph.request || root.label}</h1>
           <p>
@@ -166,8 +166,11 @@ export function AgentActivity() {
             )}
           </p>
           <label className="agent-run__follow">
-            <input type="checkbox" checked={follow} onChange={(e) => setState({ followAgentNode: e.target.checked })} />
             Follow the agent
+            <span className="mcp-switch">
+              <input type="checkbox" checked={follow} onChange={(e) => setState({ followAgentNode: e.target.checked })} />
+              <span />
+            </span>
           </label>
         </header>
 
@@ -189,7 +192,7 @@ export function AgentActivity() {
                   onClick={() => select(col.node.id)}
                 >
                   <span className="agent-card__title">
-                    <span className="agent-dot" aria-hidden>{col.number}</span>
+                    <span className={cx('agent-dot', !col.number && 'agent-dot--plain')} aria-hidden>{col.number || ''}</span>
                     <span className="agent-card__name">{col.title}</span>
                     {col.node.status === 'running' && col.node.kind === 'step' && (
                       <span
@@ -210,7 +213,7 @@ export function AgentActivity() {
                           }
                         }}
                       >
-                        <Square size={8} fill="currentColor" />
+                        <Square size={9} fill="currentColor" />
                       </span>
                     )}
                   </span>
@@ -262,16 +265,19 @@ function Inspector({ graph, node, cols }: { graph: AgentGraph; node: AgentGraphN
   const change = changesOf(tools);
   const frames = framesFor(change);
   const why = (node.kind === 'tool' && node.parentId ? graph.nodes[node.parentId]?.reasoning : node.reasoning)?.trim();
-  const total = cols.filter((c) => c.node.kind !== 'end').length;
+  const total = cols.filter((c) => c.number > 0).length;
+  const time = formatMs(agentGraphDurationMs(node));
   const title = node.kind === 'tool' ? toolTitle(node) : (col?.title ?? node.label);
   const kicker =
     node.kind === 'tool'
       ? `Tool call${col ? ` in step ${col.number}` : ''}`
       : node.kind === 'end'
         ? 'Result'
-        : col
-          ? `Step ${col.number} of ${total}`
-          : 'Step';
+        : node.kind === 'request'
+          ? 'Your request'
+          : col && col.number
+            ? `Step ${col.number} of ${total}`
+            : 'Step';
 
   return (
     <aside className="agent-insp" aria-label="Step details">
@@ -285,20 +291,28 @@ function Inspector({ graph, node, cols }: { graph: AgentGraph; node: AgentGraphN
         </IconButton>
       </div>
 
-      <div className="agent-insp__stats">
-        <div>
-          {formatMs(agentGraphDurationMs(node)) || '—'}
-          <span>time</span>
+      {(time || change.files.length > 0 || change.edits.length > 0) && (
+        <div className="agent-insp__stats">
+          {time && (
+            <div>
+              {time}
+              <span>time</span>
+            </div>
+          )}
+          {change.files.length > 0 && (
+            <div>
+              {change.files.length}
+              <span>{change.files.length === 1 ? 'file' : 'files'}</span>
+            </div>
+          )}
+          {change.edits.length > 0 && (
+            <div>
+              {change.edits.length}
+              <span>{change.edits.length === 1 ? 'change' : 'changes'}</span>
+            </div>
+          )}
         </div>
-        <div>
-          {change.files.length}
-          <span>{change.files.length === 1 ? 'file' : 'files'}</span>
-        </div>
-        <div>
-          {change.edits.length}
-          <span>{change.edits.length === 1 ? 'change' : 'changes'}</span>
-        </div>
-      </div>
+      )}
 
       {node.kind === 'request' && <p className="agent-insp__why">{graph.request || node.label}</p>}
 

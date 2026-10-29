@@ -25,17 +25,17 @@
   display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: inherit; font-size: 12px; cursor: pointer;
 }
 .agent-run__stop:hover { background: var(--surface-2); }
-.agent-run__follow { position: absolute; right: 24px; top: 22px; display: inline-flex; align-items: center; gap: 6px; color: var(--fg-3); font-size: 12px; cursor: pointer; }
+.agent-run__follow { position: absolute; right: 24px; top: 22px; display: inline-flex; align-items: center; gap: 8px; color: var(--fg-3); font-size: 12px; cursor: pointer; }
 
 /* The map */
 .agent-run__graph {
   flex: 1; min-height: 0; overflow: auto; display: flex; align-items: flex-start; gap: 0; padding: 28px 24px 40px;
 }
-.agent-col { position: relative; flex: none; width: 236px; display: flex; flex-direction: column; align-items: stretch; }
-.agent-col.has-link { margin-left: 44px; }
+.agent-col { position: relative; flex: none; width: 216px; display: flex; flex-direction: column; align-items: stretch; }
+.agent-col.has-link { margin-left: 36px; }
 /* Connector from the previous column, drawn at the middle of the step card's first line. */
 .agent-col.has-link::before {
-  content: ''; position: absolute; left: -44px; top: 22px; width: 44px; height: 0; border-top: 1.5px solid var(--line-strong);
+  content: ''; position: absolute; left: -36px; top: 22px; width: 36px; height: 0; border-top: 1.5px solid var(--line-strong);
 }
 .agent-col.is-active-link::before { border-top: 2px solid var(--fg); }
 
@@ -53,7 +53,7 @@
 .agent-card__meta { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--fg-3); font-size: 11px; font-variant-numeric: tabular-nums; }
 .agent-tag { border: 1px solid var(--line); border-radius: 999px !important; padding: 1px 8px; }
 .agent-card__stop {
-  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin: -4px -6px -4px 0;
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; margin: -5px -6px -5px 0;
   border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer;
 }
 .agent-card__stop:hover { background: var(--surface-2); }
@@ -74,9 +74,11 @@
   flex: none; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-top: -1px; border-radius: 50% !important;
   background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--fg-3); font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums;
 }
+.agent-dot--plain { width: 10px; height: 10px; margin-top: 3px; }
 .agent-dot--small { width: 8px; height: 8px; margin-top: 4px; border: 0; background: var(--fg-4); }
 .is-done > .agent-card__title > .agent-dot, .agent-dot.is-done { background: var(--fg-2); border-color: var(--fg-2); color: var(--surface); }
-.is-done > .agent-card__title > .agent-dot--small { background: var(--fg-2); }
+.is-done > .agent-card__title > .agent-dot--plain { width: 10px; height: 10px; margin-top: 3px; }
+.agent-dot--small { background: var(--fg-2); }
 .is-running > .agent-card__title > .agent-dot, .is-waiting > .agent-card__title > .agent-dot, .agent-dot.is-running {
   background: var(--fg); border-color: var(--fg); color: var(--surface); box-shadow: 0 0 0 4px var(--select-soft); animation: agent-pulse 1.2s ease-in-out infinite;
 }
@@ -94,14 +96,15 @@
 .agent-insp__head > div { flex: 1; min-width: 0; }
 .agent-insp__head small { color: var(--fg-3); font-size: 11px; }
 .agent-insp__head h2 { margin: 2px 0 0; font-size: 17px; font-weight: 600; line-height: 1.3; }
-.agent-insp__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.agent-insp__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 6px; }
 .agent-insp__stats > div { padding: 8px 10px; border: 1px solid var(--line); background: var(--surface-2); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .agent-insp__stats span { display: block; color: var(--fg-3); font-size: 11px; font-weight: 400; }
 .agent-insp__label { margin-bottom: 6px; color: var(--fg-3); font-size: 11px; }
 .agent-insp__why { margin: 0; padding: 10px 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--fg-2); line-height: 1.45; white-space: pre-wrap; max-height: 240px; overflow-y: auto; }
 .agent-insp__row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--fg); font: inherit; text-align: left; }
 .agent-insp__row code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); font-size: 12px; }
-.agent-insp__row .agent-dot--small { margin-top: 0; }
+.agent-insp__row .agent-dot--plain { width: 10px; height: 10px; margin-top: 3px; }
+.agent-dot--small { margin-top: 0; }
 .agent-insp__row > span:not(.agent-dot) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .agent-insp__row > button {
   margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: inherit; font-size: 11px; cursor: pointer;
