@@ -1,15 +1,36 @@
 import type React from 'react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { CaretRight } from '@phosphor-icons/react';
 import { evaluateExpression, stepSize, stepValue } from '../../../shared/numeric';
 import { setStyle, setStyles } from '../../lib/actions';
 import { Field, InputShell, Section as SectionShell, SelectShell, Swatch, ToggleRow } from '../../ui/primitives.jsx';
 import { BREAKPOINT_LABEL, normalizeValue, shortValue, toHex, useStyleValue, type StyleValue } from './useStyleValue';
 
-export function Section({ title, children, defaultOpen = true }: { title: string; children: ReactNode; defaultOpen?: boolean }) {
-  const [open, setOpen] = useState(defaultOpen);
+const SECTION_KEY = 'oc-inspector-sections';
+
+function readSections(): Record<string, boolean> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SECTION_KEY) ?? '{}');
+    return raw && typeof raw === 'object' ? raw : {};
+  } catch {
+    return {};
+  }
+}
+
+/** A collapsible inspector section. Whether it's open is remembered between elements and sessions. */
+export function Section({ title, icon, children, defaultOpen = true }: { title: string; icon?: ReactNode; children: ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(() => readSections()[title] ?? defaultOpen);
+  const toggle = () =>
+    setOpen((o) => {
+      try {
+        localStorage.setItem(SECTION_KEY, JSON.stringify({ ...readSections(), [title]: !o }));
+      } catch {
+        /* storage blocked */
+      }
+      return !o;
+    });
   return (
-    <SectionShell title={title} open={open} onToggle={() => setOpen((o) => !o)}>
+    <SectionShell title={title} icon={icon} open={open} onToggle={toggle}>
       {children}
     </SectionShell>
   );
@@ -21,7 +42,7 @@ export function More({ label = 'More', children }: { label?: string; children: R
   return (
     <div className={`inspector-more${open ? ' is-open' : ''}`}>
       <button type="button" className="inspector-more__toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <ChevronRight size={12} className="inspector-more__chevron" aria-hidden="true" />
+        <CaretRight size={11} weight="bold" className="inspector-more__chevron" aria-hidden="true" />
         {label}
       </button>
       {open && <div className="inspector-more__body">{children}</div>}
@@ -154,11 +175,66 @@ export function StyleInput({ prop, label, placeholder, disabled }: { prop: strin
   );
 }
 
+/**
+ * Drag a field's label sideways to change its number (Shift ×10, Alt ×0.1). The value is applied once, on release,
+ * so a drag is a single undo step.
+ */
+function ScrubLabel({ prop, label, value, disabled }: { prop: string; label: string; value: StyleValue; disabled?: boolean }) {
+  const numeric = numericFor(prop);
+  const raw = shortValue(value.value);
+  const start = parseFloat(raw);
+  const unit = raw.replace(/^[-+\d.]+/, '') || numeric?.unit || '';
+  const [live, setLive] = useState<string | null>(null);
+  const drag = useRef<{ x: number; moved: boolean; next: string } | null>(null);
+  if (!numeric || disabled || Number.isNaN(start)) return <>{label}</>;
+  const compute = (e: React.PointerEvent) => {
+    const d = drag.current!;
+    const scale = (e.shiftKey ? 10 : e.altKey ? 0.1 : 1) * (numeric.fine ? 0.01 : 1);
+    const next = start + Math.round(e.clientX - d.x) * scale;
+    const rounded = Math.round(next * 100) / 100;
+    return `${prop.startsWith('font-weight') ? Math.max(1, rounded) : rounded}${unit}`;
+  };
+  return (
+    <span
+      className="scrub"
+      title="Drag to change"
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        drag.current = { x: e.clientX, moved: false, next: raw };
+      }}
+      onPointerMove={(e) => {
+        const d = drag.current;
+        if (!d) return;
+        if (Math.abs(e.clientX - d.x) > 2) d.moved = true;
+        if (!d.moved) return;
+        d.next = compute(e);
+        setLive(d.next);
+      }}
+      onPointerUp={(e) => {
+        const d = drag.current;
+        drag.current = null;
+        setLive(null);
+        if (d?.moved && d.next !== raw) void setStyle(prop, normalizeValue(prop, d.next));
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }}
+      onPointerCancel={() => {
+        drag.current = null;
+        setLive(null);
+      }}
+    >
+      {label}
+      {live && <span className="scrub__tip">{live}</span>}
+    </span>
+  );
+}
+
 export function CompactInput({ prop, prefix, disabled }: { prop: string; prefix: string; disabled?: boolean }) {
   const value = useStyleValue(prop);
   return (
     <span title={`${prop} · ${stateTitle(value)}`} style={{ display: 'contents' }}>
-      <InputShell prefix={prefix} inherited={value.state !== 'set'} onReset={resetFor(prop, value)}>
+      <InputShell prefix={<ScrubLabel prop={prop} label={prefix} value={value} disabled={disabled} />} inherited={value.state !== 'set'} onReset={resetFor(prop, value)}>
         <CommitInput value={shortValue(value.value)} disabled={disabled} numeric={numericFor(prop)} onCommit={(v) => void setStyle(prop, normalizeValue(prop, v))} />
       </InputShell>
     </span>
@@ -221,7 +297,8 @@ function NativeColor({ value, disabled, onCommit }: { value: string; disabled?: 
 
 export function ColorInput({ prop, label, disabled }: { prop: string; label: string; disabled?: boolean }) {
   const value = useStyleValue(prop);
-  const display = shortValue(value.value);
+  const shown = shortValue(value.value);
+  const display = /^rgb\(/i.test(shown) ? toHex(shown).toUpperCase() : shown;
   return (
     <StyleField label={label} value={value}>
       <InputShell inherited={value.state !== 'set'} onReset={resetFor(prop, value)}>
@@ -244,7 +321,7 @@ export function ToggleGroup({
 }: {
   prop: string;
   label: string;
-  options: { value: string; icon: ReactNode; title: string }[];
+  options: { value: string; icon?: ReactNode; text?: string; title: string }[];
   disabled?: boolean;
   /** Less common values, offered in a small overflow select after the icons. */
   extra?: string[];
@@ -255,10 +332,11 @@ export function ToggleGroup({
   if (extra?.length) {
     const inExtra = extra.includes(value.value);
     return (
-      <div className="field">
+      <div className="field field--stack">
         <span className="field__label" title={stateTitle(value)}>
           {value.state !== 'computed' && <span className={`marker marker--${value.state}`} />}
           {label}
+          <span className="field__value">{value.value}</span>
         </span>
         <fieldset disabled={disabled} className="fieldset-reset toggle-more">
           <ToggleRow options={options} value={value.value} onChange={(v) => void setStyle(prop, !exclusive && value.state === 'set' && value.value === v ? '' : v)} />
@@ -279,10 +357,11 @@ export function ToggleGroup({
     );
   }
   return (
-    <div className="field">
+    <div className="field field--stack">
       <span className="field__label" title={stateTitle(value)}>
         {value.state !== 'computed' && <span className={`marker marker--${value.state}`} />}
         {label}
+        <span className="field__value">{value.value}</span>
       </span>
       <fieldset disabled={disabled} className="fieldset-reset">
         <ToggleRow options={options} value={value.value} onChange={(v) => void setStyle(prop, value.state === 'set' && value.value === v ? '' : v)} />

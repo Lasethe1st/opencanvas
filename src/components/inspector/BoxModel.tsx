@@ -1,7 +1,8 @@
+import { Link, LinkBreak } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { setStyles } from '../../lib/actions';
 import { useStore } from '../../lib/store';
-import { BoxModel as BoxDiagram, BoxSlot, LinkToggles } from '../../ui/Inspector.jsx';
+import { BoxModel as BoxDiagram, BoxSlot } from '../../ui/Inspector.jsx';
 import { CommitInput } from './fields';
 import { normalizeValue, useStyleValue } from './useStyleValue';
 
@@ -30,6 +31,14 @@ function SideInput({ group, side, linked, disabled }: { group: 'margin' | 'paddi
   );
 }
 
+function LinkButton({ linked, label, onClick }: { linked: boolean; label: string; onClick: () => void }) {
+  return (
+    <button type="button" className={`box-link${linked ? ' is-on' : ''}`} aria-pressed={linked} aria-label={linked ? `${label}: all sides linked` : `${label}: sides set separately`} data-tip={linked ? 'All sides move together' : 'Link all sides'} onClick={onClick}>
+      {linked ? <Link size={12} weight="bold" /> : <LinkBreak size={12} weight="bold" />}
+    </button>
+  );
+}
+
 export function BoxModel({ disabled }: { disabled: boolean }) {
   const [linkMargin, setLinkMargin] = useState(false);
   const [linkPadding, setLinkPadding] = useState(false);
@@ -43,10 +52,11 @@ export function BoxModel({ disabled }: { disabled: boolean }) {
         margin={SIDES.map((side) => <SideInput key={side} group="margin" side={side} linked={linkMargin} disabled={disabled} />)}
         padding={SIDES.map((side) => <SideInput key={side} group="padding" side={side} linked={linkPadding} disabled={disabled} />)}
         size={rect ? `${Math.round(rect.width)} × ${Math.round(rect.height)}` : '—'}
+        marginAction={<LinkButton linked={linkMargin} label="Margin" onClick={() => setLinkMargin((v) => !v)} />}
+        paddingAction={<LinkButton linked={linkPadding} label="Padding" onClick={() => setLinkPadding((v) => !v)} />}
       />
-      <LinkToggles marginLinked={linkMargin} paddingLinked={linkPadding} onMargin={() => setLinkMargin((v) => !v)} onPadding={() => setLinkPadding((v) => !v)} />
       {(marginShorthand.state === 'set' || paddingShorthand.state === 'set') && (
-        <p className="muted" style={{ margin: 0 }}>
+        <p className="muted" style={{ margin: 0, fontSize: 11 }}>
           Shorthand set here: {marginShorthand.state === 'set' && `margin ${marginShorthand.value}`} {paddingShorthand.state === 'set' && `padding ${paddingShorthand.value}`}
         </p>
       )}

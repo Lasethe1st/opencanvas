@@ -1,21 +1,4 @@
-import {
-  ArrowDown,
-  ArrowUp,
-  Copy,
-  Box,
-  File,
-  FileCode2,
-  FilePlus2,
-  Folder,
-  FolderOpen,
-  FolderPlus,
-  Image,
-  Pencil,
-  RectangleHorizontal,
-  Trash2,
-  Type,
-  Upload,
-} from 'lucide-react';
+import { CaretDown, CaretRight, Copy, File, FileCode, FilePlus, Folder, FolderOpen, FolderPlus, Image, PencilSimple, Trash, UploadSimple } from '@phosphor-icons/react';
 import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import type { FileNode } from '../../shared/types';
 import {
@@ -33,7 +16,8 @@ import {
   toggleInSelection,
 } from '../lib/actions';
 import { sendToPreview } from '../lib/bridge';
-import { findPath, setState, useStore, type TreeNode } from '../lib/store';
+import { LayerIcon } from '../lib/layer-icons';
+import { activeFrame, findPath, pageOf, setState, useStore, type TreeNode } from '../lib/store';
 import { Panel, SearchField, Tree, TreeRow } from '../ui/Panels.jsx';
 import { IconButton, Menu, MenuItem, SectionLabel, Segmented } from '../ui/primitives.jsx';
 import { createPortal } from 'react-dom';
@@ -41,16 +25,9 @@ import { PagesSection, SyncScrollOption } from './PagesSection';
 import { Resizer } from './Resizer';
 
 function fileIcon(name: string) {
-  if (/\.(jsx|tsx|js|ts|mjs|cjs)$/.test(name)) return <FileCode2 size={14} className="tree-row__icon" />;
+  if (/\.(jsx|tsx|js|ts|mjs|cjs)$/.test(name)) return <FileCode size={14} className="tree-row__icon" />;
   if (/\.(png|jpe?g|gif|svg|webp|ico)$/.test(name)) return <Image size={14} className="tree-row__icon" />;
   return <File size={14} className="tree-row__icon" />;
-}
-
-function layerIcon(tag: string) {
-  if (/^h[1-6]$|^p$|^span$|^label$/.test(tag)) return <Type size={13} className="tree-row__icon" />;
-  if (tag === 'img') return <Image size={13} className="tree-row__icon" />;
-  if (tag === 'button' || tag === 'a') return <RectangleHorizontal size={13} className="tree-row__icon" />;
-  return <Box size={13} className="tree-row__icon" />;
 }
 
 const stop = (fn: () => void) => (e: ReactMouseEvent) => {
@@ -154,10 +131,10 @@ function FileTreeNode({ node, ...props }: TreeProps & { node: FileNode }) {
   const entryActions = !isRenaming && (
     <>
       <IconButton size="sm" label={`Rename ${node.path}`} onClick={stop(() => setRenaming(node.path))}>
-        <Pencil size={12} />
+        <PencilSimple size={12} />
       </IconButton>
       <IconButton size="sm" label={`Delete ${node.path}`} onClick={stop(() => void deletePath(node.path, node.type === 'dir'))}>
-        <Trash2 size={12} />
+        <Trash size={12} />
       </IconButton>
     </>
   );
@@ -183,7 +160,7 @@ function FileTreeNode({ node, ...props }: TreeProps & { node: FileNode }) {
             !isRenaming && (
               <>
                 <IconButton size="sm" label={`New file in ${node.path}`} onClick={begin('file')}>
-                  <FilePlus2 size={12} />
+                  <FilePlus size={12} />
                 </IconButton>
                 <IconButton size="sm" label={`New folder in ${node.path}`} onClick={begin('folder')}>
                   <FolderPlus size={12} />
@@ -255,10 +232,10 @@ function FilesPanel({ query }: { query: string }) {
         actions={
           <>
             <IconButton size="sm" label="Import files (SVG, images, fonts…)" onClick={() => void importAssets('public')}>
-              <Upload size={13} />
+              <UploadSimple size={13} />
             </IconButton>
             <IconButton size="sm" label="New file" onClick={() => setDraft({ kind: 'file', parent: '' })}>
-              <FilePlus2 size={13} />
+              <FilePlus size={13} />
             </IconButton>
             <IconButton size="sm" label="New folder" onClick={() => setDraft({ kind: 'folder', parent: '' })}>
               <FolderPlus size={13} />
@@ -307,7 +284,6 @@ function LayerNode({ node, ...props }: LayerProps & { node: TreeNode }) {
     setRenaming(false);
     if (value.trim() && value.trim() !== node.name) void runEdit({ type: 'rename', id: node.id, name: value.trim() }, `Rename to ${value.trim()}`);
   };
-  const move = (direction: 'up' | 'down') => stop(() => void runEdit({ type: 'move', id: node.id, direction }, `Move ${node.name} ${direction}`));
 
   return (
     <>
@@ -334,19 +310,24 @@ function LayerNode({ node, ...props }: LayerProps & { node: TreeNode }) {
           // Keyboard-opened menus (Shift+F10 / Menu key) report 0,0: anchor them to the row instead.
           setMenuAt(e.clientX || e.clientY ? { x: e.clientX, y: e.clientY } : { x: r.left + 24, y: r.bottom });
         }}
-        icon={layerIcon(node.tag)}
+        icon={<LayerIcon tag={node.tag} size={14} className="tree-row__icon" />}
         meta={node.tag.toLowerCase()}
         actions={
-          isPrimary &&
-          !grouped &&
           !renaming && (
             <>
-              <IconButton size="sm" label="Move up (Alt+↑)" onClick={move('up')}>
-                <ArrowUp size={12} />
-              </IconButton>
-              <IconButton size="sm" label="Move down (Alt+↓)" onClick={move('down')}>
-                <ArrowDown size={12} />
-              </IconButton>
+              {editable && !grouped && (
+                <>
+                  <IconButton size="sm" label="Rename (F2)" onClick={stop(() => { if (!isPrimary) selectElement(node.id, node.uid); setRenaming(true); })}>
+                    <PencilSimple size={12} />
+                  </IconButton>
+                  <IconButton size="sm" label={`Duplicate (${MOD_KEY}+D)`} onClick={stop(() => { if (!isPrimary) selectElement(node.id, node.uid); void duplicateSelected(); })}>
+                    <Copy size={12} />
+                  </IconButton>
+                  <IconButton size="sm" label="Delete (Del)" onClick={stop(() => { if (!isPrimary) selectElement(node.id, node.uid); void removeSelected(); })}>
+                    <Trash size={12} />
+                  </IconButton>
+                </>
+              )}
             </>
           )
         }
@@ -425,14 +406,14 @@ function LayerMenu({ at, editable, onClose, onRename }: { at: { x: number; y: nu
   return createPortal(
     <div ref={ref} className="layer-menu" style={{ left: pos.x, top: pos.y }}>
       <Menu style={{ position: 'static' }} aria-label="Layer actions">
-      <MenuItem icon={<Pencil size={14} />} hint="F2" disabled={!editable} onClick={run(onRename)}>
+      <MenuItem icon={<PencilSimple size={14} />} hint="F2" disabled={!editable} onClick={run(onRename)}>
         Rename
       </MenuItem>
       <MenuItem icon={<Copy size={14} />} hint={`${MOD_KEY}+D`} disabled={!editable} onClick={run(() => void duplicateSelected())}>
         Duplicate
       </MenuItem>
       <div className="layer-menu__sep" role="separator" />
-      <MenuItem icon={<Trash2 size={14} />} hint="Del" className="menu-item layer-menu__danger" disabled={!editable} onClick={run(() => void removeSelected())}>
+      <MenuItem icon={<Trash size={14} />} hint="Del" className="menu-item layer-menu__danger" disabled={!editable} onClick={run(() => void removeSelected())}>
         Delete
       </MenuItem>
       </Menu>
@@ -441,7 +422,38 @@ function LayerMenu({ at, editable, onClose, onRename }: { at: { x: number; y: nu
   );
 }
 
-function LayersPanel({ query }: { query: string }) {
+function countNodes(nodes: TreeNode[]): number {
+  return nodes.reduce((n, node) => n + 1 + countNodes(node.children), 0);
+}
+
+/** Pages live above the layers: the current page at a glance, the full list one click away. */
+function PagesFold({ forceOpen }: { forceOpen: boolean }) {
+  const [open, setOpen] = useState(forceOpen);
+  const state = useStore((s) => s.projectConfig);
+  const activeId = useStore((s) => pageOf(activeFrame(s), s)?.id ?? s.workspace.activePageId);
+  const current = state?.pages.find((p) => p.id === activeId);
+  useEffect(() => {
+    if (forceOpen) setOpen(true);
+  }, [forceOpen]);
+  if (!state) return null;
+  return (
+    <div className="pages-fold">
+      <button type="button" className="pages-fold__head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        {open ? <CaretDown size={11} weight="bold" /> : <CaretRight size={11} weight="bold" />}
+        Pages
+        <span className="pages-fold__current">{current ? `${current.name} · ${state.pages.length}` : state.pages.length}</span>
+      </button>
+      {open && (
+        <>
+          <PagesSection bare />
+          <SyncScrollOption />
+        </>
+      )}
+    </div>
+  );
+}
+
+function LayersPanel({ query, pagesOpen }: { query: string; pagesOpen: boolean }) {
   const domTree = useStore((s) => s.domTree);
   const selection = useStore((s) => s.selection);
   const status = useStore((s) => s.previewStatus.state);
@@ -508,7 +520,11 @@ function LayersPanel({ query }: { query: string }) {
 
   return (
     <>
-      <SectionLabel>Elements</SectionLabel>
+      <PagesFold forceOpen={pagesOpen} />
+      <SectionLabel>
+        Layers
+        {domTree.length > 0 && <span className="section-label__count">{countNodes(domTree)}</span>}
+      </SectionLabel>
       {domTree.length === 0 ? (
         <div className="empty-note">{status === 'running' ? 'No editable elements found on this page.' : 'Layers appear once the preview is running.'}</div>
       ) : (
@@ -525,7 +541,8 @@ function LayersPanel({ query }: { query: string }) {
 
 export function LeftSidebar() {
   const rawTab = useStore((s) => s.leftTab);
-  const tab = rawTab === 'frames' ? 'pages' : rawTab;
+  const pagesRequested = rawTab === 'frames' || rawTab === 'pages';
+  const tab = pagesRequested ? 'layers' : rawTab;
   const width = useStore((s) => s.leftWidth);
   const hiddenPanel = useStore((s) => s.panelsHidden.left);
   const [queries, setQueries] = useState({ files: '', layers: '' });
@@ -543,25 +560,13 @@ export function LeftSidebar() {
           options={[
             { id: 'layers', label: 'Layers', text: 'Layers' },
             { id: 'files', label: 'Files', text: 'Files' },
-            { id: 'pages', label: 'Pages', text: 'Pages' },
           ]}
         />
       }
       resizer={<Resizer value={width} min={200} max={460} onChange={(v) => setState({ leftWidth: v })} />}
     >
-      {(tab === 'layers' || tab === 'files') && (
-        <SearchField placeholder={tab === 'files' ? 'Search files' : 'Search layers'} value={queries[tab]} onChange={(v) => setQueries((q) => ({ ...q, [tab]: v }))} />
-      )}
-      {tab === 'files' ? (
-        <FilesPanel query={queries.files} />
-      ) : tab === 'layers' ? (
-        <LayersPanel query={queries.layers} />
-      ) : (
-        <>
-          <PagesSection />
-          <SyncScrollOption />
-        </>
-      )}
+      <SearchField placeholder={tab === 'files' ? 'Search files' : 'Search layers'} value={queries[tab]} onChange={(v) => setQueries((q) => ({ ...q, [tab]: v }))} />
+      {tab === 'files' ? <FilesPanel query={queries.files} /> : <LayersPanel query={queries.layers} pagesOpen={pagesRequested} />}
     </Panel>
   );
 }

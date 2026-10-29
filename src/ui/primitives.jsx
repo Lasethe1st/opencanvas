@@ -1,4 +1,4 @@
-import { ChevronDown, RotateCcw } from 'lucide-react';
+import { ArrowCounterClockwise, CaretDown } from '@phosphor-icons/react';
 import { motion, useReducedMotion } from 'motion/react';
 
 const cx = (...parts) => parts.filter(Boolean).join(' ');
@@ -69,12 +69,13 @@ export function Badge({ tone, children }) {
   );
 }
 
-export function Section({ title, open = true, onToggle, children }) {
+export function Section({ title, icon, open = true, onToggle, children }) {
   return (
     <div className="section">
       <button data-oc="button-xwrpr" className={cx('section__head', !open && 'is-collapsed')} onClick={onToggle} aria-expanded={open}>
-        <ChevronDown size={14} />
-        {title}
+        {icon && <span className="section__icon" aria-hidden="true">{icon}</span>}
+        <span className="section__title">{title}</span>
+        <CaretDown size={11} weight="bold" />
       </button>
       {open && <div className="section__body">{children}</div>}
     </div>
@@ -101,7 +102,7 @@ export function InputShell({ inherited, prefix, onReset, children }) {
       {children}
       {onReset && (
         <button className="input__reset" aria-label="Remove override" data-tip="Remove override" onClick={onReset}>
-          <RotateCcw size={11} />
+          <ArrowCounterClockwise size={11} weight="bold" />
         </button>
       )}
     </span>
@@ -112,10 +113,10 @@ export function SelectShell({ inherited, onReset, children }) {
   return (
     <span className={cx('input', inherited && 'is-inherited')}>
       {children}
-      {!onReset && <ChevronDown size={13} className="input__chevron" />}
+      {!onReset && <CaretDown size={11} weight="bold" className="input__chevron" />}
       {onReset && (
         <button className="input__reset" aria-label="Remove override" onClick={onReset}>
-          <RotateCcw size={11} />
+          <ArrowCounterClockwise size={11} weight="bold" />
         </button>
       )}
     </span>
@@ -136,6 +137,7 @@ export function ToggleRow({ options, value, onChange }) {
       {options.map((o) => (
         <button key={o.value} title={o.title} aria-label={o.title} className={value === o.value ? 'is-active' : ''} onClick={() => onChange?.(o.value)}>
           {o.icon}
+          {o.text}
         </button>
       ))}
     </div>

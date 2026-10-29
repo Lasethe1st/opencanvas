@@ -1,4 +1,5 @@
-import { Columns3, Crosshair, EyeOff, LayoutGrid, Minus, Move, Square, TextCursor, AlignCenter, AlignJustify, AlignLeft, AlignRight, Code2, ImageUp, MousePointerClick } from 'lucide-react';
+import { Article, Code, Palette, Ruler, TextAa, SquaresFour as LayoutIcon, Columns, CursorClick, EyeSlash, Info, Question, Square, SquaresFour, TextAlignCenter, TextAlignJustify, TextAlignLeft, TextAlignRight, TextT, UploadSimple } from '@phosphor-icons/react';
+import { LayerIcon } from '../lib/layer-icons';
 import { useEffect, useState } from 'react';
 import { RETAGGABLE_TAGS, type StyleState } from '../../shared/types';
 import { chooseImageForSelection, revealInCode, runEdit, setStyle, setTag } from '../lib/actions';
@@ -40,6 +41,7 @@ function ElementHeader() {
 
   return (
     <InspectorHeader
+      icon={<LayerIcon tag={selection.tag} size={16} />}
       name={name}
       tag={selection.tag}
       parent={parentName}
@@ -95,7 +97,7 @@ function ContentSection() {
   if (!isText && !hasSpecific) return null;
 
   return (
-    <Section title="Content">
+    <Section title="Content" icon={<Article size={14} weight="fill" />}>
       {isText &&
         (info.textEditable ? (
           <textarea
@@ -119,7 +121,7 @@ function ContentSection() {
                 ? 'This text comes from a JavaScript expression, so it can only be changed in code.'
                 : 'This text contains other elements, such as links or emphasis. Edit it in code so the markup stays intact.'}
             </p>
-            <Button size="sm" icon={<Code2 size={13} />} onClick={() => revealInCode(info.file, info.line)}>
+            <Button size="sm" icon={<Code size={13} />} onClick={() => revealInCode(info.file, info.line)}>
               Open in code
             </Button>
           </div>
@@ -127,7 +129,7 @@ function ContentSection() {
       {tag === 'img' && (
         <>
           <AttributeField name="src" label="Source" placeholder="/image.png or https://…" />
-          <Button size="sm" icon={<ImageUp size={13} />} onClick={() => void chooseImageForSelection()}>
+          <Button size="sm" icon={<UploadSimple size={13} />} onClick={() => void chooseImageForSelection()}>
             Choose image…
           </Button>
           <AttributeField name="alt" label="Alt text" placeholder="Describe the image" />
@@ -195,7 +197,7 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
   const isGrid = display === 'grid' || display === 'inline-grid';
   const positioned = !!position && position !== 'static';
   return (
-    <Section title="Layout">
+    <Section title="Layout" icon={<LayoutIcon size={14} weight="fill" />}>
       {!grouped && <TagSelect disabled={disabled} />}
       <ToggleGroup
         prop="display"
@@ -205,10 +207,10 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
         extra={['inline-block', 'inline-flex', 'inline-grid', 'contents']}
         options={[
           { value: 'block', icon: <Square size={13} />, title: 'Block' },
-          { value: 'flex', icon: <Columns3 size={13} />, title: 'Flex' },
-          { value: 'grid', icon: <LayoutGrid size={13} />, title: 'Grid' },
-          { value: 'inline', icon: <TextCursor size={13} />, title: 'Inline' },
-          { value: 'none', icon: <EyeOff size={13} />, title: 'Hidden (none)' },
+          { value: 'flex', icon: <Columns size={13} />, title: 'Flex' },
+          { value: 'grid', icon: <SquaresFour size={13} />, title: 'Grid' },
+          { value: 'inline', icon: <TextT size={13} />, title: 'Inline' },
+          { value: 'none', icon: <EyeSlash size={13} />, title: 'Hidden (none)' },
         ]}
       />
       <ToggleGroup
@@ -218,9 +220,9 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
         disabled={disabled}
         extra={['fixed', 'sticky']}
         options={[
-          { value: 'static', icon: <Minus size={13} />, title: 'Static' },
-          { value: 'relative', icon: <Move size={13} />, title: 'Relative' },
-          { value: 'absolute', icon: <Crosshair size={13} />, title: 'Absolute' },
+          { value: 'static', text: 'Static', title: 'Static: follows the normal flow' },
+          { value: 'relative', text: 'Relative', title: 'Relative: offset from its normal place' },
+          { value: 'absolute', text: 'Absolute', title: 'Absolute: placed against its positioned parent' },
         ]}
       />
       <div className="grid-2">
@@ -279,29 +281,27 @@ function LayoutSection({ disabled, grouped }: { disabled: boolean; grouped: bool
 
 function TypographySection({ disabled }: { disabled: boolean }) {
   return (
-    <Section title="Typography">
+    <Section title="Typography" icon={<TextAa size={14} weight="fill" />}>
       <FontPicker disabled={disabled} />
       <div className="grid-2">
         <CompactInput prop="font-size" prefix="Size" disabled={disabled} />
         <CompactSelect prop="font-weight" prefix="Weight" options={FONT_WEIGHTS} disabled={disabled} />
+        <CompactInput prop="line-height" prefix="Line" disabled={disabled} />
+        <CompactInput prop="letter-spacing" prefix="Track" disabled={disabled} />
       </div>
       <ToggleGroup
         prop="text-align"
         label="Align"
         disabled={disabled}
         options={[
-          { value: 'left', icon: <AlignLeft size={13} />, title: 'Left' },
-          { value: 'center', icon: <AlignCenter size={13} />, title: 'Center' },
-          { value: 'right', icon: <AlignRight size={13} />, title: 'Right' },
-          { value: 'justify', icon: <AlignJustify size={13} />, title: 'Justify' },
+          { value: 'left', icon: <TextAlignLeft size={13} />, title: 'Left' },
+          { value: 'center', icon: <TextAlignCenter size={13} />, title: 'Center' },
+          { value: 'right', icon: <TextAlignRight size={13} />, title: 'Right' },
+          { value: 'justify', icon: <TextAlignJustify size={13} />, title: 'Justify' },
         ]}
       />
       <ColorInput prop="color" label="Color" disabled={disabled} />
       <More>
-        <div className="grid-2">
-          <CompactInput prop="line-height" prefix="Line" disabled={disabled} />
-          <CompactInput prop="letter-spacing" prefix="Spacing" disabled={disabled} />
-        </div>
         <StyleSelect prop="text-decoration" label="Decoration" options={['none', 'underline', 'line-through', 'overline']} disabled={disabled} />
         <StyleSelect prop="text-transform" label="Transform" options={['none', 'uppercase', 'lowercase', 'capitalize']} disabled={disabled} />
       </More>
@@ -311,7 +311,7 @@ function TypographySection({ disabled }: { disabled: boolean }) {
 
 function AppearanceSection({ disabled, isMedia }: { disabled: boolean; isMedia: boolean }) {
   return (
-    <Section title="Appearance">
+    <Section title="Appearance" icon={<Palette size={14} weight="fill" />}>
       <ColorInput prop="background-color" label="Fill" disabled={disabled} />
       <div className="grid-2">
         <CompactInput prop="border-radius" prefix="Radius" disabled={disabled} />
@@ -336,13 +336,14 @@ function AppearanceSection({ disabled, isMedia }: { disabled: boolean; isMedia: 
 
 type InspectorTab = 'visual' | 'code' | 'motion';
 
-function ElementEmpty({ message }: { message: string }) {
+function ElementEmpty({ title, message }: { title: string; message: string }) {
   return (
-    <div className="inspector-head">
-      <div className="inspector-head__meta inspector-empty">
-        <MousePointerClick size={20} aria-hidden="true" />
-        <span>{message}</span>
-      </div>
+    <div className="inspector-hint">
+      <CursorClick size={18} weight="fill" aria-hidden="true" />
+      <span>
+        <strong>{title}</strong>
+        {message}
+      </span>
     </div>
   );
 }
@@ -362,23 +363,25 @@ function VisualPanel({
 }) {
   return (
     <>
-      {grouped ? <GroupHeader /> : <ElementHeader />}
-      <StateToggle />
+      <div className="inspector-sticky">
+        {grouped ? <GroupHeader /> : <ElementHeader />}
+        <StateToggle />
+      </div>
       {sourceError && <Notice>{sourceError}</Notice>}
       {!sourceError && !info && <div className="empty-note">Reading source…</div>}
       {!grouped && <ContentSection />}
       <LayoutSection disabled={disabled} grouped={grouped} />
-      <Section title="Spacing">
+      <Section title="Spacing" icon={<Ruler size={14} weight="fill" />}>
         <BoxModel disabled={disabled} />
       </Section>
       {(grouped || !NO_TEXT_TAGS.has(selection.tag)) && <TypographySection disabled={disabled} />}
       <AppearanceSection disabled={disabled} isMedia={!grouped && NO_TEXT_TAGS.has(selection.tag)} />
       <DesignTokenBindings />
-      <p className="empty-note legend">
-        <span className="marker marker--set" /> set at this breakpoint <span className="marker marker--inherited" /> inherited
-        <br />
-        Other values are computed from the page.
-      </p>
+      <div className="legend-lite" aria-label="Value markers">
+        <span><span className="marker marker--set" /> Set here</span>
+        <span><span className="marker marker--inherited" /> Inherited</span>
+        <span data-tip="Other values are computed from the page."><Info size={12} aria-hidden="true" /> Computed</span>
+      </div>
     </>
   );
 }
@@ -395,7 +398,14 @@ function PageSettings() {
       : ' · not installed';
   return (
     <>
-      <Section title="Project">
+      <div className="inspector-hint">
+        <CursorClick size={18} weight="fill" aria-hidden="true" />
+        <span>
+          <strong>Select an element to edit it</strong>
+          Click anything on the canvas or in Layers. Changes apply to the breakpoint of the frame you pick.
+        </span>
+      </div>
+      <Section title="Project" defaultOpen={false}>
         <KeyValue label="Framework">
           <FrameworkLabel framework={project.framework} />
         </KeyValue>
@@ -414,11 +424,14 @@ function PageSettings() {
           )}
         </KeyValue>
       </Section>
-      <Section title="Breakpoints">
+      <Section title="Breakpoints" defaultOpen={false}>
         <KeyValue label="Tablet">≤ {project.breakpoints.tablet}px</KeyValue>
         <KeyValue label="Mobile">≤ {project.breakpoints.mobile}px</KeyValue>
         <p className="muted" style={{ margin: 0, lineHeight: 1.5 }}>
-          {project.breakpoints.detected ? 'Detected from the project’s existing media queries.' : 'Defaults. No existing max-width media queries were found.'} Each frame edits the scope its width falls in; resize a frame or select an element in another frame to change scope.
+          <span className="kv-help" role="img" aria-label="About breakpoints" data-tip="Each frame edits the scope its width falls in. Resize a frame, or select an element in another frame, to change scope.">
+            <Question size={12} weight="bold" aria-hidden="true" />
+          </span>{' '}
+          {project.breakpoints.detected ? 'Detected from your media queries.' : 'Defaults — no max-width media queries found.'}
         </p>
       </Section>
     </>
@@ -488,13 +501,13 @@ export function Inspector() {
         ))}
       {tab === 'code' &&
         (!selection ? (
-          <ElementEmpty message="Select an element to edit its code." />
+          <ElementEmpty title="No element selected" message="Pick an element to see and edit its source code here." />
         ) : (
           <ElementCodePanel />
         ))}
       {tab === 'motion' &&
         (!selection ? (
-          <ElementEmpty message="Select an element to animate it." />
+          <ElementEmpty title="No element selected" message="Pick an element to add hover, entrance or transition motion." />
         ) : (
           <ElementMotionPanel disabled={disabled} />
         ))}

@@ -1,10 +1,11 @@
 import { Code2, Link2, Link2Off } from 'lucide-react';
 import { Button, IconButton } from './primitives.jsx';
 
-export function InspectorHeader({ name, tag, parent, source, onRename, onSource }) {
+export function InspectorHeader({ icon, name, tag, parent, source, onRename, onSource }) {
   return (
     <div className="inspector-head">
       <div className="inspector-head__row">
+        {icon}
         <input data-oc="input-o3u49" className="inspector-head__name" defaultValue={name} key={name} aria-label="Layer name" onBlur={(e) => onRename?.(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
         <span className="tag">&lt;{tag}&gt;</span>
         {source && (
@@ -31,13 +32,15 @@ export function BreakpointBanner({ icon, children }) {
   );
 }
 
-export function BoxModel({ margin, padding, size }) {
+export function BoxModel({ margin, padding, size, marginAction, paddingAction }) {
   return (
     <div className="boxmodel">
       <span className="boxmodel__caption">Margin</span>
+      {marginAction && <span className="boxmodel__action">{marginAction}</span>}
       {margin}
       <div className="boxmodel__padding">
         <span className="boxmodel__caption">Padding</span>
+        {paddingAction && <span className="boxmodel__action">{paddingAction}</span>}
         {padding}
         <div className="boxmodel__content">{size}</div>
       </div>
