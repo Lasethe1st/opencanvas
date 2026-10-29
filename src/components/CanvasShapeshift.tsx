@@ -4,6 +4,7 @@ import { selectElement } from '../lib/actions';
 import { sendToAi } from '../lib/ai';
 import { activePage } from '../lib/pages';
 import { getState, setState, useStore } from '../lib/store';
+import { InputPanel } from './Dock';
 import { assistantShapes, insertMention, referencesIn } from './assistant-shapes';
 import { Shapeshift, type ShapeshiftHandle, type ShapeshiftResult } from './shapeshift';
 
@@ -13,6 +14,7 @@ export function CanvasShapeshift() {
   const selection = useStore((s) => s.selection);
   const ready = useStore((s) => !!s.aiStatus?.ready);
   const busy = useStore((s) => !!s.aiTurnId);
+  const chatOpen = useStore((s) => s.dockMode === 'input');
   const pageName = useStore((s) => (s.projectConfig ? activePage()?.name : null));
 
   const placeholder = !ready
@@ -64,6 +66,7 @@ export function CanvasShapeshift() {
         label="Ask AI or run a command"
         placeholder={placeholder}
         listAll={false}
+        above={chatOpen ? <div className="assistant-docker__chat"><InputPanel /></div> : undefined}
         sendLabel="Send"
         icon={<Sparkles />}
         onSubmit={onSubmit}

@@ -238,6 +238,8 @@ export type ShapeshiftProps = {
   classify?: (text: string, signal: AbortSignal) => Promise<string | null | undefined>;
   /** Show every shape when the field is focused or nothing matches. Turn off for a field that mostly takes free text. */
   listAll?: boolean;
+  /** Something that sits inside the shell, above everything else (a conversation, say). */
+  above?: ReactNode;
   /** Label for the send button shown when plain text (no shape) can be submitted. */
   sendLabel?: string;
   /** Which way it opens from the field. "top" suits a dock at the foot of a page. */
@@ -285,6 +287,7 @@ export function Shapeshift({
   onSubmit,
   classify,
   listAll = true,
+  above,
   sendLabel,
   side = "top",
   width = 540,
@@ -576,6 +579,7 @@ export function Shapeshift({
           )}
           style={{ width: restWidth === undefined || wide ? "100%" : restWidth }}
         >
+          {above}
           {side === "top" && beside}
 
           <div data-slot="shapeshift-bar" className={cn("flex h-12 items-center gap-2 ps-4 pe-2", classNames?.bar)}>
