@@ -56,6 +56,8 @@ export interface AiTurnContext {
   frameWidth?: number | null;
   /** Skills the user called with "/" for this message. */
   skills?: { name: string; body: string }[];
+  /** Layers and pages the user @-mentioned in this message. */
+  references?: { kind: 'layer' | 'page'; name: string; id?: string; path?: string }[];
   /** Replies the user chose to remember; shown to the model at the start of every turn. */
   memory?: string[];
 }

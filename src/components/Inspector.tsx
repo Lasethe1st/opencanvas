@@ -491,7 +491,7 @@ export function Inspector() {
           ]}
         />
       }
-      resizer={<Resizer value={width} min={260} max={440} invert onChange={(v) => setState({ rightWidth: v })} />}
+      resizer={<Resizer value={width} min={250} max={440} invert onChange={(v) => setState({ rightWidth: v })} />}
     >
       {tab === 'visual' &&
         (!selection ? (

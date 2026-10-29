@@ -218,6 +218,8 @@ export type ShapeshiftHandle = {
   /** Open a shape from anywhere on the page, with its example or a sentence of your own. */
   open: (id: string, text?: string) => void;
   clear: () => void;
+  /** Rewrite the sentence from outside. */
+  setText: (text: string) => void;
 };
 
 export type ShapeshiftProps = {
@@ -234,6 +236,12 @@ export type ShapeshiftProps = {
    * typing, and its answer outranks the words. The shape's `read` still fills in the data.
    */
   classify?: (text: string, signal: AbortSignal) => Promise<string | null | undefined>;
+  /** Show every shape when the field is focused or nothing matches. Turn off for a field that mostly takes free text. */
+  listAll?: boolean;
+  /** Something that sits inside the shell, above everything else (a conversation, say). */
+  above?: ReactNode;
+  /** Label for the send button shown when plain text (no shape) can be submitted. */
+  sendLabel?: string;
   /** Which way it opens from the field. "top" suits a dock at the foot of a page. */
   side?: "top" | "bottom";
   /** How wide it is, in px. It never grows past its parent. */
@@ -278,6 +286,9 @@ export function Shapeshift({
   onValueChange,
   onSubmit,
   classify,
+  listAll = true,
+  above,
+  sendLabel,
   side = "top",
   width = 540,
   restWidth,
@@ -315,7 +326,7 @@ export function Shapeshift({
   // The list: every shape while the field is empty or nothing answers, the ones that answer as you type.
   const answering = offers.length > 0 || !text.trim();
   const list = offers.length > 0 ? offers : shapes;
-  const listing = !open && (focused || text.trim().length > 0);
+  const listing = !open && (listAll ? focused || text.trim().length > 0 : offers.length > 0);
   const wide = focused || text.length > 0 || Boolean(open);
 
   // The highlighted row, remembered only for the sentence it was chosen in.
@@ -364,6 +375,7 @@ export function Shapeshift({
       if (found) pick(found, sentence);
     },
     clear,
+    setText: (next) => commit(next),
   }));
 
   // The model reads the sentence once typing pauses. A newer sentence drops the older question.
@@ -429,6 +441,7 @@ export function Shapeshift({
 
   // Enter has somewhere to go: the field shows its button.
   const ready = Boolean(open && (open.onSubmit || onSubmit) && !(open.read && state.data === undefined));
+  const sendable = Boolean(!open && !listing && sendLabel && onSubmit && text.trim());
 
   const examples = shapes.flatMap((s) => (s.example ? [`Try “${s.example}”`] : []));
   const rule = <div aria-hidden className="mx-3 h-px bg-border" />;
@@ -566,6 +579,7 @@ export function Shapeshift({
           )}
           style={{ width: restWidth === undefined || wide ? "100%" : restWidth }}
         >
+          {above}
           {side === "top" && beside}
 
           <div data-slot="shapeshift-bar" className={cn("flex h-12 items-center gap-2 ps-4 pe-2", classNames?.bar)}>
@@ -619,7 +633,7 @@ export function Shapeshift({
                   aria-label="Clear"
                   {...SWAP}
                   // on a narrow field the action needs the room more than a second way to press Esc
-                  className={cn(key, "cursor-pointer outline-none transition-colors duration-150 hover:text-popover-foreground focus-visible:ring-2 focus-visible:ring-ring", ready && "@max-sm:hidden")}
+                  className={cn(key, "cursor-pointer outline-none transition-colors duration-150 hover:text-popover-foreground focus-visible:ring-2 focus-visible:ring-ring", (ready || sendable) && "@max-sm:hidden")}
                 >
                   esc
                 </motion.button>
@@ -628,7 +642,7 @@ export function Shapeshift({
                   {hotkey}
                 </motion.kbd>
               ) : null}
-              {ready && open && (
+              {((ready && open) || sendable) && (
                 <motion.button
                   key="action"
                   type="button"
@@ -636,7 +650,7 @@ export function Shapeshift({
                   {...SWAP}
                   className="flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-[12px] bg-primary ps-3 pe-2 text-[13px] font-medium whitespace-nowrap text-primary-foreground outline-none transition-[opacity,scale] duration-150 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover active:scale-[0.96]"
                 >
-                  {open.action ?? "Add"}
+                  {open ? (open.action ?? "Add") : sendLabel}
                   <ReturnIcon />
                 </motion.button>
               )}

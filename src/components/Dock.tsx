@@ -9,7 +9,7 @@ import {
   SquareStack,
   SwatchBook,
   Type,
-} from 'lucide-react';
+} from '../lib/hugeicons';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { PageConfig } from '../../shared/project-config';
 import type { FileNode } from '../../shared/types';
@@ -22,12 +22,12 @@ import { activeFrame, getState, setState, useStore, type DockMode, type TreeNode
 import { Button, cx } from '../ui/primitives.jsx';
 import { DirectionEditor, uploadPaths, type DirectionDraft } from './direction/DirectionEditor';
 import { AiChat } from './dock/AiChat';
+import { DockerChat } from './dock/DockerChat';
 import { DesignSystemPanel } from './dock/DesignSystem';
 import { VariantsPanel } from './dock/Variants';
 
 /** Dock modes hosted in the left control rail (Ask AI, Search, …). */
 export const CONTROL_MODES: { id: DockMode; label: string; icon: ReactNode }[] = [
-  { id: 'input', label: 'Ask AI', icon: <Sparkles size={15} /> },
   { id: 'search', label: 'Search', icon: <Search size={15} /> },
   { id: 'direction', label: 'Direction', icon: <Palette size={15} /> },
   { id: 'design-system', label: 'Design system', icon: <SwatchBook size={15} /> },
@@ -39,7 +39,8 @@ const closeDock = () => setState({ dockMode: null });
 
 /** Floating dock panel for Ask AI / Search / Direction / etc. (opened from the left rail). */
 export function Dock() {
-  const mode = useStore((s) => s.dockMode);
+  // The conversation lives in the assistant docker's own shell, not in this panel.
+  const mode = useStore((s) => (s.dockMode === 'input' ? null : s.dockMode));
   const [shown, setShown] = useState<DockMode | null>(mode);
   const dockRef = useRef<HTMLDivElement | null>(null);
   if (mode && mode !== shown) setShown(mode);
@@ -52,7 +53,7 @@ export function Dock() {
       const target = e.target as Node | null;
       if (target && dockRef.current?.contains(target)) return;
       // Left rail buttons toggle modes — don't steal their clicks.
-      if (target instanceof Element && target.closest('.tool-rails')) return;
+      if (target instanceof Element && target.closest('.tool-rails, .assistant-docker')) return;
       close();
     };
     window.addEventListener('pointerdown', onDown);
@@ -101,9 +102,9 @@ function PanelHead({ title, children }: { title: string; children?: ReactNode })
 
 /* ---------- Ask AI ---------- */
 
-function InputPanel() {
+export function InputPanel() {
   const useChat = useStore((s) => !!s.aiStatus?.ready || s.aiChat.length > 0);
-  return useChat ? <AiChat /> : <HandOffPanel />;
+  return useChat ? <DockerChat /> : <HandOffPanel />;
 }
 
 /** Without an AI provider set up, the request goes to the user's own agent as a prompt. */

@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, Code2, Maximize2, Minimize2, Monitor, MousePointer2, Play, Smartphone, Tablet, Waypoints } from 'lucide-react';
+import { ChevronDown, ChevronRight, Code2, Maximize2, Minimize2, Monitor, MousePointer2, Play, Smartphone, Tablet, Waypoints } from '../lib/hugeicons';
 import { Badge, IconButton, Segmented } from './primitives.jsx';
 
 export const VIEWPORTS = [

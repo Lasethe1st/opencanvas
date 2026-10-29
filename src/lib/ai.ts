@@ -72,7 +72,7 @@ export async function refreshAiStatus() {
   }
 }
 
-function turnContext(extra?: Pick<AiTurnContext, 'skills'>): AiTurnContext {
+function turnContext(extra?: Pick<AiTurnContext, 'skills' | 'references'>): AiTurnContext {
   const s = getState();
   const page = activePage();
   return {
@@ -81,11 +81,12 @@ function turnContext(extra?: Pick<AiTurnContext, 'skills'>): AiTurnContext {
     frameWidth: activeFrame(s)?.width ?? null,
     memory: memoryLines(),
     skills: extra?.skills,
+    references: extra?.references,
   };
 }
 
 /** Sends the request to the in-app AI. Queues while a turn is already running. */
-export async function sendToAi(request: string, extra?: Pick<AiTurnContext, 'skills'>): Promise<boolean> {
+export async function sendToAi(request: string, extra?: Pick<AiTurnContext, 'skills' | 'references'>): Promise<boolean> {
   const text = request.trim();
   if (!text) return false;
 

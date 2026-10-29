@@ -10,7 +10,7 @@ import { scheduleWorkspaceSave } from '../../lib/workspace';
 import { AgentOrb } from '@/components/ui/agent-orb';
 import { Button, IconButton, cx } from '../../ui/primitives.jsx';
 
-async function showAgentActivity() {
+export async function showAgentActivity() {
   const s = getState();
   let page = s.projectConfig?.pages.find((p) => (p.viewType ?? 'design') === 'agent');
   if (!page) {
@@ -40,7 +40,7 @@ const TOOL_LABELS: Record<string, string> = {
 };
 
 /** The in-app AI conversation inside the dock's Ask AI panel. */
-export function AiChat() {
+export function AiChat({ bare = false }: { bare?: boolean } = {}) {
   const items = useStore((s) => s.aiChat);
   const turnId = useStore((s) => s.aiTurnId);
   const status = useStore((s) => s.aiStatus);
@@ -95,7 +95,7 @@ export function AiChat() {
           pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
         }}
       >
-        {!items.length && <p className="dock-empty">Ask for a change to this page. Select an element first to point at it. Everything the AI does in one reply is a single undo step.</p>}
+        {!items.length && <p className="dock-empty">Ask for a change in the bar below. Select an element first to point at it, or type @ to mention a layer or page. Everything the AI does in one reply is a single undo step.</p>}
         {items.map((item) => (
           <ChatItem key={item.id} item={item} />
         ))}
@@ -112,6 +112,15 @@ export function AiChat() {
         {waiting ? 'The AI is waiting for your answer.' : busy ? 'The AI is working.' : items.length ? 'The AI is done.' : ''}
       </p>
 
+      {bare && busy && !waiting && (
+        <div className="ai-working">
+          <span>Working on it…</span>
+          <Button size="sm" variant="ghost" icon={<Square size={11} fill="currentColor" />} onClick={stopAi}>
+            Stop
+          </Button>
+        </div>
+      )}
+      {!bare && (
       <div className="ai-composer">
         <textarea
           ref={inputRef}
@@ -139,7 +148,8 @@ export function AiChat() {
           </IconButton>
         )}
       </div>
-      {!ready && status?.reason && (
+      )}
+      {!bare && !ready && status?.reason && (
         <p className="dock-note">
           {status.reason}{' '}
           <button type="button" className="git-link" onClick={openAiSettings}>
