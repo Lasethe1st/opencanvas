@@ -1686,5 +1686,20 @@ kbd, .kbd,
   .workspace, .workspace--bleed, .workspace > .workspace__center { transition: none; }
 }
 
-/* Zoom / minimap pill: hidden for now (kept mounted so it can come back as the assistant docker). */
-.assistant-docker { display: none !important; }
+/* Zoom / minimap pill: parked for now (kept mounted so it can come back). */
+.canvas-nav--parked { display: none !important; }
+
+/* Assistant docker: context chip + conversation. */
+.assistant-docker { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.assistant-docker [data-slot='shapeshift'] { align-self: stretch; }
+.assistant-docker__context {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; margin-left: 6px; padding: 4px 6px 4px 9px;
+  border: 1px solid var(--line); border-radius: var(--pill); corner-shape: round; background: var(--surface);
+  color: var(--muted); font-size: 12px; line-height: 16px;
+}
+.assistant-docker__context-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
+.assistant-docker__context code { font-family: var(--font-mono, monospace); font-size: 11px; }
+.assistant-docker__context button { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; color: inherit; cursor: pointer; }
+.assistant-docker__context button:hover { background: color-mix(in srgb, var(--fg) 10%, transparent); color: var(--fg); }
+.ai-working { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 4px 0 12px; color: var(--muted); font-size: 12px; }
+
