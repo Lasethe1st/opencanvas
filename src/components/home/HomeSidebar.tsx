@@ -1,6 +1,6 @@
 import { Plus } from '@phosphor-icons/react';
 import { useId, type ComponentType, type CSSProperties, type ReactNode } from 'react';
-import homeMark from '../../assets/home-mark.png';
+import { LogoMark } from '../LogoMark';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -83,7 +83,9 @@ export function HomeSidebar({
     >
       <div className="flex h-full flex-col" style={{ width: HOME_NAV_WIDTH }}>
         <div className="flex h-14 shrink-0 items-center ps-2">
-          <img src={homeMark} alt="" width={28} height={28} className="home-mark box-border size-9 shrink-0 object-contain p-1.5 opacity-90" aria-hidden />
+          <span className="flex size-9 shrink-0 items-center justify-center text-foreground">
+            <LogoMark size={22} />
+          </span>
         </div>
 
         <nav id={regionId} aria-label={label} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-contain px-2 pb-3 pt-1">
