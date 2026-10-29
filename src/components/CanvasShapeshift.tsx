@@ -47,7 +47,7 @@ export function CanvasShapeshift() {
   };
 
   return (
-    <div className="canvas-shapeshift assistant-docker" data-tw="" data-busy={busy || undefined} onPointerDown={(e) => e.stopPropagation()}>
+    <div className="canvas-shapeshift assistant-docker" data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
       {selection && (
         <div className="assistant-docker__context" title="The AI knows this element is selected">
           <Sparkles size={12} aria-hidden />

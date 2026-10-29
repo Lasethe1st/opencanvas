@@ -1616,75 +1616,65 @@ kbd, .kbd,
 }
 
 /* =====================================================================================
-   Canvas page v3 — same two layers as the home page.
-   Background: the side panels and floating top-bar pills sit flat on --home-bg.
-   Foreground: the canvas is one rounded card with the tool rail floating inside it.
+   Canvas page v4 — plain and professional.
+   Everything is docked and rectangular: top bar across the top, tool rail on the far left, then the left
+   panel, the canvas, and the right panel, each butted against the next with a 1px divider. No radius, no
+   floating pills, no dot grid. The assistant docker is the one floating piece.
    ===================================================================================== */
-.shell:has(.workspace) { background: var(--home-bg); }
-.workspace, .workspace--bleed {
-  position: relative; display: flex; gap: 8px; padding: 8px; box-sizing: border-box; background: transparent;
-  transition: padding 200ms cubic-bezier(0.2, 0, 0, 1), gap 200ms cubic-bezier(0.2, 0, 0, 1);
-}
-.shell:has(.workspace) .workspace { padding-top: 8px; }
+.shell:has(.workspace) { display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--bg); }
 
-/* Panels: flat on the background, below the floating pills, no card chrome. */
+/* Top bar: one docked strip. */
+.shell:has(.workspace) > .topbar {
+  position: relative; inset: auto; z-index: 10; height: var(--topbar-h); margin: 0; padding: 0 8px; box-sizing: border-box;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px;
+  border: 0 !important; border-bottom: 1px solid var(--line) !important; background: var(--surface); box-shadow: none; pointer-events: auto;
+}
+.shell:has(.workspace) .topbar__side, .shell:has(.workspace) .topbar__center {
+  height: auto; min-height: 0; max-width: none; padding: 0; border: 0; background: transparent; box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.shell:has(.workspace) .topbar .segmented {
+  height: 32px; min-height: 32px; padding: 2px; border: 1px solid var(--line); background: var(--surface-2); box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.shell:has(.workspace) .topbar .segmented button { height: 26px; min-height: 26px; padding: 0 14px; }
+.shell:has(.workspace) .topbar .project-btn { height: 32px; }
+
+/* Workspace: four columns, no gaps. */
+.shell:has(.workspace) .workspace, .workspace, .workspace--bleed {
+  position: relative; display: flex; gap: 0; margin: 0; padding: 0; box-sizing: border-box; background: var(--bg); min-height: 0;
+  transition: none;
+}
+.workspace > .tool-rails {
+  position: relative; z-index: 6; flex: none; width: 48px; height: auto; margin: 0; padding: 8px 0; box-sizing: border-box; align-self: stretch;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 8px;
+  border-right: 1px solid var(--line); background: var(--surface); pointer-events: auto;
+}
+.workspace > .tool-rails > .tool-rail {
+  width: auto; margin: 0; padding: 0; border: 0 !important; background: transparent !important; box-shadow: none !important;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
 .workspace > .panel, .workspace--bleed > .panel,
 .workspace > .panel.panel--left, .workspace > .panel.panel--right,
 .workspace--bleed > .panel.panel--left, .workspace--bleed > .panel.panel--right {
-  z-index: 1; position: relative;
-  margin-top: calc(var(--topbar-h) + 8px);
-  border: 0 !important; border-radius: 0; background: transparent; box-shadow: none;
-  -webkit-backdrop-filter: none; backdrop-filter: none;
+  position: relative; z-index: 1; margin: 0 !important; transform: none;
+  background: var(--surface); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
 }
-.workspace > .panel > .panel__head, .workspace--bleed > .panel > .panel__head { padding: 0 0 10px; border-bottom: 0; }
-.workspace > .panel > .panel__body, .workspace--bleed > .panel > .panel__body { padding: 0; }
+.workspace > .panel--left, .workspace--bleed > .panel--left { border: 0 !important; border-right: 1px solid var(--line) !important; }
+.workspace > .panel--right, .workspace--bleed > .panel--right { border: 0 !important; border-left: 1px solid var(--line) !important; }
+.workspace > .panel.is-hidden { border-width: 0 !important; }
+.workspace > .panel > .panel__head, .workspace--bleed > .panel > .panel__head { padding: 10px 12px 8px; border-bottom: 0; }
+.workspace > .panel > .panel__body, .workspace--bleed > .panel > .panel__body { padding: 0 8px 8px; }
 .workspace > .panel .search { margin-inline: 0; }
-.workspace > .panel .section-label, .workspace > .panel .pages-fold__head { padding-inline: 4px; }
-.panel--right .section__head { padding-inline: 4px; }
-.panel--right .section__body { padding-inline: 4px; }
-.panel--right .inspector-hint { margin-inline: 4px; }
-.panel--right .legend-lite { padding-inline: 4px; }
-.inspector-sticky { background: color-mix(in srgb, var(--home-bg) 94%, transparent); }
-.inspector-sticky .inspector-head { padding-inline: 4px; }
-.inspector-sticky .state-toggle { padding-inline: 4px; }
-.workspace > .panel > .panel__head > .segmented { width: 100%; }
-.workspace > .panel .tree { padding-inline: 0; }
+.inspector-sticky { background: var(--surface); }
 
-/* The card. */
+/* The canvas: flat, edge to edge, no dots. */
 .workspace > .workspace__center, .workspace--bleed > .workspace__center {
-  position: relative; inset: auto; z-index: 0; flex: 1; min-width: 0; margin: 0;
-  border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent); border-radius: 10px; overflow: hidden;
-  background: var(--home-card);
-  transition: border-radius 200ms cubic-bezier(0.2, 0, 0, 1), border-color 200ms cubic-bezier(0.2, 0, 0, 1);
+  position: relative; inset: auto; z-index: 0; flex: 1; min-width: 0; margin: 0; padding: 0; border: 0; overflow: hidden;
+  background: var(--surface-2);
 }
 .workspace--bleed > .workspace__center + * { margin-left: 0; }
-.workspace > .workspace__center .stage, .workspace--bleed .stage { border-radius: 0; }
-
-/* Tool rail: pill-shaped, floating on the card, vertically centred on its left edge. */
-.workspace__center > .tool-rails {
-  position: absolute; z-index: 6; left: 12px; top: 50%; bottom: auto; right: auto; height: auto; width: auto;
-  transform: translateY(-50%); display: flex; flex-direction: column; justify-content: center; gap: 8px;
-  align-self: auto; pointer-events: none;
-}
-.workspace__center > .tool-rails > .tool-rail {
-  pointer-events: auto; background: var(--surface) !important; border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent) !important;
-  border-radius: var(--pill) !important; corner-shape: round; box-shadow: var(--shadow-sm); -webkit-backdrop-filter: none; backdrop-filter: none;
-}
-
-/* Code mode: reserve a gutter so the rail doesn't cover the editor. */
-.workspace:not(.workspace--bleed) > .workspace__center { padding-left: 68px; }
-
-/* Focus mode (both panels hidden): the card goes full-bleed, like the home page. */
-.workspace.is-focus { padding: 0; gap: 0; }
-.workspace.is-focus > .workspace__center { border-radius: 0; border-color: transparent; }
-.workspace.is-focus > .panel { margin-inline: 0 !important; }
-
-@supports (corner-shape: squircle) {
-  .workspace > .workspace__center, .workspace--bleed > .workspace__center { corner-shape: squircle; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .workspace, .workspace--bleed, .workspace > .workspace__center { transition: none; }
-}
+.workspace .stage__dots { display: none; }
 
 /* Zoom / minimap pill: parked for now (kept mounted so it can come back). */
 .canvas-nav--parked { display: none !important; }
@@ -1714,3 +1704,18 @@ kbd, .kbd,
 .docker-chat__foot { display: flex; align-items: center; justify-content: space-between; padding: 6px 14px 10px; color: var(--muted); font-size: 12px; }
 .docker-chat__foot button { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: var(--pill); color: var(--fg); cursor: pointer; }
 .docker-chat__foot button:hover { background: color-mix(in srgb, var(--fg) 8%, transparent); }
+
+/* No corner radius anywhere on the canvas page. Exceptions: the assistant docker, round avatars/badges/spinners,
+   dialogs, and the user's own design on the stage. */
+body:has(.shell .workspace) *:not(
+  .assistant-docker [data-slot='shapeshift-shell'], .assistant-docker [data-slot='shapeshift-shell'] *,
+  [class*='avatar'], [class*='badge'], [class*='orb'], [class*='spin'], [class*='dot'],
+  [role='dialog'], [role='dialog'] *, .stage__world *
+) { border-radius: 0 !important; }
+body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data-tip]::before { border-radius: 0 !important; }
+
+/* Docker: a pill while it is short, a squircle once something opens in it. */
+.assistant-docker [data-slot='shapeshift-shell'] { border-radius: var(--pill, 999px) !important; corner-shape: round; transition: border-radius 0.2s var(--ease, ease), width 0.24s var(--ease, ease); }
+.assistant-docker [data-slot='shapeshift']:not([data-state='rest']) [data-slot='shapeshift-shell'],
+.assistant-docker[data-chat] [data-slot='shapeshift-shell'] { border-radius: 22px !important; corner-shape: squircle; }
+.assistant-docker__context { border-radius: 0 !important; }

@@ -138,9 +138,9 @@ export default function App() {
     <div className="shell">
       <TopBar />
       <div className={`workspace${mode === 'visual' ? ' workspace--bleed' : ''}${focus ? ' is-focus' : ''}`} ref={workspaceRef}>
+        <ToolRail />
         {gitOpen ? <GitPanel /> : insertPanel === 'frame' ? <InsertPanel /> : <LeftSidebar />}
         <div className="workspace__center">
-          <ToolRail />
           <WorkspaceSplit />
           <TerminalPanel />
         </div>
