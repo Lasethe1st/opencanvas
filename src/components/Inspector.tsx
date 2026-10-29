@@ -1,4 +1,4 @@
-import { Article, Code, Palette, Ruler, TextAa, SquaresFour as LayoutIcon, Columns, CursorClick, EyeSlash, Info, Question, Square, SquaresFour, TextAlignCenter, TextAlignJustify, TextAlignLeft, TextAlignRight, TextT, UploadSimple } from '@phosphor-icons/react';
+import { Article, Code, Palette, Ruler, TextAa, SquaresFour as LayoutIcon, Columns, CursorClick, EyeSlash, Info, Question, Square, SquaresFour, TextAlignCenter, TextAlignJustify, TextAlignLeft, TextAlignRight, TextT, UploadSimple } from '../lib/hugeicons';
 import { LayerIcon } from '../lib/layer-icons';
 import { useEffect, useState } from 'react';
 import { RETAGGABLE_TAGS, type StyleState } from '../../shared/types';

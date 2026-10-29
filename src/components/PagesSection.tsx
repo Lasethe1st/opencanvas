@@ -13,7 +13,7 @@ import {
   Plus,
   Terminal,
   Trash2,
-} from 'lucide-react';
+} from '../lib/hugeicons';
 import { useRef, useState, type ComponentType } from 'react';
 import { PAGE_VIEW_TYPES, type PageViewType } from '../../shared/project-config';
 import { runtimeOnlyPaths } from '../../shared/source/routes';

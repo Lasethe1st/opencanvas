@@ -1,4 +1,4 @@
-import { ArrowCounterClockwise, CaretDown } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, CaretDown } from '../lib/hugeicons';
 import { motion, useReducedMotion } from 'motion/react';
 
 const cx = (...parts) => parts.filter(Boolean).join(' ');

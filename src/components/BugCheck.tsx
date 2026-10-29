@@ -1,4 +1,4 @@
-import { Bug, ChevronRight, CircleCheck, CircleX, Crosshair, Info, RotateCw, Sparkles, TriangleAlert, X } from 'lucide-react';
+import { Bug, ChevronRight, CircleCheck, CircleX, Crosshair, Info, RotateCw, Sparkles, TriangleAlert, X } from '../lib/hugeicons';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { AuditCategory, AuditIssue, AuditSeverity } from '../../shared/types';
 import { api } from '../lib/api';

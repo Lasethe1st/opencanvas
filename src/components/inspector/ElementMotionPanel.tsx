@@ -1,4 +1,4 @@
-import { ArrowsOutCardinal, ArrowUp, Eye, Lightning, MagicWand, Minus, Play, Sparkle, Timer } from '@phosphor-icons/react';
+import { ArrowsOutCardinal, ArrowUp, Eye, Lightning, MagicWand, Minus, Play, Sparkle, Timer } from '../../lib/hugeicons';
 import type { ReactNode } from 'react';
 import { setStyles } from '../../lib/actions';
 import { useStore } from '../../lib/store';

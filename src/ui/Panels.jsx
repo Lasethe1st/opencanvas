@@ -1,4 +1,4 @@
-import { CaretDown, CaretRight, MagnifyingGlass, X } from '@phosphor-icons/react';
+import { CaretDown, CaretRight, MagnifyingGlass, X } from '../lib/hugeicons';
 import { cx } from './primitives.jsx';
 
 export function Panel({ side, width, head, children, resizer, hidden, ...rest }) {

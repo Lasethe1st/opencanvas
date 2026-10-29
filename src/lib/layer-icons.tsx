@@ -16,7 +16,7 @@ import {
   Textbox,
   VideoCamera,
   type Icon,
-} from '@phosphor-icons/react';
+} from './hugeicons';
 
 type Kind = 'text' | 'media' | 'action' | 'form' | 'struct';
 

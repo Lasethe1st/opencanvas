@@ -1,4 +1,4 @@
-import { Monitor, Smartphone, Square, Tablet } from 'lucide-react';
+import { Monitor, Smartphone, Square, Tablet } from '../lib/hugeicons';
 import { cx } from './primitives.jsx';
 
 const ICONS = { base: Monitor, tablet: Tablet, mobile: Smartphone };
