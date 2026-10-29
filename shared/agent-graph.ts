@@ -24,6 +24,10 @@ export interface AgentGraphNode {
   detail?: string;
   /** Optional file path extracted from tool summary. */
   filePath?: string | null;
+  /** Canvas element a tool call changed, when the tool reports one. */
+  elementId?: string | null;
+  /** Model reasoning streamed while this step ran (the "why"). */
+  reasoning?: string;
 }
 
 export interface AgentGraph {
@@ -68,6 +72,19 @@ const FILE_RE = /(?:^|\s)((?:src|app|pages|components|lib|shared|\.opencanvas)\/
 export function fileFromSummary(summary: string): string | null {
   const m = summary.match(FILE_RE);
   return m?.[1] ?? null;
+}
+
+const MAX_REASONING = 4000;
+
+function runningStep(g: AgentGraph): string | null {
+  const root = g.rootId;
+  if (!root) return null;
+  const kids = g.children[root] ?? [];
+  for (let i = kids.length - 1; i >= 0; i--) {
+    const n = g.nodes[kids[i]];
+    if (n?.kind === 'step' && n.status === 'running') return n.id;
+  }
+  return null;
 }
 
 /** Current model-step parent under the turn root (last running/completed step, else root). */
@@ -123,6 +140,15 @@ export function reduceAgentGraph(prev: AgentGraph, event: AiEvent): AgentGraph {
       });
       return next;
     }
+    case 'reasoning': {
+      if (event.turnId !== g.turnId || !g.rootId) return prev;
+      const target = runningStep(g) ?? g.rootId;
+      const cur = g.nodes[target];
+      if (!cur) return prev;
+      const text = (cur.reasoning ?? '') + event.delta;
+      g.nodes[target] = { ...cur, reasoning: text.length > MAX_REASONING ? text.slice(0, MAX_REASONING) : text };
+      return g;
+    }
     case 'step': {
       if (event.turnId !== g.turnId || !g.rootId) return prev;
       const id = event.stepId;
@@ -175,6 +201,7 @@ export function reduceAgentGraph(prev: AgentGraph, event: AiEvent): AgentGraph {
         endedAt: event.endedAt ?? Date.now(),
         detail: event.ok ? undefined : event.summary,
         filePath: fileFromSummary(event.summary) ?? cur.filePath,
+        elementId: event.elementId ?? cur.elementId ?? null,
       };
       g.activeNodeId = event.callId;
       return g;
@@ -253,4 +280,71 @@ export function agentGraphDurationMs(node: AgentGraphNode): number | null {
   const end = node.endedAt ?? (node.status === 'running' || node.status === 'waiting' ? Date.now() : null);
   if (!end) return null;
   return Math.max(0, end - node.startedAt);
+}
+
+/* ---------- Plain-English summaries for the agent page ---------- */
+
+/** Tools that change the design or the project's files. */
+export const EDIT_TOOLS = new Set(['set_styles', 'insert_jsx', 'insert_element', 'set_text', 'remove_elements', 'write_file']);
+/** Tools that change elements on the canvas (rather than a file). */
+export const CANVAS_EDIT_TOOLS = new Set(['set_styles', 'insert_jsx', 'insert_element', 'set_text', 'remove_elements']);
+const READ_TOOLS = new Set(['read_file', 'get_outline', 'get_design_direction']);
+
+export function isEditNode(node: AgentGraphNode | undefined | null): boolean {
+  return !!node && node.kind === 'tool' && !!node.tool && EDIT_TOOLS.has(node.tool) && node.status === 'completed';
+}
+
+const PAST: Array<[RegExp, string]> = [
+  [/^Writing\b/, 'Wrote'],
+  [/^Reading\b/, 'Read'],
+  [/^Styling\b/, 'Styled'],
+  [/^Inserting\b/, 'Inserted'],
+  [/^Changing\b/, 'Changed'],
+  [/^Removing\b/, 'Removed'],
+  [/^Taking\b/, 'Took'],
+  [/^Searching\b/, 'Searched'],
+  [/^Opening\b/, 'Opened'],
+  [/^Running\b/, 'Ran'],
+  [/^Asking\b/, 'Asked'],
+];
+
+/** "Writing src/Hero.tsx" -> "Wrote Hero.tsx" once it has finished; paths shortened to the file name. */
+export function toolTitle(node: AgentGraphNode): string {
+  let label = node.label || node.tool || 'Tool call';
+  if (node.status === 'completed') for (const [re, past] of PAST) if (re.test(label)) { label = label.replace(re, past); break; }
+  if (node.filePath) label = label.replace(node.filePath, baseName(node.filePath));
+  return label;
+}
+
+function baseName(path: string): string {
+  return path.split('/').pop() || path;
+}
+
+const GENERIC_STEP = /^Step \d+$/;
+
+/** A step's title: the model's own label when it gave one, otherwise one built from its tool calls. */
+export function stepTitle(g: AgentGraph, stepId: string): string {
+  const step = g.nodes[stepId];
+  if (!step) return '';
+  if (step.label && !GENERIC_STEP.test(step.label)) return step.label;
+  const tools = (g.children[stepId] ?? []).map((id) => g.nodes[id]).filter((n): n is AgentGraphNode => !!n && n.kind === 'tool');
+  if (!tools.length) {
+    if (step.status === 'running') return 'Thinking';
+    return step.reasoning ? 'Thought it through' : 'Replied';
+  }
+  const done = step.status !== 'running';
+  const edits = tools.filter((n) => n.tool && EDIT_TOOLS.has(n.tool));
+  if (edits.length) {
+    const files = new Set(edits.map((n) => n.filePath).filter(Boolean) as string[]);
+    const canvas = edits.filter((n) => n.tool && CANVAS_EDIT_TOOLS.has(n.tool)).length;
+    if (files.size === 1 && !canvas) return `${done ? 'Edited' : 'Editing'} ${baseName([...files][0])}`;
+    if (files.size > 1 && !canvas) return `${done ? 'Edited' : 'Editing'} ${files.size} files`;
+    if (canvas && !files.size) return `${done ? 'Changed' : 'Changing'} the design${canvas > 1 ? ` (${canvas} edits)` : ''}`;
+    return `${done ? 'Made' : 'Making'} ${edits.length} changes`;
+  }
+  if (tools.length === 1) return toolTitle(tools[0]);
+  const reads = tools.filter((n) => n.tool && READ_TOOLS.has(n.tool));
+  if (reads.length === tools.length) return `${done ? 'Read' : 'Reading'} ${reads.length} things`;
+  if (tools.every((n) => n.tool === 'screenshot')) return `${done ? 'Checked' : 'Checking'} the design`;
+  return `${done ? 'Used' : 'Using'} ${tools.length} tools`;
 }
