@@ -1,4 +1,4 @@
-import { Link, LinkBreak } from '@phosphor-icons/react';
+import { Link, LinkBreak } from '../../lib/hugeicons';
 import { useState } from 'react';
 import { setStyles } from '../../lib/actions';
 import { useStore } from '../../lib/store';

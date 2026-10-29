@@ -1,4 +1,4 @@
-import { Copy, Focus, Plus, Ruler, Trash2 } from 'lucide-react';
+import { Copy, Focus, Plus, Ruler, Trash2 } from '../lib/hugeicons';
 import { useState } from 'react';
 import { breakpointFor, PRESETS } from '../../shared/canvas';
 import { addFrame, deleteFrame, displayRect, duplicateFrame, fitFrame, renameFrame, setActiveFrame } from '../lib/canvas';

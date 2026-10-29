@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { CaretRight } from '@phosphor-icons/react';
+import { CaretRight } from '../../lib/hugeicons';
 import { evaluateExpression, stepSize, stepValue } from '../../../shared/numeric';
 import { setStyle, setStyles } from '../../lib/actions';
 import { Field, InputShell, Section as SectionShell, SelectShell, Swatch, ToggleRow } from '../../ui/primitives.jsx';

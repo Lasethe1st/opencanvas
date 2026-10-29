@@ -1,4 +1,4 @@
-import { CaretDown, CaretRight, Copy, File, FileCode, FilePlus, Folder, FolderOpen, FolderPlus, Image, PencilSimple, Trash, UploadSimple } from '@phosphor-icons/react';
+import { CaretDown, CaretRight, Copy, File, FileCode, FilePlus, Folder, FolderOpen, FolderPlus, Image, PencilSimple, Trash, UploadSimple } from '../lib/hugeicons';
 import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import type { FileNode } from '../../shared/types';
 import {

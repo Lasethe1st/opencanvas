@@ -1,4 +1,4 @@
-import { Code2, Link2, Link2Off } from 'lucide-react';
+import { Code2, Link2, Link2Off } from '../lib/hugeicons';
 import { Button, IconButton } from './primitives.jsx';
 
 export function InspectorHeader({ icon, name, tag, parent, source, onRename, onSource }) {

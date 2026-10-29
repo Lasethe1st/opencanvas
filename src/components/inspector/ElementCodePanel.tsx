@@ -1,5 +1,5 @@
 import Editor, { type OnMount } from '@monaco-editor/react';
-import { ArrowSquareOut, FileCode, FloppyDisk } from '@phosphor-icons/react';
+import { ArrowSquareOut, FileCode, FloppyDisk } from '../../lib/hugeicons';
 import { useEffect, useRef } from 'react';
 import { openFile, revealInCode, saveFile, updateBuffer } from '../../lib/actions';
 import { languageFor, monaco } from '../../lib/monaco';

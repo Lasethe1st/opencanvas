@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Search } from 'lucide-react';
+import { Check, ChevronDown, Search } from '../../lib/hugeicons';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { firstFamily, fontStack, googleFamilyParam, previewWeight, type FontCategory, type GoogleFont } from '../../../shared/fonts';

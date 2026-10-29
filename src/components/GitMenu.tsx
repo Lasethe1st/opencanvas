@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, CloudUpload, ExternalLink, GitBranch, GitCommitHorizontal, RefreshCw, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, CloudUpload, ExternalLink, GitBranch, GitCommitHorizontal, RefreshCw, X } from '../lib/hugeicons';
 import { useEffect, useState } from 'react';
 import type { GitFileState, GitStatus } from '../../shared/types';
 import { refreshTree, syncBuffersFromDisk } from '../lib/actions';

@@ -1,6 +1,4 @@
 import {
-  ChevronDown,
-  ChevronUp,
   ClipboardList,
   List,
   MessageSquareText,
@@ -210,32 +208,10 @@ export function ToolRail() {
   const canInsert = editable && !interact;
   const flyoutAnchor = insertPanel === 'frame' ? frameBtn.current : insertPanel === 'section' ? sectionBtn.current : insertPanel === 'more' ? moreBtn.current : null;
 
-  /** Three tools per page; canvas insert tools first, then ask & explore. Terminal is one of the slots. */
-  const RAIL_PAGE_SIZE = 3;
-  const canvasToolIds = ['frame', 'section', 'container', 'image', 'button', 'more', 'terminal'] as const;
+  /** Every tool is on the rail at once: canvas insert tools first (visual mode), then ask & explore, with the terminal last. */
+  const canvasToolIds = ['frame', 'section', 'container', 'image', 'button', 'more'] as const;
   type CanvasToolId = (typeof canvasToolIds)[number];
-  const canvasPages = Math.ceil(canvasToolIds.length / RAIL_PAGE_SIZE);
-  const exploreCount = CONTROL_MODES.length + 1; /* + Terminal */
-  const explorePages = Math.ceil(exploreCount / RAIL_PAGE_SIZE);
-  const showCanvasPages = mode === 'visual';
-  const pageCount = (showCanvasPages ? canvasPages : 0) + explorePages;
-  const firstExplorePage = showCanvasPages ? canvasPages : 0;
-
-  const [railPage, setRailPage] = useState(0);
-  const page = Math.min(railPage, Math.max(0, pageCount - 1));
-
-  useEffect(() => {
-    if (mode === 'code') setRailPage(0);
-  }, [mode]);
-
-  useEffect(() => {
-    setRailPage((p) => Math.min(p, Math.max(0, pageCount - 1)));
-  }, [pageCount]);
-
-  const goPage = (next: number) => {
-    setRailPage(next);
-    closeInsertPanel();
-  };
+  const showCanvasTools = mode === 'visual';
 
   const projectRail = (
     <Rail label="Project">
@@ -310,63 +286,40 @@ export function ToolRail() {
             <Plus size={15} />
           </ToolButton>
         );
-      case 'terminal':
-        return <TerminalButton key={id} />;
     }
   };
 
-  const onCanvasPage = showCanvasPages && page < canvasPages;
-  const exploreStart = (page - firstExplorePage) * RAIL_PAGE_SIZE;
-  const pageTools = onCanvasPage ? (
-    <ToolGroup>
-      {canvasToolIds.slice(page * RAIL_PAGE_SIZE, page * RAIL_PAGE_SIZE + RAIL_PAGE_SIZE).map(renderCanvasTool)}
-    </ToolGroup>
-  ) : (
-    <ToolGroup>
-      {Array.from({ length: RAIL_PAGE_SIZE }, (_, i) => {
-        const slot = exploreStart + i;
-        if (slot < CONTROL_MODES.length) {
-          const m = CONTROL_MODES[slot];
-          return (
-            <ToolButton
-              key={m.id}
-              label={m.label}
-              active={dockMode === m.id}
-              aria-expanded={dockMode === m.id}
-              onClick={() => (dockMode === m.id ? setState({ dockMode: null }) : openDock(m.id))}
-            >
-              {m.icon}
-            </ToolButton>
-          );
-        }
-        if (slot === CONTROL_MODES.length) return <TerminalButton key="terminal" />;
-        return null;
-      })}
-    </ToolGroup>
+  const exploreTools = (
+    <>
+      {CONTROL_MODES.map((m) => (
+        <ToolButton
+          key={m.id}
+          label={m.label}
+          active={dockMode === m.id}
+          aria-expanded={dockMode === m.id}
+          onClick={() => (dockMode === m.id ? setState({ dockMode: null }) : openDock(m.id))}
+        >
+          {m.icon}
+        </ToolButton>
+      ))}
+      <TerminalButton key="terminal" />
+    </>
   );
 
-  const showPager = pageCount > 1;
   // Frame uses the left InsertPanel; only section/more use the rail flyout.
   const flyoutPanel = insertPanel === 'section' || insertPanel === 'more' ? insertPanel : null;
-  const flyoutOnThisPage =
-    onCanvasPage &&
-    flyoutPanel &&
-    canvasToolIds.slice(page * RAIL_PAGE_SIZE, page * RAIL_PAGE_SIZE + RAIL_PAGE_SIZE).includes(flyoutPanel);
+  const flyoutOnThisPage = showCanvasTools && !!flyoutPanel;
 
   return (
     <ToolRails>
-      <Rail label={onCanvasPage ? 'Canvas tools' : 'Ask and explore'}>
-        {showPager && (
-          <ToolButton label="Previous tools" disabled={page === 0} onClick={() => goPage(page - 1)}>
-            <ChevronUp size={15} />
-          </ToolButton>
+      <Rail label="Tools">
+        {showCanvasTools && (
+          <>
+            <ToolGroup>{canvasToolIds.map(renderCanvasTool)}</ToolGroup>
+            <div className="tool-rails__divider" role="separator" />
+          </>
         )}
-        {pageTools}
-        {showPager && (
-          <ToolButton label="Next tools" disabled={page >= pageCount - 1} onClick={() => goPage(page + 1)}>
-            <ChevronDown size={15} />
-          </ToolButton>
-        )}
+        <ToolGroup>{exploreTools}</ToolGroup>
       </Rail>
       <div className="tool-rails__spacer" />
       {projectRail}
