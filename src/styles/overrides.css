@@ -1685,3 +1685,6 @@ kbd, .kbd,
 @media (prefers-reduced-motion: reduce) {
   .workspace, .workspace--bleed, .workspace > .workspace__center { transition: none; }
 }
+
+/* Zoom / minimap pill: hidden for now (kept mounted so it can come back as the assistant docker). */
+.assistant-docker { display: none !important; }
