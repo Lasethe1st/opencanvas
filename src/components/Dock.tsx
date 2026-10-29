@@ -39,7 +39,8 @@ const closeDock = () => setState({ dockMode: null });
 
 /** Floating dock panel for Ask AI / Search / Direction / etc. (opened from the left rail). */
 export function Dock() {
-  const mode = useStore((s) => s.dockMode);
+  // The conversation lives in the assistant docker's own shell, not in this panel.
+  const mode = useStore((s) => (s.dockMode === 'input' ? null : s.dockMode));
   const [shown, setShown] = useState<DockMode | null>(mode);
   const dockRef = useRef<HTMLDivElement | null>(null);
   if (mode && mode !== shown) setShown(mode);
@@ -101,7 +102,7 @@ function PanelHead({ title, children }: { title: string; children?: ReactNode })
 
 /* ---------- Ask AI ---------- */
 
-function InputPanel() {
+export function InputPanel() {
   const useChat = useStore((s) => !!s.aiStatus?.ready || s.aiChat.length > 0);
   return useChat ? <DockerChat /> : <HandOffPanel />;
 }

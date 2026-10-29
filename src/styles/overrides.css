@@ -1705,7 +1705,8 @@ kbd, .kbd,
 
 
 /* Docker conversation: the home chat thread inside the dock panel. */
-.docker-chat { display: flex; flex-direction: column; max-height: min(460px, 56vh); background: var(--home-card); }
+.assistant-docker__chat { border-bottom: 1px solid var(--line); }
+.docker-chat { display: flex; flex-direction: column; max-height: min(460px, 56vh); background: transparent; }
 .docker-chat__head { display: flex; align-items: center; gap: 2px; padding: 8px 8px 4px 14px; }
 .docker-chat__model { margin-right: auto; padding: 0; color: var(--muted); font-size: 12px; cursor: pointer; }
 .docker-chat__log { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px; scrollbar-width: thin; }
