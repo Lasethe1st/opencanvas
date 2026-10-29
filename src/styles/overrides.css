@@ -478,7 +478,9 @@ body {
   box-shadow: var(--shadow-sm);
   /* Visible so panel__resizer (hangs past the edge) isn’t clipped. */
   overflow: visible;
-  height: auto;
+  align-self: stretch;
+  min-height: 0;
+  max-height: 100%;
 }
 .workspace > .panel > .panel__head,
 .workspace--bleed > .panel > .panel__head {
@@ -497,6 +499,14 @@ body {
   border-radius: inherit;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
+}
+/* Inspector content scrolls in the body; left panel keeps overflow hidden so the file tree scrolls alone. */
+.workspace > .panel.panel--right > .panel__body,
+.workspace--bleed > .panel.panel--right > .panel__body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 /* File tree scrolls; drop hint stays pinned without forcing a body scrollbar. */
 .workspace > .panel > .panel__body .files-drop > .tree,

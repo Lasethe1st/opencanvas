@@ -501,3 +501,21 @@ test('reduceAiChat ignores whitespace-only text and marks unfinished tools when 
   );
   assert.equal(chat[1].state, 'failed');
 });
+
+test('reduceAiChat streams reasoning into a thinking item that closes when the reply starts', () => {
+  const t = 'turn';
+  const chat = [
+    { turnId: t, type: 'start', request: 'Why?' },
+    { turnId: t, type: 'reasoning', delta: 'First, ' },
+    { turnId: t, type: 'reasoning', delta: 'consider the brief. ' },
+    { turnId: t, type: 'text', delta: 'Because it fits.' },
+    { turnId: t, type: 'done', stopped: false },
+  ].reduce(h.reduceAiChat, []);
+  assert.deepEqual(
+    chat.map((i) => i.kind),
+    ['user', 'thinking', 'assistant'],
+  );
+  assert.equal(chat[1].text, 'First, consider the brief.');
+  assert.equal(chat[1].done, true);
+  assert.equal(chat[2].text, 'Because it fits.');
+});

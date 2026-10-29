@@ -984,6 +984,9 @@ function registerIpc() {
   handle('ai:approve', (id: string, allow: boolean) => agent.approve(String(id), allow === true));
   handle('ai:cancel', () => agent.cancel());
   handle('ai:reset', () => agent.reset());
+  handle('ai:hydrate', (turns: { role: 'user' | 'assistant'; text: string }[]) => {
+    agent.hydrate(Array.isArray(turns) ? turns : []);
+  });
   handle('ai:voiceCapabilities', () => voiceCapabilities(aiSettings, voiceKeyFlags()));
   handle('ai:voiceReply', async (messages: VoiceChatMessage[]) => {
     const reason = aiNotReadyReason(aiSettings, secretStore.has(aiKeyName(aiSettings.provider)));

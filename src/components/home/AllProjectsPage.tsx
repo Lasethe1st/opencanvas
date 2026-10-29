@@ -36,12 +36,6 @@ function coverHue(name: string) {
   return HUES[hash % HUES.length];
 }
 
-function shortPath(path: string) {
-  const sep = path.includes('\\') ? '\\' : '/';
-  const parts = path.split(sep).filter(Boolean);
-  return parts.length > 3 ? `…${sep}${parts.slice(-2).join(sep)}` : path;
-}
-
 export function ProjectThumb({ icon, name, className = 'size-10' }: { icon?: string | null; name: string; className?: string }) {
   const shell =
     cn(className, 'shrink-0 overflow-hidden rounded-[28%] bg-muted shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--border)_70%,transparent)] [corner-shape:squircle]');
@@ -84,7 +78,6 @@ export function AllProjectsList({ recent }: { recent: RecentProject[] | null }) 
             <Skeleton className="size-10 rounded-[28%] [corner-shape:squircle]" />
             <div className="flex flex-1 flex-col gap-1.5">
               <Skeleton className="h-3.5 w-3/5" />
-              <Skeleton className="h-3 w-4/5" />
               <Skeleton className="h-3 w-2/5" />
             </div>
           </div>
@@ -108,9 +101,6 @@ export function AllProjectsList({ recent }: { recent: RecentProject[] | null }) 
           <ProjectThumb icon={project.icon} name={project.name} />
           <span className="min-w-0 flex-1">
             <strong className="block truncate text-sm font-medium">{project.name}</strong>
-            <span className="block truncate text-xs text-muted-foreground" title={project.root}>
-              {shortPath(project.root)}
-            </span>
             <span className="block truncate text-xs text-muted-foreground">
               {timeAgo(project.openedAt)}
               <span aria-hidden> · </span>

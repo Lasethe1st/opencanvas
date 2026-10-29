@@ -222,6 +222,8 @@ export interface OpenCanvasApi {
     cancel(): Promise<void>;
     /** Forgets the conversation. */
     reset(): Promise<void>;
+    /** Loads prior user/assistant turns so a reopened chat can continue with context. */
+    hydrate(turns: { role: 'user' | 'assistant'; text: string }[]): Promise<void>;
     onEvent(cb: (event: AiEvent) => void): () => void;
     /** How the voice orb listens/speaks for the selected provider. */
     voiceCapabilities(): Promise<VoiceCapabilities>;

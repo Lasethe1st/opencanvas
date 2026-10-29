@@ -32,7 +32,7 @@ export function SearchOverlay({ onClose, children }: { onClose: () => void; chil
         aria-modal="true"
         aria-label="Search"
         onKeyDown={onKeyDown}
-        className="max-h-[70vh] w-full max-w-[560px] overflow-y-auto overscroll-contain rounded-lg border border-border bg-card/80 p-3 text-foreground shadow-[var(--shadow-lg)] backdrop-blur-[20px] backdrop-saturate-150"
+        className="max-h-[70vh] w-full max-w-[450px] overflow-y-auto overscroll-contain rounded-[24px] border border-border bg-card/80 px-2 pb-2 pt-0 text-foreground shadow-[var(--shadow-lg)] backdrop-blur-[20px] backdrop-saturate-150 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {children}
       </div>

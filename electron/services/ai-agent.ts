@@ -1,10 +1,11 @@
 /** The in-app AI: one conversation per open project, driving the same tools external agents use over MCP. */
 import { randomUUID } from 'node:crypto';
-import { APPROVAL_TOOLS, type AiEvent, type AiSettings } from '../../shared/ai';
+import { APPROVAL_TOOLS, type AiEvent, type AiSettings, type AiThinkingEffort } from '../../shared/ai';
 import type { AiTurnContext } from '../../shared/api';
 import type { McpContent, McpTool } from './mcp';
 import { redact } from './ai-keys';
 import { AiProviderError, streamChat, type ChatMessage, type ChatPart, type Fetcher, type ToolCall, type ToolDef, type ToolResult } from './ai-providers';
+import { fetchUrl, WebBrowseError, webSearch } from './web-browse';
 
 export const MAX_STEPS = 30;
 const MAX_TOOL_TEXT = 24_000;
@@ -68,19 +69,61 @@ const ASK_USER: ToolDef = {
   },
 };
 
+const WEB_SEARCH: ToolDef = {
+  name: 'web_search',
+  description:
+    'Searches the public web and returns a short list of result titles, URLs, and snippets. Use for current facts, documentation, news, or anything you need to verify online. Follow up with fetch_url on the best links before quoting detail.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: 'The search query.' },
+    },
+    required: ['query'],
+  },
+};
+
+const FETCH_URL: ToolDef = {
+  name: 'fetch_url',
+  description:
+    'Fetches a public http(s) page and returns a plain-text excerpt (title + body). Use after web_search, or when the user pastes a link. Do not use for localhost or private IPs.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      url: { type: 'string', description: 'The full http or https URL to open.' },
+    },
+    required: ['url'],
+  },
+};
+
 const APP_RULES = `You're a sharp design partner inside OpenCanvas — a visual React app. Talk like a real person: warm, clear, a little opinionated when it helps. Never sound like a support script or a bullet-point bot.
 
-Casual chat (ideas, jokes, questions, anything not about editing the open project): answer in plain language. Skip tools. Keep it short unless they ask for depth.
+Casual chat (ideas, jokes, opinions): answer in plain language. Keep it short unless they ask for depth.
 
-When they want canvas or project changes: use the tools. Edits show up live. Prefer get_design_system tokens via var(--…) and registered components; don't invent duplicates. For broad token edits, call design_system_impact or propose_token_change (preview first) and say who it hits before applying. Plan briefly, run tools, then summarize in a few sentences — not a checklist. One reply = one undo step, so make coherent changes.
+When the user needs current facts, docs, news, or anything you should verify online: use web_search, then fetch_url on the best 1–3 links before answering. Cite those URLs in your reply. Don't invent sources.
+
+When they want canvas or project changes: use the project tools. Edits show up live. Prefer get_design_system tokens via var(--…) and registered components; don't invent duplicates. For broad token edits, call design_system_impact or propose_token_change (preview first) and say who it hits before applying. Plan briefly, run tools, then summarize in a few sentences — not a checklist. One reply = one undo step, so make coherent changes.
 
 If a project action is ambiguous in a way that would change the result, call ask_user once with a few short options. Never ask more than two questions in one reply.
 
 git_commit, git_publish, go_live, import_files and run_command need permission each time; the app asks for you. If they decline, accept it and move on.
 
-No project open: still chat freely. Only nudge opening/creating a project when they need canvas or file work you can't do without one.
+No project open: still chat freely (including web_search / fetch_url). Only nudge opening/creating a project when they need canvas or file work you can't do without one.
 
 Never reveal or ask for API keys or tokens.`;
+
+/** Extra reply style from the composer Instant / Balanced / Harder control. */
+const MODE_RULES: Record<AiThinkingEffort, string> = {
+  low: `[Reply mode: Instant]
+Prefer speed. Keep answers short — a few sentences unless they ask for more. Skip optional exploration and long preambles. Use tools only when needed to answer correctly; don't dig around “just in case.” For canvas work, make the smallest coherent change and stop.`,
+  medium: `[Reply mode: Balanced]
+Default pace. Be clear and helpful without over-explaining. Use tools when they improve the answer; a brief plan then act is fine. Match depth to the ask.`,
+  high: `[Reply mode: Harder]
+Prefer thoroughness. Think the problem through, check assumptions, and use tools (search, inspect, read) when they reduce guesswork. For design work, consider edge cases and tradeoffs; still end with a crisp summary, not a wall of bullets.`,
+};
+
+function modeRules(effort: AiSettings['thinkingEffort']): string {
+  return MODE_RULES[effort ?? 'medium'];
+}
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
@@ -112,6 +155,10 @@ export function describeCall(name: string, args: Record<string, any>, tools: Mcp
       return 'Asking you a question';
     case 'run_command':
       return `Running ${String(args.command ?? 'a command').slice(0, 60)}`;
+    case 'web_search':
+      return `Searching the web for “${String(args.query ?? '').slice(0, 48)}”`;
+    case 'fetch_url':
+      return `Opening ${String(args.url ?? 'a page').slice(0, 64)}`;
     case 'propose_variant':
       return `Proposing variant “${String(args.label ?? 'Variant').slice(0, 40)}”`;
     case 'propose_token_change':
@@ -205,6 +252,21 @@ export class AiAgent {
     this.epoch++;
     this.turnId = null;
     this.abort = null;
+  }
+
+  /** Restore a prior home/project conversation so follow-ups keep context. */
+  hydrate(turns: { role: 'user' | 'assistant'; text: string }[]) {
+    this.cancel();
+    this.epoch++;
+    this.turnId = null;
+    this.abort = null;
+    this.history = turns
+      .filter((t) => typeof t?.text === 'string' && t.text.trim())
+      .map((t) =>
+        t.role === 'user'
+          ? ({ role: 'user', content: [{ type: 'text', text: t.text }] } as ChatMessage)
+          : ({ role: 'assistant', text: t.text, toolCalls: [] } as ChatMessage),
+      );
   }
 
   cancel() {
@@ -313,8 +375,16 @@ export class AiAgent {
     const { deps } = this;
     const tools = (opts.tools ?? deps.tools(turnId, request)).filter((t) => t.name !== 'undo' && t.name !== 'redo');
     const allowRun = opts.allowRunCommand !== false && !!deps.runCommand && !opts.tools;
-    const toolDefs: ToolDef[] = [...tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })), ASK_USER, ...(allowRun ? [RUN_COMMAND] : [])];
-    const system = opts.system ?? `${APP_RULES}\n\n${deps.projectContext()}`;
+    // Web browse is for normal chat turns, not focused variant/ephemeral tool sets.
+    const allowWeb = !opts.tools;
+    const toolDefs: ToolDef[] = [
+      ...tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })),
+      ASK_USER,
+      ...(allowWeb ? [WEB_SEARCH, FETCH_URL] : []),
+      ...(allowRun ? [RUN_COMMAND] : []),
+    ];
+    const effort = deps.settings().thinkingEffort ?? 'medium';
+    const system = opts.system ?? `${APP_RULES}\n\n${modeRules(effort)}\n\n${deps.projectContext()}`;
     const turn: ChatMessage[] = [{ role: 'user', content: [{ type: 'text', text: describeTurnContext(ctx) + request }] }];
     const epoch = this.epoch;
     let stopped = false;
@@ -330,8 +400,8 @@ export class AiAgent {
         let streamed = '';
         let response;
         try {
-          const effort = deps.settings().thinkingEffort ?? 'medium';
-          const maxTokens = effort === 'high' ? 16384 : effort === 'low' ? 4096 : 8192;
+          // Leave headroom for thinking tokens (Anthropic counts them toward max_tokens).
+          const maxTokens = effort === 'high' ? 24576 : effort === 'low' ? 8192 : 16384;
           response = await streamChat(
             {
               settings: deps.settings(),
@@ -345,6 +415,9 @@ export class AiAgent {
                 streamed += delta;
                 deps.emit({ turnId, type: 'text', delta });
               },
+              onReasoning: (delta) => {
+                deps.emit({ turnId, type: 'reasoning', delta });
+              },
             },
             deps.fetcher,
           );
@@ -352,7 +425,12 @@ export class AiAgent {
           if (streamed) turn.push({ role: 'assistant', text: streamed, toolCalls: [] });
           throw err;
         }
-        turn.push({ role: 'assistant', text: response.text, toolCalls: response.toolCalls });
+        turn.push({
+          role: 'assistant',
+          text: response.text,
+          toolCalls: response.toolCalls,
+          ...(response.thinkingBlocks?.length ? { thinkingBlocks: response.thinkingBlocks } : {}),
+        });
         if (!response.toolCalls.length) break;
         const results: ToolResult[] = [];
         try {
@@ -398,6 +476,8 @@ export class AiAgent {
       return { callId: call.id, name: call.name, content: [{ type: 'text', text: `The user answered: ${answer}` }], isError: false };
     }
 
+    if (call.name === 'web_search' || call.name === 'fetch_url') return this.runWeb(turnId, call, signal);
+
     if (call.name === 'run_command') return this.runCommand(turnId, call, signal);
 
     const tool = tools.find((t) => t.name === call.name);
@@ -418,6 +498,28 @@ export class AiAgent {
       return { callId: call.id, name: call.name, content: toParts(content), isError: false };
     } catch (err) {
       const message = redact((err as Error)?.message ?? String(err), deps.secrets());
+      deps.emit({ turnId, type: 'tool-end', callId: call.id, ok: false, summary: message, endedAt: Date.now() });
+      return fail(message);
+    }
+  }
+
+  private async runWeb(turnId: string, call: ToolCall, signal: AbortSignal): Promise<ToolResult> {
+    const { deps } = this;
+    const fail = (message: string): ToolResult => ({ callId: call.id, name: call.name, content: [{ type: 'text', text: message }], isError: true });
+    if (signal.aborted) throw Object.assign(new Error('Stopped.'), { name: 'AbortError' });
+    const startedAt = Date.now();
+    deps.emit({ turnId, type: 'tool-start', callId: call.id, tool: call.name, summary: describeCall(call.name, call.args, []), startedAt });
+    try {
+      if (call.name === 'web_search') {
+        const result = await webSearch(String(call.args.query ?? ''), deps.fetcher);
+        deps.emit({ turnId, type: 'tool-end', callId: call.id, ok: true, summary: result.summary, endedAt: Date.now() });
+        return { callId: call.id, name: call.name, content: [{ type: 'text', text: result.report }], isError: false };
+      }
+      const result = await fetchUrl(String(call.args.url ?? ''), deps.fetcher);
+      deps.emit({ turnId, type: 'tool-end', callId: call.id, ok: true, summary: result.summary, endedAt: Date.now() });
+      return { callId: call.id, name: call.name, content: [{ type: 'text', text: result.report }], isError: false };
+    } catch (err) {
+      const message = err instanceof WebBrowseError ? err.message : redact((err as Error)?.message ?? String(err), deps.secrets());
       deps.emit({ turnId, type: 'tool-end', callId: call.id, ok: false, summary: message, endedAt: Date.now() });
       return fail(message);
     }

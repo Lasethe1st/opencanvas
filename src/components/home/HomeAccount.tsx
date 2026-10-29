@@ -1,4 +1,5 @@
-import { CaretUpDown, Gear as SettingsIcon, UserCircle } from '@phosphor-icons/react';
+import { CaretUpDown, Gear as SettingsIcon } from '@phosphor-icons/react';
+import { USER_AVATAR_SRC } from '../../lib/user-avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 /** Account row at the foot of the nav. There's no sign-in yet, so this is a local placeholder profile. */
@@ -7,11 +8,16 @@ export function HomeAccount({ onSettings }: { onSettings: () => void }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button type="button" className="flex h-11 w-full items-center gap-2.5 rounded-[var(--r-lg)] px-2 text-start transition-colors duration-150 hover:bg-secondary focus-visible:bg-secondary data-[state=open]:bg-secondary">
-          <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-muted-foreground" aria-hidden>
-            <UserCircle className="size-4" />
+          <span className="inline-flex size-7 shrink-0 overflow-hidden rounded-full border border-[color:var(--frost-border)] bg-[color:var(--surface-2)]" aria-hidden>
+            <img src={USER_AVATAR_SRC} alt="" width={28} height={28} className="size-full object-cover" draggable={false} referrerPolicy="no-referrer" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-medium leading-4 text-foreground">Your account</span>
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate text-[13px] font-medium leading-4 text-foreground">Your account</span>
+              <span className="inline-flex h-[18px] shrink-0 items-center rounded-md bg-foreground/[0.08] px-1.5 text-[10px] font-semibold leading-none tracking-wide text-muted-foreground">
+                Pro
+              </span>
+            </span>
             <span className="block truncate text-[11px] leading-4 text-muted-foreground">Stored on this computer</span>
           </span>
           <CaretUpDown className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
