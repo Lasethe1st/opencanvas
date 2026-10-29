@@ -1719,3 +1719,8 @@ body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data
 .assistant-docker [data-slot='shapeshift']:not([data-state='rest']) [data-slot='shapeshift-shell'],
 .assistant-docker[data-chat] [data-slot='shapeshift-shell'] { border-radius: 22px !important; corner-shape: squircle; }
 .assistant-docker__context { border-radius: 0 !important; }
+
+/* Tool rail: every tool visible at once; scroll only if the window is very short. */
+.workspace > .tool-rails { overflow-y: auto; scrollbar-width: none; }
+.workspace > .tool-rails::-webkit-scrollbar { display: none; }
+.tool-rails__divider { width: 24px; height: 1px; margin: 4px 0; background: var(--line); }
