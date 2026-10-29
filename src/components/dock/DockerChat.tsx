@@ -1,4 +1,4 @@
-import { GitBranch, MessageSquarePlus, Square, X } from 'lucide-react';
+import { GitBranch, MessageSquarePlus, Square, X } from '../../lib/hugeicons';
 import { useRef } from 'react';
 import { providerMeta } from '../../../shared/ai';
 import { newAiChat, openAiSettings, stopAi } from '../../lib/ai';

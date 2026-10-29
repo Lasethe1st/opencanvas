@@ -1,4 +1,4 @@
-import { AtSign, Download, Eye, GitBranch, Maximize, MessageSquarePlus, Redo2, Square, Undo2 } from 'lucide-react';
+import { AtSign, Download, Eye, GitBranch, Maximize, MessageSquarePlus, Redo2, Square, Undo2 } from '../lib/hugeicons';
 import type { ReactNode } from 'react';
 import { redo, undo } from '../lib/actions';
 import { newAiChat } from '../lib/ai';

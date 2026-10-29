@@ -20,7 +20,7 @@ import {
   RectangleHorizontal,
   Square,
   X,
-} from 'lucide-react';
+} from '../lib/hugeicons';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { InsertKind } from '../../shared/types';
 import { insertElement, insertImageFromDisk } from '../lib/actions';

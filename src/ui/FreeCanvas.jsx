@@ -1,4 +1,4 @@
-import { Focus, Link2, Maximize, Minus, MoreHorizontal, Plus, Redo2, ScanSearch, Undo2 } from 'lucide-react';
+import { Focus, Link2, Maximize, Minus, MoreHorizontal, Plus, Redo2, ScanSearch, Undo2 } from '../lib/hugeicons';
 import { cx, IconButton } from './primitives.jsx';
 
 /** The infinite surface: a dotted background that pans/zooms with the camera and a transformed world layer. */

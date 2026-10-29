@@ -1,4 +1,4 @@
-import { Check, CloudSync, FolderOpen, FolderSearch, GlobeCheck, Laptop, X } from 'lucide-react';
+import { Check, CloudSync, FolderOpen, FolderSearch, GlobeCheck, Laptop, X } from '../lib/hugeicons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FRAMEWORK_LABELS, type RecentProject } from '../../shared/types';
 import { closeProject, openProjectDialog, switchProjectTab } from '../lib/actions';
