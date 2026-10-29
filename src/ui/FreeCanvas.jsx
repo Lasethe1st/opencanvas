@@ -159,7 +159,7 @@ export function Minimap({ frames, view, width = 176, height = 112, onNavigate })
 /** Bottom-corner navigation: zoom, fit, scroll sync and layout history. */
 export function CanvasNav({ zoom, onZoomIn, onZoomOut, onReset, onFitAll, onFitSelection, syncScroll, onSyncScroll, canUndo, canRedo, onUndo, onRedo, minimap, minimapOpen, onToggleMinimap, canvasBg }) {
   return (
-    <div className="canvas-nav assistant-docker">
+    <div className="canvas-nav canvas-nav--parked">
       {minimapOpen && minimap && <div className="canvas-nav__minimap">{minimap}</div>}
       <div className="canvas-nav__bar">
         {canvasBg}

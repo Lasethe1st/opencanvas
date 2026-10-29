@@ -173,6 +173,9 @@ function describeTurnContext(ctx: AiTurnContext | undefined): string {
   if (ctx.page) lines.push(`The user is looking at the page "${ctx.page.name}" (${ctx.page.path}).`);
   if (ctx.frameWidth) lines.push(`Active frame width: ${Math.round(ctx.frameWidth)}px.`);
   if (ctx.selection) lines.push(`Selected element: <${ctx.selection.tag}> "${ctx.selection.name}" (id ${ctx.selection.id}). "This", "it" or "here" most likely means this element.`);
+  for (const ref of (ctx.references ?? []).slice(0, 12)) {
+    lines.push(ref.kind === 'page' ? `The user mentioned the page "${ref.name}"${ref.path ? ` (${ref.path})` : ''} with @.` : `The user mentioned the element "${ref.name}"${ref.id ? ` (id ${ref.id})` : ''} with @.`);
+  }
   const skills = (ctx.skills ?? []).slice(0, 5).map((k) => `### ${k.name}\n${k.body.slice(0, 6000)}`);
   const invoked = skills.length ? `[Skills the user asked you to use for this message — follow their instructions]\n${skills.join('\n\n')}\n\n` : '';
   const memory = (ctx.memory ?? []).filter((m) => m.trim()).slice(0, 20);
