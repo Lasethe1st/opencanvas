@@ -1834,4 +1834,43 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 .shell--calm .workspace .terminal-panel { display: none !important; }
 .shell--calm .workspace > .workspace__center,
 .shell--calm .workspace .stage { background: var(--home-card); }
-.shell--calm .assistant-docker [data-slot='shapeshift-shell'] { border: 1px solid color-mix(in srgb, var(--fg) 10%, transparent); background: color-mix(in srgb, var(--fg) 5%, var(--home-card)); box-shadow: var(--shadow-md); }
+
+/* ───────── Dock row: pills · dock · pills, fused like liquid ───────── */
+body .canvas-bottom-chrome { max-width: calc(100% - 32px) !important; }
+.dockrow { --goo-fill: color-mix(in srgb, var(--fg) 8%, var(--home-card, var(--surface))); position: relative; display: flex; align-items: flex-end; gap: 3px; }
+.dockrow > :not(.dockrow__goo):not(.dockrow__defs) { position: relative; z-index: 1; }
+.dockrow__defs { position: absolute; }
+.dockrow__goo { position: absolute; inset: 0; z-index: 0; overflow: visible; pointer-events: none; filter: drop-shadow(0 0 0.6px rgba(0, 0, 0, 0.35)) drop-shadow(0 10px 22px rgba(0, 0, 0, 0.12)); }
+.dockrow__blobs { position: absolute; inset: 0; filter: url(#oc-goo); }
+.dockrow__blobs > span { position: absolute; background: var(--goo-fill); border-radius: var(--r, 999px) !important; }
+.dockrow .assistant-docker [data-slot='shapeshift-shell'] { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
+.dockrow__side { display: flex; align-items: flex-end; gap: 3px; }
+
+.dockpill { display: flex; align-items: center; height: 48px; margin-bottom: 0; color: var(--fg); font-size: 13px; animation: pill-bud 0.36s cubic-bezier(0.2, 0.9, 0.3, 1.15) both; }
+.dockpill--left { --bud: 52px; }
+.dockpill--right { --bud: -52px; }
+.dockpill.is-leaving { animation: pill-melt 0.26s ease-in both; }
+@keyframes pill-bud { from { transform: translateX(var(--bud)) scale(0.2); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pill-melt { from { transform: none; opacity: 1; } to { transform: translateX(var(--bud)) scale(0.2); opacity: 0; } }
+body:has(.shell .workspace) .dockrow .dockpill__main,
+body:has(.shell .workspace) .dockrow .dockpill__ctl button,
+body:has(.shell .workspace) .dockrow .dockpill__ctl select,
+body:has(.shell .workspace) .dockrow .dockpill__ctl input { border-radius: 999px !important; }
+.dockpill__main { display: inline-flex; align-items: center; gap: 7px; height: 48px; padding: 0 16px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; transition: background-color 0.15s ease; }
+.dockpill__main:hover { background: color-mix(in srgb, var(--fg) 7%, transparent); }
+.dockpill.is-open { background: color-mix(in srgb, var(--fg) 7%, transparent); }
+body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important; }
+.dockpill__reveal { display: grid; grid-template-columns: 0fr; transition: grid-template-columns 0.26s cubic-bezier(0.2, 0, 0, 1); }
+.dockpill.is-open .dockpill__reveal { grid-template-columns: 1fr; }
+.dockpill__inner { display: flex; align-items: center; min-width: 0; overflow: hidden; }
+.dockpill__ctl { display: inline-flex; align-items: center; gap: 2px; padding: 0 8px 0 2px; white-space: nowrap; }
+.dockpill__ctl button { display: grid; place-items: center; width: 26px; height: 26px; border: 0; background: transparent; color: inherit; font-size: 15px; cursor: pointer; }
+.dockpill__ctl button:hover, .dockpill__ctl button.is-on { background: color-mix(in srgb, var(--fg) 12%, transparent); }
+.dockpill__ctl input:not([type='color']) { width: 38px; height: 26px; border: 0; background: transparent; color: inherit; font: inherit; text-align: center; outline: none; }
+.dockpill__ctl input:not([type='color']):focus-visible { background: color-mix(in srgb, var(--fg) 10%, transparent); }
+.dockpill__ctl select { height: 26px; max-width: 120px; padding: 0 8px; border: 0; background: transparent; color: inherit; font: inherit; outline: none; cursor: pointer; }
+.dockpill__unit { margin: 0 2px 0 -4px; color: var(--muted); font-size: 11px; }
+.dockpill__swatch { width: 22px; height: 22px; padding: 0; border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent); background: none; cursor: pointer; }
+.dockpill__ctl code { margin-left: 4px; color: var(--muted); font-size: 11px; }
+@container stage (max-width: 1100px) { .dockpill:not(.is-open) .dockpill__label { display: none; } .dockpill__main { padding: 0 12px; } }
+@media (prefers-reduced-motion: reduce) { .dockpill, .dockpill.is-leaving { animation: none; } .dockpill__reveal { transition: none; } }
