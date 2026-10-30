@@ -22,6 +22,7 @@ import { api } from '../../lib/api';
 import { plural } from '../../lib/plural';
 import { setState, toast, useStore } from '../../lib/store';
 import { speakText } from '../../lib/voice';
+import { setReadAloud, useReadAloud } from '../../lib/read-aloud';
 import { Button, InputShell, Notice, cx } from '../../ui/primitives.jsx';
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
@@ -79,6 +80,7 @@ export function AiSettingsPanel() {
   const canList = !!settings && !!settings.baseUrl && (!meta?.needsKey || !!status?.hasKey);
   const voiceKeys = status?.voiceKeys ?? { openai: false, xai: false };
   const ttsBackendPref = settings ? normalizeTtsBackend(settings.ttsBackend) : DEFAULT_TTS_BACKEND;
+  const readAloud = useReadAloud();
   const effectiveTts = settings ? resolveTtsBackend(settings, voiceKeys) : 'browser';
 
   const loadModels = async () => {
@@ -375,6 +377,11 @@ export function AiSettingsPanel() {
               ? 'Using this device’s speech. Switch the engine to OpenAI or Grok to hear a cloud voice.'
               : 'Add an OpenAI or Grok API key (switch provider above, save the key, then switch back) to unlock cloud voices.'}
       </p>
+
+      <label className="ai-row" style={{ alignItems: 'center', gap: 8 }}>
+        <input type="checkbox" checked={readAloud} onChange={(e) => setReadAloud(e.target.checked)} />
+        <span>Read replies aloud as they finish</span>
+      </label>
 
       <div className="git-section">Check</div>
       <div className="ai-row">

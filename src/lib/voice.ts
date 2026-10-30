@@ -289,6 +289,9 @@ function pickBrowserVoice(preferredVoiceURI?: string | null): SpeechSynthesisVoi
   return voices.find((v) => v.lang.toLowerCase().startsWith('en')) ?? voices[0] ?? null;
 }
 
+/** Chromium drops an utterance that nothing references, and then never fires `end`. */
+let liveUtterance: SpeechSynthesisUtterance | null = null;
+
 export function speakWithBrowser(text: string, signal?: AbortSignal, preferredVoiceURI?: string | null): Promise<void> {
   return new Promise((resolve, reject) => {
     if (typeof speechSynthesis === 'undefined') {
@@ -297,6 +300,7 @@ export function speakWithBrowser(text: string, signal?: AbortSignal, preferredVo
     }
     speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
+    liveUtterance = utter;
     utter.rate = 0.98;
     utter.pitch = 1;
     const voice = pickBrowserVoice(preferredVoiceURI);
@@ -315,7 +319,10 @@ export function speakWithBrowser(text: string, signal?: AbortSignal, preferredVo
       reject(new Error('Couldn’t play speech.'));
     };
     // Voices often load async; retry once after voiceschanged.
-    const speak = () => speechSynthesis.speak(utter);
+    const speak = () => {
+      speechSynthesis.resume();
+      speechSynthesis.speak(utter);
+    };
     if (!voice && speechSynthesis.getVoices().length === 0) {
       const once = () => {
         speechSynthesis.removeEventListener('voiceschanged', once);

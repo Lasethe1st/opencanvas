@@ -1,5 +1,5 @@
 import { highlight } from "../../lib/highlight";
-import { Brain, Check, CircleNotch, Copy, FileText, ShieldWarning, Stack, ThumbsDown, ThumbsUp, WarningCircle, Wrench, X } from "@phosphor-icons/react";
+import { Brain, Check, CircleNotch, Copy, FileText, ShieldWarning, SpeakerHigh, Stack, Stop, ThumbsDown, ThumbsUp, WarningCircle, Wrench, X } from "@phosphor-icons/react";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { AiChatItem } from "../../../shared/ai";
 import { answerAi, approveAi, openAiSettings } from "../../lib/ai";
@@ -19,6 +19,7 @@ import { getVote, isRemembered, setVote, subscribeMemory, toggleRemember, type V
 import { AgentOrb } from "@/components/ui/agent-orb";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { cn } from "@/lib/utils";
+import { speakReply, stopSpeech, useSpeech } from "../../lib/read-aloud";
 import { referencesIn } from "../assistant-shapes";
 
 const TOOL_LABELS: Record<string, string> = {
@@ -287,11 +288,25 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
     }
   };
   const btn = "size-6 rounded-[6px] p-0 text-muted-foreground hover:text-foreground [&_svg]:size-3";
+  const speech = useSpeech();
+  const mine = speech.id === id;
+  const playing = mine && speech.phase !== "idle";
+  const speakErr = mine && speech.phase === "idle" ? speech.error : "";
   const rate = (v: Vote) => setVote(id, v);
   return (
     <div className="flex items-center gap-0.5 -ms-2" role="group" aria-label="Reply actions">
       <Button variant="ghost" className={btn} aria-label={copied ? "Copied" : "Copy reply"} title={copied ? "Copied" : "Copy"} onClick={() => void copy()}>
         {copied ? <Check /> : <Copy />}
+      </Button>
+      <Button
+        variant="ghost"
+        className={cn(btn, playing && "text-foreground", speakErr && "text-destructive hover:text-destructive")}
+        aria-label={playing ? "Stop reading aloud" : "Read aloud"}
+        aria-pressed={playing}
+        title={speakErr || (playing ? "Stop" : "Read aloud")}
+        onClick={() => (playing ? stopSpeech() : void speakReply(id, text))}
+      >
+        {speech.phase === "loading" && mine ? <CircleNotch className="animate-spin" /> : playing ? <Stop weight="fill" /> : <SpeakerHigh />}
       </Button>
       <Button variant="ghost" className={cn(btn, vote === "up" && "text-foreground")} aria-label="Good reply" aria-pressed={vote === "up"} title="Good reply" onClick={() => rate("up")}>
         <ThumbsUp className={vote === "up" ? "fill-current" : undefined} />

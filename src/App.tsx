@@ -21,6 +21,7 @@ import { handleExternalChange } from './lib/inline-edit';
 import { loadProjectConfig, touchesConfig } from './lib/pages';
 import { handleShortcut } from './lib/shortcuts';
 import { loadPanels } from './lib/panels';
+import { useAutoReadAloud } from './lib/read-aloud';
 import { getState, setState, useStore } from './lib/store';
 import { initTerminals, toggleTerminal } from './lib/terminal';
 
@@ -30,6 +31,7 @@ function isTyping(target: EventTarget | null): boolean {
 }
 
 export default function App() {
+  useAutoReadAloud();
   const project = useStore((s) => s.project);
   const mode = useStore((s) => s.mode);
   const auditOpen = useStore((s) => s.auditOpen);
