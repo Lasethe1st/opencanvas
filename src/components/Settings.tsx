@@ -1,4 +1,4 @@
-import { Copy, Keyboard, KeyRound, Monitor, Moon, Palette, Plug, RefreshCw, Settings as SettingsIcon, SlidersHorizontal, Sparkles, Sun, Type, X } from 'lucide-react';
+import { Copy, Keyboard, KeyRound, Monitor, Moon, Palette, Plug, RefreshCw, Settings as SettingsIcon, SlidersHorizontal, Sparkles, Sun, Type, X } from '../lib/hugeicons';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { McpStatus, ThemePreference } from '../../shared/types';
@@ -6,6 +6,7 @@ import { api } from '../lib/api';
 import { plural } from '../lib/plural';
 import { setState, toast, useStore, type SettingsTab } from '../lib/store';
 import { AiSettingsPanel } from './settings/AiSettings';
+import { SettingRow, SettingsGroup, Switch } from './settings/parts';
 import { CHAT_BUBBLE_PRESETS, setChatBubblePreset, useChatBubblePreset } from '../lib/chat-bubble';
 import { CHAT_FONT_SIZE_PRESETS, setChatFontSize, useChatFontSize } from '../lib/chat-font-size';
 import { getOrbColors, ORB_COLOR_PRESETS, setOrbColorPreset, useOrbColorPreset } from '../lib/orb-colors';
@@ -31,9 +32,9 @@ export function SettingsButton() {
 }
 
 const TABS: { id: SettingsTab; label: string; icon: typeof Sun; lead: string | null }[] = [
-  { id: 'general', label: 'General', icon: SlidersHorizontal, lead: null },
-  { id: 'appearance', label: 'Appearance', icon: Palette, lead: null },
-  { id: 'ai', label: 'AI', icon: Sparkles, lead: 'The model that answers in the dock’s Ask AI panel.' },
+  { id: 'general', label: 'General', icon: SlidersHorizontal, lead: 'Everyday preferences for the home chat.' },
+  { id: 'appearance', label: 'Appearance', icon: Palette, lead: 'Theme and colors.' },
+  { id: 'ai', label: 'AI', icon: Sparkles, lead: 'The model that answers in chat and on the canvas, and how it sounds.' },
   { id: 'mcp', label: 'MCP server', icon: Plug, lead: 'Connect AI agents to the project you have open.' },
 ];
 
@@ -70,22 +71,27 @@ export function SettingsPage() {
             <h1 className="settings-page__title">Settings</h1>
             {TABS.map(({ id, label, icon: Icon }) => (
               <button key={id} role="tab" aria-selected={tab === id} className={`settings-page__tab${tab === id ? ' is-active' : ''}`} onClick={() => setTab(id)}>
-                <Icon size={15} />
+                <Icon size={16} />
                 {label}
               </button>
             ))}
+            <div className="settings-page__spacer" />
             <button className="settings-page__tab" onClick={() => setState({ shortcutsOpen: true })}>
-              <Keyboard size={15} />
+              <Keyboard size={16} />
               Keyboard shortcuts
             </button>
           </nav>
           <div className="settings-page__content" role="tabpanel" aria-label={current.label}>
-            <button className="settings-page__close" aria-label="Close settings" onClick={close}>
-              <X size={16} />
-            </button>
+            <header className="settings-page__head">
+              <div>
+                <h2>{current.label}</h2>
+                {current.lead ? <p className="settings-page__lead">{current.lead}</p> : null}
+              </div>
+              <button className="settings-page__close" aria-label="Close settings" onClick={close}>
+                <X size={16} />
+              </button>
+            </header>
             <div className="settings-page__inner">
-              <h2>{current.label}</h2>
-              {current.lead ? <p className="settings-page__lead">{current.lead}</p> : null}
               {tab === 'general' ? (
                 <GeneralSettings />
               ) : tab === 'appearance' ? (
@@ -107,34 +113,23 @@ export function SettingsPage() {
 function GeneralSettings() {
   const fontSize = useChatFontSize();
   return (
-    <>
-      <div className="git-section">Font Size</div>
-      <p className="git-note">Size of messages in the home chat.</p>
-      <div className="theme-toggle" role="radiogroup" aria-label="Chat font size">
-        {CHAT_FONT_SIZE_PRESETS.map(({ id, label }) => (
-          <Tooltip key={id}>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={fontSize === id}
-                aria-label={label}
-                className={`theme-toggle__btn${fontSize === id ? ' is-active' : ''}`}
-                onClick={() => setChatFontSize(id)}
-              >
-                <Type
-                  size={id === 'small' ? 13 : id === 'large' ? 17 : 15}
-                  strokeWidth={1.75}
-                  aria-hidden
-                />
-                <span>{label}</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{label}</TooltipContent>
-          </Tooltip>
-        ))}
-      </div>
-    </>
+    <SettingsGroup title="Chat">
+      <SettingRow label="Message size" hint="How large messages look in the home chat and the canvas AI panel.">
+        <div className="theme-toggle" role="radiogroup" aria-label="Chat font size">
+          {CHAT_FONT_SIZE_PRESETS.map(({ id, label }) => (
+            <Tooltip key={id}>
+              <TooltipTrigger asChild>
+                <button type="button" role="radio" aria-checked={fontSize === id} aria-label={label} className={`theme-toggle__btn${fontSize === id ? ' is-active' : ''}`} onClick={() => setChatFontSize(id)}>
+                  <Type size={id === 'small' ? 13 : id === 'large' ? 17 : 15} strokeWidth={1.75} aria-hidden />
+                  <span>{label}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{label}</TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+      </SettingRow>
+    </SettingsGroup>
   );
 }
 
@@ -151,72 +146,51 @@ function AppearanceSettings() {
   const orbColors = getOrbColors(orb);
   return (
     <>
-      <div className="git-section">Theme</div>
-      <div className="theme-toggle" role="radiogroup" aria-label="Theme">
-        {THEMES.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            role="radio"
-            aria-checked={preference === id}
-            aria-label={label}
-            title={label}
-            className={`theme-toggle__btn theme-toggle__btn--icon${preference === id ? ' is-active' : ''}`}
-            onClick={() => setThemePreference(id)}
-          >
-            <Icon size={15} strokeWidth={1.75} aria-hidden />
-          </button>
-        ))}
-      </div>
+      <SettingsGroup title="Theme">
+        <SettingRow label="Color mode" hint="System follows your computer’s light or dark setting.">
+          <div className="theme-toggle" role="radiogroup" aria-label="Theme">
+            {THEMES.map(({ id, label, icon: Icon }) => (
+              <button key={id} type="button" role="radio" aria-checked={preference === id} className={`theme-toggle__btn${preference === id ? ' is-active' : ''}`} onClick={() => setThemePreference(id)}>
+                <Icon size={15} strokeWidth={1.75} aria-hidden />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </SettingRow>
+      </SettingsGroup>
 
-      <div className="git-section">Your messages</div>
-      <div className="appearance-preview appearance-preview--bubble" aria-hidden>
-        <div className="appearance-preview__bubble">{'Looks good'}</div>
-      </div>
-      <div className="swatch-row" role="radiogroup" aria-label="Message bubble color">
-        {CHAT_BUBBLE_PRESETS.map(({ id, label, swatch }) => (
-          <Tooltip key={id}>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={bubble === id}
-                aria-label={label}
-                className={`swatch-dot${bubble === id ? ' is-active' : ''}`}
-                style={{ background: id === 'default' ? 'var(--fg)' : swatch }}
-                onClick={() => setChatBubblePreset(id)}
-              />
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{label}</TooltipContent>
-          </Tooltip>
-        ))}
-      </div>
-
-      <div className="git-section">Voice orb</div>
-      <div className="appearance-preview appearance-preview--orb" aria-hidden>
-        <div
-          className="appearance-preview__orb"
-          style={{ background: `radial-gradient(circle at 35% 30%, ${orbColors[0]}, ${orbColors[1]} 70%)` }}
-        />
-      </div>
-      <div className="swatch-row" role="radiogroup" aria-label="Voice orb color">
-        {ORB_COLOR_PRESETS.map(({ id, label, colors }) => (
-          <Tooltip key={id}>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={orb === id}
-                aria-label={label}
-                className={`swatch-dot${orb === id ? ' is-active' : ''}`}
-                style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}
-                onClick={() => setOrbColorPreset(id)}
-              />
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{label}</TooltipContent>
-          </Tooltip>
-        ))}
-      </div>
+      <SettingsGroup title="Chat">
+        <SettingRow label="Your messages" hint="Bubble color for what you write.">
+          <div className="sx-swatch-line">
+            <div className="appearance-preview__bubble" aria-hidden>{'Looks good'}</div>
+            <div className="swatch-row" role="radiogroup" aria-label="Message bubble color">
+              {CHAT_BUBBLE_PRESETS.map(({ id, label, swatch }) => (
+                <Tooltip key={id}>
+                  <TooltipTrigger asChild>
+                    <button type="button" role="radio" aria-checked={bubble === id} aria-label={label} className={`swatch-dot${bubble === id ? ' is-active' : ''}`} style={{ background: id === 'default' ? 'var(--fg)' : swatch }} onClick={() => setChatBubblePreset(id)} />
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{label}</TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          </div>
+        </SettingRow>
+        <SettingRow label="Voice orb" hint="The orb you see while talking to the AI.">
+          <div className="sx-swatch-line">
+            <div className="appearance-preview__orb" aria-hidden style={{ background: `radial-gradient(circle at 35% 30%, ${orbColors[0]}, ${orbColors[1]} 70%)` }} />
+            <div className="swatch-row" role="radiogroup" aria-label="Voice orb color">
+              {ORB_COLOR_PRESETS.map(({ id, label, colors }) => (
+                <Tooltip key={id}>
+                  <TooltipTrigger asChild>
+                    <button type="button" role="radio" aria-checked={orb === id} aria-label={label} className={`swatch-dot${orb === id ? ' is-active' : ''}`} style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }} onClick={() => setOrbColorPreset(id)} />
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{label}</TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          </div>
+        </SettingRow>
+      </SettingsGroup>
     </>
   );
 }
@@ -259,87 +233,91 @@ function McpSettings() {
   const running = status.running;
 
   return (
-    <div className="mcp-panel">
-      <div className="git-panel__head">
-        <strong>{status.enabled ? 'Server on' : 'Server off'}</strong>
-        <label className="mcp-switch">
-          <input type="checkbox" aria-label="Enable MCP server" checked={status.enabled} onChange={(e) => void update(() => api.mcp.setEnabled(e.target.checked))} />
-          <span />
-        </label>
-      </div>
-      <p className="git-note">
-        Lets AI agents such as Cursor or Claude inspect and edit the open project: add elements, set styles, change text and take screenshots. Their edits show up live and can be undone like your own.
-      </p>
+    <>
+      <SettingsGroup title="Server" hint="The server only accepts connections from this computer that present the access token.">
+        <SettingRow
+          label={
+            <span className="sx-status">
+              {status.enabled && <span className={`mcp-dot ${running ? 'is-on' : 'is-error'}`} aria-hidden />}
+              {status.enabled ? (running ? 'Server on' : 'Starting…') : 'Server off'}
+            </span>
+          }
+          hint="Lets AI agents such as Cursor or Claude inspect and edit the open project. Their edits show up live and can be undone like your own."
+        >
+          <Switch label="Enable MCP server" checked={status.enabled} onChange={(on) => void update(() => api.mcp.setEnabled(on))} />
+        </SettingRow>
+        {status.enabled && !running && (
+          <SettingRow label="Not running" hint={status.error ?? 'Starting…'} />
+        )}
+        {status.enabled && running && (
+          <SettingRow label="Address" hint="Agents connect here.">
+            <div className="sx-inline">
+              <code className="sx-code">{status.url}</code>
+              <Button size="sm" variant="ghost" icon={<Copy size={13} />} aria-label="Copy URL" onClick={() => void copy(status.url, 'URL')} />
+            </div>
+          </SettingRow>
+        )}
+        {status.enabled && (
+          <SettingRow label="Port" hint="Change if another app already uses it.">
+            <form
+              className="sx-inline"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const value = Number(port);
+                if (value !== status.port) void update(() => api.mcp.setPort(value));
+              }}
+            >
+              <InputShell>
+                <input aria-label="Port" inputMode="numeric" value={port} onChange={(e) => setPort(e.target.value.replace(/\D/g, ''))} />
+              </InputShell>
+              <Button size="sm" type="submit" disabled={Number(port) === status.port}>
+                Apply
+              </Button>
+            </form>
+          </SettingRow>
+        )}
+      </SettingsGroup>
 
-      {!status.enabled ? (
-        <Button size="sm" variant="primary" onClick={() => void update(() => api.mcp.setEnabled(true))}>
-          Start server
-        </Button>
-      ) : !running ? (
-        <Notice>{status.error ?? 'Starting…'}</Notice>
-      ) : (
+      {status.enabled && running && (
         <>
-          <div className="git-row">
-            <span className="mcp-dot is-on" aria-hidden />
-            <span className="git-row__main mcp-url">{status.url}</span>
-            <button className="git-link" onClick={() => void copy(status.url, 'URL')} title="Copy URL">
-              <Copy size={11} />
-            </button>
-          </div>
+          <SettingsGroup title="Connect an agent">
+            <SettingRow label="Cursor" hint="Adds OpenCanvas to Cursor’s MCP servers.">
+              <Button size="sm" variant="primary" icon={<Plug size={13} />} onClick={() => void api.mcp.installCursor().catch((err) => toast(errorText(err), 'error'))}>
+                Add to Cursor
+              </Button>
+            </SettingRow>
+            <SettingRow label="Other editors" hint="Paste this into an mcp.json file.">
+              <Button size="sm" icon={<Copy size={13} />} onClick={() => void copy(cursorConfig(status), 'mcp.json config')}>
+                Copy mcp.json
+              </Button>
+            </SettingRow>
+            <SettingRow label="Claude Code" hint="Run this in a terminal.">
+              <Button size="sm" icon={<Copy size={13} />} onClick={() => void copy(claudeCommand(status), 'Claude Code command')}>
+                Copy command
+              </Button>
+            </SettingRow>
+          </SettingsGroup>
 
-          <div className="git-section">Connect an agent</div>
-          <div className="mcp-actions">
-            <Button size="sm" variant="primary" icon={<Plug size={13} />} onClick={() => void api.mcp.installCursor().catch((err) => toast(errorText(err), 'error'))}>
-              Add to Cursor
-            </Button>
-            <Button size="sm" icon={<Copy size={13} />} onClick={() => void copy(cursorConfig(status), 'mcp.json config')}>
-              Copy mcp.json
-            </Button>
-            <Button size="sm" icon={<Copy size={13} />} onClick={() => void copy(claudeCommand(status), 'Claude Code command')}>
-              Claude Code
-            </Button>
-          </div>
-          <p className="git-note">The server only accepts connections from this computer that present the access token below.</p>
-
-          <div className="git-section">Access token</div>
-          <div className="git-row">
-            <KeyRound size={13} />
-            <code className="git-row__main mcp-token">{showToken ? status.token : '•'.repeat(24)}</code>
-            <button className="git-link" onClick={() => setShowToken((v) => !v)}>
-              {showToken ? 'Hide' : 'Show'}
-            </button>
-            <button className="git-link" onClick={() => void copy(status.token, 'token')} title="Copy token">
-              <Copy size={11} />
-            </button>
-          </div>
-          <Button size="sm" variant="ghost" icon={<RefreshCw size={13} />} onClick={() => void update(() => api.mcp.regenerateToken())}>
-            New token (disconnects agents)
-          </Button>
-
-          <div className="git-section">Activity</div>
-          <p className="git-note">
-            {status.calls === 0 ? 'No agent has called a tool yet.' : `${plural(status.calls, 'tool call', 'tool calls')}. Last: ${status.lastTool} ${ago(status.lastAt)}.`}
-          </p>
+          <SettingsGroup title="Access">
+            <SettingRow label="Access token" hint="Treat it like a password.">
+              <div className="sx-inline">
+                <KeyRound size={14} aria-hidden />
+                <code className="sx-code">{showToken ? status.token : '•'.repeat(16)}</code>
+                <Button size="sm" variant="ghost" onClick={() => setShowToken((v) => !v)}>
+                  {showToken ? 'Hide' : 'Show'}
+                </Button>
+                <Button size="sm" variant="ghost" icon={<Copy size={13} />} aria-label="Copy token" onClick={() => void copy(status.token, 'token')} />
+              </div>
+            </SettingRow>
+            <SettingRow label="New token" hint="Disconnects every agent that’s using the current one.">
+              <Button size="sm" icon={<RefreshCw size={13} />} onClick={() => void update(() => api.mcp.regenerateToken())}>
+                Generate
+              </Button>
+            </SettingRow>
+            <SettingRow label="Activity" hint={status.calls === 0 ? 'No agent has called a tool yet.' : `${plural(status.calls, 'tool call', 'tool calls')}. Last: ${status.lastTool} ${ago(status.lastAt)}.`} />
+          </SettingsGroup>
         </>
       )}
-
-      {status.enabled && (
-        <form
-          className="mcp-port"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const value = Number(port);
-            if (value !== status.port) void update(() => api.mcp.setPort(value));
-          }}
-        >
-          <InputShell prefix="Port">
-            <input aria-label="Port" inputMode="numeric" value={port} onChange={(e) => setPort(e.target.value.replace(/\D/g, ''))} />
-          </InputShell>
-          <Button size="sm" type="submit" disabled={Number(port) === status.port}>
-            Apply
-          </Button>
-        </form>
-      )}
-    </div>
+    </>
   );
 }
