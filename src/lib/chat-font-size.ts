@@ -11,11 +11,11 @@ export type ChatFontSizePreset = {
   sizeSm: string;
 };
 
-/** Presets map to theme `--text-sm` / `--text-base` / `--text-lg` (12.5 / 14 / 16px). */
+/** Presets for chat body / secondary text. Default is 13px. */
 export const CHAT_FONT_SIZE_PRESETS: ChatFontSizePreset[] = [
-  { id: "small", label: "Small", size: "12.5px", sizeSm: "12px" },
-  { id: "default", label: "Default", size: "14px", sizeSm: "12.5px" },
-  { id: "large", label: "Large", size: "16px", sizeSm: "14px" },
+  { id: "small", label: "Small", size: "12px", sizeSm: "11px" },
+  { id: "default", label: "Default", size: "13px", sizeSm: "12px" },
+  { id: "large", label: "Large", size: "15px", sizeSm: "13px" },
 ];
 
 const STORAGE_KEY = "oc-chat-font-size";

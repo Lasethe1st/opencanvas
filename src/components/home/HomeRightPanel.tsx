@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export const HOME_RIGHT_PANEL_WIDTH = 250;
-/** Extra width the panel gains to the left while a file is open. */
-export const HOME_RIGHT_PANEL_FILE_WIDTH = 340;
+/** Extra width the panel gains while a file is open — total open width is 790. */
+export const HOME_RIGHT_PANEL_FILE_WIDTH = 540;
 
 /** Docked home right column — stays open while switching tabs; body fades. */
 export function HomeRightPanel({

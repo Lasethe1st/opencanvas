@@ -88,7 +88,7 @@ function contextWindow(model: string): number {
 function chatChars(items: AiChatItem[]): number {
   let n = 0;
   for (const item of items) {
-    if (item.kind === "user" || item.kind === "assistant" || item.kind === "error") n += item.text.length;
+    if (item.kind === "user" || item.kind === "assistant" || item.kind === "thinking" || item.kind === "error") n += item.text.length;
     else if (item.kind === "tool") n += item.tool.length + item.summary.length;
     else if (item.kind === "question") n += item.question.question.length + (item.answer?.length ?? 0);
     else if (item.kind === "approval") n += item.approval.summary.length + (item.answer?.length ?? 0);

@@ -190,6 +190,7 @@ type AiEventBase = { turnId: string; projectRoot?: string };
 export type AiEvent =
   | (AiEventBase & { type: 'start'; request: string })
   | (AiEventBase & { type: 'text'; delta: string })
+  | (AiEventBase & { type: 'reasoning'; delta: string })
   | (AiEventBase & { type: 'step'; stepId: string; index: number; label?: string })
   | (AiEventBase & { type: 'tool-start'; callId: string; tool: string; summary: string; parentId?: string; startedAt?: number })
   | (AiEventBase & { type: 'tool-end'; callId: string; ok: boolean; summary: string; elementId?: string | null; endedAt?: number })
@@ -203,6 +204,7 @@ export type AiEvent =
 export type AiChatItem =
   | { kind: 'user'; id: string; text: string }
   | { kind: 'assistant'; id: string; text: string }
+  | { kind: 'thinking'; id: string; text: string; done: boolean }
   | { kind: 'tool'; id: string; tool: string; summary: string; state: 'running' | 'done' | 'failed'; elementId?: string | null }
   | { kind: 'question'; id: string; question: AiQuestion; answer: string | null }
   | { kind: 'approval'; id: string; approval: AiApproval; answer: string | null }

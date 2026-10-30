@@ -702,6 +702,16 @@ function mockAi(): OpenCanvasApi['ai'] {
     stop = false;
     emit({ turnId, type: 'start', request });
     try {
+      const thoughts = [
+        'Looking at what they asked for… ',
+        'I should turn this into a short brief, then sketch the first page. ',
+        'I’ll also check whether they want a specific plan count before locking the layout.\n',
+      ];
+      for (const chunk of thoughts) {
+        if (stop) return;
+        emit({ turnId, type: 'reasoning', delta: chunk });
+        await wait(220);
+      }
       await stream(turnId, 'Sure. I’ll shape a brief from that, then outline the first page. ');
       emit({ turnId, type: 'tool-start', callId: 'c1', tool: 'get_outline', summary: 'Reading your brief' });
       await wait(500);
@@ -767,6 +777,7 @@ function mockAi(): OpenCanvasApi['ai'] {
       if (pending) pending.resolve('Stopped');
     },
     reset: async () => undefined,
+    hydrate: async () => undefined,
     onEvent: (cb) => {
       listeners.push(cb);
       return () => {

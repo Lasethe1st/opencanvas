@@ -1,18 +1,31 @@
-import { Books, Brain, ChatCircle, FolderSimple, Lightning, MagnifyingGlass, PencilSimpleLine, SidebarSimple } from '@phosphor-icons/react';
+import { Brain, ChatCircle, FolderSimple, Lightning } from '@phosphor-icons/react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { LayoutAlignLeftIcon, LayoutAlignRightIcon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
+import { Library } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentProject, SkillMeta } from '../../shared/types';
 import { api } from '../lib/api';
-import { sendToAi } from '../lib/ai';
+import { sendToAi, stopAi } from '../lib/ai';
 import { openRecent } from '../lib/actions';
-import { addHomeChat, loadHomeChats, type HomeChat as HomeChatRecord } from '../lib/home-chats';
-import { getState, setState, useStore } from '../lib/store';
+import {
+  addHomeChat,
+  historyTurnsForHomeChat,
+  itemsForHomeChat,
+  loadHomeChats,
+  removeHomeChat,
+  titleFromPrompt,
+  updateHomeChatItems,
+  type HomeChat as HomeChatRecord,
+} from '../lib/home-chats';
+import { getState, setState, toast, useStore } from '../lib/store';
+import { homeItemActions } from './home/HomeItemMenu';
 import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
 import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
 import { HomeDialog } from './home/HomeDialog';
 import { NewProjectDialog, type StartPath } from './home/NewProjectDialog';
-import { FileViewer, SourcesPanel, useSources, type OpenFile, type Source } from './home/SourcesPanel';
+import { FileViewer, SourcesPanel, useSources, WebFaviconStack, type OpenFile, type Source } from './home/SourcesPanel';
 import { HomePrompt, type MentionOption } from './home/HomePrompt';
 import { HomeRightPanel } from './home/HomeRightPanel';
 import { HomeAccount } from './home/HomeAccount';
@@ -50,6 +63,8 @@ export function Onboarding() {
   const [recent, setRecent] = useState<RecentProject[] | null>(null);
   const [location, setLocation] = useState('');
   const [chats, setChats] = useState<HomeChatRecord[]>(loadHomeChats);
+  const activeChatId = useRef<string | null>(null);
+  const prevTurnId = useRef<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
   /** While you scroll the transcript the composer folds into a thin home indicator; a click opens it again. */
   const [composerFolded, setComposerFolded] = useState(false);
@@ -103,7 +118,7 @@ export function Onboarding() {
 
   const chatTitle = useMemo(() => {
     const first = aiChat.find((i) => i.kind === 'user');
-    return first && first.kind === 'user' && first.text.trim() ? first.text.split('\n\nReferenced:\n')[0].trim().replace(/\s+/g, ' ') : 'New chat';
+    return first && first.kind === 'user' && first.text.trim() ? titleFromPrompt(first.text) : 'New chat';
   }, [aiChat]);
 
   const chatSources = useSources(aiChat);
@@ -151,8 +166,6 @@ export function Onboarding() {
     setVoiceMode(false);
     focusPrompt();
   }, []);
-  const canContinue = aiChat.some((i) => i.kind === 'user') && !aiTurnId;
-
   useEffect(() => {
     void api.recentProjects().then(setRecent);
     void api.defaultLocation().then(setLocation);
@@ -177,8 +190,12 @@ export function Onboarding() {
   }, [sourcesOpen, dialog]);
 
   const pickChat = useCallback((chat: HomeChatRecord) => {
-    setState({ dockDraft: chat.text });
+    activeChatId.current = chat.id;
+    stopAi();
+    setState({ dockDraft: '', aiChat: itemsForHomeChat(chat), aiTurnId: null });
+    void api.ai.hydrate(historyTurnsForHomeChat(chat));
     setDialog(null);
+    setSearchOpen(false);
     focusPrompt();
   }, []);
 
@@ -193,7 +210,13 @@ export function Onboarding() {
     const ok = await sendToAi(full, skills.length ? { skills } : undefined);
     // sendToAi only clears the draft when it matches what was sent, and `full` adds the references.
     if (ok && getState().dockDraft.trim() === text) setState({ dockDraft: '' });
-    if (ok && first) setChats((current) => addHomeChat(current, text));
+    if (ok && first) {
+      setChats((current) => {
+        const next = addHomeChat(current, text);
+        activeChatId.current = next[0]?.id ?? null;
+        return next;
+      });
+    }
     if (ok) focusPrompt();
   }, [dockDraft, aiReady, aiChat.length, mentioned, chatSources]);
 
@@ -202,32 +225,96 @@ export function Onboarding() {
     if (!aiTurnId && chatActive) focusPrompt();
   }, [aiTurnId, chatActive]);
 
+  // Persist the transcript when a turn finishes so "Recent" opens the conversation, not the draft.
+  useEffect(() => {
+    const was = prevTurnId.current;
+    prevTurnId.current = aiTurnId;
+    if (!was || aiTurnId) return;
+    const id = activeChatId.current;
+    if (!id) return;
+    const items = getState().aiChat;
+    if (!items.length) return;
+    setChats((current) => updateHomeChatItems(current, id, items));
+  }, [aiTurnId]);
+
   const continueToSetup = useCallback(() => {
     openNew({ path: 'ai', brief: briefFromChat(aiChat) || dockDraft.trim() });
   }, [aiChat, dockDraft, openNew]);
 
   const RECENT = 4;
   const newChat = useCallback(() => {
+    activeChatId.current = null;
     setDialog(null);
+    stopAi();
     setState({ dockDraft: '', aiChat: [], aiTurnId: null });
     void api.ai.reset();
     focusPrompt();
   }, []);
   const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform);
 
+  const chatMenu = useCallback(
+    (chat: HomeChatRecord) =>
+      homeItemActions({
+        onDelete: () => {
+          if (activeChatId.current === chat.id) {
+            activeChatId.current = null;
+            stopAi();
+            setState({ dockDraft: '', aiChat: [], aiTurnId: null });
+            void api.ai.reset();
+          }
+          setChats((current) => removeHomeChat(current, chat.id));
+          toast('Chat deleted');
+        },
+        onShare: () => {
+          void navigator.clipboard.writeText(chat.text).then(
+            () => toast('Copied to clipboard', 'success'),
+            () => toast('Could not copy', 'error'),
+          );
+        },
+        onSummarize: () => {
+          setState({ dockDraft: `Summarize this: ${chat.text}` });
+          setDialog(null);
+          focusPrompt();
+        },
+      }),
+    [],
+  );
+
+  const projectMenu = useCallback(
+    (project: RecentProject) =>
+      homeItemActions({
+        onDelete: () => {
+          setRecent((current) => (current ? current.filter((p) => p.root !== project.root) : current));
+          toast('Removed from recent');
+        },
+        onShare: () => {
+          void navigator.clipboard.writeText(project.root).then(
+            () => toast('Path copied', 'success'),
+            () => toast('Could not copy', 'error'),
+          );
+        },
+        onSummarize: () => {
+          setState({ dockDraft: `Summarize the project at ${project.name}` });
+          setDialog(null);
+          focusPrompt();
+        },
+      }),
+    [],
+  );
+
   const actions: NavRow[] = useMemo(
     () => [
-      { id: 'new-chat', label: 'New chat', icon: PencilSimpleLine, onSelect: newChat },
-      { id: 'search', label: 'Search', icon: MagnifyingGlass, shortcut: isMac ? '⌘K' : 'Ctrl K', onSelect: () => setSearchOpen(true) },
+      { id: 'new-chat', label: 'New chat', icon: <HugeiconsIcon icon={SquarePenIcon} strokeWidth={2} />, onSelect: newChat },
+      { id: 'search', label: 'Search', icon: <HugeiconsIcon icon={Search02Icon} strokeWidth={2} />, shortcut: isMac ? '⌘K' : 'Ctrl K', onSelect: () => setSearchOpen(true) },
     ],
     [newChat, isMac],
   );
   const library: NavRow[] = useMemo(
     () => [
-      { id: 'chats', label: 'Chats', icon: ChatCircle, color: 'var(--src-chat)', onSelect: () => setDialog({ kind: 'chats' }) },
-      { id: 'projects', label: 'Projects', icon: FolderSimple, color: 'var(--src-project)', disabled: busy, onSelect: () => setDialog({ kind: 'projects' }) },
-      { id: 'skills', label: 'Skills', icon: Lightning, color: 'var(--src-skill)', onSelect: openSkills },
-      { id: 'memory', label: 'Memory', icon: Brain, onSelect: () => setDialog({ kind: 'memory' }) },
+      { id: 'chats', label: 'Chats', icon: <ChatCircle weight="fill" style={{ color: 'var(--src-chat)' }} />, onSelect: () => setDialog({ kind: 'chats' }) },
+      { id: 'projects', label: 'Projects', icon: <FolderSimple weight="fill" style={{ color: 'var(--src-project)' }} />, disabled: busy, onSelect: () => setDialog({ kind: 'projects' }) },
+      { id: 'skills', label: 'Skills', icon: <Lightning weight="fill" style={{ color: 'var(--src-skill)' }} />, onSelect: openSkills },
+      { id: 'memory', label: 'Memory', icon: <Brain weight="fill" />, onSelect: () => setDialog({ kind: 'memory' }) },
     ],
     [busy, openSkills],
   );
@@ -237,19 +324,34 @@ export function Onboarding() {
         id: 'recent-chats',
         title: 'Recent chats',
         empty: 'No chats yet',
-        entries: chats.slice(0, RECENT).map((c) => ({ id: c.id, label: c.text, meta: timeAgo(c.at), icon: <ChatCircle weight="fill" className="size-5 p-0.5" style={{ color: 'var(--src-chat)' }} aria-hidden />, onSelect: () => pickChat(c) })),
-        more: chats.length > RECENT ? { label: 'View all chats', onSelect: () => setDialog({ kind: 'chats' }) } : undefined,
+        entries: chats.slice(0, RECENT).map((c) => ({
+          id: c.id,
+          label: titleFromPrompt(c.text),
+          meta: timeAgo(c.at),
+          icon: <ChatCircle weight="fill" className="size-5 p-0.5" style={{ color: 'var(--src-chat)' }} aria-hidden />,
+          onSelect: () => pickChat(c),
+          menu: chatMenu(c),
+        })),
+        more: { label: 'View All', onSelect: () => setDialog({ kind: 'chats' }) },
       },
       {
         id: 'recent-projects',
         title: 'Recent projects',
         add: { label: 'New project', onSelect: () => openNew() },
         empty: recent === null ? 'Loading…' : 'No projects yet',
-        entries: (recent ?? []).slice(0, RECENT).map((p) => ({ id: p.root, label: p.name, meta: timeAgo(p.openedAt), disabled: busy, icon: <ProjectThumb icon={p.icon} name={p.name} className="size-5" />, onSelect: () => void openRecent(p.root) })),
-        more: (recent?.length ?? 0) > RECENT ? { label: 'View all projects', onSelect: () => setDialog({ kind: 'projects' }) } : undefined,
+        entries: (recent ?? []).slice(0, RECENT).map((p) => ({
+          id: p.root,
+          label: p.name,
+          meta: timeAgo(p.openedAt),
+          disabled: busy,
+          icon: <ProjectThumb icon={p.icon} name={p.name} className="size-5" />,
+          onSelect: () => void openRecent(p.root),
+          menu: projectMenu(p),
+        })),
+        more: (recent?.length ?? 0) > RECENT ? { label: 'View All', onSelect: () => setDialog({ kind: 'projects' }) } : undefined,
       },
     ],
-    [chats, recent, busy, pickChat, openNew],
+    [chats, recent, busy, pickChat, openNew, chatMenu, projectMenu],
   );
   const tasks: OnboardingTask[] = useMemo(
     () => [
@@ -280,10 +382,10 @@ export function Onboarding() {
           />
           <div ref={setCardEl} className={cn('relative min-w-0 flex-1 overflow-hidden border bg-[var(--home-card)] motion-safe:transition-[margin,border-radius,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', navOpen || sourcesOpen ? 'm-2 rounded-[10px] border-foreground/[0.08]' : 'm-0 rounded-none border-transparent')}>
           <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[8px] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
-            <SidebarSimple weight={navOpen ? 'fill' : 'regular'} />
+            <HugeiconsIcon icon={navOpen ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
           </Button>
           <div className="absolute start-14 top-3 z-20 flex max-w-[calc(100%-9rem)] items-center gap-2">
-            <span title={chatTitle} className="inline-flex h-9 min-w-0 items-center rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground">
+            <span title={chatTitle} className="inline-flex h-9 max-w-[240px] min-w-0 items-center overflow-hidden rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground">
               <span className="truncate">{chatTitle}</span>
             </span>
             <div ref={setChipHost} className="contents" />
@@ -291,9 +393,25 @@ export function Onboarding() {
           {(sources.length > 0 || sourcesOpen) && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" data-home-sources-toggle="" className="absolute end-3 top-3 z-20 h-9 gap-1.5 rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground hover:bg-secondary [&_svg]:size-4" aria-label={sourcesOpen ? 'Hide sources' : 'Show sources'} aria-expanded={sourcesOpen} onClick={() => setSourcesOpen((o) => !o)}>
-                  <Books />
-                  {sources.length > 0 && <span className="text-xs tabular-nums">{sources.length}</span>}
+                <Button
+                  variant="ghost"
+                  data-home-sources-toggle=""
+                  className={cn(
+                    'absolute end-3 top-3 z-20 h-9 rounded-[var(--pill)] text-foreground hover:bg-secondary',
+                    sources.some((s) => s.href) ? 'bg-transparent px-1.5 hover:bg-muted/80' : 'gap-1.5 bg-muted px-3.5 text-xs font-medium [&_svg]:size-4',
+                  )}
+                  aria-label={sourcesOpen ? 'Hide sources' : 'Show sources'}
+                  aria-expanded={sourcesOpen}
+                  onClick={() => setSourcesOpen((o) => !o)}
+                >
+                  {sources.some((s) => s.href) ? (
+                    <WebFaviconStack sources={sources.filter((s) => !!s.href)} max={3} size={26} overlap={10} />
+                  ) : (
+                    <>
+                      <Library strokeWidth={2} />
+                      {sources.length > 0 && <span className="text-xs tabular-nums">{sources.length}</span>}
+                    </>
+                  )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent side={document.dir === 'rtl' ? 'right' : 'left'}>{sourcesOpen ? 'Hide sources' : 'Show sources'}</TooltipContent>
@@ -343,21 +461,10 @@ export function Onboarding() {
                   <div className={cn('min-h-0', composerFolded && !voiceMode ? 'overflow-hidden' : 'overflow-visible')}>
                   <div className="mx-auto flex w-full max-w-[680px] flex-col gap-2">
                     {!voiceMode && (
-                      <div className="flex items-center justify-between gap-3 px-1">
-                        <HomeStatusPills
-                          className="min-w-0 px-0"
-                          recentProjectName={recent?.[0]?.name ?? null}
-                          onOpenProjects={() => setDialog({ kind: 'projects' })}
-                        />
-                        {(canContinue || (aiChat.some((i) => i.kind === 'user') && !aiReady)) && (
-                          <div className="flex shrink-0 items-center gap-2">
-                            <HomeAiHint />
-                            <Button type="button" size="sm" variant={canContinue ? 'default' : 'secondary'} className="h-auto rounded-[var(--pill)] px-2.5 py-2 text-[13px] font-normal" onClick={continueToSetup}>
-                              Continue to project
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                      <HomeStatusPills
+                        className="min-w-0 px-1"
+                        onOpenProjects={() => setDialog({ kind: 'projects' })}
+                      />
                     )}
                     {voiceMode ? (
                       <VoiceOrbSession onClose={endVoice} />
@@ -376,11 +483,9 @@ export function Onboarding() {
                           onOpenSkills={openSkills}
                         />
                         <HomeComposerExtras />
-                        {!(canContinue || (aiChat.some((i) => i.kind === 'user') && !aiReady)) && (
-                          <div className="px-1">
-                            <HomeAiHint />
-                          </div>
-                        )}
+                        <div className="px-1">
+                          <HomeAiHint />
+                        </div>
                       </>
                     )}
                   </div>
@@ -460,7 +565,7 @@ export function Onboarding() {
         )}
         {dialog?.kind === 'chats' && (
           <HomeDialog title="Recent chats" onClose={closeDialog}>
-            <RecentChatsPanel chats={chats} onPick={pickChat} />
+            <RecentChatsPanel chats={chats} onPick={pickChat} menuFor={chatMenu} />
           </HomeDialog>
         )}
       </TooltipProvider>

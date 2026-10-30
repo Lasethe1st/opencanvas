@@ -1,4 +1,4 @@
-import { ArrowUp, Check, CircleAlert, Crosshair, GitBranch, Loader2, MessageSquarePlus, ShieldQuestion, Square, X } from 'lucide-react';
+import { ArrowUp, Check, Crosshair, GitBranch, MessageSquarePlus, ShieldQuestion, Square, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { providerMeta, type AiChatItem } from '../../../shared/ai';
 import { setLeafPage } from '../../../shared/workspace-layout';
@@ -8,6 +8,8 @@ import { createPage } from '../../lib/pages';
 import { getState, setState, useStore } from '../../lib/store';
 import { scheduleWorkspaceSave } from '../../lib/workspace';
 import { AgentOrb } from '@/components/ui/agent-orb';
+import { ThinkingReasoning } from '@/components/ui/thinking-reasoning';
+import { humanizeAiError } from '../../lib/ai-errors';
 import { Button, IconButton, cx } from '../../ui/primitives.jsx';
 
 export async function showAgentActivity() {
@@ -52,12 +54,13 @@ export function AiChat({ bare = false }: { bare?: boolean } = {}) {
   const ready = !!status?.ready;
   const waiting = items.some((i) => (i.kind === 'question' || i.kind === 'approval') && i.answer === null);
   const last = items[items.length - 1];
-  const thinking = busy && !waiting && !(last?.kind === 'assistant' || (last?.kind === 'tool' && last.state === 'running'));
+  const waitingOnModel =
+    busy && !waiting && !(last?.kind === 'assistant' || last?.kind === 'thinking' || (last?.kind === 'tool' && last.state === 'running'));
 
   useLayoutEffect(() => {
     const log = logRef.current;
     if (log && pinned.current) log.scrollTop = log.scrollHeight;
-  }, [items, thinking]);
+  }, [items, waitingOnModel]);
 
   const send = async () => {
     if (!draft.trim() || !ready) return;
@@ -99,10 +102,10 @@ export function AiChat({ bare = false }: { bare?: boolean } = {}) {
         {items.map((item) => (
           <ChatItem key={item.id} item={item} />
         ))}
-        {thinking && (
+        {waitingOnModel && (
           <div className="ai-thinking">
             <span aria-hidden>
-              <AgentOrb variant="S1" size={18} style={{ color: 'currentColor' }} />
+              <AgentOrb variant="S2" size={18} style={{ color: 'currentColor' }} />
             </span>
             Thinking…
           </div>
@@ -167,17 +170,26 @@ function ChatItem({ item }: { item: AiChatItem }) {
       return <div className="ai-msg ai-msg--user">{item.text}</div>;
     case 'assistant':
       return <div className="ai-msg ai-msg--assistant">{item.text}</div>;
+    case 'thinking':
+      return <ThinkingReasoning text={item.text} done={item.done} />;
     case 'error':
       return (
-        <div className="ai-error" role="alert">
-          <CircleAlert size={14} aria-hidden />
-          <span>{item.text}</span>
+        <div className="ai-msg ai-msg--assistant" role="alert">
+          {humanizeAiError(item.text)}
         </div>
       );
     case 'tool':
       return (
         <div className={cx('ai-tool', `is-${item.state}`)}>
-          {item.state === 'running' ? <Loader2 size={13} className="ai-spin" aria-label="Running" /> : item.state === 'done' ? <Check size={13} aria-label="Done" /> : <X size={13} aria-label="Failed" />}
+          {item.state === 'running' ? (
+            <span aria-hidden>
+              <AgentOrb variant="S3" size={14} style={{ color: 'currentColor' }} />
+            </span>
+          ) : item.state === 'done' ? (
+            <Check size={13} aria-label="Done" />
+          ) : (
+            <X size={13} aria-label="Failed" />
+          )}
           <span className="ai-tool__summary">{item.summary}</span>
           {item.state === 'done' && item.elementId && (
             <button type="button" className="ai-tool__show" onClick={() => selectElement(item.elementId!)} title="Select this element on the canvas">
