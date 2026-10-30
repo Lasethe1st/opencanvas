@@ -1,14 +1,9 @@
 import { HugeiconsIcon } from '@hugeicons/react';
 import { BubbleChatUploadIcon, Delete02Icon, EllipsisIcon } from '@hugeicons/core-free-icons';
+import { Menu } from 'bloom-menu';
 import { Summary } from 'lucide-react';
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 export type HomeMenuAction = {
@@ -142,7 +137,7 @@ export function HomeContextMenu({
   );
 }
 
-/** Ellipsis trigger that opens the same actions in a dropdown. */
+/** Ellipsis trigger that morphs into the same actions (bloom-menu). */
 export function HomeEllipsisMenu({
   actions,
   label = 'More options',
@@ -150,40 +145,54 @@ export function HomeEllipsisMenu({
   actions: HomeMenuAction[];
   label?: string;
 }) {
+  const [open, setOpen] = useState(false);
   if (!actions.length) return null;
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label={label}
-          className="inline-flex size-7 shrink-0 items-center justify-center rounded-[6px] text-muted-foreground opacity-0 transition-[opacity,background-color,color] duration-150 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none group-hover:opacity-100 group-focus-within:opacity-100 data-[state=open]:bg-accent data-[state=open]:text-foreground data-[state=open]:opacity-100 [&_svg]:size-4"
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
+    <div
+      className="relative z-[210] shrink-0"
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <Menu.Root open={open} onOpenChange={setOpen} direction="bottom" anchor="end" bounce={0.12} visualDuration={0.28}>
+        <Menu.Container
+          buttonSize={28}
+          menuWidth={168}
+          menuRadius={10}
+          buttonRadius={6}
+          className={cn(
+            'border border-[color:var(--frost-border)] bg-[var(--frost-bg)] text-muted-foreground',
+            'opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100',
+            open && 'opacity-100 text-foreground',
+          )}
+          style={{
+            WebkitBackdropFilter: 'var(--frost-filter)',
+            backdropFilter: 'var(--frost-filter)',
+            boxShadow: open ? 'var(--shadow-md)' : 'none',
+          }}
         >
-          <HugeiconsIcon icon={EllipsisIcon} strokeWidth={2} />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="z-[210] min-w-[160px] border border-[color:var(--frost-border)] bg-[var(--frost-bg)] backdrop-blur-none"
-        style={{ WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {actions.map((action) => (
-          <DropdownMenuItem
-            key={action.id}
-            className={action.destructive ? 'text-destructive focus:text-destructive [&_svg]:text-destructive' : undefined}
-            onSelect={(e) => {
-              e.preventDefault();
-              action.onSelect();
-            }}
-          >
-            {action.icon}
-            {action.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <Menu.Trigger className="text-muted-foreground hover:text-foreground [&_svg]:size-4">
+            <span className="sr-only">{label}</span>
+            <HugeiconsIcon icon={EllipsisIcon} strokeWidth={2} aria-hidden />
+          </Menu.Trigger>
+          <Menu.Content className="flex flex-col gap-0.5 p-1 pt-1.5">
+            {actions.map((action) => (
+              <Menu.Item
+                key={action.id}
+                className={cn(
+                  'flex w-full cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors duration-150 hover:bg-accent [&_svg]:size-4 [&_svg]:shrink-0',
+                  action.destructive
+                    ? 'text-destructive [&_svg]:text-destructive'
+                    : 'text-foreground [&_svg]:text-muted-foreground',
+                )}
+                onSelect={action.onSelect}
+              >
+                {action.icon}
+                {action.label}
+              </Menu.Item>
+            ))}
+          </Menu.Content>
+        </Menu.Container>
+      </Menu.Root>
+    </div>
   );
 }
