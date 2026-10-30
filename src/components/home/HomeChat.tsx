@@ -1,5 +1,5 @@
 import { highlight } from "../../lib/highlight";
-import { Brain, Check, ShieldWarning, Wrench, X } from "@phosphor-icons/react";
+import { Brain, Check, CircleNotch, FileText, ShieldWarning, SpeakerHigh, Stack, Stop, Wrench, X } from "@phosphor-icons/react";
 import { humanizeAiError } from "../../lib/ai-errors";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Copy01Icon } from "@hugeicons/core-free-icons";
@@ -29,6 +29,7 @@ import { getVote, isRemembered, setVote, subscribeMemory, toggleRemember, type V
 import { AgentOrb } from "@/components/ui/agent-orb";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { cn } from "@/lib/utils";
+import { speakReply, stopSpeech, useSpeech } from "../../lib/read-aloud";
 import { referencesIn } from "../assistant-shapes";
 
 const TOOL_LABELS: Record<string, string> = {
@@ -66,7 +67,7 @@ export function HomeChat({ mentions = false }: { mentions?: boolean } = {}) {
     <div className="w-full px-1 py-2" aria-label="Conversation">
       <div className="flex w-full flex-col gap-4 pb-4">
         {items.map((item) => (
-          <div key={item.id} className={item.kind === "user" ? "pb-3" : undefined}>
+          <div key={item.id} data-chat-item={item.id} className={item.kind === "user" ? "pb-3" : undefined}>
             <ChatItem item={item} mentions={mentions} />
           </div>
         ))}
@@ -114,12 +115,10 @@ function inlineRefs(body: string, refs: { kind: SourceKind; title: string }[]): 
   let cursor = 0;
   for (const { r, at } of found) {
     if (at > cursor) out.push(body.slice(cursor, at));
-    const color = SOURCE_META[r.kind].color;
     out.push(
       <span
         key={`${r.kind}:${r.title}:${at}`}
-        className="mx-0.5 inline-flex max-w-[16rem] items-center gap-1.5 rounded-[var(--pill)] px-2.5 py-[3px] align-middle text-[0.92em] leading-[1.4]"
-        style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--home-card))` }}
+        className="mx-px inline-flex max-w-[16rem] items-center gap-1 rounded-[var(--pill)] bg-foreground/[0.07] px-2 align-baseline text-[0.92em] leading-[1.35] text-foreground"
       >
         <SourceIcon kind={r.kind} className="size-4 shrink-0" />
         <span className="truncate">{r.title}</span>
@@ -157,13 +156,14 @@ function inlineMentions(body: string): React.ReactNode[] {
     if (f.at < cursor) continue;
     if (f.at > cursor) out.push(body.slice(cursor, f.at));
     const color = f.kind === "page" ? "#3b82f6" : "#8b5cf6";
+    const MentionIcon = f.kind === "page" ? FileText : Stack;
     out.push(
       <span
         key={`${f.at}:${f.name}`}
-        className="mx-px inline-flex max-w-[16rem] items-center rounded-[var(--pill)] px-1.5 align-baseline text-[0.92em] leading-[1.35]"
-        style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--home-card))` }}
+        className="mx-px inline-flex max-w-[16rem] items-center gap-1 rounded-[var(--pill)] bg-foreground/[0.07] px-2 align-baseline text-[0.92em] leading-[1.35] text-foreground"
       >
-        <span className="truncate">@{f.name}</span>
+        <MentionIcon className="size-3.5 shrink-0" weight="fill" style={{ color }} aria-hidden />
+        <span className="truncate">{f.name}</span>
       </span>,
     );
     cursor = f.at + f.len;
@@ -320,11 +320,25 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
     }
   };
   const btn = "size-6 rounded-[6px] p-0 text-muted-foreground hover:text-foreground [&_svg]:size-3";
+  const speech = useSpeech();
+  const mine = speech.id === id;
+  const playing = mine && speech.phase !== "idle";
+  const speakErr = mine && speech.phase === "idle" ? speech.error : "";
   const rate = (v: Vote) => setVote(id, v);
   return (
     <div className="flex items-center gap-0.5 -ms-2" role="group" aria-label="Reply actions">
       <Button variant="ghost" className={btn} aria-label={copied ? "Copied" : "Copy reply"} title={copied ? "Copied" : "Copy"} onClick={() => void copy()}>
         {copied ? <Check /> : <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} />}
+      </Button>
+      <Button
+        variant="ghost"
+        className={cn(btn, playing && "text-foreground", speakErr && "text-destructive hover:text-destructive")}
+        aria-label={playing ? "Stop reading aloud" : "Read aloud"}
+        aria-pressed={playing}
+        title={speakErr || (playing ? "Stop" : "Read aloud")}
+        onClick={() => (playing ? stopSpeech() : void speakReply(id, text))}
+      >
+        {speech.phase === "loading" && mine ? <CircleNotch className="animate-spin" /> : playing ? <Stop weight="fill" /> : <SpeakerHigh />}
       </Button>
       <Button variant="ghost" className={cn(btn, vote === "up" && "text-foreground")} aria-label="Good reply" aria-pressed={vote === "up"} title="Good reply" onClick={() => rate("up")}>
         <ThumbsUp strokeWidth={2} className={vote === "up" ? "fill-current" : undefined} />

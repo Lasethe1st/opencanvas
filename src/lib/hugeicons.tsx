@@ -1,6 +1,18 @@
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import {
   Add01Icon,
+  AiChat02Icon,
+  ComputerIcon,
+  Key01Icon,
+  CommandIcon,
+  Loading03Icon,
+  Moon02Icon,
+  PlugSocketIcon,
+  Settings02Icon,
+  SlidersHorizontalIcon,
+  Sun03Icon,
+  VolumeHighIcon,
+  Alert02Icon,
   Alert01Icon,
   ArrowDown01Icon,
   ArrowRight01Icon,
@@ -252,3 +264,16 @@ export const Trash = make(Delete02Icon, 'Trash', '1em');
 export const TriangleAlert = make(Alert01Icon, 'TriangleAlert', '1em');
 export const UploadSimple = make(Upload01Icon, 'UploadSimple', '1em');
 export const VideoCamera = make(Video01Icon, 'VideoCamera', '1em');
+
+export const Sun = make(Sun03Icon, 'Sun');
+export const Moon = make(Moon02Icon, 'Moon');
+export const Keyboard = make(CommandIcon, 'Keyboard');
+export const Plug = make(PlugSocketIcon, 'Plug');
+export const KeyRound = make(Key01Icon, 'KeyRound');
+export const Volume2 = make(VolumeHighIcon, 'Volume2');
+export const Loader2 = make(Loading03Icon, 'Loader2');
+export const CircleAlert = make(Alert02Icon, 'CircleAlert');
+export const SlidersHorizontal = make(SlidersHorizontalIcon, 'SlidersHorizontal');
+export const Settings = make(Settings02Icon, 'Settings');
+export const AiChat = make(AiChat02Icon, 'AiChat');
+export const Computer = make(ComputerIcon, 'Computer');

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 28" fill="none">
+  <title>OpenCanvas</title>
+  <!-- O: a solid tall rectangle -->
+  <path fill="#111113" d="M0 0h14v28H0V0Z"/>
+  <!-- C: a tall rectangle with its right side cut away -->
+  <path fill="#111113" d="M18 0h14v6H24.5v16H32v6H18V0Z"/>
+</svg>
