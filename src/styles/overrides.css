@@ -1739,3 +1739,8 @@ body:has(.shell .workspace) :is(.is-active, .is-current, .is-selected, [aria-sel
 body:has(.shell .workspace) :is([role='switch'], .switch, .toggle-switch, .toggle-switch *) { border-radius: 999px !important; corner-shape: round; }
 body:has(.shell .workspace) input[type='checkbox'] { border-radius: 5px !important; }
 body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important; }
+
+/* Sources panel → "show in chat" flash */
+.chat-item--flash { animation: chat-item-flash 1.6s ease-out; border-radius: 10px; }
+@keyframes chat-item-flash { 0%, 35% { background: color-mix(in oklab, var(--src-web, #3b82f6) 16%, transparent); } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .chat-item--flash { animation: none; background: color-mix(in oklab, var(--src-web, #3b82f6) 12%, transparent); } }

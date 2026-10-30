@@ -50,7 +50,7 @@ export function HomeChat({ mentions = false }: { mentions?: boolean } = {}) {
     <div className="w-full px-1 py-2" aria-label="Conversation">
       <div className="flex w-full flex-col gap-4 pb-4">
         {items.map((item) => (
-          <div key={item.id} className={item.kind === "user" ? "pb-3" : undefined}>
+          <div key={item.id} data-chat-item={item.id} className={item.kind === "user" ? "pb-3" : undefined}>
             <ChatItem item={item} mentions={mentions} />
           </div>
         ))}
