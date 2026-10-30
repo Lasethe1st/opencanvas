@@ -1824,3 +1824,14 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 .settings-page .ai-provider__name { font-size: 12px; font-weight: 600; line-height: 1.25; }
 .settings-page .ai-provider__hint { font-size: 11px; }
 .settings-page .ai-provider.is-active .ai-provider__logo { background: var(--bg); }
+
+/* ───────── Calm canvas: home-style background + foreground, only the site and the dock ───────── */
+.shell--calm:has(.workspace) { grid-template-rows: minmax(0, 1fr); box-sizing: border-box; padding: 8px; background: var(--home-bg); }
+.shell--calm:has(.workspace) > .topbar { display: none; }
+.shell--calm .workspace { overflow: hidden; border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent); border-radius: 10px !important; background: var(--home-card); }
+.shell--calm .workspace > .tool-rails,
+.shell--calm .workspace > .panel,
+.shell--calm .workspace .terminal-panel { display: none !important; }
+.shell--calm .workspace > .workspace__center,
+.shell--calm .workspace .stage { background: var(--home-card); }
+.shell--calm .assistant-docker [data-slot='shapeshift-shell'] { border: 1px solid color-mix(in srgb, var(--fg) 10%, transparent); background: color-mix(in srgb, var(--fg) 5%, var(--home-card)); box-shadow: var(--shadow-md); }

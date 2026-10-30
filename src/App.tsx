@@ -22,6 +22,7 @@ import { loadProjectConfig, touchesConfig } from './lib/pages';
 import { handleShortcut } from './lib/shortcuts';
 import { loadPanels } from './lib/panels';
 import { useAutoReadAloud } from './lib/read-aloud';
+import { useCalm } from './lib/calm';
 import { getState, setState, useStore } from './lib/store';
 import { initTerminals, toggleTerminal } from './lib/terminal';
 
@@ -32,6 +33,7 @@ function isTyping(target: EventTarget | null): boolean {
 
 export default function App() {
   useAutoReadAloud();
+  const calm = useCalm();
   const project = useStore((s) => s.project);
   const mode = useStore((s) => s.mode);
   const auditOpen = useStore((s) => s.auditOpen);
@@ -137,7 +139,7 @@ export default function App() {
   }
 
   return (
-    <div className="shell">
+    <div className={`shell${calm ? ' shell--calm' : ''}`}>
       <TopBar />
       <div className={`workspace${mode === 'visual' ? ' workspace--bleed' : ''}${focus ? ' is-focus' : ''}`} ref={workspaceRef}>
         <ToolRail />
