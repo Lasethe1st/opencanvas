@@ -1807,3 +1807,10 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 @media (prefers-reduced-motion: reduce) { .sx-switch span, .sx-switch span::after { transition: none; } }
 .settings-page__head { width: 100%; max-width: 680px; margin: 0 auto; }
 .sx-switch input:checked + span::after { background: var(--bg); }
+/* Provider tiles: a square with the logo at its centre */
+.settings-page .ai-providers { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.settings-page .ai-provider { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; aspect-ratio: 1; padding: 10px 8px; text-align: center; }
+.settings-page .ai-provider__logo { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 6px; border-radius: 14px; background: var(--hover); }
+.settings-page .ai-provider__name { font-size: 12px; font-weight: 600; line-height: 1.25; }
+.settings-page .ai-provider__hint { font-size: 11px; }
+.settings-page .ai-provider.is-active .ai-provider__logo { background: var(--bg); }

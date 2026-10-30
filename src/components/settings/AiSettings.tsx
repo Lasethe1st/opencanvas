@@ -24,6 +24,7 @@ import { setState, toast, useStore } from '../../lib/store';
 import { speakText } from '../../lib/voice';
 import { setReadAloud, useReadAloud } from '../../lib/read-aloud';
 import { Button, InputShell, Notice, cx } from '../../ui/primitives.jsx';
+import { ModelLogo } from '../home/ModelLogo';
 import { SettingRow, SettingsGroup, Switch } from './parts';
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
@@ -145,8 +146,11 @@ export function AiSettingsPanel() {
                 className={cx('ai-provider', settings.provider === p.id && 'is-active')}
                 onClick={() => settings.provider !== p.id && void save({ provider: p.id, baseUrl: p.defaultBaseUrl, model: '' })}
               >
+                <span className="ai-provider__logo" aria-hidden>
+                  <ModelLogo provider={p.id} className="size-9" />
+                </span>
                 <span className="ai-provider__name">{p.label}</span>
-                <span className="ai-provider__hint">{p.local ? 'Runs on this computer' : p.needsKey ? 'Needs an API key' : 'Your own server'}</span>
+                <span className="ai-provider__hint">{p.local ? 'Runs locally' : p.needsKey ? 'API key' : 'Your server'}</span>
               </button>
             ))}
           </div>
