@@ -11,6 +11,7 @@ import { setMeasure, useMeasure } from '../lib/measure';
 import { setRulers, useRulers } from '../lib/rulers';
 import { getState, setState } from '../lib/store';
 import { scheduleWorkspaceSave } from '../lib/workspace';
+import { USER_AVATAR_SRC } from '../lib/user-avatar';
 import { SearchOverlay } from './home/SearchOverlay';
 import { MergeGroup } from './MergeLayer';
 import { mentionables, type Mentionable } from './assistant-shapes';
@@ -41,14 +42,24 @@ export function CalmPills() {
           <HugeiconsIcon icon={Search02Icon} strokeWidth={2} />
           <span>Search</span>
         </Button>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" className="calm-pill calm-pill--right absolute end-3 top-3 z-20 size-9 rounded-full bg-muted p-0 text-foreground hover:bg-secondary [&_svg]:size-[18px]" aria-label={right ? 'Close right panel' : 'Open right panel'} aria-expanded={right} onClick={() => toggleCalmPanel('right')}>
-              <HugeiconsIcon icon={right ? LayoutAlignLeftIcon : LayoutAlignRightIcon} strokeWidth={2} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="left">{right ? 'Close right panel' : 'Open right panel'}</TooltipContent>
-        </Tooltip>
+        <MergeGroup className="calm-pill-pair calm-pill-pair--right absolute end-3 top-3 z-20 flex items-center gap-3">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button data-merge="" variant="ghost" className="calm-pill calm-pill--round calm-pill--user relative size-9 overflow-hidden rounded-full bg-transparent p-0 hover:bg-transparent" aria-label="Account and settings" onClick={() => setState({ settingsOpen: true })}>
+                <img src={USER_AVATAR_SRC} alt="" width={36} height={36} className="size-full object-cover" draggable={false} referrerPolicy="no-referrer" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Account</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button data-merge="" variant="ghost" className="calm-pill calm-pill--right calm-pill--round relative size-9 rounded-full bg-transparent p-0 text-foreground hover:bg-transparent [&_svg]:size-[18px]" aria-label={right ? 'Close right panel' : 'Open right panel'} aria-expanded={right} onClick={() => toggleCalmPanel('right')}>
+                <HugeiconsIcon icon={right ? LayoutAlignLeftIcon : LayoutAlignRightIcon} strokeWidth={2} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">{right ? 'Close right panel' : 'Open right panel'}</TooltipContent>
+          </Tooltip>
+        </MergeGroup>
         <MergeGroup axis="column" className="calm-pill-stack absolute end-3 z-20 flex flex-col gap-3" style={{ bottom: 12 }}>
           <Tooltip>
           <TooltipTrigger asChild>

@@ -182,8 +182,10 @@ function Pill({ id, sel, open, onToggle, side, leaving }: { id: PillId; sel: Sel
 type Blob = MergeBox;
 
 /** The pills grow out of the dock when something is selected and melt back into it when it isn't. */
-export function DockRow({ children }: { children: ReactNode }) {
-  const sel = useStore((s) => s.selection);
+export function DockRow({ children, tucked = false }: { children: ReactNode; tucked?: boolean }) {
+  const picked = useStore((s) => s.selection);
+  // While you chat in the dock the pills melt back into it.
+  const sel = tucked ? null : picked;
   const row = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState<Selection | null>(sel);
   const [leaving, setLeaving] = useState(false);
