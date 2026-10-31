@@ -1887,3 +1887,12 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .dockpill__ctl code { margin-left: 4px; color: var(--muted); font-size: 11px; }
 @container stage (max-width: 1100px) { .dockpill:not(.is-open) .dockpill__label { display: none; } .dockpill__main { padding: 0 12px; } }
 @media (prefers-reduced-motion: reduce) { .dockpill, .dockpill.is-leaving { animation: none; } .dockpill__reveal { transition: none; } }
+
+/* Canvas rulers: top and left strips in canvas units, toggled from the ruler pill. */
+.canvas-rulers { position: absolute; inset: 0; pointer-events: none; z-index: 15; }
+.canvas-rulers > * { position: absolute; display: block; background: var(--surface-2, var(--surface)); }
+.canvas-rulers__top { top: 0; left: 0; height: 20px; width: 100%; border-bottom: 1px solid var(--line); }
+.canvas-rulers__left { top: 0; left: 0; width: 20px; height: 100%; border-right: 1px solid var(--line); }
+.canvas-rulers__corner { z-index: 1; top: 0; left: 0; width: 20px; height: 20px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.calm-pills--rulers .top-3 { top: 28px !important; }
+.calm-pills--rulers .calm-pill-pair { left: 28px !important; inset-inline-start: 28px !important; }

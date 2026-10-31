@@ -75,6 +75,7 @@ import { CanvasNav, FrameChrome, FrameRename, Guides, Minimap, SelectionBar, Siz
 import { BuildOverlay, type SubtreeBox } from './BuildOverlay';
 import { measureSubtree } from '../lib/bridge';
 import { getMeasure } from '../lib/measure';
+import { CanvasRulers } from './CanvasRulers';
 import { variantLetter } from '../../shared/variants';
 import { Button, IconButton, Menu, MenuItem, Notice } from '../ui/primitives.jsx';
 
@@ -920,6 +921,7 @@ export function Canvas({ hidden }: { hidden: boolean }) {
             );
           })}
           <Guides lines={guides.map(toScreenGuide)} />
+          <CanvasRulers camera={camera} />
           {resizing && (
             <SizeTip x={resizing.tipX} y={resizing.tipY}>
               {Math.round(resizing.width)} × {Math.round(resizing.edge === 'e' ? rectOf(frames.find((f) => f.id === resizing.id)!).height : resizing.height)} · {SCOPE_LABEL[scopeOf(resizing.width)]}

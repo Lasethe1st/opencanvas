@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Home04Icon, LayoutAlignLeftIcon, LayoutAlignRightIcon, RulerIcon, Search02Icon } from '@hugeicons/core-free-icons';
+import { Home04Icon, LayoutAlignLeftIcon, LayoutAlignRightIcon, RulerDimensionLineIcon, RulerIcon, Search02Icon } from '@hugeicons/core-free-icons';
 import { useMemo, useState } from 'react';
 import { setLeafPage } from '../../shared/workspace-layout';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { toggleCalmPanel, useCalmPanels } from '../lib/calm';
 import { focusPage } from '../lib/pages';
 import { closeProject, selectElement } from '../lib/actions';
 import { setMeasure, useMeasure } from '../lib/measure';
+import { setRulers, useRulers } from '../lib/rulers';
 import { getState, setState } from '../lib/store';
 import { scheduleWorkspaceSave } from '../lib/workspace';
 import { SearchOverlay } from './home/SearchOverlay';
@@ -17,10 +18,11 @@ import { mentionables, type Mentionable } from './assistant-shapes';
 export function CalmPills() {
   const { left, right } = useCalmPanels();
   const measuring = useMeasure();
+  const rulers = useRulers();
   const [searching, setSearching] = useState(false);
   return (
     <TooltipProvider>
-      <div data-tw="" className="calm-pills">
+      <div data-tw="" className={`calm-pills${rulers ? ' calm-pills--rulers' : ''}`}>
         <svg width="0" height="0" aria-hidden className="absolute">
           <defs>
             <filter id="oc-goo-top" x="-30%" y="-60%" width="160%" height="220%" colorInterpolationFilters="sRGB">
@@ -58,8 +60,16 @@ export function CalmPills() {
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" className={`calm-pill calm-pill--round calm-pill--measure absolute end-3 z-20 size-9 rounded-full p-0 [&_svg]:size-[18px] ${measuring ? 'bg-foreground text-background hover:bg-foreground' : 'bg-muted text-foreground hover:bg-secondary'}`} style={{ bottom: 12 }} aria-label="Measure distances" aria-pressed={measuring} onClick={() => setMeasure(!measuring)}>
+            <Button variant="ghost" className={`calm-pill calm-pill--round calm-pill--ruler absolute end-3 z-20 size-9 rounded-full p-0 [&_svg]:size-[18px] ${rulers ? 'bg-foreground text-background hover:bg-foreground' : 'bg-muted text-foreground hover:bg-secondary'}`} style={{ bottom: 56 }} aria-label={rulers ? 'Hide rulers' : 'Show rulers'} aria-pressed={rulers} onClick={() => setRulers(!rulers)}>
               <HugeiconsIcon icon={RulerIcon} strokeWidth={2} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="left">{rulers ? 'Hide rulers' : 'Show rulers'}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" className={`calm-pill calm-pill--round calm-pill--measure absolute end-3 z-20 size-9 rounded-full p-0 [&_svg]:size-[18px] ${measuring ? 'bg-foreground text-background hover:bg-foreground' : 'bg-muted text-foreground hover:bg-secondary'}`} style={{ bottom: 12 }} aria-label="Measure distances" aria-pressed={measuring} onClick={() => setMeasure(!measuring)}>
+              <HugeiconsIcon icon={RulerDimensionLineIcon} strokeWidth={2} />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="left">{measuring ? 'Stop measuring' : 'Measure distances'}</TooltipContent>
