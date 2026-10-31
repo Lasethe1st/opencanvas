@@ -1,4 +1,4 @@
-import { CaretUpDown, Gear as SettingsIcon } from '../../lib/home-icons';
+import { CaretUpDown, Gear as SettingsIcon, LaptopMinimal } from '../../lib/home-icons';
 import { USER_AVATAR_SRC } from '../../lib/user-avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -18,7 +18,10 @@ export function HomeAccount({ onSettings }: { onSettings: () => void }) {
                 Pro
               </span>
             </span>
-            <span className="block truncate text-[11px] leading-4 text-muted-foreground">Stored on this computer</span>
+            <span className="flex min-w-0 items-center gap-1 text-[11px] leading-4 text-muted-foreground">
+              <LaptopMinimal className="size-3 shrink-0" aria-hidden />
+              <span className="truncate">Stored on this computer</span>
+            </span>
           </span>
           <CaretUpDown className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
         </button>

@@ -1,4 +1,4 @@
-import { Brain, ChatCircle, FolderSimple, Lightning } from '../lib/home-icons';
+import { ChatCircle, FolderSimple, History, Lightning } from '../lib/home-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { LayoutAlignLeftIcon, LayoutAlignRightIcon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
 import { Library } from '../lib/home-icons';
@@ -298,10 +298,10 @@ export function Onboarding() {
   );
   const library: NavRow[] = useMemo(
     () => [
-      { id: 'chats', label: 'Chats', icon: <ChatCircle weight="fill" style={{ color: 'var(--src-chat)' }} />, onSelect: () => setDialog({ kind: 'chats' }) },
-      { id: 'projects', label: 'Projects', icon: <FolderSimple weight="fill" style={{ color: 'var(--src-project)' }} />, disabled: busy, onSelect: () => setDialog({ kind: 'projects' }) },
-      { id: 'skills', label: 'Skills', icon: <Lightning weight="fill" style={{ color: 'var(--src-skill)' }} />, onSelect: openSkills },
-      { id: 'memory', label: 'Memory', icon: <Brain weight="fill" />, onSelect: () => setDialog({ kind: 'memory' }) },
+      { id: 'chats', label: 'Chats', icon: <ChatCircle />, onSelect: () => setDialog({ kind: 'chats' }) },
+      { id: 'projects', label: 'Projects', icon: <FolderSimple />, disabled: busy, onSelect: () => setDialog({ kind: 'projects' }) },
+      { id: 'skills', label: 'Skills', icon: <Lightning />, onSelect: openSkills },
+      { id: 'memory', label: 'Memory', icon: <History />, onSelect: () => setDialog({ kind: 'memory' }) },
     ],
     [busy, openSkills],
   );
@@ -368,7 +368,7 @@ export function Onboarding() {
             }
           />
           <div ref={setCardEl} className={cn('relative min-w-0 flex-1 overflow-hidden border bg-[var(--home-card)] motion-safe:transition-[margin,border-radius,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', navOpen || sourcesOpen ? 'm-2 rounded-[10px] border-foreground/[0.08]' : 'm-0 rounded-none border-transparent')}>
-          <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[8px] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
+          <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[var(--r-pill)] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
             <HugeiconsIcon icon={navOpen ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
           </Button>
           <div className="absolute start-14 top-3 z-20 flex max-w-[calc(100%-9rem)] items-center gap-2">

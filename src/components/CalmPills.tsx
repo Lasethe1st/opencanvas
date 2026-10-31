@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Home01Icon, LayoutAlignLeftIcon, LayoutAlignRightIcon, RulerIcon, Search02Icon } from '@hugeicons/core-free-icons';
+import { Home04Icon, LayoutAlignLeftIcon, LayoutAlignRightIcon, RulerIcon, Search02Icon } from '@hugeicons/core-free-icons';
 import { useMemo, useState } from 'react';
 import { setLeafPage } from '../../shared/workspace-layout';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ export function CalmPills() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" className="calm-pill calm-pill--round relative size-9 rounded-full bg-transparent p-0 text-foreground hover:bg-transparent [&_svg]:size-[18px]" aria-label="Go home" onClick={() => void closeProject()}>
-                <HugeiconsIcon icon={Home01Icon} strokeWidth={2} />
+                <HugeiconsIcon icon={Home04Icon} strokeWidth={2} />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">Home</TooltipContent>

@@ -79,9 +79,9 @@ export function HomeSidebar({
       style={{ width: open ? HOME_NAV_WIDTH : 0 }}
     >
       <div className="flex h-full flex-col" style={{ width: HOME_NAV_WIDTH }}>
-        <div className="flex h-14 shrink-0 items-center ps-2">
-          <span className="flex size-9 shrink-0 items-center justify-center text-foreground">
-            <LogoMark size={22} />
+        <div className="flex h-14 shrink-0 items-center ps-4">
+          <span className="flex h-9 shrink-0 items-center text-foreground">
+            <LogoMark size={12} />
           </span>
         </div>
 
