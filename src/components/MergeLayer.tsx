@@ -5,7 +5,7 @@ export type MergeBox = { x: number; y: number; w: number; h: number; r: number; 
 export type MergeAxis = 'row' | 'column';
 
 /** Pills further apart than this stay separate bubbles. */
-const MAX_GAP = 20;
+const MAX_GAP = 32;
 /** How far the waist pinches in, as a share of the shorter side (merging-bubbles uses about a fifth). */
 const WAIST = 0.2;
 
@@ -35,7 +35,8 @@ function neck(a: MergeBox, b: MergeBox): string | null {
   const xl = a.x + a.w - insetA;
   const xr = b.x + insetB;
   const m = (a.x + a.w + b.x) / 2;
-  const d = band * WAIST;
+  // Wider gaps stretch the neck and pinch it a little thinner, like goo being pulled.
+  const d = band * Math.min(0.3, WAIST + Math.max(gap, 0) * 0.006);
   const kl = (m - xl) * 0.55;
   const kr = (xr - m) * 0.55;
   const f = (n: number) => Math.round(n * 100) / 100;

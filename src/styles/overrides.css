@@ -1847,13 +1847,13 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 
 /* ───────── Dock row: pills · dock · pills, fused like liquid ───────── */
 body .canvas-bottom-chrome { max-width: calc(100% - 32px) !important; }
-.dockrow { --goo-fill: color-mix(in srgb, var(--fg) 8%, var(--home-card, var(--surface))); position: relative; display: flex; align-items: flex-end; gap: 8px; }
+.dockrow { --goo-fill: color-mix(in srgb, var(--fg) 8%, var(--home-card, var(--surface))); position: relative; display: flex; align-items: flex-end; gap: 16px; }
 .dockrow > :not(.dockrow__goo):not(.dockrow__defs) { position: relative; z-index: 1; }
 .dockrow__defs { position: absolute; }
 .dockrow__goo { position: absolute; inset: 0; z-index: 0; overflow: visible; pointer-events: none; filter: drop-shadow(0 0 0.6px rgba(0, 0, 0, 0.35)) drop-shadow(0 10px 22px rgba(0, 0, 0, 0.12)); }
 .dockrow__goo .merge-layer { fill: var(--goo-fill); filter: none; }
 .dockrow .assistant-docker [data-slot='shapeshift-shell'] { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
-.dockrow__side { display: flex; align-items: flex-end; gap: 8px; }
+.dockrow__side { display: flex; align-items: flex-end; gap: 14px; }
 
 .dockpill { display: flex; align-items: center; height: 36px; margin-bottom: 0; color: var(--fg); font-size: 13px; animation: pill-bud 0.36s cubic-bezier(0.2, 0.9, 0.3, 1.15) both; }
 .dockpill--left { --bud: 52px; }

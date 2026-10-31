@@ -24,7 +24,7 @@ export function CalmPills() {
   return (
     <TooltipProvider>
       <div data-tw="" className={`calm-pills${rulers ? ' calm-pills--rulers' : ''}`}>
-        <MergeGroup className="calm-pill-pair absolute start-3 top-3 z-20 flex items-center gap-1">
+        <MergeGroup className="calm-pill-pair absolute start-3 top-3 z-20 flex items-center gap-3">
           <Button data-merge="" variant="ghost" className="calm-pill calm-pill--round relative size-9 rounded-full bg-transparent p-0 text-foreground hover:bg-transparent [&_svg]:size-[18px]" aria-label={left ? 'Close left panel' : 'Open left panel'} aria-expanded={left} onClick={() => toggleCalmPanel('left')}>
             <HugeiconsIcon icon={left ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
           </Button>
@@ -49,7 +49,7 @@ export function CalmPills() {
           </TooltipTrigger>
           <TooltipContent side="left">{right ? 'Close right panel' : 'Open right panel'}</TooltipContent>
         </Tooltip>
-        <MergeGroup axis="column" className="calm-pill-stack absolute end-3 z-20 flex flex-col gap-1" style={{ bottom: 12 }}>
+        <MergeGroup axis="column" className="calm-pill-stack absolute end-3 z-20 flex flex-col gap-3" style={{ bottom: 12 }}>
           <Tooltip>
           <TooltipTrigger asChild>
             <Button data-merge="" variant="ghost" className={`calm-pill calm-pill--round calm-pill--ruler relative size-9 rounded-full p-0 [&_svg]:size-[18px] ${rulers ? 'bg-foreground text-background hover:bg-foreground' : 'bg-transparent text-foreground hover:bg-foreground/10'}`} aria-label={rulers ? 'Hide rulers' : 'Show rulers'} aria-pressed={rulers} onClick={() => setRulers(!rulers)}>
