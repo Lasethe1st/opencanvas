@@ -74,6 +74,7 @@ export function CanvasShapeshift() {
         onSubmit={onSubmit}
         classNames={{
           shell: 'shadow-none',
+          bar: 'h-9 ps-3.5 pe-1',
           list: '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           panel: '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
         }}

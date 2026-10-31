@@ -74,6 +74,7 @@ import { StateCard } from '../ui/Canvas.jsx';
 import { CanvasNav, FrameChrome, FrameRename, Guides, Minimap, SelectionBar, SizeTip, Stage, WorldFrame } from '../ui/FreeCanvas.jsx';
 import { BuildOverlay, type SubtreeBox } from './BuildOverlay';
 import { measureSubtree } from '../lib/bridge';
+import { getMeasure } from '../lib/measure';
 import { variantLetter } from '../../shared/variants';
 import { Button, IconButton, Menu, MenuItem, Notice } from '../ui/primitives.jsx';
 
@@ -153,6 +154,7 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
         case 'ready': {
           sendToFrame(fid, 'mode', { mode: state.interact ? 'interact' : 'select' });
           sendToFrame(fid, 'zoom', { zoom: state.camera.zoom });
+          if (getMeasure()) sendToFrame(fid, 'measure', { on: true });
           const id = state.pendingSelectId ?? state.selection?.id;
           if (id) sendToFrame(fid, 'select', active ? { id, scroll: false, additive: 'keep' } : { id, linked: true });
           if (state.multiSelect.length) sendMulti(state.multiSelect.map((m) => m.id), fid);
