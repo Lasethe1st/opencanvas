@@ -5,6 +5,7 @@ import { useStore, type Selection } from '../../lib/store';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { AlignHorizontalSpaceAroundIcon, Edit02Icon, FitToScreenIcon, FrameIcon, ImageUploadIcon, PaintBucketIcon, Resize01Icon, SquareRoundCornerIcon, TextAlignLeft01Icon, TextColorIcon, TextFontIcon, TextIcon } from '@hugeicons/core-free-icons';
 import { TextAlignCenter, TextAlignLeft, TextAlignRight } from '../../lib/hugeicons';
+import { MergeLayer, radiusOf, type MergeBox } from '../MergeLayer';
 
 /* ───────── What each kind of element offers ───────── */
 
@@ -178,7 +179,7 @@ function Pill({ id, sel, open, onToggle, side, leaving }: { id: PillId; sel: Sel
 
 /* ───────── The row: pills · dock · pills, fused by a goo layer ───────── */
 
-type Blob = { x: number; y: number; w: number; h: number; r: string; o: number };
+type Blob = MergeBox;
 
 /** The pills grow out of the dock when something is selected and melt back into it when it isn't. */
 export function DockRow({ children }: { children: ReactNode }) {
@@ -239,7 +240,7 @@ export function DockRow({ children }: { children: ReactNode }) {
         const r = n.getBoundingClientRect();
         if (!r.width || !r.height) continue;
         const cs = getComputedStyle(n);
-        next.push({ x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height, r: cs.borderRadius, o: parseFloat(cs.opacity) });
+        next.push({ x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height, r: radiusOf(cs, r.width, r.height), o: parseFloat(cs.opacity) });
       }
       const key = JSON.stringify(next);
       if (key !== last) {
@@ -276,21 +277,8 @@ export function DockRow({ children }: { children: ReactNode }) {
 
   return (
     <div className="dockrow" ref={row} onPointerDown={(e) => e.stopPropagation()}>
-      <svg className="dockrow__defs" width="0" height="0" aria-hidden>
-        <defs>
-          <filter id="oc-goo" x="-20%" y="-60%" width="140%" height="220%" colorInterpolationFilters="sRGB">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
-            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8" result="goo" />
-            <feComposite in="SourceGraphic" in2="goo" operator="atop" />
-          </filter>
-        </defs>
-      </svg>
       <div className="dockrow__goo" aria-hidden>
-        <div className="dockrow__blobs">
-          {blobs.map((b, i) => (
-            <span key={i} style={{ left: b.x, top: b.y, width: b.w, height: b.h, opacity: b.o, ['--r' as string]: b.r }} />
-          ))}
-        </div>
+        <MergeLayer boxes={blobs} />
       </div>
       {set && <div className="dockrow__side dockrow__side--left" role="toolbar" aria-label="Change the selected element">{set.left.map((id) => pill(id, 'left'))}</div>}
       {children}

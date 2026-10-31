@@ -1744,7 +1744,7 @@ body:has(.shell .workspace) :is(
   .swatch, .section__icon, .field-select, .ai-option, .ai-card__text input
 ):not(.assistant-docker *, [class*='avatar'], .stage__world *, .calm-pill) { border-radius: 10px !important; corner-shape: squircle; }
 /* Active, selected and pressed states follow the same soft corner. */
-body:has(.shell .workspace) :is(.is-active, .is-current, .is-selected, [aria-selected='true'], [aria-pressed='true'], [aria-current='true'], .segmented__pill):not(.assistant-docker *, .stage__world *) { border-radius: 10px !important; corner-shape: squircle; }
+body:has(.shell .workspace) :is(.is-active, .is-current, .is-selected, [aria-selected='true'], [aria-pressed='true'], [aria-current='true'], .segmented__pill):not(.assistant-docker *, .stage__world *, .calm-pill) { border-radius: 10px !important; corner-shape: squircle; }
 /* Switches are pills; checkboxes and radios get a small radius. */
 body:has(.shell .workspace) :is([role='switch'], .switch, .toggle-switch, .toggle-switch *) { border-radius: 999px !important; corner-shape: round; }
 body:has(.shell .workspace) input[type='checkbox'] { border-radius: 5px !important; }
@@ -1843,18 +1843,19 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 .shell--calm:not([data-calm-left], [data-calm-right]) .workspace > .workspace__center { border-color: transparent; border-radius: 0 !important; }
 .shell--calm .workspace > .panel { position: relative; z-index: 2; background: transparent; border-color: transparent !important; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 
+/* Home + panel toggle: two blobs, fused like the dock pills. */
+
 /* ───────── Dock row: pills · dock · pills, fused like liquid ───────── */
 body .canvas-bottom-chrome { max-width: calc(100% - 32px) !important; }
-.dockrow { --goo-fill: color-mix(in srgb, var(--fg) 8%, var(--home-card, var(--surface))); position: relative; display: flex; align-items: flex-end; gap: 8px; }
+.dockrow { --goo-fill: color-mix(in srgb, var(--fg) 8%, var(--home-card, var(--surface))); position: relative; display: flex; align-items: flex-end; gap: 16px; }
 .dockrow > :not(.dockrow__goo):not(.dockrow__defs) { position: relative; z-index: 1; }
 .dockrow__defs { position: absolute; }
 .dockrow__goo { position: absolute; inset: 0; z-index: 0; overflow: visible; pointer-events: none; filter: drop-shadow(0 0 0.6px rgba(0, 0, 0, 0.35)) drop-shadow(0 10px 22px rgba(0, 0, 0, 0.12)); }
-.dockrow__blobs { position: absolute; inset: 0; filter: url(#oc-goo); }
-.dockrow__blobs > span { position: absolute; background: var(--goo-fill); border-radius: var(--r, 999px) !important; }
+.dockrow__goo .merge-layer { fill: var(--goo-fill); filter: none; }
 .dockrow .assistant-docker [data-slot='shapeshift-shell'] { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
-.dockrow__side { display: flex; align-items: flex-end; gap: 8px; }
+.dockrow__side { display: flex; align-items: flex-end; gap: 14px; }
 
-.dockpill { display: flex; align-items: center; height: 48px; margin-bottom: 0; color: var(--fg); font-size: 13px; animation: pill-bud 0.36s cubic-bezier(0.2, 0.9, 0.3, 1.15) both; }
+.dockpill { display: flex; align-items: center; height: 36px; margin-bottom: 0; color: var(--fg); font-size: 13px; animation: pill-bud 0.36s cubic-bezier(0.2, 0.9, 0.3, 1.15) both; }
 .dockpill--left { --bud: 52px; }
 .dockpill--right { --bud: -52px; }
 .dockpill.is-leaving { animation: pill-melt 0.26s ease-in both; }
@@ -1864,7 +1865,7 @@ body:has(.shell .workspace) .dockrow .dockpill__main,
 body:has(.shell .workspace) .dockrow .dockpill__ctl button,
 body:has(.shell .workspace) .dockrow .dockpill__ctl select,
 body:has(.shell .workspace) .dockrow .dockpill__ctl input { border-radius: 999px !important; }
-.dockpill__main { display: inline-flex; align-items: center; gap: 7px; height: 48px; padding: 0 16px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; transition: background-color 0.15s ease; }
+.dockpill__main { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; transition: background-color 0.15s ease; }
 body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important; }
 .dockpill__reveal { display: grid; grid-template-columns: 0fr; transition: grid-template-columns 0.26s cubic-bezier(0.2, 0, 0, 1); }
 .dockpill.is-open .dockpill__reveal { grid-template-columns: 1fr; }
@@ -1880,3 +1881,21 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .dockpill__ctl code { margin-left: 4px; color: var(--muted); font-size: 11px; }
 @container stage (max-width: 1100px) { .dockpill:not(.is-open) .dockpill__label { display: none; } .dockpill__main { padding: 0 12px; } }
 @media (prefers-reduced-motion: reduce) { .dockpill, .dockpill.is-leaving { animation: none; } .dockpill__reveal { transition: none; } }
+
+/* Canvas rulers: top and left strips in canvas units, toggled from the ruler pill. */
+.canvas-rulers { position: absolute; inset: 0; pointer-events: none; z-index: 15; }
+.canvas-rulers > * { position: absolute; display: block; background: var(--surface-2, var(--surface)); }
+.canvas-rulers__top { top: 0; left: 0; height: 20px; width: 100%; border-bottom: 1px solid var(--line); }
+.canvas-rulers__left { top: 0; left: 0; width: 20px; height: 100%; border-right: 1px solid var(--line); }
+.canvas-rulers__corner { z-index: 1; top: 0; left: 0; width: 20px; height: 20px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.calm-pills--rulers .top-3 { top: 28px !important; }
+.calm-pills--rulers .calm-pill-pair { left: 28px !important; inset-inline-start: 28px !important; }
+
+/* Merged bubbles: neighbouring pills share one shape, joined by curved necks (after cult-ui's merging-bubbles). */
+.merge-group { --merge-fill: var(--surface-3); }
+.merge-group > :not(.merge-layer) { position: relative; z-index: 1; }
+.merge-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; fill: var(--merge-fill); filter: drop-shadow(0 0 0.5px color-mix(in srgb, var(--fg) 30%, transparent)); }
+.merge-layer rect, .merge-layer path { transition: opacity 180ms ease; }
+@media (prefers-reduced-motion: reduce) { .merge-layer rect, .merge-layer path { transition: opacity 120ms linear; } }
+/* The bar is 420px wide; size its slot to match so the pills on the right can join it too. */
+.dockrow .canvas-shapeshift:not([data-chat]) { width: min(420px, calc(100vw - 32px)); }

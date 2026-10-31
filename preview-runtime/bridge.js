@@ -32,6 +32,7 @@
   let linked = null;
   let linkedId = null;
   let hovered = null;
+  let measureOn = false;
   let uidCounter = 0;
   const uids = new WeakMap();
   const byUid = new Map();
@@ -67,12 +68,19 @@
       .linked .label, .editing .label { display: none; }
       .multi { border: 1.5px solid #3b82f6; }
       .multi.is-linked { border: 1px dashed rgba(59,130,246,.55); }
+      .measure { position: fixed; inset: 0; pointer-events: none; }
+      .m-line { position: absolute; background: #f43f5e; }
+      .m-label { position: absolute; transform: translate(-50%, -50%) scale(var(--k)); font: 600 10px/1 Inter, system-ui, sans-serif; color: #fff; background: #f43f5e; padding: 3px 5px; border-radius: 999px; white-space: nowrap; }
+      .m-box { position: absolute; box-sizing: border-box; border: 1px solid #f43f5e; }
       .token-hit { border: 1.5px dashed #d97706; box-shadow: 0 0 0 1px rgba(217,119,6,.25); }
       .token-hit .label { background: #d97706; }
     </style>
     <div class="box hover"><span class="label"></span></div>
     <div class="box linked"></div>
     <div class="box select"><span class="label"></span><i class="handle tl"></i><i class="handle tr"></i><i class="handle bl"></i><i class="handle br"></i></div>`;
+  const measureLayer = document.createElement('div');
+  measureLayer.className = 'measure';
+  shadow.appendChild(measureLayer);
   const hoverBox = shadow.querySelector('.hover');
   const linkedBox = shadow.querySelector('.linked');
   const selectBox = shadow.querySelector('.select');
@@ -169,8 +177,73 @@
     }
   }
 
+  // Measure mode: distances (px) from the selection to what is hovered, or to its parent's edges.
+  function drawMeasure() {
+    measureLayer.textContent = '';
+    if (!measureOn || mode !== 'select' || editing) return;
+    const a = selected && selected.isConnected ? selected : null;
+    const b = hovered && hovered.isConnected && hovered !== a ? hovered : null;
+    const from = a || b;
+    if (!from) return;
+    const fr = from.getBoundingClientRect();
+    const k = parseFloat(host.style.getPropertyValue('--k')) || 1;
+    const add = (cls, css, text) => {
+      const n = document.createElement('div');
+      n.className = cls;
+      n.style.cssText = css;
+      if (text) n.textContent = text;
+      measureLayer.appendChild(n);
+    };
+    const hline = (x1, x2, y) => {
+      const w = Math.abs(x2 - x1);
+      if (w < 0.5) return;
+      add('m-line', `left:${Math.min(x1, x2)}px;top:${y}px;width:${w}px;height:${k}px`);
+      add('m-label', `left:${(x1 + x2) / 2}px;top:${y}px`, String(Math.round(w)));
+    };
+    const vline = (y1, y2, x) => {
+      const h = Math.abs(y2 - y1);
+      if (h < 0.5) return;
+      add('m-line', `left:${x}px;top:${Math.min(y1, y2)}px;width:${k}px;height:${h}px`);
+      add('m-label', `left:${x}px;top:${(y1 + y2) / 2}px`, String(Math.round(h)));
+    };
+    const insets = (inner, outer) => {
+      const cx = inner.left + inner.width / 2;
+      const cy = inner.top + inner.height / 2;
+      hline(outer.left, inner.left, cy);
+      hline(inner.right, outer.right, cy);
+      vline(outer.top, inner.top, cx);
+      vline(inner.bottom, outer.bottom, cx);
+    };
+    const has = (o, i) => o.left <= i.left + 0.5 && o.top <= i.top + 0.5 && o.right >= i.right - 0.5 && o.bottom >= i.bottom - 0.5;
+    const outline = (r) => add('m-box', `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`);
+    if (a && b) {
+      const br = b.getBoundingClientRect();
+      outline(br);
+      if (has(br, fr)) insets(fr, br);
+      else if (has(fr, br)) insets(br, fr);
+      else {
+        const oy1 = Math.max(fr.top, br.top);
+        const oy2 = Math.min(fr.bottom, br.bottom);
+        const ox1 = Math.max(fr.left, br.left);
+        const ox2 = Math.min(fr.right, br.right);
+        const y = oy2 > oy1 ? (oy1 + oy2) / 2 : fr.top + fr.height / 2;
+        const x = ox2 > ox1 ? (ox1 + ox2) / 2 : fr.left + fr.width / 2;
+        if (fr.right <= br.left) hline(fr.right, br.left, y);
+        else if (br.right <= fr.left) hline(br.right, fr.left, y);
+        if (fr.bottom <= br.top) vline(fr.bottom, br.top, x);
+        else if (br.bottom <= fr.top) vline(br.bottom, fr.top, x);
+      }
+    } else {
+      const parent = from.parentElement && from.parentElement !== document.documentElement ? from.parentElement : null;
+      const pr = parent ? parent.getBoundingClientRect() : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight, width: window.innerWidth, height: window.innerHeight };
+      if (parent) outline(pr);
+      insets(fr, pr);
+    }
+  }
+
   function render() {
     attachOverlay();
+    drawMeasure();
     const active = mode === 'select';
     const showHover = active && !editing && hovered && hovered !== selected;
     place(hoverBox, showHover ? hovered : null, hovered ? `${nameOf(hovered)} · ${hovered.tagName.toLowerCase()}` : '');
@@ -771,6 +844,10 @@
       case 'hover':
         if (editing) break;
         hovered = (msg.uid && byUid.get(msg.uid)) || byId(msg.id) || null;
+        render();
+        break;
+      case 'measure':
+        measureOn = !!msg.on;
         render();
         break;
       case 'mode':
