@@ -1,3 +1,4 @@
+import { getCalm, setCalm } from './calm';
 import { getState, setState } from './store';
 
 const PREFIX = 'oc-panels:';
@@ -41,6 +42,7 @@ function apply(next: { left: boolean; right: boolean }) {
 
 /** Ctrl+\\: hide both panels, or bring both back when any is hidden. */
 export function togglePanels() {
+  if (getCalm()) return setCalm(false);
   const { left, right } = getState().panelsHidden;
   const hide = !(left && right);
   apply({ left: hide, right: hide });

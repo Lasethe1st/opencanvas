@@ -5,6 +5,7 @@ import { sendToAi } from '../lib/ai';
 import { activePage } from '../lib/pages';
 import { getState, setState, useStore } from '../lib/store';
 import { InputPanel } from './Dock';
+import { DockRow } from './dock/DockRow';
 import { assistantShapes, insertMention, referencesIn } from './assistant-shapes';
 import { Shapeshift, type ShapeshiftHandle, type ShapeshiftResult } from './shapeshift';
 
@@ -47,6 +48,7 @@ export function CanvasShapeshift() {
   };
 
   return (
+    <DockRow>
     <div className="canvas-shapeshift assistant-docker" data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
       {selection && (
         <div className="assistant-docker__context" title="The AI knows this element is selected">
@@ -77,5 +79,6 @@ export function CanvasShapeshift() {
         }}
       />
     </div>
+    </DockRow>
   );
 }

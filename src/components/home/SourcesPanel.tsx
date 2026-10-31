@@ -1,4 +1,4 @@
-import { ArrowSquareOut, ArrowUpRight, CaretRight, ChatCircle, ChatText, Check, Copy, FileText, FolderSimple, Globe, Lightning, MagnifyingGlass, X, type Icon as PhosphorIcon } from '@phosphor-icons/react';
+import { ArrowSquareOut, CaretRight, ChatCircle, ChatText, Check, Copy, FileText, FolderSimple, Globe, Lightning, MagnifyingGlass, X, type Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { CollapseIcon, Copy01Icon, File02Icon, Folder02Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useMemo, useState } from 'react';
@@ -525,12 +525,13 @@ export function SourcesPanel({ sources, file, onFile }: { sources: Source[]; fil
         </span>
       </>
     );
-    const cls = 'flex w-full items-start gap-2 rounded-[8px] px-2 py-1.5 text-start text-foreground no-underline hover:no-underline transition-colors duration-150 hover:bg-accent focus-visible:bg-accent';
+    const reserve = isLink ? 'group-hover/src:pe-[78px] group-focus-within/src:pe-[78px]' : s.citedIn ? 'group-hover/src:pe-[54px] group-focus-within/src:pe-[54px]' : '';
+    const cls = cn('flex w-full items-start gap-2 rounded-[8px] px-2 py-1.5 text-start text-foreground no-underline hover:no-underline transition-colors duration-150 hover:bg-accent focus-visible:bg-accent', reserve);
     const isProject = s.kind === 'project';
     const root = s.id.replace(/^project:/, '');
     const isOpen = expanded.has(s.id);
     return (
-      <li key={s.id} title={s.detail} className="group/src relative">
+      <li key={s.id} className="group/src relative">
         {isProject ? (
           <button type="button" className={cls} aria-expanded={isOpen} onClick={() => toggle(setExpanded, s.id)}>
             {body}
@@ -543,7 +544,7 @@ export function SourcesPanel({ sources, file, onFile }: { sources: Source[]; fil
         ) : (
           <div className={cls}>{body}</div>
         )}
-        <span className={cn('absolute end-1 top-1 hidden items-center gap-0.5 rounded-[8px] bg-accent p-0.5 shadow-sm group-focus-within/src:flex group-hover/src:flex', isProject && 'end-6')}>
+        <span className="absolute end-1.5 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 group-focus-within/src:flex group-hover/src:flex">
           {s.citedIn && (
             <button type="button" className={ACTION} aria-label={`Show where ${s.title} was used in the chat`} title="Show in chat" onClick={() => jumpToCitation(s.citedIn!)}>
               <ChatText className="size-3.5" aria-hidden />
@@ -554,9 +555,6 @@ export function SourcesPanel({ sources, file, onFile }: { sources: Source[]; fil
               <button type="button" className={ACTION} aria-label={`Copy link to ${s.title}`} title={copied === s.id ? 'Copied' : 'Copy link'} onClick={() => void copy(s)}>
                 {copied === s.id ? <Check className="size-3.5" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
               </button>
-              <a href={s.href} target="_blank" rel="noopener noreferrer" className={ACTION} aria-label={`Open ${s.title} in browser`} title="Open in browser">
-                <ArrowUpRight className="size-3.5" aria-hidden />
-              </a>
             </>
           )}
           {!isProject && (
