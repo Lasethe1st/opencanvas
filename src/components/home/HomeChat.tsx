@@ -1,5 +1,5 @@
 import { highlight } from "../../lib/highlight";
-import { Brain, Check, CircleNotch, FileText, ShieldWarning, SpeakerHigh, Stack, Stop, Wrench, X } from '../../lib/home-icons';
+import { Brain, Check, CircleNotch, ShieldWarning, SpeakerHigh, Stop, Wrench, X } from '../../lib/home-icons';
 import { humanizeAiError } from "../../lib/ai-errors";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Copy01Icon } from "@hugeicons/core-free-icons";
@@ -103,77 +103,47 @@ function splitReferences(text: string): { body: string; refs: { kind: SourceKind
   return { body: text.slice(0, m.index), refs };
 }
 
-/** Your own message: a boxed bubble on the left, with its references as tags underneath. */
-/** Your text with each referenced name shown as a coloured pill right where you typed it. */
-function inlineRefs(body: string, refs: { kind: SourceKind; title: string }[]): React.ReactNode[] {
-  const found = refs
-    .map((r) => ({ r, at: body.indexOf(r.title) }))
-    .filter((x) => x.at >= 0)
-    .sort((a, b) => a.at - b.at)
-    .filter((x, i, all) => i === 0 || x.at >= all[i - 1].at + all[i - 1].r.title.length);
-  const out: React.ReactNode[] = [];
-  let cursor = 0;
-  for (const { r, at } of found) {
-    if (at > cursor) out.push(body.slice(cursor, at));
-    out.push(
-      <span
-        key={`${r.kind}:${r.title}:${at}`}
-        className="mx-px inline-flex max-w-[16rem] items-center gap-1 rounded-[var(--pill)] bg-foreground/[0.07] px-2 align-baseline text-[0.92em] leading-[1.35] text-foreground"
-      >
-        <SourceIcon kind={r.kind} className="size-4 shrink-0" />
-        <span className="truncate">{r.title}</span>
-      </span>,
-    );
-    cursor = at + r.title.length;
-  }
-  if (cursor < body.length) out.push(body.slice(cursor));
-  return out;
-}
-
 /** One line is a full pill; as the text wraps the corners ease down to 18px, always as smooth squircle corners. */
 function bubbleRadius(height: number): string {
   if (height <= 56) return `${Math.round(height / 2)}px`;
   return `${Math.round(Math.max(18, Math.min(height / 2, 28 - (height - 56) * 0.15)))}px`;
 }
 
-/** Canvas messages: each "@Name" you typed becomes a pill right where it was. */
-function inlineMentions(body: string): React.ReactNode[] {
-  const refs = referencesIn(body);
-  const found: { at: number; len: number; kind: string; name: string }[] = [];
-  const lower = body.toLowerCase();
-  for (const r of refs) {
-    const token = `@${r.name.toLowerCase()}`;
-    let i = lower.indexOf(token);
-    while (i >= 0) {
-      found.push({ at: i, len: token.length, kind: r.kind, name: r.name });
-      i = lower.indexOf(token, i + token.length);
-    }
-  }
-  found.sort((a, b) => a.at - b.at || b.len - a.len);
-  const out: React.ReactNode[] = [];
-  let cursor = 0;
-  for (const f of found) {
-    if (f.at < cursor) continue;
-    if (f.at > cursor) out.push(body.slice(cursor, f.at));
-    const color = f.kind === "page" ? "#3b82f6" : "#8b5cf6";
-    const MentionIcon = f.kind === "page" ? FileText : Stack;
-    out.push(
-      <span
-        key={`${f.at}:${f.name}`}
-        className="mx-px inline-flex max-w-[16rem] items-center gap-1 rounded-[var(--pill)] bg-foreground/[0.07] px-2 align-baseline text-[0.92em] leading-[1.35] text-foreground"
-      >
-        <MentionIcon className="size-3.5 shrink-0" weight="fill" style={{ color }} aria-hidden />
-        <span className="truncate">{f.name}</span>
-      </span>,
+const REF_PILL =
+  "inline-flex max-w-[16rem] items-center gap-1.5 rounded-[var(--pill)] bg-foreground/[0.07] px-2 pt-1.5 pb-1 text-[0.92em] leading-[1.35] text-foreground";
+
+/** Refs sit under the message: one named pill, or a count when there are several. */
+function RefPills({ refs }: { refs: { kind: SourceKind; title: string }[] }) {
+  if (!refs.length) return null;
+  if (refs.length === 1) {
+    const r = refs[0];
+    return (
+      <div className="flex flex-wrap items-center gap-0.5">
+        <span className={REF_PILL} title={r.title}>
+          <SourceIcon kind={r.kind} className="size-3.5 shrink-0" />
+          <span className="truncate">{r.title}</span>
+        </span>
+      </div>
     );
-    cursor = f.at + f.len;
   }
-  if (cursor < body.length) out.push(body.slice(cursor));
-  return out;
+  return (
+    <div className="flex flex-wrap items-center gap-0.5">
+      <span className={REF_PILL} title={refs.map((r) => r.title).join(", ")}>
+        {refs.length}
+      </span>
+    </div>
+  );
 }
 
 function UserBubble({ text, mentions = false }: { text: string; mentions?: boolean }) {
-  const { body, refs } = splitReferences(text);
+  const { body, refs: homeRefs } = splitReferences(text);
+  const canvasRefs = mentions
+    ? referencesIn(body).map((r) => ({
+        kind: (r.kind === "page" ? "file" : "project") as SourceKind,
+        title: r.name,
+      }))
+    : [];
+  const refs = mentions ? canvasRefs : homeRefs;
   const [radius, setRadius] = useState("var(--pill)");
   const [wrapped, setWrapped] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -190,12 +160,15 @@ function UserBubble({ text, mentions = false }: { text: string; mentions?: boole
     return () => ro.disconnect();
   }, [body, refs.length]);
   return (
-    <div
-      ref={boxRef}
-      style={{ borderRadius: radius, cornerShape: wrapped ? "squircle" : "round" } as React.CSSProperties}
-      className="flex w-fit max-w-full flex-col gap-2 bg-muted px-4 py-3 motion-safe:transition-[border-radius] motion-safe:duration-150"
-    >
-      <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{mentions ? inlineMentions(body) : inlineRefs(body, refs)}</p>
+    <div className="flex w-fit max-w-full flex-col gap-0.5">
+      <div
+        ref={boxRef}
+        style={{ borderRadius: radius, cornerShape: wrapped ? "squircle" : "round" } as React.CSSProperties}
+        className="w-fit max-w-full bg-muted px-4 py-3 motion-safe:transition-[border-radius] motion-safe:duration-150"
+      >
+        <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{body}</p>
+      </div>
+      <RefPills refs={refs} />
     </div>
   );
 }

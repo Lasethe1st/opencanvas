@@ -125,6 +125,8 @@ export default function App() {
     if (projectRoot) loadPanels();
   }, [projectRoot]);
   const panelsHidden = useStore((s) => s.panelsHidden);
+  // The agent page brings its own inspector, so the canvas's Visual/Code/Motion panel steps aside there.
+  const onAgentPage = useStore((s) => (s.projectConfig?.pages.find((p) => p.id === s.workspace.activePageId)?.viewType ?? 'design') === 'agent');
   const focus = mode === 'visual' && panelsHidden.left && panelsHidden.right;
 
   const workspaceRef = useFloatingInsets(mode === 'visual' && !!project, !!project);
@@ -151,7 +153,7 @@ export default function App() {
           <TerminalPanel />
           {calm && mode === 'visual' && <CalmPills />}
         </div>
-        {auditOpen ? <BugCheckPanel /> : mode === 'visual' && <Inspector />}
+        {auditOpen ? <BugCheckPanel /> : mode === 'visual' && !onAgentPage && <Inspector />}
         <SettingsPage />
       </div>
       <FullPreview />

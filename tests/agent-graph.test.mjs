@@ -74,3 +74,34 @@ test('fileFromSummary extracts project paths', () => {
   assert.equal(h.fileFromSummary('Edited src/components/Hero.tsx'), 'src/components/Hero.tsx');
   assert.equal(h.fileFromSummary('no path here'), null);
 });
+
+test('reasoning attaches to the running step and steps get plain-English titles', () => {
+  let g = h.EMPTY_AGENT_GRAPH;
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'start', request: 'Make the hero darker' });
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'step', stepId: 's1', index: 0, label: 'Step 1' });
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'reasoning', delta: 'The user wants ' });
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'reasoning', delta: 'more contrast.' });
+  assert.equal(g.nodes.s1.reasoning, 'The user wants more contrast.');
+  assert.equal(h.stepTitle(g, 's1'), 'Thinking');
+
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'tool-start', callId: 'c1', tool: 'read_file', summary: 'Reading src/Hero.tsx' });
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'tool-end', callId: 'c1', ok: true, summary: 'Reading src/Hero.tsx' });
+  assert.equal(h.toolTitle(g.nodes.c1), 'Read Hero.tsx');
+  assert.equal(h.isEditNode(g.nodes.c1), false);
+
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'step', stepId: 's2', index: 1, label: 'Step 2' });
+  assert.equal(h.stepTitle(g, 's1'), 'Read Hero.tsx');
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'tool-start', callId: 'c2', tool: 'write_file', summary: 'Writing src/Hero.tsx' });
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'tool-end', callId: 'c2', ok: true, summary: 'Writing src/Hero.tsx' });
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'tool-start', callId: 'c3', tool: 'write_file', summary: 'Writing src/hero.css' });
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'tool-end', callId: 'c3', ok: true, summary: 'Writing src/hero.css' });
+  assert.equal(h.stepTitle(g, 's2'), 'Editing 2 files');
+  assert.equal(h.isEditNode(g.nodes.c2), true);
+
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'tool-start', callId: 'c4', tool: 'set_styles', summary: 'Styling 1 element' });
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'tool-end', callId: 'c4', ok: true, summary: 'Styling 1 element', elementId: 'hero' });
+  assert.equal(g.nodes.c4.elementId, 'hero');
+  g = h.reduceAgentGraph(g, { turnId: 't2', type: 'done', stopped: false });
+  assert.equal(h.stepTitle(g, 's2'), 'Made 3 changes');
+  assert.equal(h.stepTitle({ ...g, nodes: { ...g.nodes, s3: { ...g.nodes.s2, id: 's3', label: 'Darkened the hero' } } }, 's3'), 'Darkened the hero');
+});
