@@ -1,27 +1,94 @@
 import { HugeiconsIcon } from '@hugeicons/react';
-import { LayoutAlignLeftIcon, LayoutAlignRightIcon, Search02Icon } from '@hugeicons/core-free-icons';
-import { useMemo, useState } from 'react';
+import { Home04Icon, LayoutAlignLeftIcon, LayoutAlignRightIcon, RulerIcon, Search02Icon } from '@hugeicons/core-free-icons';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import { setLeafPage } from '../../shared/workspace-layout';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { closeProject, selectElement } from '../lib/actions';
 import { toggleCalmPanel, useCalmPanels } from '../lib/calm';
 import { focusPage } from '../lib/pages';
-import { selectElement } from '../lib/actions';
 import { getState, setState } from '../lib/store';
 import { scheduleWorkspaceSave } from '../lib/workspace';
 import { SearchOverlay } from './home/SearchOverlay';
 import { mentionables, type Mentionable } from './assistant-shapes';
 
+const pillCls =
+  'calm-pill size-9 rounded-[var(--r-pill)] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]';
+
+const RULER_KEY = 'oc.canvasRulers';
+const rulerListeners = new Set<() => void>();
+function getRulers() {
+  try {
+    return localStorage.getItem(RULER_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+function setRulers(on: boolean) {
+  try {
+    localStorage.setItem(RULER_KEY, on ? '1' : '0');
+  } catch {
+    /* storage blocked */
+  }
+  rulerListeners.forEach((l) => l());
+}
+function useRulers() {
+  return useSyncExternalStore(
+    (l) => {
+      rulerListeners.add(l);
+      return () => rulerListeners.delete(l);
+    },
+    getRulers,
+    () => false,
+  );
+}
+
 /** Corner and centre pills of the calm canvas: the same shapes as the home page's toggles, plus search. */
 export function CalmPills() {
   const { left, right } = useCalmPanels();
+  const rulers = useRulers();
   const [searching, setSearching] = useState(false);
   return (
     <TooltipProvider>
       <div data-tw="" className="calm-pills">
-        <Button variant="ghost" className="calm-pill calm-pill--left absolute start-3 top-3 z-20 size-9 rounded-[8px] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={left ? 'Close left panel' : 'Open left panel'} aria-expanded={left} onClick={() => toggleCalmPanel('left')}>
-          <HugeiconsIcon icon={left ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
-        </Button>
+        <div className="absolute start-3 top-3 z-20 flex items-center gap-1">
+          <Button
+            variant="ghost"
+            className={`${pillCls} calm-pill--left`}
+            aria-label={left ? 'Close left panel' : 'Open left panel'}
+            aria-expanded={left}
+            onClick={() => toggleCalmPanel('left')}
+          >
+            <HugeiconsIcon icon={left ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
+          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                className={`${pillCls} calm-pill--home`}
+                aria-label="Go home"
+                onClick={() => void closeProject()}
+              >
+                <HugeiconsIcon icon={Home04Icon} strokeWidth={2} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Home</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                className={`${pillCls} calm-pill--ruler ${rulers ? 'bg-muted text-foreground' : ''}`}
+                aria-label={rulers ? 'Hide rulers' : 'Show rulers'}
+                aria-pressed={rulers}
+                onClick={() => setRulers(!rulers)}
+              >
+                <HugeiconsIcon icon={RulerIcon} strokeWidth={2} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{rulers ? 'Hide rulers' : 'Show rulers'}</TooltipContent>
+          </Tooltip>
+        </div>
         <Button variant="ghost" className="calm-pill calm-pill--search absolute top-3 z-20 h-9 gap-2 rounded-full bg-muted px-4 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground [&_svg]:size-4" aria-label="Search layers and pages" style={{ left: '50%', translate: '-50% 0' }} onClick={() => setSearching(true)}>
           <HugeiconsIcon icon={Search02Icon} strokeWidth={2} />
           <span>Search</span>
