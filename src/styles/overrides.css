@@ -1720,7 +1720,7 @@ kbd, .kbd,
 :where(body:has(.shell .workspace) *:not(
   .assistant-docker [data-slot='shapeshift-shell'], .assistant-docker [data-slot='shapeshift-shell'] *,
   [class*='avatar'], [class*='badge'], [class*='orb'], [class*='spin'], [class*='dot'],
-  [role='dialog'], [role='dialog'] *, .stage__world *
+  [role='dialog'], [role='dialog'] *, .stage__world *, .calm-pill
 )) { border-radius: 0 !important; }
 body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data-tip]::before { border-radius: 0 !important; }
 
@@ -1742,7 +1742,7 @@ body:has(.shell .workspace) :is(
   .toggle-more__select, .state-switcher-select, .input, .search, .search input, textarea,
   input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
   .swatch, .section__icon, .field-select, .ai-option, .ai-card__text input
-):not(.assistant-docker *, [class*='avatar'], .stage__world *) { border-radius: 10px !important; corner-shape: squircle; }
+):not(.assistant-docker *, [class*='avatar'], .stage__world *, .calm-pill) { border-radius: 10px !important; corner-shape: squircle; }
 /* Active, selected and pressed states follow the same soft corner. */
 body:has(.shell .workspace) :is(.is-active, .is-current, .is-selected, [aria-selected='true'], [aria-pressed='true'], [aria-current='true'], .segmented__pill):not(.assistant-docker *, .stage__world *) { border-radius: 10px !important; corner-shape: squircle; }
 /* Switches are pills; checkboxes and radios get a small radius. */
@@ -1828,23 +1828,17 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 /* ───────── Calm canvas: home-style background + foreground, only the site and the dock ───────── */
 .shell--calm:has(.workspace) { grid-template-rows: minmax(0, 1fr); box-sizing: border-box; padding: 8px; background: var(--home-bg); }
 .shell--calm:has(.workspace) > .topbar { display: none; }
-.shell--calm .workspace { overflow: hidden; border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent); border-radius: 10px !important; background: var(--home-card); }
+.shell--calm .workspace { padding: 0; gap: 8px; overflow: visible; border: 0; border-radius: 0 !important; background: transparent; }
 .shell--calm .workspace > .tool-rails,
-.shell--calm .workspace > .panel,
 .shell--calm .workspace .terminal-panel { display: none !important; }
-/* Corner pills open the side panels again; they float over the card like on the home page. */
+/* Like the home page: the site is the rounded foreground card, opened panels sit on the background beside it. */
+.shell--calm .workspace > .workspace__center { position: relative; inset: auto; flex: 1 1 0; min-width: 0; overflow: hidden; border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent); border-radius: 10px !important; background: var(--home-card); }
+.shell--calm .workspace .stage { background: var(--home-card); }
 .shell--calm:not([data-calm-left]) .workspace > .panel--left,
 .shell--calm:not([data-calm-right]) .workspace > .panel--right { display: none !important; }
 .shell--calm[data-calm-left] .workspace > .panel--left,
 .shell--calm[data-calm-right] .workspace > .panel--right { display: flex !important; }
-.shell--calm .workspace__center { position: relative; }
-body .shell--calm .calm-pill--left,
-body .shell--calm .calm-pill--right,
-body .shell--calm .calm-pill--search { border-radius: 8px !important; }
-body:has(.shell .workspace) .shell--calm button.calm-pill.calm-pill--right,
-body:has(.shell .workspace) .shell--calm button.calm-pill.calm-pill--search { border-radius: 999px !important; corner-shape: round; }
-.shell--calm .workspace > .workspace__center,
-.shell--calm .workspace .stage { background: var(--home-card); }
+.shell--calm .workspace > .panel { position: relative; z-index: 2; background: transparent; border-color: transparent !important; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 
 /* ───────── Dock row: pills · dock · pills, fused like liquid ───────── */
 body .canvas-bottom-chrome { max-width: calc(100% - 32px) !important; }
