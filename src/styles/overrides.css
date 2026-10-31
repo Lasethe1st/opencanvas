@@ -1844,11 +1844,6 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 .shell--calm .workspace > .panel { position: relative; z-index: 2; background: transparent; border-color: transparent !important; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 
 /* Home + panel toggle: two blobs, fused like the dock pills. */
-.calm-pill-pair { width: 76px; height: 36px; }
-.calm-pill-pair__goo { position: absolute; inset: 0; filter: url(#oc-goo-top); }
-.calm-pill-pair__goo > span { position: absolute; top: 0; width: 36px; height: 36px; background: var(--surface-3); border-radius: 999px !important; }
-.calm-pill-pair__goo > span:first-child { left: 0; }
-.calm-pill-pair__goo > span:last-child { left: 40px; }
 
 /* ───────── Dock row: pills · dock · pills, fused like liquid ───────── */
 body .canvas-bottom-chrome { max-width: calc(100% - 32px) !important; }
@@ -1856,8 +1851,7 @@ body .canvas-bottom-chrome { max-width: calc(100% - 32px) !important; }
 .dockrow > :not(.dockrow__goo):not(.dockrow__defs) { position: relative; z-index: 1; }
 .dockrow__defs { position: absolute; }
 .dockrow__goo { position: absolute; inset: 0; z-index: 0; overflow: visible; pointer-events: none; filter: drop-shadow(0 0 0.6px rgba(0, 0, 0, 0.35)) drop-shadow(0 10px 22px rgba(0, 0, 0, 0.12)); }
-.dockrow__blobs { position: absolute; inset: 0; filter: url(#oc-goo); }
-.dockrow__blobs > span { position: absolute; background: var(--goo-fill); border-radius: var(--r, 999px) !important; }
+.dockrow__goo .merge-layer { fill: var(--goo-fill); filter: none; }
 .dockrow .assistant-docker [data-slot='shapeshift-shell'] { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
 .dockrow__side { display: flex; align-items: flex-end; gap: 8px; }
 
@@ -1896,3 +1890,12 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .canvas-rulers__corner { z-index: 1; top: 0; left: 0; width: 20px; height: 20px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .calm-pills--rulers .top-3 { top: 28px !important; }
 .calm-pills--rulers .calm-pill-pair { left: 28px !important; inset-inline-start: 28px !important; }
+
+/* Merged bubbles: neighbouring pills share one shape, joined by curved necks (after cult-ui's merging-bubbles). */
+.merge-group { --merge-fill: var(--surface-3); }
+.merge-group > :not(.merge-layer) { position: relative; z-index: 1; }
+.merge-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; fill: var(--merge-fill); filter: drop-shadow(0 0 0.5px color-mix(in srgb, var(--fg) 30%, transparent)); }
+.merge-layer rect, .merge-layer path { transition: opacity 180ms ease; }
+@media (prefers-reduced-motion: reduce) { .merge-layer rect, .merge-layer path { transition: opacity 120ms linear; } }
+/* The bar is 420px wide; size its slot to match so the pills on the right can join it too. */
+.dockrow .canvas-shapeshift:not([data-chat]) { width: min(420px, calc(100vw - 32px)); }

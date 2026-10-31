@@ -12,6 +12,7 @@ import { setRulers, useRulers } from '../lib/rulers';
 import { getState, setState } from '../lib/store';
 import { scheduleWorkspaceSave } from '../lib/workspace';
 import { SearchOverlay } from './home/SearchOverlay';
+import { MergeGroup } from './MergeLayer';
 import { mentionables, type Mentionable } from './assistant-shapes';
 
 /** Corner and centre pills of the calm canvas: the same shapes as the home page's toggles, plus search. */
@@ -23,29 +24,19 @@ export function CalmPills() {
   return (
     <TooltipProvider>
       <div data-tw="" className={`calm-pills${rulers ? ' calm-pills--rulers' : ''}`}>
-        <svg width="0" height="0" aria-hidden className="absolute">
-          <defs>
-            <filter id="oc-goo-top" x="-30%" y="-60%" width="160%" height="220%" colorInterpolationFilters="sRGB">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
-              <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8" result="goo" />
-              <feComposite in="SourceGraphic" in2="goo" operator="atop" />
-            </filter>
-          </defs>
-        </svg>
-        <div className="calm-pill-pair absolute start-3 top-3 z-20 flex items-center gap-1">
-          <div className="calm-pill-pair__goo" aria-hidden><span /><span /></div>
-          <Button variant="ghost" className="calm-pill calm-pill--round relative size-9 rounded-full bg-transparent p-0 text-foreground hover:bg-transparent [&_svg]:size-[18px]" aria-label={left ? 'Close left panel' : 'Open left panel'} aria-expanded={left} onClick={() => toggleCalmPanel('left')}>
+        <MergeGroup className="calm-pill-pair absolute start-3 top-3 z-20 flex items-center gap-1">
+          <Button data-merge="" variant="ghost" className="calm-pill calm-pill--round relative size-9 rounded-full bg-transparent p-0 text-foreground hover:bg-transparent [&_svg]:size-[18px]" aria-label={left ? 'Close left panel' : 'Open left panel'} aria-expanded={left} onClick={() => toggleCalmPanel('left')}>
             <HugeiconsIcon icon={left ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
           </Button>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" className="calm-pill calm-pill--round relative size-9 rounded-full bg-transparent p-0 text-foreground hover:bg-transparent [&_svg]:size-[18px]" aria-label="Go home" onClick={() => void closeProject()}>
+              <Button data-merge="" variant="ghost" className="calm-pill calm-pill--round relative size-9 rounded-full bg-transparent p-0 text-foreground hover:bg-transparent [&_svg]:size-[18px]" aria-label="Go home" onClick={() => void closeProject()}>
                 <HugeiconsIcon icon={Home04Icon} strokeWidth={2} />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">Home</TooltipContent>
           </Tooltip>
-        </div>
+        </MergeGroup>
         <Button variant="ghost" className="calm-pill calm-pill--search absolute top-3 z-20 h-9 gap-2 rounded-full bg-muted px-4 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground [&_svg]:size-4" aria-label="Search layers and pages" style={{ left: '50%', translate: '-50% 0' }} onClick={() => setSearching(true)}>
           <HugeiconsIcon icon={Search02Icon} strokeWidth={2} />
           <span>Search</span>
@@ -58,9 +49,10 @@ export function CalmPills() {
           </TooltipTrigger>
           <TooltipContent side="left">{right ? 'Close right panel' : 'Open right panel'}</TooltipContent>
         </Tooltip>
-        <Tooltip>
+        <MergeGroup axis="column" className="calm-pill-stack absolute end-3 z-20 flex flex-col gap-1" style={{ bottom: 12 }}>
+          <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" className={`calm-pill calm-pill--round calm-pill--ruler absolute end-3 z-20 size-9 rounded-full p-0 [&_svg]:size-[18px] ${rulers ? 'bg-foreground text-background hover:bg-foreground' : 'bg-muted text-foreground hover:bg-secondary'}`} style={{ bottom: 56 }} aria-label={rulers ? 'Hide rulers' : 'Show rulers'} aria-pressed={rulers} onClick={() => setRulers(!rulers)}>
+            <Button data-merge="" variant="ghost" className={`calm-pill calm-pill--round calm-pill--ruler relative size-9 rounded-full p-0 [&_svg]:size-[18px] ${rulers ? 'bg-foreground text-background hover:bg-foreground' : 'bg-transparent text-foreground hover:bg-foreground/10'}`} aria-label={rulers ? 'Hide rulers' : 'Show rulers'} aria-pressed={rulers} onClick={() => setRulers(!rulers)}>
               <HugeiconsIcon icon={RulerIcon} strokeWidth={2} />
             </Button>
           </TooltipTrigger>
@@ -68,12 +60,13 @@ export function CalmPills() {
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" className={`calm-pill calm-pill--round calm-pill--measure absolute end-3 z-20 size-9 rounded-full p-0 [&_svg]:size-[18px] ${measuring ? 'bg-foreground text-background hover:bg-foreground' : 'bg-muted text-foreground hover:bg-secondary'}`} style={{ bottom: 12 }} aria-label="Measure distances" aria-pressed={measuring} onClick={() => setMeasure(!measuring)}>
+            <Button data-merge="" variant="ghost" className={`calm-pill calm-pill--round calm-pill--measure relative size-9 rounded-full p-0 [&_svg]:size-[18px] ${measuring ? 'bg-foreground text-background hover:bg-foreground' : 'bg-transparent text-foreground hover:bg-foreground/10'}`} aria-label="Measure distances" aria-pressed={measuring} onClick={() => setMeasure(!measuring)}>
               <HugeiconsIcon icon={RulerDimensionLineIcon} strokeWidth={2} />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="left">{measuring ? 'Stop measuring' : 'Measure distances'}</TooltipContent>
         </Tooltip>
+        </MergeGroup>
       </div>
       {searching && <CalmSearch onClose={() => setSearching(false)} />}
     </TooltipProvider>
