@@ -1,6 +1,6 @@
 import { HugeiconsIcon } from '@hugeicons/react';
 import { BubbleChatUploadIcon, Delete02Icon, EllipsisIcon } from '@hugeicons/core-free-icons';
-import { Summary } from 'lucide-react';
+import { Summary } from '../../lib/home-icons';
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {

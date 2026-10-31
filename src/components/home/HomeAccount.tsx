@@ -1,4 +1,4 @@
-import { CaretUpDown, Gear as SettingsIcon } from '@phosphor-icons/react';
+import { CaretUpDown, Gear as SettingsIcon } from '../../lib/home-icons';
 import { USER_AVATAR_SRC } from '../../lib/user-avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 

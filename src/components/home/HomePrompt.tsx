@@ -1,4 +1,4 @@
-import { ArrowUp, FolderOpen, Stop, Waveform } from "@phosphor-icons/react";
+import { ArrowUp, FolderOpen, Stop, Waveform } from '../../lib/home-icons';
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";

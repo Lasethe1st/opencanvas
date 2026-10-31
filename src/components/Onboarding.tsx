@@ -1,7 +1,7 @@
-import { Brain, ChatCircle, FolderSimple, Lightning } from '@phosphor-icons/react';
+import { Brain, ChatCircle, FolderSimple, Lightning } from '../lib/home-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { LayoutAlignLeftIcon, LayoutAlignRightIcon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
-import { Library } from 'lucide-react';
+import { Library } from '../lib/home-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentProject, SkillMeta } from '../../shared/types';
 import { api } from '../lib/api';

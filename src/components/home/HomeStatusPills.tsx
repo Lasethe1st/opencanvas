@@ -1,4 +1,4 @@
-import { FolderOpen } from "@phosphor-icons/react";
+import { FolderOpen } from '../../lib/home-icons';
 import type { AiChatItem } from "../../../shared/ai";
 import { AgentOrb, type AgentOrbVariant } from "@/components/ui/agent-orb";
 import { useStore } from "../../lib/store";

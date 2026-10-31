@@ -1,4 +1,4 @@
-import { ArrowCounterClockwise, Brain, CaretDown, CaretRight, Check, CircleNotch, DotsSixVertical, DotsThree, ListNumbers, Pause, Pencil, Question, Trash, X } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, Brain, CaretDown, CaretRight, Check, CircleNotch, DotsSixVertical, DotsThree, ListNumbers, Pause, Pencil, Question, Trash, X } from '../../lib/home-icons';
 import { useEffect, useId, useMemo, useRef, useState, type DragEvent } from "react";
 import { createPortal } from "react-dom";
 import {

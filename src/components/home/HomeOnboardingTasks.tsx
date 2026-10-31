@@ -1,4 +1,4 @@
-import { Check, X } from '@phosphor-icons/react';
+import { Check, X } from '../../lib/home-icons';
 import { useCallback, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 

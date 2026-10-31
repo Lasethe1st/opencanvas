@@ -1,4 +1,4 @@
-import { PhoneDisconnect } from "@phosphor-icons/react";
+import { PhoneDisconnect } from '../../lib/home-icons';
 import { Component, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { AiChatItem } from "../../../shared/ai";
 import type { VoiceCapabilities, VoiceChatMessage } from "../../../shared/voice";
