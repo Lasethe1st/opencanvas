@@ -2,7 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { chooseImageForSelection, setFontFamily, setStyle, setStyles } from '../../lib/actions';
 import { editSelectedText } from '../../lib/inline-edit';
 import { useStore, type Selection } from '../../lib/store';
-import { Frame, Image as ImageIcon, Palette, Pencil, RectangleHorizontal, Ruler, Square, TextAlignCenter, TextAlignLeft, TextAlignRight, Type } from '../../lib/hugeicons';
+import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
+import { AlignHorizontalSpaceAroundIcon, Edit02Icon, FitToScreenIcon, FrameIcon, ImageUploadIcon, PaintBucketIcon, Resize01Icon, SquareRoundCornerIcon, TextAlignLeft01Icon, TextColorIcon, TextFontIcon, TextIcon } from '@hugeicons/core-free-icons';
+import { TextAlignCenter, TextAlignLeft, TextAlignRight } from '../../lib/hugeicons';
 
 /* ───────── What each kind of element offers ───────── */
 
@@ -17,20 +19,21 @@ const LAYOUT: Record<Kind, { left: PillId[]; right: PillId[] }> = {
   image: { left: ['replace', 'fit'], right: ['corners'] },
   button: { left: ['edit', 'fill'], right: ['label-color', 'corners'] },
 };
-const META: Record<PillId, { label: string; icon: ReactNode; action?: boolean }> = {
-  edit: { label: 'Edit', icon: <Pencil size={15} />, action: true },
-  font: { label: 'Font', icon: <Type size={15} /> },
-  size: { label: 'Size', icon: <Type size={15} /> },
-  color: { label: 'Colour', icon: <Palette size={15} /> },
-  align: { label: 'Align', icon: <TextAlignLeft size={15} /> },
-  padding: { label: 'Spacing', icon: <Square size={15} /> },
-  margin: { label: 'Margin', icon: <Frame size={15} /> },
-  'box-size': { label: 'Size', icon: <Ruler size={15} /> },
-  fill: { label: 'Fill', icon: <Palette size={15} /> },
-  corners: { label: 'Corners', icon: <RectangleHorizontal size={15} /> },
-  replace: { label: 'Replace', icon: <ImageIcon size={15} />, action: true },
-  fit: { label: 'Fit', icon: <ImageIcon size={15} /> },
-  'label-color': { label: 'Text', icon: <Type size={15} /> },
+/** Each icon gets two colours: its first stroke in the main tone, the rest in the accent. */
+const META: Record<PillId, { label: string; icon: IconSvgElement; tones: [string, string]; action?: boolean }> = {
+  edit: { label: 'Edit', icon: Edit02Icon, tones: ['#6366f1', '#f59e0b'], action: true },
+  font: { label: 'Font', icon: TextFontIcon, tones: ['#8b5cf6', '#ec4899'] },
+  size: { label: 'Size', icon: TextIcon, tones: ['#0ea5e9', '#6366f1'] },
+  color: { label: 'Colour', icon: TextColorIcon, tones: ['#ef4444', '#f59e0b'] },
+  align: { label: 'Align', icon: TextAlignLeft01Icon, tones: ['#14b8a6', '#6366f1'] },
+  padding: { label: 'Spacing', icon: AlignHorizontalSpaceAroundIcon, tones: ['#10b981', '#0ea5e9'] },
+  margin: { label: 'Margin', icon: FrameIcon, tones: ['#f97316', '#8b5cf6'] },
+  'box-size': { label: 'Size', icon: Resize01Icon, tones: ['#3b82f6', '#14b8a6'] },
+  fill: { label: 'Fill', icon: PaintBucketIcon, tones: ['#ec4899', '#f59e0b'] },
+  corners: { label: 'Corners', icon: SquareRoundCornerIcon, tones: ['#6366f1', '#10b981'] },
+  replace: { label: 'Replace', icon: ImageUploadIcon, tones: ['#0ea5e9', '#f97316'] },
+  fit: { label: 'Fit', icon: FitToScreenIcon, tones: ['#14b8a6', '#8b5cf6'] },
+  'label-color': { label: 'Text', icon: TextColorIcon, tones: ['#ef4444', '#8b5cf6'] },
 };
 
 /* ───────── Small controls (they live inside an expanded pill) ───────── */
@@ -162,7 +165,7 @@ function Pill({ id, sel, open, onToggle, side, leaving }: { id: PillId; sel: Sel
   return (
     <div className={`dockpill dockpill--${side}${open ? ' is-open' : ''}${leaving ? ' is-leaving' : ''}`} data-goo>
       <button type="button" className="dockpill__main" aria-expanded={meta.action ? undefined : open} onClick={meta.action ? run : onToggle}>
-        {meta.icon}
+        <HugeiconsIcon icon={meta.icon} size={18} strokeWidth={1.8} className="dockpill__icon" style={{ '--c1': meta.tones[0], '--c2': meta.tones[1] } as React.CSSProperties} />
         <span className="dockpill__label">{meta.label}</span>
       </button>
       {!meta.action && (
