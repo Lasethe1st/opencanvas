@@ -11,7 +11,7 @@ export const VIEWPORTS = [
 export function Brand() {
   return (
     <div data-oc="div-tyuk7" className="brand" title="OpenCanvas">
-      <LogoMark className="brand__mark" size={20} />
+      <LogoMark className="brand__mark" size={14} />
       <span className="sr-only">OpenCanvas</span>
     </div>
   );

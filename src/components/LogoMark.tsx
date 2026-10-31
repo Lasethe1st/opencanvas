@@ -1,11 +1,21 @@
 import type { SVGProps } from 'react';
 
-/** The OpenCanvas mark: a solid tall rectangle for the O beside a bold tall rectangle with its right side cut away for the C. Takes its colour from the text colour. */
-export function LogoMark({ size = 20, ...rest }: { size?: number } & Omit<SVGProps<SVGSVGElement>, 'width' | 'height'>) {
+const VB_W = 1182;
+const VB_H = 499;
+
+/** The OpenCanvas mark: linked lenses. `size` is the height; width follows the mark’s aspect. Colour from `currentColor`. */
+export function LogoMark({ size = 16, ...rest }: { size?: number } & Omit<SVGProps<SVGSVGElement>, 'width' | 'height'>) {
   return (
-    <svg viewBox="0 0 32 28" width={size} height={(size * 28) / 32} fill="currentColor" role="img" aria-label="OpenCanvas" {...rest}>
-      <path d="M0 0h14v28H0V0Z" />
-      <path d="M18 0h14v6H24.5v16H32v6H18V0Z" />
+    <svg
+      viewBox={`0 0 ${VB_W} ${VB_H}`}
+      width={(size * VB_W) / VB_H}
+      height={size}
+      fill="currentColor"
+      role="img"
+      aria-label="OpenCanvas"
+      {...rest}
+    >
+      <path d="M725.671 389.087C770.516 455.404 846.417 499 932.5 499C1070.29 499 1182 387.295 1182 249.5C1182 111.705 1070.29 0 932.5 0C846.417 0 770.516 43.5957 725.671 109.913C695.453 154.601 650.893 194.055 596.948 194.055H585.052C531.106 194.055 486.547 154.601 456.329 109.913C411.484 43.5957 335.583 0 249.5 0C111.705 0 0 111.705 0 249.5C0 387.295 111.705 499 249.5 499C335.583 499 411.484 455.404 456.329 389.087C486.547 344.399 531.106 304.944 585.052 304.944H596.948C650.893 304.944 695.453 344.399 725.671 389.087Z" />
     </svg>
   );
 }
