@@ -1,5 +1,5 @@
 import { Sparkles, X } from '../lib/hugeicons';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { selectElement } from '../lib/actions';
 import { sendToAi } from '../lib/ai';
 import { activePage } from '../lib/pages';
@@ -12,6 +12,7 @@ import { Shapeshift, type ShapeshiftHandle, type ShapeshiftResult } from './shap
 /** The assistant docker: bottom-centre of the canvas. Chat with the AI about this project, @ layers and pages, or run quick commands. */
 export function CanvasShapeshift() {
   const handle = useRef<ShapeshiftHandle>(null);
+  const [focused, setFocused] = useState(false);
   const selection = useStore((s) => s.selection);
   const ready = useStore((s) => !!s.aiStatus?.ready);
   const busy = useStore((s) => !!s.aiTurnId);
@@ -48,8 +49,8 @@ export function CanvasShapeshift() {
   };
 
   return (
-    <DockRow>
-    <div className="canvas-shapeshift assistant-docker" data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
+    <DockRow tucked={chatOpen || focused}>
+    <div className="canvas-shapeshift assistant-docker" onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
       {selection && (
         <div className="assistant-docker__context" title="The AI knows this element is selected">
           <Sparkles size={12} aria-hidden />
