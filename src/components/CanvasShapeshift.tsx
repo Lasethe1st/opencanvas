@@ -70,7 +70,6 @@ export function CanvasShapeshift() {
         listAll={false}
         above={chatOpen ? <div className="assistant-docker__chat"><InputPanel /></div> : undefined}
         sendLabel="Send"
-        icon={<Sparkles />}
         onSubmit={onSubmit}
         classNames={{
           shell: 'shadow-none',
