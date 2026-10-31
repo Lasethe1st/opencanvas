@@ -1841,8 +1841,8 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 body .shell--calm .calm-pill--left,
 body .shell--calm .calm-pill--right,
 body .shell--calm .calm-pill--search { border-radius: 8px !important; }
-body .shell--calm .calm-pill--right,
-body .shell--calm .calm-pill--search { border-radius: var(--pill, 999px) !important; }
+body:has(.shell .workspace) .shell--calm button.calm-pill.calm-pill--right,
+body:has(.shell .workspace) .shell--calm button.calm-pill.calm-pill--search { border-radius: 999px !important; corner-shape: round; }
 .shell--calm .workspace > .workspace__center,
 .shell--calm .workspace .stage { background: var(--home-card); }
 

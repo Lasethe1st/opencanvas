@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from '@hugeicons/react';
-import { LayoutAlignLeftIcon, LayoutAlignRightIcon, Search02Icon, SlidersHorizontalIcon } from '@hugeicons/core-free-icons';
+import { LayoutAlignLeftIcon, LayoutAlignRightIcon, Search02Icon } from '@hugeicons/core-free-icons';
 import { useMemo, useState } from 'react';
 import { setLeafPage } from '../../shared/workspace-layout';
 import { Button } from '@/components/ui/button';
@@ -22,15 +22,14 @@ export function CalmPills() {
         <Button variant="ghost" className="calm-pill calm-pill--left absolute start-3 top-3 z-20 size-9 rounded-[8px] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={left ? 'Close left panel' : 'Open left panel'} aria-expanded={left} onClick={() => toggleCalmPanel('left')}>
           <HugeiconsIcon icon={left ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
         </Button>
-        <Button variant="ghost" className="calm-pill calm-pill--search absolute top-3 z-20 h-9 gap-2 rounded-[var(--pill)] bg-muted px-4 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground [&_svg]:size-4" aria-label="Search layers and pages" style={{ left: '50%', translate: '-50% 0' }} onClick={() => setSearching(true)}>
+        <Button variant="ghost" className="calm-pill calm-pill--search absolute top-3 z-20 h-9 gap-2 rounded-full bg-muted px-4 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground [&_svg]:size-4" aria-label="Search layers and pages" style={{ left: '50%', translate: '-50% 0' }} onClick={() => setSearching(true)}>
           <HugeiconsIcon icon={Search02Icon} strokeWidth={2} />
           <span>Search</span>
         </Button>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" className="calm-pill calm-pill--right absolute end-3 top-3 z-20 h-9 gap-1.5 rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground hover:bg-secondary [&_svg]:size-4" aria-label={right ? 'Close right panel' : 'Open right panel'} aria-expanded={right} onClick={() => toggleCalmPanel('right')}>
-              <HugeiconsIcon icon={right ? LayoutAlignLeftIcon : SlidersHorizontalIcon} strokeWidth={2} />
-              <span>{right ? 'Close' : 'Inspector'}</span>
+            <Button variant="ghost" className="calm-pill calm-pill--right absolute end-3 top-3 z-20 size-9 rounded-full bg-muted p-0 text-foreground hover:bg-secondary [&_svg]:size-[18px]" aria-label={right ? 'Close right panel' : 'Open right panel'} aria-expanded={right} onClick={() => toggleCalmPanel('right')}>
+              <HugeiconsIcon icon={right ? LayoutAlignLeftIcon : LayoutAlignRightIcon} strokeWidth={2} />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="left">{right ? 'Close right panel' : 'Open right panel'}</TooltipContent>
