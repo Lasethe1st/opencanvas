@@ -19,21 +19,20 @@ const LAYOUT: Record<Kind, { left: PillId[]; right: PillId[] }> = {
   image: { left: ['replace', 'fit'], right: ['corners'] },
   button: { left: ['edit', 'fill'], right: ['label-color', 'corners'] },
 };
-/** Each icon gets two colours: its first stroke in the main tone, the rest in the accent. */
-const META: Record<PillId, { label: string; icon: IconSvgElement; tones: [string, string]; action?: boolean }> = {
-  edit: { label: 'Edit', icon: Edit02Icon, tones: ['#6366f1', '#f59e0b'], action: true },
-  font: { label: 'Font', icon: TextFontIcon, tones: ['#8b5cf6', '#ec4899'] },
-  size: { label: 'Size', icon: TextIcon, tones: ['#0ea5e9', '#6366f1'] },
-  color: { label: 'Colour', icon: TextColorIcon, tones: ['#ef4444', '#f59e0b'] },
-  align: { label: 'Align', icon: TextAlignLeft01Icon, tones: ['#14b8a6', '#6366f1'] },
-  padding: { label: 'Spacing', icon: AlignHorizontalSpaceAroundIcon, tones: ['#10b981', '#0ea5e9'] },
-  margin: { label: 'Margin', icon: FrameIcon, tones: ['#f97316', '#8b5cf6'] },
-  'box-size': { label: 'Size', icon: Resize01Icon, tones: ['#3b82f6', '#14b8a6'] },
-  fill: { label: 'Fill', icon: PaintBucketIcon, tones: ['#ec4899', '#f59e0b'] },
-  corners: { label: 'Corners', icon: SquareRoundCornerIcon, tones: ['#6366f1', '#10b981'] },
-  replace: { label: 'Replace', icon: ImageUploadIcon, tones: ['#0ea5e9', '#f97316'] },
-  fit: { label: 'Fit', icon: FitToScreenIcon, tones: ['#14b8a6', '#8b5cf6'] },
-  'label-color': { label: 'Text', icon: TextColorIcon, tones: ['#ef4444', '#8b5cf6'] },
+const META: Record<PillId, { label: string; icon: IconSvgElement; action?: boolean }> = {
+  edit: { label: 'Edit', icon: Edit02Icon, action: true },
+  font: { label: 'Font', icon: TextFontIcon },
+  size: { label: 'Size', icon: TextIcon },
+  color: { label: 'Colour', icon: TextColorIcon },
+  align: { label: 'Align', icon: TextAlignLeft01Icon },
+  padding: { label: 'Spacing', icon: AlignHorizontalSpaceAroundIcon },
+  margin: { label: 'Margin', icon: FrameIcon },
+  'box-size': { label: 'Size', icon: Resize01Icon },
+  fill: { label: 'Fill', icon: PaintBucketIcon },
+  corners: { label: 'Corners', icon: SquareRoundCornerIcon },
+  replace: { label: 'Replace', icon: ImageUploadIcon },
+  fit: { label: 'Fit', icon: FitToScreenIcon },
+  'label-color': { label: 'Text', icon: TextColorIcon },
 };
 
 /* ───────── Small controls (they live inside an expanded pill) ───────── */
@@ -165,7 +164,7 @@ function Pill({ id, sel, open, onToggle, side, leaving }: { id: PillId; sel: Sel
   return (
     <div className={`dockpill dockpill--${side}${open ? ' is-open' : ''}${leaving ? ' is-leaving' : ''}`} data-goo>
       <button type="button" className="dockpill__main" aria-expanded={meta.action ? undefined : open} onClick={meta.action ? run : onToggle}>
-        <HugeiconsIcon icon={meta.icon} size={18} strokeWidth={1.8} className="dockpill__icon" style={{ '--c1': meta.tones[0], '--c2': meta.tones[1] } as React.CSSProperties} />
+        <HugeiconsIcon icon={meta.icon} size={18} strokeWidth={1.8} className="dockpill__icon" />
         <span className="dockpill__label">{meta.label}</span>
       </button>
       {!meta.action && (
