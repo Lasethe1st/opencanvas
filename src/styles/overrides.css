@@ -1832,6 +1832,17 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 .shell--calm .workspace > .tool-rails,
 .shell--calm .workspace > .panel,
 .shell--calm .workspace .terminal-panel { display: none !important; }
+/* Corner pills open the side panels again; they float over the card like on the home page. */
+.shell--calm:not([data-calm-left]) .workspace > .panel--left,
+.shell--calm:not([data-calm-right]) .workspace > .panel--right { display: none !important; }
+.shell--calm[data-calm-left] .workspace > .panel--left,
+.shell--calm[data-calm-right] .workspace > .panel--right { display: flex !important; }
+.shell--calm .workspace__center { position: relative; }
+body .shell--calm .calm-pill--left,
+body .shell--calm .calm-pill--right,
+body .shell--calm .calm-pill--search { border-radius: 8px !important; }
+body .shell--calm .calm-pill--right,
+body .shell--calm .calm-pill--search { border-radius: var(--pill, 999px) !important; }
 .shell--calm .workspace > .workspace__center,
 .shell--calm .workspace .stage { background: var(--home-card); }
 
