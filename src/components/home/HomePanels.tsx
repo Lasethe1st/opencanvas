@@ -1,4 +1,4 @@
-import { ArrowLeft, CaretRight, ChatsCircle, FileText, FolderOpen, MagnifyingGlass, Sparkle } from '@phosphor-icons/react';
+import { ArrowLeft, CaretRight, ChatsCircle, FileText, FolderOpen, MagnifyingGlass, Sparkle } from '../../lib/home-icons';
 import { useEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import type { RecentProject, TemplateId, TemplateMeta } from '../../../shared/types';
 import { titleFromPrompt, type HomeChat } from '../../lib/home-chats';

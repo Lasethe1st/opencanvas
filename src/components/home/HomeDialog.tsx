@@ -1,4 +1,4 @@
-import { Minus, X } from '@phosphor-icons/react';
+import { Minus, X } from '../../lib/home-icons';
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';

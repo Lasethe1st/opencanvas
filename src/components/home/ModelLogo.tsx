@@ -1,4 +1,4 @@
-import { Cpu } from "@phosphor-icons/react";
+import { Cpu } from '../../lib/home-icons';
 import claudeUrl from "@lobehub/icons-static-svg/icons/claude-color.svg";
 import geminiUrl from "@lobehub/icons-static-svg/icons/gemini-color.svg";
 import lmstudioUrl from "@lobehub/icons-static-svg/icons/lmstudio.svg";

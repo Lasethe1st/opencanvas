@@ -64,7 +64,7 @@ export function CanvasShapeshift() {
         ref={handle}
         shapes={assistantShapes}
         hotkey={false}
-        width={540}
+        width={420}
         label="Ask AI or run a command"
         placeholder={placeholder}
         listAll={false}

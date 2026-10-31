@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, ArrowsOut, FolderOpen, Layout, Sparkle } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, ArrowsOut, FolderOpen, Layout, Sparkle } from '../../lib/home-icons';
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { defaultDirection } from '../../../shared/project-config';

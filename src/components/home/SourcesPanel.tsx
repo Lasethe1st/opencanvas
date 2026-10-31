@@ -1,4 +1,4 @@
-import { ArrowSquareOut, CaretRight, ChatCircle, ChatText, Check, Copy, FileText, FolderSimple, Globe, Lightning, MagnifyingGlass, X, type Icon as PhosphorIcon } from '@phosphor-icons/react';
+import { ArrowSquareOut, CaretRight, ChatCircle, ChatText, Check, Copy, FileText, FolderSimple, Globe, Lightning, MagnifyingGlass, X, type Icon as PhosphorIcon } from '../../lib/home-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { CollapseIcon, Copy01Icon, File02Icon, Folder02Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useMemo, useState } from 'react';

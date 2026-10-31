@@ -1,4 +1,4 @@
-import { Plus } from '@phosphor-icons/react';
+import { Plus } from '../../lib/home-icons';
 import { useId, type ComponentType, type CSSProperties, type ReactNode } from 'react';
 import { LogoMark } from '../LogoMark';
 import { Button } from '@/components/ui/button';
