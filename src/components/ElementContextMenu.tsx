@@ -178,8 +178,8 @@ export function ElementContextMenu() {
           menuWidth={chat ? CHAT_W : MENU_W}
           menuRadius={16}
           buttonRadius={BLOOM_SEED / 2}
-          className={`ctx-bloom${chat ? ' ctx-bloom--chat' : ''} border border-[color:var(--frost-border)] bg-[var(--frost-bg)] text-foreground`}
-          style={{ WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)', boxShadow: phase === 'open' ? 'var(--shadow-md)' : 'none' }}
+          className={`ctx-bloom${chat ? ' ctx-bloom--chat' : ''} border border-[color:var(--frost-border)] bg-[var(--glass-bg)] text-foreground`}
+          style={{ WebkitBackdropFilter: 'var(--glass-filter)', backdropFilter: 'var(--glass-filter)', boxShadow: phase === 'open' ? 'var(--shadow-md)' : 'none' }}
         >
           <Menu.Trigger className="opacity-0">
             <span className="sr-only">Actions for {sel?.name ?? "element"}</span>
