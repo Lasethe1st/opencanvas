@@ -3,8 +3,10 @@ import { chooseImageForSelection, setFontFamily, setStyle, setStyles } from '../
 import { editSelectedText } from '../../lib/inline-edit';
 import { useStore, type Selection } from '../../lib/store';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { AlignHorizontalSpaceAroundIcon, Edit02Icon, FitToScreenIcon, FrameIcon, ImageUploadIcon, PaintBucketIcon, Resize01Icon, SquareRoundCornerIcon, TextAlignLeft01Icon, TextColorIcon, TextFontIcon, TextIcon } from '@hugeicons/core-free-icons';
+import { ArrowDown01Icon, Tick02Icon, AlignHorizontalSpaceAroundIcon, Edit02Icon, FitToScreenIcon, FrameIcon, ImageUploadIcon, PaintBucketIcon, Resize01Icon, SquareRoundCornerIcon, TextAlignLeft01Icon, TextColorIcon, TextFontIcon, TextIcon } from '@hugeicons/core-free-icons';
 import { TextAlignCenter, TextAlignLeft, TextAlignRight } from '../../lib/hugeicons';
+import { createPortal } from 'react-dom';
+import { Menu } from 'bloom-menu';
 import { MergeLayer, radiusOf, type MergeBox } from '../MergeLayer';
 
 /* ───────── What each kind of element offers ───────── */
@@ -172,6 +174,94 @@ function Swatch({ value, label, text, onCommit }: { value: string; label: string
   );
 }
 
+/* ───────── Font: the pill shows the current font; clicking blooms a searchable list ───────── */
+
+const FONT_W = 220;
+const fontKey = (v: string) => v.split(',')[0].replace(/['"]/g, '').trim().toLowerCase();
+
+function FontPill({ family, icon }: { family: string | undefined; icon: IconSvgElement }) {
+  const name = family?.split(',')[0].replace(/['"]/g, '').trim() || 'Font';
+  const current = FONTS.find(([, v]) => fontKey(v) === name.toLowerCase())?.[1] ?? '';
+  const btn = useRef<HTMLButtonElement>(null);
+  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  const [phase, setPhase] = useState(false);
+  const [query, setQuery] = useState('');
+  const [focus, setFocus] = useState(0);
+  const list = FONTS.filter(([n]) => n.toLowerCase().includes(query.trim().toLowerCase()));
+  const open = () => {
+    const r = btn.current!.getBoundingClientRect();
+    setQuery('');
+    setFocus(Math.max(0, FONTS.findIndex(([, v]) => v === current)));
+    setAt({ x: r.left, y: r.top - 6 });
+    requestAnimationFrame(() => setPhase(true));
+  };
+  const close = (refocus = true) => {
+    setPhase(false);
+    window.setTimeout(() => setAt(null), 300);
+    if (refocus) btn.current?.focus();
+  };
+  const choose = (v: string | undefined) => {
+    if (v && v !== current) void setFontFamily(v);
+    close();
+  };
+  return (
+    <>
+      <button ref={btn} type="button" className="dockpill__main" aria-haspopup="listbox" aria-expanded={phase} title={`Font: ${name}`} onClick={() => (phase ? close() : open())}>
+        <PillIcon icon={icon} />
+        <span className="dockpill__label dockpill__value">{name}</span>
+        <HugeiconsIcon icon={ArrowDown01Icon} size={14} strokeWidth={1.8} className="dockpill__caret" />
+      </button>
+      {at && createPortal(
+        <div data-tw="" data-bloom-menu="" onPointerDown={(e) => e.stopPropagation()} style={{ position: 'fixed', top: at.y - 8, left: at.x, width: 8, height: 8, zIndex: 400 }}>
+          <Menu.Root open={phase} onOpenChange={(next) => !next && close(false)} direction="top" anchor="start" bounce={0.12} visualDuration={0.26}>
+            <Menu.Container buttonSize={8} menuWidth={FONT_W} menuRadius={16} buttonRadius={4} className="ctx-bloom border text-foreground" style={{ boxShadow: phase ? '0 8px 24px rgb(0 0 0 / 0.12)' : 'none' }}>
+              <Menu.Trigger className="opacity-0"><span className="sr-only">Fonts</span></Menu.Trigger>
+              <Menu.Content className="flex flex-col" style={{ width: FONT_W - 2, boxSizing: 'border-box' }}>
+                <div className="flex flex-col p-1.5" style={{ width: FONT_W - 2, boxSizing: 'border-box' }}>
+                  <input
+                    autoFocus
+                    className="font-bloom__search"
+                    placeholder="Search fonts…"
+                    aria-label="Search fonts"
+                    value={query}
+                    onChange={(e) => { setQuery(e.target.value); setFocus(0); }}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (list.length) setFocus((f) => (f + (e.key === 'ArrowDown' ? 1 : list.length - 1)) % list.length);
+                      } else if (e.key === 'Enter') { e.preventDefault(); choose(list[focus]?.[1]); }
+                      else if (e.key === 'Escape') { e.preventDefault(); close(); }
+                    }}
+                  />
+                  <div role="listbox" aria-label="Fonts" className="font-bloom__list">
+                    {list.map(([n, v], i) => (
+                      <div
+                        key={n}
+                        role="option"
+                        aria-selected={v === current}
+                        className={`font-bloom__item${i === focus ? ' is-focused' : ''}`}
+                        style={{ fontFamily: v }}
+                        onMouseEnter={() => setFocus(i)}
+                        onClick={() => choose(v)}
+                      >
+                        <span className="flex-1 truncate">{n}</span>
+                        {v === current && <HugeiconsIcon icon={Tick02Icon} size={14} strokeWidth={2} />}
+                      </div>
+                    ))}
+                    {!list.length && <div className="font-bloom__empty">No fonts match</div>}
+                  </div>
+                </div>
+              </Menu.Content>
+            </Menu.Container>
+          </Menu.Root>
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
+
 /* ───────── One pill: the pill is the control ───────── */
 
 function PillBody({ id, sel }: { id: PillId; sel: Selection }) {
@@ -192,21 +282,8 @@ function PillBody({ id, sel }: { id: PillId; sel: Selection }) {
           <span className="dockpill__label">{meta.label}</span>
         </button>
       );
-    case 'font': {
-      const name = c['font-family']?.split(',')[0].replace(/['"]/g, '').trim() || 'Font';
-      const current = FONTS.find(([, v]) => name.toLowerCase() === v.split(',')[0].replace(/['"]/g, '').toLowerCase())?.[1] ?? '';
-      return (
-        <label className="dockpill__main dockpill__select" title={`Font: ${name}`}>
-          <PillIcon icon={meta.icon} />
-          <select aria-label="Font" value={current} onChange={(e) => e.target.value && void setFontFamily(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && e.currentTarget.blur()}>
-            {!current && <option value="">{name}</option>}
-            {FONTS.map(([n, v]) => (
-              <option key={n} value={v}>{n}</option>
-            ))}
-          </select>
-        </label>
-      );
-    }
+    case 'font':
+      return <FontPill family={c['font-family']} icon={meta.icon} />;
     case 'size':
       return <Scrub label="Font size" icon={meta.icon} value={px(c['font-size'], 16)} min={6} onChange={(n) => void setStyle('font-size', `${n}px`)} />;
     case 'padding':

@@ -104,7 +104,11 @@ export function InsertContextMenu() {
   const rank = (it: Item) => (it.label.toLowerCase().startsWith(q) ? 0 : it.label.toLowerCase().includes(q) ? 1 : 2);
   const usable = (it: Item) => !it.needsFrame || (inFrame && editable);
   // Unfiltered: six basics + More… (blooms a side menu), then Ask AI. Filtering searches everything, hidden extras included, in one list.
-  const groups: Item[][] = q ? [[...basics, ...extras, ai].filter(matches).sort((a, b) => rank(a) - rank(b))] : [[...basics, moreItem], [ai]];
+  // Items that can't be used here (e.g. element inserts on bare canvas) are hidden, not greyed out; the filter only searches what's visible.
+  const groups: Item[][] = (q
+    ? [[...basics, ...extras, ai].filter(usable).filter(matches).sort((a, b) => rank(a) - rank(b))]
+    : [[...basics, moreItem].filter(usable), [ai]]
+  ).filter((g) => g.length);
   const flat = groups.flat();
   const live = flat.filter(usable);
   const pick = (it: Item | undefined) => {
