@@ -208,12 +208,13 @@ export function InsertContextMenu() {
                 <div className="flex flex-col p-1.5 pt-2" style={{ width: W - 2, boxSizing: 'border-box' }}>
                   <div className="flex items-center justify-between gap-2 px-2.5 pb-1 text-xs font-medium text-muted-foreground">
                     <span>{inFrame ? 'Insert' : 'Add to canvas'}</span>
-                    {query ? <span className="truncate font-mono text-foreground">{query}{flat.length ? '' : ' · no match'}</span> : <span className="opacity-70">Type to filter</span>}
+                    {query ? <span className="truncate font-mono text-foreground">{query}</span> : <span className="opacity-70">Type to filter</span>}
                   </div>
                   <div ref={listRef} style={q && listH.current ? { height: listH.current, overflowY: 'auto' } : undefined}>
                     {groups.map((g, gi) => (
                       <div key={gi} className={gi ? 'mt-1 border-t border-foreground/[0.08] pt-1' : ''}>{g.map(row)}</div>
                     ))}
+                    {q && !flat.length && <div className="flex h-full items-center justify-center text-[13px] text-muted-foreground">No matches</div>}
                   </div>
                 </div>
               </Menu.Content>

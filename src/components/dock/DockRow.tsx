@@ -230,11 +230,11 @@ function FontPill({ family, icon }: { family: string | undefined; icon: IconSvgE
                       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
                         e.preventDefault();
                         if (list.length) setFocus((f) => (f + (e.key === 'ArrowDown' ? 1 : list.length - 1)) % list.length);
-                      } else if (e.key === 'Enter') { e.preventDefault(); choose(list[focus]?.[1]); }
+                      } else if (e.key === 'Enter') { e.preventDefault(); if (list[focus]) choose(list[focus][1]); }
                       else if (e.key === 'Escape') { e.preventDefault(); close(); }
                     }}
                   />
-                  <div role="listbox" aria-label="Fonts" className="font-bloom__list">
+                  <div role="listbox" aria-label="Fonts" className="font-bloom__list" style={{ height: Math.min(220, FONTS.length * 32) }}>
                     {list.map(([n, v], i) => (
                       <div
                         key={n}
@@ -249,7 +249,7 @@ function FontPill({ family, icon }: { family: string | undefined; icon: IconSvgE
                         {v === current && <HugeiconsIcon icon={Tick02Icon} size={14} strokeWidth={2} />}
                       </div>
                     ))}
-                    {!list.length && <div className="font-bloom__empty">No fonts match</div>}
+                    {!list.length && <div className="font-bloom__empty">No matches</div>}
                   </div>
                 </div>
               </Menu.Content>
