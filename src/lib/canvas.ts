@@ -158,6 +158,14 @@ export function addFrame(preset: Exclude<FramePreset, 'custom'>) {
   focusRect(displayRect(frame));
 }
 
+/** A new frame with its top-left at a canvas point (the right-click insert menu). */
+export function addFrameAt(preset: Exclude<FramePreset, 'custom'>, at: { x: number; y: number }) {
+  const { project, frames } = getState();
+  const frame = { ...presetFrame(preset, { x: Math.round(at.x), y: Math.round(at.y) }, project?.breakpoints), pageId: activePageId() };
+  commitLayout(`Add ${frame.name} frame`, [...frames, frame], frame.id);
+  focusRect(displayRect(frame));
+}
+
 export function addCustomFrame(width: number, height: number, name = 'Custom') {
   const size = { width: clamp(Math.round(width), MIN_FRAME.width, MAX_FRAME.width), height: clamp(Math.round(height), MIN_FRAME.height, MAX_FRAME.height) };
   const at = placeFrame(rects(), size);

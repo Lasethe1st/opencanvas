@@ -75,7 +75,8 @@ import { CanvasNav, FrameChrome, FrameRename, Guides, Minimap, SelectionBar, Siz
 import { BuildOverlay, type SubtreeBox } from './BuildOverlay';
 import { measureSubtree } from '../lib/bridge';
 import { getMeasure } from '../lib/measure';
-import { openElementMenu } from '../lib/element-menu';
+import { openElementMenu, openInsertMenu } from '../lib/element-menu';
+import { InsertContextMenu, prepareFrameInsert } from './InsertContextMenu';
 import { getComments, pushToFrames } from '../lib/comments';
 import { openCommentPopover } from '../lib/comment-ui';
 import { CommentPopover } from './CommentPopover';
@@ -129,6 +130,25 @@ function useSpaceHeld() {
 // Set when a frame becomes active because the user clicked inside it, so its fresh selection isn't overwritten.
 let activatedByFrame = false;
 
+/** Screen pixel → canvas (world) point, using the stage viewport and camera. */
+function worldAt(x: number, y: number) {
+  const vp = document.querySelector('.stage__viewport')?.getBoundingClientRect();
+  const { camera } = getState();
+  return { x: (x - (vp?.left ?? 0) - camera.x) / camera.zoom, y: (y - (vp?.top ?? 0) - camera.y) / camera.zoom };
+}
+
+/** Right-click on the stage itself (bare canvas, a page wrapper, frame chrome or labels): the insert menu. */
+function onStageContextMenu(e: React.MouseEvent<HTMLElement>) {
+  const t = e.target as Element;
+  if (!t.closest('.stage__viewport') || t.closest('[data-bloom-menu], input, textarea, [contenteditable="true"]')) return;
+  e.preventDefault();
+  if (getState().interact) return;
+  const world = worldAt(e.clientX, e.clientY);
+  const hit = [...getState().frames].reverse().find((f) => world.x >= f.x && world.x <= f.x + f.width && world.y >= f.y - 40 && world.y <= f.y + f.height);
+  if (hit) prepareFrameInsert(hit.id);
+  openInsertMenu({ x: e.clientX, y: e.clientY, frameId: hit?.id ?? null, world });
+}
+
 function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     let pendingTimer: ReturnType<typeof setTimeout> | null = null;
@@ -164,7 +184,12 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
           if (el && p && typeof p.x === 'number' && typeof p.y === 'number') {
             const box = el.getBoundingClientRect();
             const scale = el.offsetWidth ? box.width / el.offsetWidth : 1;
-            openElementMenu(box.left + p.x * scale, box.top + p.y * scale);
+            const x = box.left + p.x * scale;
+            const y = box.top + p.y * scale;
+            if ((p as { blank?: boolean }).blank) {
+              prepareFrameInsert(fid);
+              openInsertMenu({ x, y, frameId: fid, world: worldAt(x, y) });
+            } else openElementMenu(x, y);
           }
           break;
         }
@@ -809,6 +834,7 @@ export function Canvas({ hidden }: { hidden: boolean }) {
       tool={space ? 'hand' : tool}
       panning={panning}
       onPointerDown={onStagePointerDown}
+      onContextMenu={onStageContextMenu}
       notice={(inlineNotice || (running && project.missingDependencies.length > 0)) && notices}
       overlay={!running && !interact ? <StatusCard /> : undefined}
       world={
@@ -933,6 +959,7 @@ export function Canvas({ hidden }: { hidden: boolean }) {
             </SizeTip>
           )}
           <ElementContextMenu />
+          <InsertContextMenu />
           <CommentPopover />
           <AskBox />
           {fileDrag && (

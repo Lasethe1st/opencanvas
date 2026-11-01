@@ -34,7 +34,7 @@ import { Resizer } from './Resizer';
 import { SettingsButton } from './Settings';
 import { TerminalButton } from './TerminalPanel';
 
-const ELEMENTS: { kind: InsertKind; label: string; hint: string; icon: typeof Square; keywords: string }[] = [
+export const ELEMENTS: { kind: InsertKind; label: string; hint: string; icon: typeof Square; keywords: string }[] = [
   { kind: 'div', label: 'Container', hint: 'div', icon: Square, keywords: 'div box container wrapper' },
   { kind: 'section', label: 'Section', hint: 'section', icon: LayoutTemplate, keywords: 'section block area' },
   { kind: 'flex', label: 'Flex row', hint: 'display: flex', icon: Columns3, keywords: 'flex row stack layout horizontal' },

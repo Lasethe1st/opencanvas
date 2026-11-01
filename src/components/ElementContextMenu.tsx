@@ -8,7 +8,7 @@ import {
 } from '@hugeicons/core-free-icons';
 import { duplicateSelected, groupSelected, moveSelected, removeSelected, revealInCode, selectParent, ungroupSelected } from '../lib/actions';
 import { elementHtml } from '../lib/bridge';
-import { closeElementMenu, useElementMenu } from '../lib/element-menu';
+import { bloomPlacement, closeElementMenu, useElementMenu } from '../lib/element-menu';
 import { openCommentPopover } from '../lib/comment-ui';
 import { setShowMarkers, useShowMarkers } from '../lib/comments';
 import { setAsk, useAsk } from '../lib/ask-box';
@@ -154,19 +154,14 @@ export function ElementContextMenu() {
   // direction never flips mid-morph; when neither side fits, slide the anchor so it stays on screen.
   const H = Math.max(MENU_H, CHAT_H + 2);
   const W = Math.max(MENU_W, CHAT_W);
-  const vh = window.innerHeight;
-  const vw = window.innerWidth;
-  const up = origin.y + H > vh - 8 && origin.y > vh - origin.y;
-  const end = origin.x + W > vw - 8 && origin.x > vw - origin.x;
-  const ay = up ? Math.min(vh - 8, Math.max(origin.y, 8 + H)) : Math.max(8, Math.min(origin.y, vh - 8 - H));
-  const ax = end ? Math.min(vw - 8, Math.max(origin.x, 8 + W)) : Math.max(8, Math.min(origin.x, vw - 8 - W));
+  const { up, end, top, left } = bloomPlacement(origin, W, H, BLOOM_SEED);
   let n = 0;
   return createPortal(
     <div
       data-tw=""
       data-bloom-menu=""
       onContextMenu={(e) => e.preventDefault()}
-      style={{ position: 'fixed', top: ay - (up ? BLOOM_SEED : 0), left: ax - (end ? BLOOM_SEED : 0), width: BLOOM_SEED, height: BLOOM_SEED, zIndex: 400 }}
+      style={{ position: 'fixed', top, left, width: BLOOM_SEED, height: BLOOM_SEED, zIndex: 400 }}
     >
       <Menu.Root open={phase === 'open'} onOpenChange={(next) => {
           if (next) return;
