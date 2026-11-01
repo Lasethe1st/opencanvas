@@ -76,6 +76,10 @@ import { BuildOverlay, type SubtreeBox } from './BuildOverlay';
 import { measureSubtree } from '../lib/bridge';
 import { getMeasure } from '../lib/measure';
 import { openElementMenu } from '../lib/element-menu';
+import { getComments, pushToFrames } from '../lib/comments';
+import { openCommentPopover } from '../lib/comment-ui';
+import { CommentPopover } from './CommentPopover';
+import { AskBox } from './AskBox';
 import { ElementContextMenu } from './ElementContextMenu';
 import { CanvasRulers } from './CanvasRulers';
 import { variantLetter } from '../../shared/variants';
@@ -164,10 +168,22 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
           }
           break;
         }
+        case 'comment-click': {
+          const el = frameElement(fid);
+          const p = msg.payload as { cid?: string; x?: number; y?: number } | undefined;
+          const c = getComments().find((x) => x.id === p?.cid);
+          if (el && c && typeof p?.x === 'number' && typeof p?.y === 'number') {
+            const box = el.getBoundingClientRect();
+            const scale = el.offsetWidth ? box.width / el.offsetWidth : 1;
+            openCommentPopover({ elementId: c.elementId, elementName: c.elementName, x: box.left + p.x * scale, y: box.top + p.y * scale });
+          }
+          break;
+        }
         case 'ready': {
           sendToFrame(fid, 'mode', { mode: state.interact ? 'interact' : 'select' });
           sendToFrame(fid, 'zoom', { zoom: state.camera.zoom });
           if (getMeasure()) sendToFrame(fid, 'measure', { on: true });
+          pushToFrames(fid);
           const id = state.pendingSelectId ?? state.selection?.id;
           if (id) sendToFrame(fid, 'select', active ? { id, scroll: false, additive: 'keep' } : { id, linked: true });
           if (state.multiSelect.length) sendMulti(state.multiSelect.map((m) => m.id), fid);
@@ -879,6 +895,8 @@ export function Canvas({ hidden }: { hidden: boolean }) {
             </SizeTip>
           )}
           <ElementContextMenu />
+          <CommentPopover />
+          <AskBox />
           {fileDrag && (
             <div
               className="stage-drop"

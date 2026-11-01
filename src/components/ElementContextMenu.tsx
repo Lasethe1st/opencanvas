@@ -4,11 +4,15 @@ import { Menu } from 'bloom-menu';
 import { motion } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
-  AiMagicIcon, ArrowDown01Icon, ArrowUp01Icon, CodeIcon, Copy01Icon, Copy02Icon, Delete02Icon, Download01Icon, Edit02Icon, FolderTransferIcon, LeftToRightListBulletIcon, PackageIcon, Tick02Icon,
+  AiMagicIcon, ArrowDown01Icon, Comment01Icon, ViewIcon, ViewOffIcon, ArrowUp01Icon, CodeIcon, Copy01Icon, Copy02Icon, Delete02Icon, Download01Icon, Edit02Icon, FolderTransferIcon, LeftToRightListBulletIcon, PackageIcon, Tick02Icon,
 } from '@hugeicons/core-free-icons';
 import { duplicateSelected, groupSelected, moveSelected, removeSelected, revealInCode, selectParent, ungroupSelected } from '../lib/actions';
 import { elementHtml } from '../lib/bridge';
 import { closeElementMenu, useElementMenu } from '../lib/element-menu';
+import { openCommentPopover } from '../lib/comment-ui';
+import { setShowMarkers, useShowMarkers } from '../lib/comments';
+import { setAsk, useAsk } from '../lib/ask-box';
+import { AskChat, CHAT_H, CHAT_W } from './AskBox';
 import { editSelectedText, INLINE_TAGS } from '../lib/inline-edit';
 import { getState, toast, useStore } from '../lib/store';
 
@@ -20,11 +24,6 @@ async function htmlOfSelection(): Promise<string> {
   const s = getState();
   if (!s.selection || !s.activeFrameId) return '';
   return elementHtml(s.activeFrameId, s.selection.id);
-}
-
-function askAi() {
-  const input = document.querySelector<HTMLInputElement>('.assistant-docker input');
-  input?.focus();
 }
 
 async function copyElement() {
@@ -55,9 +54,9 @@ const BLOOM_SEED = 8;
 /** Matches Menu.Root visualDuration so the close morph finishes before unmount. */
 const BLOOM_CLOSE_MS = 320;
 const MENU_W = 224;
-const MENU_H = 430;
+const MENU_H = 470;
 
-type Snap = { selection: NonNullable<ReturnType<typeof getState>['selection']>; hasSource: boolean; source: { file: string; line: number } | null; editable: boolean };
+type Snap = { selection: ReturnType<typeof getState>['selection']; hasSource: boolean; source: { file: string; line: number } | null; editable: boolean };
 
 /** Right-click on an element in the canvas: the menu blooms out of the pointer (bloom-menu) and its options stagger in. */
 export function ElementContextMenu() {
@@ -65,6 +64,9 @@ export function ElementContextMenu() {
   const selection = useStore((s) => s.selection);
   const sourceInfo = useStore((s) => s.sourceInfo);
   const editable = useStore((s) => s.project?.editable ?? false);
+  const ask = useAsk();
+  const markers = useShowMarkers();
+  const switching = useRef(false);
   const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
   const [phase, setPhase] = useState<'closed' | 'opening' | 'open'>('closed');
   const [snap, setSnap] = useState<Snap | null>(null);
@@ -72,9 +74,9 @@ export function ElementContextMenu() {
 
   useEffect(() => {
     if (timer.current != null) window.clearTimeout(timer.current);
-    if (at && selection) {
+    if (at && (selection || ask.mode === 'chat')) {
       setOrigin(at);
-      setSnap({ selection, hasSource: !!sourceInfo, source: sourceInfo ? { file: sourceInfo.file, line: sourceInfo.line } : null, editable });
+      setSnap({ selection: selection ?? null, hasSource: !!sourceInfo, source: sourceInfo ? { file: sourceInfo.file, line: sourceInfo.line } : null, editable });
       setPhase('opening');
     } else if (origin) {
       setPhase('closed');
@@ -105,23 +107,27 @@ export function ElementContextMenu() {
 
   if (!origin || !snap) return null;
   const { selection: sel, editable: canEdit } = snap;
-  const canEditText = INLINE_TAGS.has(sel.tag) && !!sourceInfo?.textEditable && canEdit;
-  const groups: Item[][] = [
+  const chat = ask.mode === 'chat';
+  const canEditText = !!sel && INLINE_TAGS.has(sel.tag) && !!sourceInfo?.textEditable && canEdit;
+  const at0 = origin;
+  const groups: Item[][] = !sel ? [] : [
     [
-      { label: 'Ask AI', icon: icon(AiMagicIcon), run: askAi },
+      { label: 'Ask AI', icon: icon(AiMagicIcon), run: () => { switching.current = true; setAsk({ mode: 'chat', target: { id: sel.id, name: sel.name } }); } },
+      { label: 'Comment', icon: icon(Comment01Icon), run: () => openCommentPopover({ elementId: sel.id, elementName: sel.name, x: at0.x, y: at0.y }) },
       { label: 'Copy', icon: icon(Copy01Icon), hint: 'HTML', run: () => void copyElement() },
       { label: 'Export', icon: icon(Download01Icon), hint: '.html', run: () => void exportElement() },
     ],
     [
       ...(canEditText ? [{ label: 'Edit text', icon: icon(Edit02Icon), hint: 'Enter', run: editSelectedText }] : []),
       { label: 'Duplicate', icon: icon(Copy02Icon), disabled: !canEdit, run: () => void duplicateSelected() },
-      { label: 'Select parent', icon: icon(FolderTransferIcon), disabled: !sel.parentId, run: selectParent },
+      { label: 'Select parent', icon: icon(FolderTransferIcon), disabled: !sel?.parentId, run: selectParent },
       { label: 'Move up', icon: icon(ArrowUp01Icon), hint: 'Alt+↑', disabled: !canEdit, run: () => void moveSelected('up') },
       { label: 'Move down', icon: icon(ArrowDown01Icon), hint: 'Alt+↓', disabled: !canEdit, run: () => void moveSelected('down') },
       { label: 'Group', icon: icon(PackageIcon), disabled: !canEdit, run: () => void groupSelected() },
       { label: 'Ungroup', icon: icon(LeftToRightListBulletIcon), disabled: !canEdit, run: () => void ungroupSelected() },
     ],
     [
+      { label: markers ? 'Hide comments' : 'Show comments', icon: icon(markers ? ViewOffIcon : ViewIcon), run: () => setShowMarkers(!markers) },
       { label: 'Open in code', icon: icon(CodeIcon), disabled: !snap.source, run: () => snap.source && revealInCode(snap.source.file, snap.source.line) },
       { label: 'Delete', icon: icon(Delete02Icon), hint: 'Del', danger: true, disabled: !canEdit, run: () => void removeSelected() },
     ],
@@ -137,20 +143,28 @@ export function ElementContextMenu() {
       onContextMenu={(e) => e.preventDefault()}
       style={{ position: 'fixed', top: origin.y - (up ? BLOOM_SEED : 0), left: origin.x - (end ? BLOOM_SEED : 0), width: BLOOM_SEED, height: BLOOM_SEED, zIndex: 400 }}
     >
-      <Menu.Root open={phase === 'open'} onOpenChange={(next) => !next && closeElementMenu()} direction={up ? 'top' : 'bottom'} anchor={end ? 'end' : 'start'} bounce={0.12} visualDuration={0.28}>
+      <Menu.Root open={phase === 'open'} onOpenChange={(next) => {
+          if (next) return;
+          // Picking Ask AI keeps the menu open and turns it into the chat; an open chat stays until it is closed.
+          if (switching.current) { switching.current = false; return; }
+          if (chat) return;
+          closeElementMenu();
+        }} direction={up ? 'top' : 'bottom'} anchor={end ? 'end' : 'start'} bounce={0.12} visualDuration={0.28}>
         <Menu.Container
           buttonSize={BLOOM_SEED}
-          menuWidth={MENU_W}
+          menuWidth={chat ? CHAT_W : MENU_W}
           menuRadius={16}
           buttonRadius={BLOOM_SEED / 2}
           className="border border-[color:var(--frost-border)] bg-[var(--frost-bg)] text-foreground"
           style={{ WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)', boxShadow: phase === 'open' ? 'var(--shadow-md)' : 'none' }}
         >
           <Menu.Trigger className="opacity-0">
-            <span className="sr-only">Actions for {sel.name}</span>
+            <span className="sr-only">Actions for {sel?.name ?? "element"}</span>
           </Menu.Trigger>
-          <Menu.Content className="flex flex-col p-1.5 pt-2" style={{ width: MENU_W, boxSizing: 'border-box' }}>
-            <div className="truncate px-2.5 pb-1 text-xs font-medium text-muted-foreground">{sel.name}</div>
+          <Menu.Content className="flex flex-col" style={{ width: chat ? CHAT_W : MENU_W, height: chat ? CHAT_H : undefined, boxSizing: 'border-box' }}>
+            {chat ? <AskChat /> : (
+              <div className="flex flex-col p-1.5 pt-2" style={{ width: MENU_W, boxSizing: 'border-box' }}>
+            <div className="truncate px-2.5 pb-1 text-xs font-medium text-muted-foreground">{sel?.name}</div>
             {groups.map((g, gi) => (
               <div key={gi} className={gi ? 'mt-1 border-t border-foreground/[0.08] pt-1' : ''}>
                 {g.map((it) => {
@@ -171,6 +185,8 @@ export function ElementContextMenu() {
                 })}
               </div>
             ))}
+                        </div>
+            )}
           </Menu.Content>
         </Menu.Container>
       </Menu.Root>

@@ -11,6 +11,10 @@
 @source '../components/shapeshift.tsx';
 @source '../components/shapeshift-shapes.tsx';
 @source '../components/CanvasShapeshift.tsx';
+@source '../components/AskBox.tsx';
+@source '../components/CommentPopover.tsx';
+@source '../components/ElementContextMenu.tsx';
+@source '../components/CalmPills.tsx';
 
 .model-logo--monochrome {
   filter: brightness(0);
