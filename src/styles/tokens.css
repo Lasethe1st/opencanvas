@@ -256,3 +256,7 @@ button {
 /* Layer-type colours for the canvas Layers panel. */
 :root { --layer-text:#7c5ae0; --layer-media:#d9822b; --layer-action:#2563eb; --layer-form:#0f9fb0; --layer-struct:#7b8190; }
 :root[data-theme="dark"], [data-theme='dark'] { --layer-text:#a58cf5; --layer-media:#f0a860; --layer-action:#7aa2ff; --layer-form:#4fd1e0; --layer-struct:#9aa1b0; }
+
+/* Red for destructive actions (Delete). Separate from --danger, which is monochrome on purpose. */
+:root { --destructive: #dc2626; }
+:root[data-theme="dark"], [data-theme='dark'] { --destructive: #f87171; }

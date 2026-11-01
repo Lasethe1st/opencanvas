@@ -1971,8 +1971,7 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .ask-tag[data-kind='form'] { --kind: var(--layer-form); }
 .ask-tag[data-kind='struct'] { --kind: var(--layer-struct); }
 
-/* Delete in the right-click menu reads as red (the app's --danger token is monochrome). */
-.ctx-danger { --ctx-red: #dc2626; color: var(--ctx-red); }
-[data-theme='dark'] .ctx-danger { --ctx-red: #f87171; }
-.ctx-danger svg, .ctx-danger kbd, .ctx-danger [class*='muted'] { color: var(--ctx-red) !important; }
-.ctx-danger:hover, .ctx-danger[data-highlighted] { background: color-mix(in oklab, var(--ctx-red) 12%, transparent) !important; }
+/* Delete in the right-click menu reads as red; its shortcut hint stays muted grey. */
+.ctx-danger { color: var(--destructive); }
+.ctx-danger svg { color: var(--destructive) !important; }
+.ctx-danger:hover, .ctx-danger[data-highlighted] { background: color-mix(in oklab, var(--destructive) 10%, transparent) !important; }

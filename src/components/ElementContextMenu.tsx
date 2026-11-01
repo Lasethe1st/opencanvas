@@ -145,6 +145,8 @@ export function ElementContextMenu() {
     [
       { label: markers ? 'Hide comments' : 'Show comments', icon: icon(markers ? ViewOffIcon : ViewIcon), run: () => setShowMarkers(!markers) },
       { label: 'Open in code', icon: icon(CodeIcon), disabled: !snap.source, run: () => snap.source && revealInCode(snap.source.file, snap.source.line) },
+    ],
+    [
       { label: 'Delete', icon: icon(Delete02Icon), hint: 'Del', danger: true, disabled: !canEdit, run: () => void removeSelected() },
     ],
   ];
