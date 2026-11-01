@@ -85,7 +85,6 @@ export function SettingsPage() {
             <header className="settings-page__head">
               <div>
                 <h2>{current.label}</h2>
-                {current.lead ? <p className="settings-page__lead">{current.lead}</p> : null}
               </div>
               <button className="settings-page__close" aria-label="Close settings" onClick={close}>
                 <X size={16} />
@@ -114,7 +113,7 @@ function GeneralSettings() {
   const fontSize = useChatFontSize();
   return (
     <SettingsGroup title="Chat">
-      <SettingRow label="Message size" hint="How large messages look in the home chat and the canvas AI panel.">
+      <SettingRow label="Message size">
         <div className="theme-toggle" role="radiogroup" aria-label="Chat font size">
           {CHAT_FONT_SIZE_PRESETS.map(({ id, label }) => (
             <Tooltip key={id}>
@@ -147,7 +146,7 @@ function AppearanceSettings() {
   return (
     <>
       <SettingsGroup title="Theme">
-        <SettingRow label="Color mode" hint="System follows your computer’s light or dark setting.">
+        <SettingRow label="Color mode">
           <div className="theme-toggle" role="radiogroup" aria-label="Theme">
             {THEMES.map(({ id, label, icon: Icon }) => (
               <button key={id} type="button" role="radio" aria-checked={preference === id} className={`theme-toggle__btn${preference === id ? ' is-active' : ''}`} onClick={() => setThemePreference(id)}>
@@ -160,7 +159,7 @@ function AppearanceSettings() {
       </SettingsGroup>
 
       <SettingsGroup title="Chat">
-        <SettingRow label="Your messages" hint="Bubble color for what you write.">
+        <SettingRow label="Your messages">
           <div className="sx-swatch-line">
             <div className="appearance-preview__bubble" aria-hidden>{'Looks good'}</div>
             <div className="swatch-row" role="radiogroup" aria-label="Message bubble color">
@@ -175,7 +174,7 @@ function AppearanceSettings() {
             </div>
           </div>
         </SettingRow>
-        <SettingRow label="Voice orb" hint="The orb you see while talking to the AI.">
+        <SettingRow label="Voice orb">
           <div className="sx-swatch-line">
             <div className="appearance-preview__orb" aria-hidden style={{ background: `radial-gradient(circle at 35% 30%, ${orbColors[0]}, ${orbColors[1]} 70%)` }} />
             <div className="swatch-row" role="radiogroup" aria-label="Voice orb color">
@@ -234,7 +233,7 @@ function McpSettings() {
 
   return (
     <>
-      <SettingsGroup title="Server" hint="The server only accepts connections from this computer that present the access token.">
+      <SettingsGroup title="Server">
         <SettingRow
           label={
             <span className="sx-status">
@@ -242,7 +241,6 @@ function McpSettings() {
               {status.enabled ? (running ? 'Server on' : 'Starting…') : 'Server off'}
             </span>
           }
-          hint="Lets AI agents such as Cursor or Claude inspect and edit the open project. Their edits show up live and can be undone like your own."
         >
           <Switch label="Enable MCP server" checked={status.enabled} onChange={(on) => void update(() => api.mcp.setEnabled(on))} />
         </SettingRow>
@@ -250,7 +248,7 @@ function McpSettings() {
           <SettingRow label="Not running" hint={status.error ?? 'Starting…'} />
         )}
         {status.enabled && running && (
-          <SettingRow label="Address" hint="Agents connect here.">
+          <SettingRow label="Address">
             <div className="sx-inline">
               <code className="sx-code">{status.url}</code>
               <Button size="sm" variant="ghost" icon={<Copy size={13} />} aria-label="Copy URL" onClick={() => void copy(status.url, 'URL')} />
@@ -258,7 +256,7 @@ function McpSettings() {
           </SettingRow>
         )}
         {status.enabled && (
-          <SettingRow label="Port" hint="Change if another app already uses it.">
+          <SettingRow label="Port">
             <form
               className="sx-inline"
               onSubmit={(e) => {
@@ -281,17 +279,17 @@ function McpSettings() {
       {status.enabled && running && (
         <>
           <SettingsGroup title="Connect an agent">
-            <SettingRow label="Cursor" hint="Adds OpenCanvas to Cursor’s MCP servers.">
+            <SettingRow label="Cursor">
               <Button size="sm" variant="primary" icon={<Plug size={13} />} onClick={() => void api.mcp.installCursor().catch((err) => toast(errorText(err), 'error'))}>
                 Add to Cursor
               </Button>
             </SettingRow>
-            <SettingRow label="Other editors" hint="Paste this into an mcp.json file.">
+            <SettingRow label="Other editors">
               <Button size="sm" icon={<Copy size={13} />} onClick={() => void copy(cursorConfig(status), 'mcp.json config')}>
                 Copy mcp.json
               </Button>
             </SettingRow>
-            <SettingRow label="Claude Code" hint="Run this in a terminal.">
+            <SettingRow label="Claude Code">
               <Button size="sm" icon={<Copy size={13} />} onClick={() => void copy(claudeCommand(status), 'Claude Code command')}>
                 Copy command
               </Button>
@@ -299,7 +297,7 @@ function McpSettings() {
           </SettingsGroup>
 
           <SettingsGroup title="Access">
-            <SettingRow label="Access token" hint="Treat it like a password.">
+            <SettingRow label="Access token">
               <div className="sx-inline">
                 <KeyRound size={14} aria-hidden />
                 <code className="sx-code">{showToken ? status.token : '•'.repeat(16)}</code>
@@ -309,12 +307,12 @@ function McpSettings() {
                 <Button size="sm" variant="ghost" icon={<Copy size={13} />} aria-label="Copy token" onClick={() => void copy(status.token, 'token')} />
               </div>
             </SettingRow>
-            <SettingRow label="New token" hint="Disconnects every agent that’s using the current one.">
+            <SettingRow label="New token">
               <Button size="sm" icon={<RefreshCw size={13} />} onClick={() => void update(() => api.mcp.regenerateToken())}>
                 Generate
               </Button>
             </SettingRow>
-            <SettingRow label="Activity" hint={status.calls === 0 ? 'No agent has called a tool yet.' : `${plural(status.calls, 'tool call', 'tool calls')}. Last: ${status.lastTool} ${ago(status.lastAt)}.`} />
+            <SettingRow label="Activity" hint={status.calls === 0 ? undefined : `${plural(status.calls, 'tool call', 'tool calls')}. Last: ${status.lastTool} ${ago(status.lastAt)}.`} />
           </SettingsGroup>
         </>
       )}

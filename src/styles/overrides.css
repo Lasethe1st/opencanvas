@@ -2032,3 +2032,5 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .sx-advanced:hover { color: var(--fg); }
 .settings-page .sx-advanced { appearance: none; margin: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0 0 inherit inherit; background: transparent; box-shadow: none; outline: none; }
 .settings-page .sx-advanced:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+/* Settings sidebar: the soft fill marks the open tab; the outline is only for keyboard focus. */
+.settings-page__tab:focus:not(:focus-visible) { outline: none; box-shadow: none; }

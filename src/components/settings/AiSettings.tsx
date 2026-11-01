@@ -127,7 +127,7 @@ export function AiSettingsPanel() {
 
   const serverShown = advanced || settings.provider === 'custom' || settings.baseUrl !== meta.defaultBaseUrl;
   const serverRow = (
-        <SettingRow label="Server" hint="Where requests are sent.">
+        <SettingRow label="Server">
           <form
             className="sx-inline"
             onSubmit={(e) => {
@@ -154,15 +154,14 @@ export function AiSettingsPanel() {
   const showKey = meta.needsKey || settings.provider === 'custom';
 
   const keyPlaceholder = settings.provider === 'anthropic' ? 'sk-ant-…' : settings.provider === 'gemini' ? 'AIza…' : 'sk-…';
-  const engineLabel = effectiveTts === 'openai' ? 'OpenAI' : effectiveTts === 'xai' ? 'Grok' : 'This device';
 
   return (
     <>
       <SettingsGroup
         title="Provider"
-        hint={meta.local ? `Start ${meta.label} and download a model first. Pick one that supports tool calling (for example Qwen or Llama 3.1 and later); small models may struggle with bigger changes.` : undefined}
+        hint={meta.local ? `Needs a model with tool calling, like Qwen or Llama 3.1+.` : undefined}
       >
-        <SettingRow label="Service" hint="Which AI answers in chat and on the canvas.">
+        <SettingRow label="Service">
           <ProviderSelect
             value={settings.provider}
             connected={meta.needsKey ? status.hasKey : !!models?.length}
@@ -175,11 +174,11 @@ export function AiSettingsPanel() {
         </SettingRow>
       </SettingsGroup>
 
-      <SettingsGroup title="Connection" hint={encrypted && showKey ? `Your key is encrypted with your operating system’s keychain and only used to talk to ${meta.label}. It can’t be shown again; replace it to change it.` : undefined}>
+      <SettingsGroup title="Connection">
         {serverShown && serverRow}
 
         {showKey && (
-          <SettingRow label={`API key${!meta.needsKey ? ' (optional)' : ''}`} hint={status.hasKey && !replacing && encrypted ? 'Saved and encrypted on this computer.' : 'Stored encrypted on this computer.'}>
+          <SettingRow label={`API key${!meta.needsKey ? ' (optional)' : ''}`}>
             {!encrypted ? (
               <Notice>
                 This computer has no secure storage for keys, so OpenCanvas won’t save one. On Linux, install and unlock a keyring such as GNOME Keyring or KWallet. Local models with Ollama or LM Studio work without a key.
@@ -230,9 +229,9 @@ export function AiSettingsPanel() {
             modelsError ? (
               <span className="sx-warn">{modelsError} You can still type a model name.</span>
             ) : models ? (
-              models.length ? `${plural(models.length, 'model', 'models')} available.` : 'The server didn’t list any models. Type a name instead.'
+              models.length ? plural(models.length, 'model', 'models') : 'The server didn’t list any models. Type a name instead.'
             ) : (
-              'Choose from the list or type a name.'
+              undefined
             )
           }
         >
@@ -282,7 +281,7 @@ export function AiSettingsPanel() {
             ) : test.state === 'failed' ? (
               <span className="ai-test is-failed"><CircleAlert size={13} aria-hidden /> {test.message}</span>
             ) : status.ready ? (
-              'Ready. Requests to cloud providers are billed to your account with them.'
+              'Ready'
             ) : (
               <span className="sx-warn">{status.reason}</span>
             )
@@ -314,15 +313,8 @@ export function AiSettingsPanel() {
 
       <SettingsGroup
         title="Voice"
-        hint={
-          effectiveTts === 'browser'
-            ? voiceKeys.openai || voiceKeys.xai
-              ? 'Using this device’s speech. Switch the engine to OpenAI or Grok to hear a cloud voice.'
-              : 'Add an OpenAI or Grok API key (switch provider above, save the key, then switch back) to unlock cloud voices.'
-            : `Spoken replies use ${engineLabel} (works even when chat is another model).`
-        }
       >
-        <SettingRow label="Speech engine" hint="Who speaks the replies.">
+        <SettingRow label="Speech engine">
           <InputShell>
             <select aria-label="Speech engine" value={ttsBackendPref} onChange={(e) => void save({ ttsBackend: e.target.value as AiTtsBackend })}>
               <option value="auto">Auto (recommended)</option>
@@ -336,7 +328,7 @@ export function AiSettingsPanel() {
             </select>
           </InputShell>
         </SettingRow>
-        <SettingRow label="Voice" hint={`Currently ${engineLabel}.`}>
+        <SettingRow label="Voice">
           <div className="sx-inline">
             <InputShell>
               {effectiveTts === 'openai' ? (
@@ -411,7 +403,7 @@ export function AiSettingsPanel() {
             </Button>
           </div>
         </SettingRow>
-        <SettingRow label="Read replies aloud" hint="Speak each reply as soon as it finishes. You can also use the speaker button on any reply.">
+        <SettingRow label="Read replies aloud">
           <Switch label="Read replies aloud" checked={readAloud} onChange={setReadAloud} />
         </SettingRow>
       </SettingsGroup>
