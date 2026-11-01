@@ -41,7 +41,7 @@ import {
   revealInCode,
   selectElement,
 } from '../lib/actions';
-import { frameIdOf, registerFrame, sendLinkedSelect, sendMulti, sendToFrame, sendToPreview } from '../lib/bridge';
+import { frameElement, frameIdOf, registerFrame, sendLinkedSelect, sendMulti, sendToFrame, sendToPreview } from '../lib/bridge';
 import {
   applyPreset,
   deleteFrame,
@@ -75,6 +75,12 @@ import { CanvasNav, FrameChrome, FrameRename, Guides, Minimap, SelectionBar, Siz
 import { BuildOverlay, type SubtreeBox } from './BuildOverlay';
 import { measureSubtree } from '../lib/bridge';
 import { getMeasure } from '../lib/measure';
+import { openElementMenu } from '../lib/element-menu';
+import { getComments, pushToFrames } from '../lib/comments';
+import { openCommentPopover } from '../lib/comment-ui';
+import { CommentPopover } from './CommentPopover';
+import { AskBox } from './AskBox';
+import { ElementContextMenu } from './ElementContextMenu';
 import { CanvasRulers } from './CanvasRulers';
 import { variantLetter } from '../../shared/variants';
 import { Button, IconButton, Menu, MenuItem, Notice } from '../ui/primitives.jsx';
@@ -152,10 +158,32 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
       const state = getState();
       const active = state.activeFrameId === fid;
       switch (msg.type) {
+        case 'contextmenu': {
+          const el = frameElement(fid);
+          const p = msg.payload as { x?: number; y?: number } | undefined;
+          if (el && p && typeof p.x === 'number' && typeof p.y === 'number') {
+            const box = el.getBoundingClientRect();
+            const scale = el.offsetWidth ? box.width / el.offsetWidth : 1;
+            openElementMenu(box.left + p.x * scale, box.top + p.y * scale);
+          }
+          break;
+        }
+        case 'comment-click': {
+          const el = frameElement(fid);
+          const p = msg.payload as { cid?: string; x?: number; y?: number } | undefined;
+          const c = getComments().find((x) => x.id === p?.cid);
+          if (el && c && typeof p?.x === 'number' && typeof p?.y === 'number') {
+            const box = el.getBoundingClientRect();
+            const scale = el.offsetWidth ? box.width / el.offsetWidth : 1;
+            openCommentPopover({ elementId: c.elementId, elementName: c.elementName, x: box.left + p.x * scale, y: box.top + p.y * scale });
+          }
+          break;
+        }
         case 'ready': {
           sendToFrame(fid, 'mode', { mode: state.interact ? 'interact' : 'select' });
           sendToFrame(fid, 'zoom', { zoom: state.camera.zoom });
           if (getMeasure()) sendToFrame(fid, 'measure', { on: true });
+          pushToFrames(fid);
           const id = state.pendingSelectId ?? state.selection?.id;
           if (id) sendToFrame(fid, 'select', active ? { id, scroll: false, additive: 'keep' } : { id, linked: true });
           if (state.multiSelect.length) sendMulti(state.multiSelect.map((m) => m.id), fid);
@@ -470,67 +498,6 @@ function FrameMenu({ frame, onClose, onRename }: { frame: FrameLayout; onClose: 
       </Menu>
     </div>,
     document.body,
-  );
-}
-
-/* ---------- Contextual selection actions ---------- */
-
-function SelectionActions({ frame, height }: { frame: FrameLayout; height: number }) {
-  const selection = useStore((s) => s.selection);
-  const sourceInfo = useStore((s) => s.sourceInfo);
-  const camera = useStore((s) => s.camera);
-  const editable = useStore((s) => s.project?.editable ?? false);
-  const [ai, setAi] = useState(false);
-  if (!selection) return null;
-  const r = selection.rect;
-  if (r.y + r.height < 0 || r.y > height) return null;
-  const top = worldToScreen(camera, { x: frame.x + Math.max(r.x, 0), y: frame.y + Math.max(r.y, 0) });
-  const bottom = worldToScreen(camera, { x: 0, y: frame.y + Math.min(r.y + r.height, height) });
-  const frameTop = worldToScreen(camera, { x: 0, y: frame.y }).y;
-  // Flip below when the bar would collide with the canvas edge or the frame's label above it.
-  const below = top.y < 64 || top.y - 40 < frameTop + 4;
-  const canEditText = INLINE_TAGS.has(selection.tag) && !!sourceInfo?.textEditable && editable;
-  return (
-    <SelectionBar x={top.x} y={below ? bottom.y + 8 : top.y - 40} below={below}>
-      <IconButton size="sm" label="Select parent" disabled={!selection.parentId} onClick={() => selection.parentId && selectElement(selection.parentId)}>
-        <CornerLeftUp size={13} />
-      </IconButton>
-      {canEditText && (
-        <IconButton size="sm" label="Edit text (Enter)" onClick={editSelectedText}>
-          <TextCursorInput size={13} />
-        </IconButton>
-      )}
-      <IconButton size="sm" label="Move up (Alt+↑)" disabled={!editable} onClick={() => void moveSelected('up')}>
-        <ArrowUp size={13} />
-      </IconButton>
-      <IconButton size="sm" label="Move down (Alt+↓)" disabled={!editable} onClick={() => void moveSelected('down')}>
-        <ArrowDown size={13} />
-      </IconButton>
-      <IconButton size="sm" label="Open in code" disabled={!sourceInfo} onClick={() => sourceInfo && revealInCode(sourceInfo.file, sourceInfo.line)}>
-        <Code2 size={13} />
-      </IconButton>
-      <span className="selection-bar__ai">
-        <IconButton size="sm" label="AI edit" active={ai} onClick={() => setAi((v) => !v)}>
-          <Sparkles size={13} />
-        </IconButton>
-        {ai && (
-          <Menu style={{ left: 0, top: 'calc(100% + 6px)', width: 260 }}>
-            <div style={{ padding: 6, lineHeight: 1.5 }}>
-              <div className="menu-title" style={{ padding: '0 0 6px' }}>
-                AI edit
-              </div>
-              <textarea className="textarea" placeholder="Describe a change…" disabled />
-              <p className="muted" style={{ margin: '6px 0 0' }}>
-                AI editing is not connected in this build. Visual and code edits work without it.
-              </p>
-            </div>
-          </Menu>
-        )}
-      </span>
-      <IconButton size="sm" label="Delete (Del)" className="is-danger" disabled={!editable} onClick={() => void removeSelected()}>
-        <Trash2 size={13} />
-      </IconButton>
-    </SelectionBar>
   );
 }
 
@@ -927,7 +894,9 @@ export function Canvas({ hidden }: { hidden: boolean }) {
               {Math.round(resizing.width)} × {Math.round(resizing.edge === 'e' ? rectOf(frames.find((f) => f.id === resizing.id)!).height : resizing.height)} · {SCOPE_LABEL[scopeOf(resizing.width)]}
             </SizeTip>
           )}
-          {running && activeFrame && !interact && !manip && !inlineEditing && !panning && <SelectionActions frame={activeFrame} height={rectOf(activeFrame).height} />}
+          <ElementContextMenu />
+          <CommentPopover />
+          <AskBox />
           {fileDrag && (
             <div
               className="stage-drop"

@@ -33,6 +33,8 @@
   let linkedId = null;
   let hovered = null;
   let measureOn = false;
+  let commentMarks = [];
+  let commentsShow = true;
   let uidCounter = 0;
   const uids = new WeakMap();
   const byUid = new Map();
@@ -68,6 +70,9 @@
       .linked .label, .editing .label { display: none; }
       .multi { border: 1.5px solid #3b82f6; }
       .multi.is-linked { border: 1px dashed rgba(59,130,246,.55); }
+      .cmarks { position: fixed; inset: 0; pointer-events: none; }
+      .cmark { position: absolute; pointer-events: auto; cursor: pointer; width: calc(22px * var(--k)); height: calc(22px * var(--k)); margin: calc(-11px * var(--k)) 0 0 calc(-11px * var(--k)); border-radius: 50% 50% 50% 4px; background: #f59e0b; color: #fff; display: grid; place-items: center; font: 700 calc(11px * var(--k))/1 Inter, system-ui, sans-serif; box-shadow: 0 2px 6px rgba(0,0,0,.25); border: calc(1.5px * var(--k)) solid #fff; box-sizing: border-box; }
+      .cmark.resolved { background: #9ca3af; }
       .measure { position: fixed; inset: 0; pointer-events: none; }
       .m-line { position: absolute; background: #f43f5e; }
       .m-label { position: absolute; transform: translate(-50%, -50%) scale(var(--k)); font: 600 10px/1 Inter, system-ui, sans-serif; color: #fff; background: #f43f5e; padding: 3px 5px; border-radius: 999px; white-space: nowrap; }
@@ -78,6 +83,9 @@
     <div class="box hover"><span class="label"></span></div>
     <div class="box linked"></div>
     <div class="box select"><span class="label"></span><i class="handle tl"></i><i class="handle tr"></i><i class="handle bl"></i><i class="handle br"></i></div>`;
+  const commentLayer = document.createElement('div');
+  commentLayer.className = 'cmarks';
+  shadow.appendChild(commentLayer);
   const measureLayer = document.createElement('div');
   measureLayer.className = 'measure';
   shadow.appendChild(measureLayer);
@@ -241,8 +249,31 @@
     }
   }
 
+  function drawComments() {
+    commentLayer.textContent = '';
+    if (!commentsShow || !commentMarks.length) return;
+    const perElement = new Map();
+    for (const m of commentMarks) {
+      const el = byId(m.id);
+      if (!el || !el.isConnected) continue;
+      const slot = perElement.get(m.id) ?? 0;
+      perElement.set(m.id, slot + 1);
+      const r = el.getBoundingClientRect();
+      if (!r.width && !r.height) continue;
+      const k = parseFloat(host.style.getPropertyValue('--k')) || 1;
+      const n = document.createElement('div');
+      n.className = `cmark${m.resolved ? ' resolved' : ''}`;
+      n.dataset.cid = m.cid;
+      n.textContent = String(m.n);
+      n.style.left = `${r.right - 2 + slot * 20 * k}px`;
+      n.style.top = `${r.top + 2}px`;
+      commentLayer.appendChild(n);
+    }
+  }
+
   function render() {
     attachOverlay();
+    drawComments();
     drawMeasure();
     const active = mode === 'select';
     const showHover = active && !editing && hovered && hovered !== selected;
@@ -440,6 +471,16 @@
   for (const type of ['click', 'mousedown', 'mouseup', 'dblclick', 'submit']) {
     document.addEventListener(type, (event) => {
       if (mode !== 'select') return;
+      const mark = event.composedPath().find((n) => n instanceof HTMLElement && n.dataset && n.dataset.cid);
+      if (mark) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (type === 'click') {
+          const r = mark.getBoundingClientRect();
+          post('comment-click', { cid: mark.dataset.cid, x: r.right, y: r.bottom });
+        }
+        return;
+      }
       if (insideEditing(event)) {
         // Let the caret move inside the text, but never follow links or press buttons.
         if (type === 'click' || type === 'submit') event.preventDefault();
@@ -457,6 +498,17 @@
       else if (type === 'dblclick') requestInlineEdit(target(event));
     }, true);
   }
+
+  // Right-click: select what is under the pointer and ask the editor to open its action menu.
+  document.addEventListener('contextmenu', (event) => {
+    if (mode !== 'select' || editing) return;
+    const el = target(event);
+    event.preventDefault();
+    event.stopPropagation();
+    if (!el) return;
+    if (selected !== el) select(el, true, true);
+    post('contextmenu', { x: event.clientX, y: event.clientY });
+  }, true);
 
   let lastTap = { time: 0, x: 0, y: 0, el: null };
   document.addEventListener('pointerup', (event) => {
@@ -846,6 +898,11 @@
         hovered = (msg.uid && byUid.get(msg.uid)) || byId(msg.id) || null;
         render();
         break;
+      case 'comments':
+        commentMarks = Array.isArray(msg.items) ? msg.items.filter((m) => m && typeof m.cid === 'string' && typeof m.id === 'string') : [];
+        commentsShow = msg.show !== false;
+        render();
+        break;
       case 'measure':
         measureOn = !!msg.on;
         render();
@@ -910,6 +967,19 @@
           report = { width: window.innerWidth, url: location.href, issues: [], error: String(err?.message || err) };
         }
         post('audit', report, { requestId: msg.requestId });
+        break;
+      }
+      case 'element-html': {
+        const el = (msg.id && byId(msg.id)) || (msg.uid && byUid.get(msg.uid)) || selected;
+        let html = '';
+        if (el) {
+          const clone = el.cloneNode(true);
+          for (const n of [clone, ...clone.querySelectorAll('*')]) {
+            for (const a of [...n.attributes]) if (a.name === ATTR || a.name.startsWith('data-oc')) n.removeAttribute(a.name);
+          }
+          html = clone.outerHTML;
+        }
+        post('element-html', { html }, { requestId: msg.requestId });
         break;
       }
       case 'measure-subtree': {

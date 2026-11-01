@@ -97,3 +97,22 @@ export function reloadFrame(id: string) {
   const onLoad = () => clearTimeout(timer);
   el.addEventListener('load', onLoad, { once: true });
 }
+
+/** The selected element's markup, without the editor's own attributes. */
+export function elementHtml(frameId: string, elementId: string | null): Promise<string> {
+  const requestId = `html-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  return new Promise((resolve) => {
+    const done = (html: string) => {
+      window.removeEventListener('message', onMessage);
+      clearTimeout(timer);
+      resolve(html);
+    };
+    const onMessage = (event: MessageEvent) => {
+      const msg = event.data;
+      if (msg?.source === 'oc-bridge' && msg.type === 'element-html' && msg.requestId === requestId) done(String(msg.payload?.html ?? ''));
+    };
+    const timer = setTimeout(() => done(''), 2000);
+    window.addEventListener('message', onMessage);
+    sendToFrame(frameId, 'element-html', { requestId, id: elementId });
+  });
+}
