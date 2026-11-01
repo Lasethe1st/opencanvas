@@ -171,15 +171,15 @@ export function ElementContextMenu() {
           menuWidth={chat ? CHAT_W : MENU_W}
           menuRadius={16}
           buttonRadius={BLOOM_SEED / 2}
-          className="border border-[color:var(--frost-border)] bg-[var(--frost-bg)] text-foreground"
+          className={`ctx-bloom${chat ? ' ctx-bloom--chat' : ''} border border-[color:var(--frost-border)] bg-[var(--frost-bg)] text-foreground`}
           style={{ WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)', boxShadow: phase === 'open' ? 'var(--shadow-md)' : 'none' }}
         >
           <Menu.Trigger className="opacity-0">
             <span className="sr-only">Actions for {sel?.name ?? "element"}</span>
           </Menu.Trigger>
-          <Menu.Content className="flex flex-col" style={{ width: chat ? CHAT_W : MENU_W, height: chat ? CHAT_H : undefined, boxSizing: 'border-box' }}>
+          <Menu.Content className="flex flex-col" style={{ width: (chat ? CHAT_W : MENU_W) - 2, height: chat ? CHAT_H : undefined, boxSizing: 'border-box' }}>
             {chat ? <AskChat /> : (
-              <div className="flex flex-col p-1.5 pt-2" style={{ width: MENU_W, boxSizing: 'border-box' }}>
+              <div className="flex flex-col p-1.5 pt-2" style={{ width: MENU_W - 2, boxSizing: 'border-box' }}>
             <div className="truncate px-2.5 pb-1 text-xs font-medium text-muted-foreground">{sel?.name}</div>
             {groups.map((g, gi) => (
               <div key={gi} className={gi ? 'mt-1 border-t border-foreground/[0.08] pt-1' : ''}>

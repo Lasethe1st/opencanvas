@@ -1911,3 +1911,11 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .dock-chat-dot[data-busy]::after { content: ''; position: absolute; top: -2px; right: -3px; width: 7px; height: 7px; border-radius: 50% !important; background: var(--fg); box-shadow: 0 0 0 2px var(--goo-fill, var(--surface)); animation: dock-dot 1.2s ease-in-out infinite; }
 @keyframes dock-dot { 50% { opacity: 0.35; } }
 @media (prefers-reduced-motion: reduce) { .dock-chat-dot[data-busy]::after { animation: none; } }
+
+/* bloom-menu measures its open height once, from the menu. When Ask AI turns the menu into
+   the chat, snap the shell to the chat's fixed height (plus its 1px borders) so the input sits
+   on the bottom edge instead of floating above leftover menu space. */
+.ctx-bloom--chat {
+  height: 482px !important;
+  transition: height 0.24s var(--ease, ease);
+}

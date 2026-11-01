@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { AiMagicIcon, ArrowShrink02Icon, Cancel01Icon, ArrowExpand01Icon, MinimizeScreenIcon, SentIcon } from '@hugeicons/core-free-icons';
+import { AiMagicIcon, ArrowShrink02Icon, Cancel01Icon, ExpandIcon, MinimizeScreenIcon, SentIcon } from '@hugeicons/core-free-icons';
 import { setAsk, useAsk } from '../lib/ask-box';
 import { openAiSettings, sendToAi } from '../lib/ai';
 import { closeElementMenu } from '../lib/element-menu';
@@ -69,7 +69,7 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
           </button>
         ) : (
           <button type="button" aria-label="Maximize" title="Maximize" className={iconBtn} onClick={maximizeAsk}>
-            <HugeiconsIcon icon={ArrowExpand01Icon} size={15} strokeWidth={2} />
+            <HugeiconsIcon icon={ExpandIcon} size={15} strokeWidth={2} />
           </button>
         )}
         <button type="button" aria-label="Close" title="Close" className={iconBtn} onClick={closeAsk}>
