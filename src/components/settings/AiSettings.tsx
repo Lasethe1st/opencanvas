@@ -26,6 +26,7 @@ import { setReadAloud, useReadAloud } from '../../lib/read-aloud';
 import { Button, InputShell, Notice, cx } from '../../ui/primitives.jsx';
 import { ModelLogo } from '../home/ModelLogo';
 import { SettingRow, SettingsGroup, Switch } from './parts';
+import { ProviderSelect } from './ProviderSelect';
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 
@@ -135,26 +136,16 @@ export function AiSettingsPanel() {
         title="Provider"
         hint={meta.local ? `Start ${meta.label} and download a model first. Pick one that supports tool calling (for example Qwen or Llama 3.1 and later); small models may struggle with bigger changes.` : undefined}
       >
-        <div className="sx-row is-stack">
-          <div className="ai-providers" role="radiogroup" aria-label="Provider">
-            {AI_PROVIDERS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                role="radio"
-                aria-checked={settings.provider === p.id}
-                className={cx('ai-provider', settings.provider === p.id && 'is-active')}
-                onClick={() => settings.provider !== p.id && void save({ provider: p.id, baseUrl: p.defaultBaseUrl, model: '' })}
-              >
-                <span className="ai-provider__logo" aria-hidden>
-                  <ModelLogo provider={p.id} className="size-9" />
-                </span>
-                <span className="ai-provider__name">{p.label}</span>
-                <span className="ai-provider__hint">{p.local ? 'Runs locally' : p.needsKey ? 'API key' : 'Your server'}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <SettingRow label="Service" hint="Which AI answers in chat and on the canvas.">
+          <ProviderSelect
+            value={settings.provider}
+            connected={meta.needsKey ? status.hasKey : !!models?.length}
+            onChange={(id) => {
+              const p = AI_PROVIDERS.find((x) => x.id === id)!;
+              void save({ provider: id, baseUrl: p.defaultBaseUrl, model: '' });
+            }}
+          />
+        </SettingRow>
       </SettingsGroup>
 
       <SettingsGroup title="Connection" hint={encrypted && showKey ? `Your key is encrypted with your operating system’s keychain and only used to talk to ${meta.label}. It can’t be shown again; replace it to change it.` : undefined}>
