@@ -1,4 +1,4 @@
-import { Check, CircleAlert, KeyRound, Loader2, RefreshCw, Trash2, Volume2 } from '../../lib/hugeicons';
+import { Check, ChevronDown, CircleAlert, KeyRound, Loader2, RefreshCw, Trash2, Volume2 } from '../../lib/hugeicons';
 import { useEffect, useRef, useState } from 'react';
 import {
   AI_PROVIDERS,
@@ -39,6 +39,7 @@ export function AiSettingsPanel() {
   const [model, setModel] = useState('');
   const [key, setKey] = useState('');
   const [replacing, setReplacing] = useState(false);
+  const [advanced, setAdvanced] = useState(false);
   const [models, setModels] = useState<AiModel[] | null>(null);
   const [loadingModels, setLoadingModels] = useState(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
@@ -124,31 +125,8 @@ export function AiSettingsPanel() {
 
   if (!status || !settings || !meta) return <Notice>Loading…</Notice>;
 
-  const encrypted = status.keyStorage === 'encrypted';
-  const showKey = meta.needsKey || settings.provider === 'custom';
-
-  const keyPlaceholder = settings.provider === 'anthropic' ? 'sk-ant-…' : settings.provider === 'gemini' ? 'AIza…' : 'sk-…';
-  const engineLabel = effectiveTts === 'openai' ? 'OpenAI' : effectiveTts === 'xai' ? 'Grok' : 'This device';
-
-  return (
-    <>
-      <SettingsGroup
-        title="Provider"
-        hint={meta.local ? `Start ${meta.label} and download a model first. Pick one that supports tool calling (for example Qwen or Llama 3.1 and later); small models may struggle with bigger changes.` : undefined}
-      >
-        <SettingRow label="Service" hint="Which AI answers in chat and on the canvas.">
-          <ProviderSelect
-            value={settings.provider}
-            connected={meta.needsKey ? status.hasKey : !!models?.length}
-            onChange={(id) => {
-              const p = AI_PROVIDERS.find((x) => x.id === id)!;
-              void save({ provider: id, baseUrl: p.defaultBaseUrl, model: '' });
-            }}
-          />
-        </SettingRow>
-      </SettingsGroup>
-
-      <SettingsGroup title="Connection" hint={encrypted && showKey ? `Your key is encrypted with your operating system’s keychain and only used to talk to ${meta.label}. It can’t be shown again; replace it to change it.` : undefined}>
+  const serverShown = advanced || settings.provider === 'custom' || settings.baseUrl !== meta.defaultBaseUrl;
+  const serverRow = (
         <SettingRow label="Server" hint="Where requests are sent.">
           <form
             className="sx-inline"
@@ -170,6 +148,35 @@ export function AiSettingsPanel() {
             )}
           </form>
         </SettingRow>
+  );
+
+  const encrypted = status.keyStorage === 'encrypted';
+  const showKey = meta.needsKey || settings.provider === 'custom';
+
+  const keyPlaceholder = settings.provider === 'anthropic' ? 'sk-ant-…' : settings.provider === 'gemini' ? 'AIza…' : 'sk-…';
+  const engineLabel = effectiveTts === 'openai' ? 'OpenAI' : effectiveTts === 'xai' ? 'Grok' : 'This device';
+
+  return (
+    <>
+      <SettingsGroup
+        title="Provider"
+        hint={meta.local ? `Start ${meta.label} and download a model first. Pick one that supports tool calling (for example Qwen or Llama 3.1 and later); small models may struggle with bigger changes.` : undefined}
+      >
+        <SettingRow label="Service" hint="Which AI answers in chat and on the canvas.">
+          <ProviderSelect
+            value={settings.provider}
+            connected={meta.needsKey ? status.hasKey : !!models?.length}
+            missingKey={meta.needsKey && !status.hasKey}
+            onChange={(id) => {
+              const p = AI_PROVIDERS.find((x) => x.id === id)!;
+              void save({ provider: id, baseUrl: p.defaultBaseUrl, model: '' });
+            }}
+          />
+        </SettingRow>
+      </SettingsGroup>
+
+      <SettingsGroup title="Connection" hint={encrypted && showKey ? `Your key is encrypted with your operating system’s keychain and only used to talk to ${meta.label}. It can’t be shown again; replace it to change it.` : undefined}>
+        {serverShown && serverRow}
 
         {showKey && (
           <SettingRow label={`API key${!meta.needsKey ? ' (optional)' : ''}`} hint={status.hasKey && !replacing && encrypted ? 'Saved and encrypted on this computer.' : 'Stored encrypted on this computer.'}>
@@ -297,6 +304,12 @@ export function AiSettingsPanel() {
             Test connection
           </Button>
         </SettingRow>
+        {!serverShown && (
+          <button type="button" className="sx-advanced" aria-expanded={false} onClick={() => setAdvanced(true)}>
+            Advanced
+            <ChevronDown size={13} aria-hidden />
+          </button>
+        )}
       </SettingsGroup>
 
       <SettingsGroup

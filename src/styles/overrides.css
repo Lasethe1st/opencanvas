@@ -2025,3 +2025,10 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .provider-select__caret { flex: none; color: var(--fg-3); }
 .provider-select__tick { display: inline-flex; width: 14px; flex: none; color: var(--fg); }
 [data-theme='dark'] .provider-select__shell { border-color: rgb(255 255 255 / 0.12); background: color-mix(in oklab, var(--surface) 88%, white 4%); }
+
+.provider-select__trigger { height: 34px; }
+.provider-select__divider { height: 1px; margin: 3px 6px; background: var(--line); }
+.sx-advanced { display: flex; align-items: center; gap: 4px; width: 100%; padding: 10px 12px; color: var(--fg-3); font-size: 12px; font-weight: 500; text-align: left; cursor: pointer; border-top: 1px solid var(--line); }
+.sx-advanced:hover { color: var(--fg); }
+.settings-page .sx-advanced { appearance: none; margin: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0 0 inherit inherit; background: transparent; box-shadow: none; outline: none; }
+.settings-page .sx-advanced:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
