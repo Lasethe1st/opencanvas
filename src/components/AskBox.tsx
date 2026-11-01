@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { AiMagicIcon, ArrowShrink02Icon, Cancel01Icon, ArrowExpand01Icon, MinusSignIcon, SentIcon } from '@hugeicons/core-free-icons';
+import { AiMagicIcon, ArrowShrink02Icon, Cancel01Icon, ArrowExpand01Icon, MinimizeScreenIcon, SentIcon } from '@hugeicons/core-free-icons';
 import { setAsk, useAsk } from '../lib/ask-box';
 import { openAiSettings, sendToAi } from '../lib/ai';
 import { closeElementMenu } from '../lib/element-menu';
@@ -61,7 +61,7 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
         <HugeiconsIcon icon={AiMagicIcon} size={16} strokeWidth={2} className="text-muted-foreground" />
         <span className="mr-auto truncate text-sm font-medium">{ask.target ? `Ask about ${ask.target.name}` : 'Ask AI'}</span>
         <button type="button" aria-label="Minimize" title="Minimize" className={iconBtn} onClick={minimizeAsk}>
-          <HugeiconsIcon icon={MinusSignIcon} size={15} strokeWidth={2} />
+          <HugeiconsIcon icon={MinimizeScreenIcon} size={15} strokeWidth={2} />
         </button>
         {maximized ? (
           <button type="button" aria-label="Restore" title="Restore" className={iconBtn} onClick={restoreAsk}>

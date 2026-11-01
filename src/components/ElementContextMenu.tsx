@@ -4,7 +4,7 @@ import { Menu } from 'bloom-menu';
 import { motion } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
-  AiMagicIcon, ArrowDown01Icon, PaintBrush01Icon, TextIcon, HelpCircleIcon, SentIcon, Comment01Icon, ViewIcon, ViewOffIcon, ArrowUp01Icon, CodeIcon, Copy01Icon, Copy02Icon, Delete02Icon, Download01Icon, Edit02Icon, FolderTransferIcon, LeftToRightListBulletIcon, PackageIcon, Tick02Icon,
+  AiMagicIcon, ArrowDown01Icon, PaintBrush01Icon, TextIcon, HelpCircleIcon, Comment01Icon, ViewIcon, ViewOffIcon, ArrowUp01Icon, CodeIcon, Copy01Icon, Copy02Icon, Delete02Icon, Download01Icon, Edit02Icon, FolderTransferIcon, LeftToRightListBulletIcon, PackageIcon, Tick02Icon,
 } from '@hugeicons/core-free-icons';
 import { duplicateSelected, groupSelected, moveSelected, removeSelected, revealInCode, selectParent, ungroupSelected } from '../lib/actions';
 import { elementHtml } from '../lib/bridge';
@@ -112,6 +112,7 @@ export function ElementContextMenu() {
   const canEditText = !!sel && INLINE_TAGS.has(sel.tag) && !!sourceInfo?.textEditable && canEdit;
   const at0 = origin;
   // Ask AI from the menu: the menu turns into the chat (same bloom), with this element attached.
+  // Quick actions also send a ready-made request; plain Ask AI just opens the chat.
   const askAbout = (request: string) => {
     if (!sel) return;
     switching.current = true;
@@ -120,6 +121,7 @@ export function ElementContextMenu() {
     if (text && getState().aiStatus?.ready) void sendToAi(text, { references: [{ kind: 'layer', name: sel.name, id: sel.id }] });
   };
   const quick: Item[] = !sel ? [] : [
+    { label: 'Ask AI', icon: icon(AiMagicIcon), run: () => askAbout('') },
     { label: 'Restyle', icon: icon(PaintBrush01Icon), run: () => askAbout(`Restyle ${sel.name} so it sits better with the rest of the page.`) },
     ...(INLINE_TAGS.has(sel.tag) ? [{ label: 'Rewrite text', icon: icon(TextIcon), run: () => askAbout(`Rewrite the text in ${sel.name} so it's clearer and tighter. Keep the meaning.`) }] : []),
     { label: 'Explain', icon: icon(HelpCircleIcon), run: () => askAbout(`Explain how ${sel.name} is built and styled. Don't change anything.`) },
@@ -178,7 +180,7 @@ export function ElementContextMenu() {
           <Menu.Content className="flex flex-col" style={{ width: chat ? CHAT_W : MENU_W, height: chat ? CHAT_H : undefined, boxSizing: 'border-box' }}>
             {chat ? <AskChat /> : (
               <div className="flex flex-col p-1.5 pt-2" style={{ width: MENU_W, boxSizing: 'border-box' }}>
-            {sel && <AskField name={sel.name} phase={phase} onSend={askAbout} />}
+            <div className="truncate px-2.5 pb-1 text-xs font-medium text-muted-foreground">{sel?.name}</div>
             {groups.map((g, gi) => (
               <div key={gi} className={gi ? 'mt-1 border-t border-foreground/[0.08] pt-1' : ''}>
                 {g.map((it) => {
@@ -209,39 +211,3 @@ export function ElementContextMenu() {
   );
 }
 
-/** The top of the menu: "Ask AI about this…" with the element as a chip. Enter turns the menu into the chat. */
-function AskField({ name, phase, onSend }: { name: string; phase: 'closed' | 'opening' | 'open'; onSend: (text: string) => void }) {
-  const [text, setText] = useState('');
-  const field = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (phase === 'open') field.current?.focus({ preventScroll: true });
-  }, [phase]);
-  const send = () => text.trim() && onSend(text);
-  return (
-    <motion.div initial={{ opacity: 0, y: -4 }} animate={phase === 'open' ? { opacity: 1, y: 0 } : { opacity: 0, y: -4 }} transition={{ delay: phase === 'open' ? 0.04 : 0, duration: 0.18, ease: 'easeOut' }} className="px-0.5 pb-1.5">
-      <div className="flex items-center gap-1.5 rounded-[12px] bg-foreground/[0.06] py-1 pe-1 ps-2">
-        <HugeiconsIcon icon={AiMagicIcon} size={15} strokeWidth={1.8} className="shrink-0 text-muted-foreground" />
-        <input
-          ref={field}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (e.key === 'Enter') { e.preventDefault(); send(); }
-            if (e.key === 'Escape') closeElementMenu();
-          }}
-          placeholder="Ask AI about this…"
-          aria-label={`Ask AI about ${name}`}
-          className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground"
-        />
-        {text.trim() ? (
-          <button type="button" aria-label="Send" onClick={send} className="grid size-6 shrink-0 place-items-center rounded-full bg-foreground text-background">
-            <HugeiconsIcon icon={SentIcon} size={12} strokeWidth={2} />
-          </button>
-        ) : (
-          <span className="max-w-[84px] shrink-0 truncate rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground" title={name}>{name}</span>
-        )}
-      </div>
-    </motion.div>
-  );
-}
