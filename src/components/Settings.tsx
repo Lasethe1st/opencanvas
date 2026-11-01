@@ -112,7 +112,7 @@ export function SettingsPage() {
 function GeneralSettings() {
   const fontSize = useChatFontSize();
   return (
-    <SettingsGroup title="Chat">
+    <SettingsGroup>
       <SettingRow label="Message size">
         <div className="theme-toggle" role="radiogroup" aria-label="Chat font size">
           {CHAT_FONT_SIZE_PRESETS.map(({ id, label }) => (
@@ -233,12 +233,13 @@ function McpSettings() {
 
   return (
     <>
-      <SettingsGroup title="Server">
+      <SettingsGroup title={status.enabled ? 'Server' : undefined}>
         <SettingRow
           label={
             <span className="sx-status">
               {status.enabled && <span className={`mcp-dot ${running ? 'is-on' : 'is-error'}`} aria-hidden />}
-              {status.enabled ? (running ? 'Server on' : 'Starting…') : 'Server off'}
+              Enabled
+              {status.enabled && <span className="sx-tag">{running ? 'On' : 'Starting…'}</span>}
             </span>
           }
         >

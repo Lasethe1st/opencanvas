@@ -107,6 +107,7 @@ import {
   TextAlignRightIcon,
   TextFontIcon,
   Tick02Icon,
+  LockIcon,
   Timer01Icon,
   TypeCursorIcon,
   TypeIcon,
@@ -140,6 +141,7 @@ export const ArrowDown = make(ArrowDown01Icon, 'ArrowDown');
 export const ArrowUp = make(ArrowUp01Icon, 'ArrowUp');
 export const AtSign = make(AtIcon, 'AtSign');
 export const Check = make(Tick02Icon, 'Check');
+export const Lock = make(LockIcon, 'Lock');
 export const ChevronDown = make(ArrowDown01Icon, 'ChevronDown');
 export const ChevronRight = make(ArrowRight01Icon, 'ChevronRight');
 export const ChevronUp = make(ArrowUp01Icon, 'ChevronUp');

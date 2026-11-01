@@ -1,4 +1,4 @@
-import { Check, ChevronDown, CircleAlert, KeyRound, Loader2, RefreshCw, Trash2, Volume2 } from '../../lib/hugeicons';
+import { Check, ChevronDown, CircleAlert, KeyRound, Lock, Loader2, RefreshCw, Trash2, Volume2 } from '../../lib/hugeicons';
 import { useEffect, useRef, useState } from 'react';
 import {
   AI_PROVIDERS,
@@ -158,10 +158,9 @@ export function AiSettingsPanel() {
   return (
     <>
       <SettingsGroup
-        title="Provider"
         hint={meta.local ? `Needs a model with tool calling, like Qwen or Llama 3.1+.` : undefined}
       >
-        <SettingRow label="Service">
+        <SettingRow label="Provider">
           <ProviderSelect
             value={settings.provider}
             connected={meta.needsKey ? status.hasKey : !!models?.length}
@@ -178,7 +177,18 @@ export function AiSettingsPanel() {
         {serverShown && serverRow}
 
         {showKey && (
-          <SettingRow label={`API key${!meta.needsKey ? ' (optional)' : ''}`}>
+          <SettingRow
+            label={
+              <span className="sx-label-icon">
+                API key{!meta.needsKey ? ' (optional)' : ''}
+                {encrypted && (
+                  <span className="sx-info" title={`Encrypted with your system keychain and only sent to ${meta.label}. It can't be shown again; replace it to change it.`} aria-label="Encrypted with your system keychain">
+                    <Lock size={12} aria-hidden />
+                  </span>
+                )}
+              </span>
+            }
+          >
             {!encrypted ? (
               <Notice>
                 This computer has no secure storage for keys, so OpenCanvas won’t save one. On Linux, install and unlock a keyring such as GNOME Keyring or KWallet. Local models with Ollama or LM Studio work without a key.
