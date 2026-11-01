@@ -88,7 +88,7 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
         </button>
       </div>
       <div ref={logRef} className="docker-chat__log min-h-0 flex-1 overflow-y-auto px-3 [scrollbar-width:thin]">
-        {items.length > 0 && <HomeChat mentions />}
+        {items.length > 0 && <HomeChat mentions split />}
       </div>
       <div className="p-3 pt-2">
         {ready ? (
