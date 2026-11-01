@@ -15,6 +15,7 @@ const MoreIcon = () => <HugeiconsIcon icon={MoreHorizontalIcon} size={15} stroke
 import { getState, setState, useStore } from '../lib/store';
 import { openDock } from './Dock';
 import { ELEMENTS } from './ToolRail';
+import { ROW, SideBloom } from './SideBloom';
 
 const SEED = 8;
 const CLOSE_MS = 320;
@@ -226,67 +227,14 @@ export function InsertContextMenu() {
       <SideBloom
         open={more && phase === 'open' && !q}
         anchor={moreRef.current}
-        items={extras}
-        usable={usable}
+        items={extras.map((it) => ({ ...it, disabled: !usable(it) }))}
         focus={sideFocus}
         setFocus={setSideFocus}
-        onPick={pick}
+        onPick={(it) => pick(extras.find((x) => x.id === it.id))}
         onClose={() => setMore(false)}
         overSide={overSide}
       />
     </>
-  );
-}
-
-const ROW = 'flex w-full cursor-pointer select-none items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-sm text-foreground outline-none transition-colors duration-150 hover:bg-accent aria-disabled:pointer-events-none data-[disabled]:pointer-events-none [&_svg]:shrink-0 [&_svg]:text-muted-foreground';
-const SIDE_W = 184;
-
-/** "More…" blooms a second glass panel out to the side of its row (flips left when there's no room on the right). */
-function SideBloom({ open, anchor, items, usable, focus, setFocus, onPick, onClose, overSide }: {
-  open: boolean; anchor: HTMLElement | null; items: Item[]; usable: (it: Item) => boolean; focus: number; setFocus: (n: number) => void;
-  onPick: (it: Item) => void; onClose: () => void; overSide: React.MutableRefObject<boolean>;
-}) {
-  const [shown, setShown] = useState(false);
-  const [phase, setPhase] = useState(false);
-  useEffect(() => {
-    if (open) { setShown(true); const id = requestAnimationFrame(() => setPhase(true)); return () => cancelAnimationFrame(id); }
-    setPhase(false);
-    overSide.current = false;
-    const t = window.setTimeout(() => setShown(false), CLOSE_MS);
-    return () => window.clearTimeout(t);
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!shown || !anchor) return null;
-  const panel = anchor.closest('.ctx-bloom')?.getBoundingClientRect();
-  const r = anchor.getBoundingClientRect();
-  const left = panel && panel.right + 6 + SIDE_W > window.innerWidth - 8;
-  const x = left ? (panel?.left ?? r.left) - 6 - SEED : (panel?.right ?? r.right) + 6;
-  const sideH = items.length * 32 + 16;
-  const y = Math.max(8, Math.min(r.top, window.innerHeight - 8 - sideH));
-  return createPortal(
-    <div data-tw="" data-bloom-menu="" onContextMenu={(e) => e.preventDefault()} onPointerEnter={() => (overSide.current = true)} onPointerLeave={() => (overSide.current = false)}
-      style={{ position: 'fixed', top: y, left: x, width: SEED, height: SEED, zIndex: 401 }}>
-      <Menu.Root open={phase} onOpenChange={(next) => !next && onClose()} direction="bottom" anchor={left ? 'end' : 'start'} bounce={0.12} visualDuration={0.24}>
-        <Menu.Container buttonSize={SEED} menuWidth={SIDE_W} menuRadius={14} buttonRadius={SEED / 2} className="ctx-bloom border text-foreground" style={{ boxShadow: phase ? '0 8px 24px rgb(0 0 0 / 0.12)' : 'none' }}>
-          <Menu.Trigger className="opacity-0"><span className="sr-only">More elements</span></Menu.Trigger>
-          <Menu.Content className="flex flex-col" style={{ width: SIDE_W - 2, boxSizing: 'border-box' }}>
-            <div className="flex flex-col p-1.5" style={{ width: SIDE_W - 2, boxSizing: 'border-box' }}>
-              {items.map((it, i) => {
-                const off = !usable(it);
-                return (
-                  <motion.div key={it.id} style={{ pointerEvents: off ? 'none' : undefined }} onMouseEnter={() => setFocus(i)} initial={{ opacity: 0, x: left ? 4 : -4 }} animate={phase ? { opacity: off ? 0.4 : 1, x: 0 } : { opacity: 0, x: left ? 4 : -4 }} transition={{ delay: phase ? 0.04 + 0.02 * i : 0, duration: 0.16, ease: 'easeOut' }}>
-                    <Menu.Item disabled={off} className={`${ROW} ${i === focus ? 'bg-accent' : ''}`} onSelect={() => onPick(it)}>
-                      {it.icon}
-                      <span className="flex-1">{it.label}</span>
-                    </Menu.Item>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </Menu.Content>
-        </Menu.Container>
-      </Menu.Root>
-    </div>,
-    document.body,
   );
 }
 
