@@ -1,4 +1,5 @@
 import { Sparkles, X } from '../lib/hugeicons';
+import { AnimatePresence, motion } from 'motion/react';
 import { useRef, useState } from 'react';
 import { selectElement } from '../lib/actions';
 import { sendToAi } from '../lib/ai';
@@ -8,6 +9,14 @@ import { InputPanel } from './Dock';
 import { DockRow } from './dock/DockRow';
 import { assistantShapes, insertMention, referencesIn } from './assistant-shapes';
 import { Shapeshift, type ShapeshiftHandle, type ShapeshiftResult } from './shapeshift';
+
+/** Same spring as the right-click menu's bloom (bloom-menu: visualDuration 0.28, bounce 0.12). */
+const BLOOM = { type: 'spring', visualDuration: 0.28, bounce: 0.12, opacity: { duration: 0.18 }, filter: { duration: 0.2 } } as const;
+
+/** The chat blooms to one fixed height, so text streaming in never resizes the dock. */
+function chatHeight() {
+  return Math.round(Math.min(460, window.innerHeight * 0.56));
+}
 
 /** The assistant docker: bottom-centre of the canvas. Chat with the AI about this project, @ layers and pages, or run quick commands. */
 export function CanvasShapeshift() {
@@ -69,7 +78,22 @@ export function CanvasShapeshift() {
         label="Ask AI or run a command"
         placeholder={placeholder}
         listAll={false}
-        above={chatOpen ? <div className="assistant-docker__chat"><InputPanel /></div> : undefined}
+        above={
+          <AnimatePresence initial={false}>
+            {chatOpen && (
+              <motion.div
+                key="chat"
+                className="assistant-docker__chat"
+                initial={{ height: 0, opacity: 0, filter: 'blur(6px)' }}
+                animate={{ height: chatHeight(), opacity: 1, filter: 'blur(0px)' }}
+                exit={{ height: 0, opacity: 0, filter: 'blur(6px)' }}
+                transition={BLOOM}
+              >
+                <InputPanel />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        }
         sendLabel="Send"
         onSubmit={onSubmit}
         classNames={{
