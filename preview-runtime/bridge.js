@@ -458,6 +458,17 @@
     }, true);
   }
 
+  // Right-click: select what is under the pointer and ask the editor to open its action menu.
+  document.addEventListener('contextmenu', (event) => {
+    if (mode !== 'select' || editing) return;
+    const el = target(event);
+    event.preventDefault();
+    event.stopPropagation();
+    if (!el) return;
+    if (selected !== el) select(el, true, true);
+    post('contextmenu', { x: event.clientX, y: event.clientY });
+  }, true);
+
   let lastTap = { time: 0, x: 0, y: 0, el: null };
   document.addEventListener('pointerup', (event) => {
     if (mode !== 'select' || event.pointerType !== 'touch' || editing) return;
@@ -910,6 +921,19 @@
           report = { width: window.innerWidth, url: location.href, issues: [], error: String(err?.message || err) };
         }
         post('audit', report, { requestId: msg.requestId });
+        break;
+      }
+      case 'element-html': {
+        const el = (msg.id && byId(msg.id)) || (msg.uid && byUid.get(msg.uid)) || selected;
+        let html = '';
+        if (el) {
+          const clone = el.cloneNode(true);
+          for (const n of [clone, ...clone.querySelectorAll('*')]) {
+            for (const a of [...n.attributes]) if (a.name === ATTR || a.name.startsWith('data-oc')) n.removeAttribute(a.name);
+          }
+          html = clone.outerHTML;
+        }
+        post('element-html', { html }, { requestId: msg.requestId });
         break;
       }
       case 'measure-subtree': {

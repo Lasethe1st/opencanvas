@@ -1899,3 +1899,9 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 @media (prefers-reduced-motion: reduce) { .merge-layer rect, .merge-layer path { transition: opacity 120ms linear; } }
 /* The bar is 420px wide; size its slot to match so the pills on the right can join it too. */
 .dockrow .canvas-shapeshift:not([data-chat]) { width: min(420px, calc(100vw - 32px)); }
+
+/* Right-click menu on a canvas element */
+.element-menu { padding: 6px; }
+.element-menu__group + .element-menu__group { margin-top: 4px; padding-top: 4px; border-top: 1px solid color-mix(in srgb, var(--fg) 8%, transparent); }
+.element-menu .menu-item { width: 100%; gap: 10px; }
+.element-menu .menu-item.is-danger { color: var(--danger, #dc2626); }
