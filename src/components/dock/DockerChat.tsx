@@ -1,5 +1,5 @@
 import { GitBranch, MessageSquarePlus, Square, X } from '../../lib/hugeicons';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { providerMeta } from '../../../shared/ai';
 import { newAiChat, openAiSettings, stopAi } from '../../lib/ai';
 import { setState, useStore } from '../../lib/store';
@@ -16,6 +16,34 @@ export function DockerChat() {
   const logRef = useRef<HTMLDivElement>(null);
   const model = status?.settings.model;
   const provider = status ? providerMeta(status.settings.provider).label : '';
+
+  // The box has a fixed height, so a streaming reply scrolls inside it instead of pushing the dock around.
+  // Keep the newest text in view unless the person has scrolled up to read.
+  useEffect(() => {
+    const log = logRef.current;
+    if (!log) return;
+    let pinned = true;
+    const onScroll = () => {
+      pinned = log.scrollHeight - log.scrollTop - log.clientHeight < 24;
+    };
+    const follow = () => {
+      if (pinned) log.scrollTop = log.scrollHeight;
+    };
+    follow();
+    log.addEventListener('scroll', onScroll, { passive: true });
+    const ro = new ResizeObserver(follow);
+    for (const child of log.children) ro.observe(child);
+    const mo = new MutationObserver(() => {
+      for (const child of log.children) ro.observe(child);
+      follow();
+    });
+    mo.observe(log, { childList: true, subtree: true, characterData: true });
+    return () => {
+      log.removeEventListener('scroll', onScroll);
+      ro.disconnect();
+      mo.disconnect();
+    };
+  }, []);
 
   return (
     <div className="docker-chat" data-tw="">

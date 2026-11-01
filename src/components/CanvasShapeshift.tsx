@@ -1,5 +1,10 @@
 import { Sparkles, X } from '../lib/hugeicons';
-import { useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useEffect, useRef, useState } from 'react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { AiMagicIcon } from '@hugeicons/core-free-icons';
+import { getAsk, setAsk } from '../lib/ask-box';
+import { closeElementMenu } from '../lib/element-menu';
 import { selectElement } from '../lib/actions';
 import { sendToAi } from '../lib/ai';
 import { activePage } from '../lib/pages';
@@ -8,6 +13,14 @@ import { InputPanel } from './Dock';
 import { DockRow } from './dock/DockRow';
 import { assistantShapes, insertMention, referencesIn } from './assistant-shapes';
 import { Shapeshift, type ShapeshiftHandle, type ShapeshiftResult } from './shapeshift';
+
+/** Same spring as the right-click menu's bloom (bloom-menu: visualDuration 0.28, bounce 0.12). */
+const BLOOM = { type: 'spring', visualDuration: 0.28, bounce: 0.12, opacity: { duration: 0.18 }, filter: { duration: 0.2 } } as const;
+
+/** The chat blooms to one fixed height, so text streaming in never resizes the dock. */
+function chatHeight() {
+  return Math.round(Math.min(360, window.innerHeight * 0.5));
+}
 
 /** The assistant docker: bottom-centre of the canvas. Chat with the AI about this project, @ layers and pages, or run quick commands. */
 export function CanvasShapeshift() {
@@ -18,6 +31,21 @@ export function CanvasShapeshift() {
   const busy = useStore((s) => !!s.aiTurnId);
   const chatOpen = useStore((s) => s.dockMode === 'input');
   const pageName = useStore((s) => (s.projectConfig ? activePage()?.name : null));
+  const hasChat = useStore((s) => s.aiChat.length > 0);
+
+  // One conversation, one place: opening it in the dock closes the floating Ask AI box.
+  useEffect(() => {
+    if (!chatOpen || getAsk().mode === 'none') return;
+    setAsk({ mode: 'none' });
+    closeElementMenu();
+  }, [chatOpen]);
+
+  // A folded-away chat shows as the AI icon at the start of the bar; a dot on it means a reply is still coming.
+  const chatIcon = hasChat && !chatOpen ? (
+    <button type="button" className="dock-chat-dot" data-busy={busy || undefined} aria-label={busy ? 'Open chat, reply in progress' : 'Open chat'} title="Open chat" onClick={() => setState({ dockMode: 'input' })}>
+      <HugeiconsIcon icon={AiMagicIcon} size={16} strokeWidth={2} />
+    </button>
+  ) : undefined;
 
   const placeholder = !ready
     ? 'Set up AI in Settings to chat here'
@@ -66,10 +94,26 @@ export function CanvasShapeshift() {
         shapes={assistantShapes}
         hotkey={false}
         width={420}
+        icon={chatIcon}
         label="Ask AI or run a command"
         placeholder={placeholder}
         listAll={false}
-        above={chatOpen ? <div className="assistant-docker__chat"><InputPanel /></div> : undefined}
+        above={
+          <AnimatePresence initial={false}>
+            {chatOpen && (
+              <motion.div
+                key="chat"
+                className="assistant-docker__chat"
+                initial={{ height: 0, opacity: 0, filter: 'blur(6px)' }}
+                animate={{ height: chatHeight(), opacity: 1, filter: 'blur(0px)' }}
+                exit={{ height: 0, opacity: 0, filter: 'blur(6px)' }}
+                transition={BLOOM}
+              >
+                <InputPanel />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        }
         sendLabel="Send"
         onSubmit={onSubmit}
         classNames={{
