@@ -30,7 +30,7 @@ export type ResizeEdge = 'e' | 's' | 'se';
 export function FrameChrome(props: {
   rect: Box;
   name: ReactNode;
-  size: ReactNode;
+  size?: ReactNode;
   scope: ReactNode;
   active?: boolean;
   fitPage?: boolean;
