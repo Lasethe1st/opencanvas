@@ -196,7 +196,7 @@ export function ElementContextMenu() {
                     <motion.div key={it.label} initial={{ opacity: 0, y: -4 }} animate={phase === 'open' ? { opacity: 1, y: 0 } : { opacity: 0, y: -4 }} transition={{ delay: phase === 'open' ? delay : 0, duration: 0.18, ease: 'easeOut' }}>
                       <Menu.Item
                         disabled={it.disabled}
-                        className={`flex w-full cursor-pointer select-none items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-sm outline-none transition-colors duration-150 hover:bg-accent aria-disabled:pointer-events-none aria-disabled:opacity-40 data-[disabled]:pointer-events-none data-[disabled]:opacity-40 [&_svg]:shrink-0 ${it.danger ? 'text-destructive [&_svg]:text-destructive' : 'text-foreground [&_svg]:text-muted-foreground'}`}
+                        className={`flex w-full cursor-pointer select-none items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-sm outline-none transition-colors duration-150 hover:bg-accent aria-disabled:pointer-events-none aria-disabled:opacity-40 data-[disabled]:pointer-events-none data-[disabled]:opacity-40 [&_svg]:shrink-0 ${it.danger ? 'ctx-danger' : 'text-foreground [&_svg]:text-muted-foreground'}`}
                         onSelect={it.run}
                       >
                         {it.icon}
