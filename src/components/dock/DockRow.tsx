@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { chooseImageForSelection, setFontFamily, setStyle, setStyles } from '../../lib/actions';
 import { editSelectedText } from '../../lib/inline-edit';
 import { useStore, type Selection } from '../../lib/store';
@@ -20,8 +20,8 @@ const LAYOUT: Record<Kind, { left: PillId[]; right: PillId[] }> = {
   image: { left: ['replace', 'fit'], right: ['corners'] },
   button: { left: ['edit', 'fill'], right: ['label-color', 'corners'] },
 };
-const META: Record<PillId, { label: string; icon: IconSvgElement; action?: boolean }> = {
-  edit: { label: 'Edit', icon: Edit02Icon, action: true },
+const META: Record<PillId, { label: string; icon: IconSvgElement }> = {
+  edit: { label: 'Edit', icon: Edit02Icon },
   font: { label: 'Font', icon: TextFontIcon },
   size: { label: 'Size', icon: TextIcon },
   color: { label: 'Colour', icon: TextColorIcon },
@@ -36,7 +36,7 @@ const META: Record<PillId, { label: string; icon: IconSvgElement; action?: boole
   'label-color': { label: 'Text', icon: TextColorIcon },
 };
 
-/* ───────── Small controls (they live inside an expanded pill) ───────── */
+/* ───────── Values ───────── */
 
 const px = (v: string | undefined, fallback = 0) => {
   const n = parseFloat(v ?? '');
@@ -49,41 +49,6 @@ function toHex(css: string | undefined): string {
   return '#' + [m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, '0')).join('');
 }
 
-function Stepper({ value, min = 0, step = 1, unit = 'px', onChange, label }: { value: number; min?: number; step?: number; unit?: string; onChange: (n: number) => void; label: string }) {
-  const [draft, setDraft] = useState(String(value));
-  useEffect(() => setDraft(String(value)), [value]);
-  const commit = (raw: string) => {
-    const n = parseFloat(raw);
-    if (Number.isFinite(n) && n !== value) onChange(Math.max(min, n));
-    else setDraft(String(value));
-  };
-  return (
-    <span className="dockpill__ctl" role="group" aria-label={label}>
-      <button type="button" aria-label={`Decrease ${label}`} onClick={() => onChange(Math.max(min, value - step))}>−</button>
-      <input aria-label={label} inputMode="decimal" value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={(e) => commit(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget.blur())} />
-      <span className="dockpill__unit">{unit}</span>
-      <button type="button" aria-label={`Increase ${label}`} onClick={() => onChange(value + step)}>+</button>
-    </span>
-  );
-}
-
-function ColorControl({ value, label, onCommit }: { value: string; label: string; onCommit: (hex: string) => void }) {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const on = () => onCommit(el.value);
-    el.addEventListener('change', on); // fires when the picker closes, not on every drag
-    return () => el.removeEventListener('change', on);
-  }, [onCommit]);
-  return (
-    <span className="dockpill__ctl">
-      <input ref={ref} type="color" aria-label={label} defaultValue={value} key={value} className="dockpill__swatch" />
-      <code>{value}</code>
-    </span>
-  );
-}
-
 const FONTS = [
   ['Inter', 'Inter, system-ui, sans-serif'],
   ['System', 'system-ui, sans-serif'],
@@ -92,87 +57,205 @@ const FONTS = [
   ['Mono', 'ui-monospace, SFMono-Regular, monospace'],
 ] as const;
 
-function Control({ id, sel }: { id: PillId; sel: Selection }) {
+const ALIGNS = ['left', 'center', 'right'] as const;
+const ALIGN_ICON = { left: TextAlignLeft, center: TextAlignCenter, right: TextAlignRight } as const;
+
+const PillIcon = ({ icon }: { icon: IconSvgElement }) => <HugeiconsIcon icon={icon} size={18} strokeWidth={1.8} className="dockpill__icon" />;
+
+/**
+ * A number you change in place: type into it (Enter/blur commits, Esc reverts), scroll over it, or drag
+ * left/right on the pill. Shift steps ×10.
+ */
+function Scrub({ value, min = 0, step = 1, unit = 'px', onChange, label, icon }: { value: number; min?: number; step?: number; unit?: string; onChange: (n: number) => void; label: string; icon?: IconSvgElement }) {
+  const [draft, setDraft] = useState(String(value));
+  const live = useRef(value);
+  const wrap = useRef<HTMLLabelElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const pending = useRef<number | null>(null);
+  useEffect(() => {
+    live.current = value;
+    setDraft(String(value));
+  }, [value]);
+  const nudge = (n: number) => {
+    const next = Math.max(min, Math.round(n * 10) / 10);
+    live.current = next;
+    setDraft(String(next));
+    // Coalesce wheel/drag bursts into one edit.
+    if (pending.current != null) window.clearTimeout(pending.current);
+    pending.current = window.setTimeout(() => {
+      pending.current = null;
+      if (live.current !== value) onChange(live.current);
+    }, 220);
+  };
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const dir = (Math.abs(e.deltaY) > Math.abs(e.deltaX) ? -e.deltaY : e.deltaX) > 0 ? 1 : -1;
+      nudge(live.current + dir * step * (e.shiftKey ? 10 : 1));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  });
+  const commit = (raw: string) => {
+    const n = parseFloat(raw);
+    if (Number.isFinite(n) && Math.max(min, n) !== value) onChange(Math.max(min, n));
+    else setDraft(String(value));
+  };
+  const onPointerDown = (e: ReactPointerEvent) => {
+    if (e.target === input.current || e.button !== 0) return;
+    e.preventDefault();
+    const x0 = e.clientX;
+    const v0 = live.current;
+    let moved = false;
+    const move = (ev: PointerEvent) => {
+      const dx = ev.clientX - x0;
+      if (!moved && Math.abs(dx) < 3) return;
+      moved = true;
+      document.body.style.cursor = 'ew-resize';
+      nudge(v0 + Math.round(dx / 4) * step * (ev.shiftKey ? 10 : 1));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      document.body.style.cursor = '';
+      if (!moved) input.current?.select();
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  return (
+    <label ref={wrap} className="dockpill__scrub" title={`${label}: drag, scroll or type`} onPointerDown={onPointerDown}>
+      {icon && <PillIcon icon={icon} />}
+      <input
+        ref={input}
+        aria-label={label}
+        inputMode="decimal"
+        style={{ width: `${Math.min(6, Math.max(1, draft.length)) + 0.4}ch` }}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          else if (e.key === 'Escape') {
+            setDraft(String(value));
+            e.currentTarget.value = String(value);
+            e.currentTarget.blur();
+          } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            nudge(live.current + (e.key === 'ArrowUp' ? 1 : -1) * step * (e.shiftKey ? 10 : 1));
+          }
+        }}
+      />
+      <span className="dockpill__unit">{unit}</span>
+    </label>
+  );
+}
+
+/** The pill is the swatch: clicking anywhere on it opens the colour picker; the change lands when the picker closes. */
+function Swatch({ value, label, text, onCommit }: { value: string; label: string; text: string; onCommit: (hex: string) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const on = () => el.value !== value && onCommit(el.value);
+    el.addEventListener('change', on);
+    return () => el.removeEventListener('change', on);
+  }, [onCommit, value]);
+  return (
+    <label className="dockpill__main dockpill__colour" title={`${label} ${value}`}>
+      <span className="dockpill__chip" style={{ background: value }} />
+      <span className="dockpill__label">{text}</span>
+      <input ref={ref} type="color" aria-label={label} defaultValue={value} key={value} className="dockpill__picker" />
+    </label>
+  );
+}
+
+/* ───────── One pill: the pill is the control ───────── */
+
+function PillBody({ id, sel }: { id: PillId; sel: Selection }) {
   const c = sel.computed;
+  const meta = META[id];
   switch (id) {
-    case 'font': {
-      const current = FONTS.find(([, v]) => c['font-family']?.toLowerCase().startsWith(v.split(',')[0].replace(/['"]/g, '').toLowerCase()))?.[1] ?? '';
+    case 'edit':
       return (
-        <span className="dockpill__ctl">
-          <select aria-label="Font" value={current} onChange={(e) => e.target.value && void setFontFamily(e.target.value)}>
-            {!current && <option value="">{c['font-family']?.split(',')[0].replace(/['"]/g, '') || 'Font'}</option>}
+        <button type="button" className="dockpill__main" onClick={editSelectedText}>
+          <PillIcon icon={meta.icon} />
+          <span className="dockpill__label">{meta.label}</span>
+        </button>
+      );
+    case 'replace':
+      return (
+        <button type="button" className="dockpill__main" onClick={() => void chooseImageForSelection()}>
+          <PillIcon icon={meta.icon} />
+          <span className="dockpill__label">{meta.label}</span>
+        </button>
+      );
+    case 'font': {
+      const name = c['font-family']?.split(',')[0].replace(/['"]/g, '').trim() || 'Font';
+      const current = FONTS.find(([, v]) => name.toLowerCase() === v.split(',')[0].replace(/['"]/g, '').toLowerCase())?.[1] ?? '';
+      return (
+        <label className="dockpill__main dockpill__select" title={`Font: ${name}`}>
+          <PillIcon icon={meta.icon} />
+          <select aria-label="Font" value={current} onChange={(e) => e.target.value && void setFontFamily(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && e.currentTarget.blur()}>
+            {!current && <option value="">{name}</option>}
             {FONTS.map(([n, v]) => (
               <option key={n} value={v}>{n}</option>
             ))}
           </select>
-        </span>
+        </label>
       );
     }
     case 'size':
-      return <Stepper label="Font size" value={px(c['font-size'], 16)} min={6} onChange={(n) => void setStyle('font-size', `${n}px`)} />;
-    case 'color':
-      return <ColorControl label="Text colour" value={toHex(c.color)} onCommit={(hex) => void setStyle('color', hex)} />;
-    case 'label-color':
-      return <ColorControl label="Text colour" value={toHex(c.color)} onCommit={(hex) => void setStyle('color', hex)} />;
-    case 'fill':
-      return <ColorControl label="Fill colour" value={toHex(c['background-color'])} onCommit={(hex) => void setStyle('background-color', hex)} />;
-    case 'align':
-      return (
-        <span className="dockpill__ctl" role="radiogroup" aria-label="Alignment">
-          {([['left', <TextAlignLeft key="l" size={15} />], ['center', <TextAlignCenter key="c" size={15} />], ['right', <TextAlignRight key="r" size={15} />]] as const).map(([v, icon]) => (
-            <button key={v} type="button" role="radio" aria-checked={c['text-align'] === v} aria-label={`Align ${v}`} className={c['text-align'] === v ? 'is-on' : undefined} onClick={() => void setStyle('text-align', v)}>
-              {icon}
-            </button>
-          ))}
-        </span>
-      );
+      return <Scrub label="Font size" icon={meta.icon} value={px(c['font-size'], 16)} min={6} onChange={(n) => void setStyle('font-size', `${n}px`)} />;
     case 'padding':
-      return <Stepper label="Spacing inside" value={px(c['padding-top'])} step={4} onChange={(n) => void setStyle('padding', `${n}px`)} />;
+      return <Scrub label="Spacing inside" icon={meta.icon} value={px(c['padding-top'])} step={4} onChange={(n) => void setStyle('padding', `${n}px`)} />;
     case 'margin':
-      return <Stepper label="Spacing outside" value={px(c['margin-top'])} step={4} onChange={(n) => void setStyle('margin', `${n}px`)} />;
+      return <Scrub label="Spacing outside" icon={meta.icon} value={px(c['margin-top'])} step={4} onChange={(n) => void setStyle('margin', `${n}px`)} />;
     case 'corners':
-      return <Stepper label="Corner radius" value={px(c['border-radius'])} step={2} onChange={(n) => void setStyle('border-radius', `${n}px`)} />;
+      return <Scrub label="Corner radius" icon={meta.icon} value={px(c['border-radius'])} step={2} onChange={(n) => void setStyle('border-radius', `${n}px`)} />;
     case 'box-size':
       return (
-        <span className="dockpill__ctl">
-          <Stepper label="Width" unit="w" value={Math.round(px(c.width))} step={10} min={1} onChange={(n) => void setStyles({ width: `${n}px` }, 'Set width')} />
-          <Stepper label="Height" unit="h" value={Math.round(px(c.height))} step={10} min={1} onChange={(n) => void setStyles({ height: `${n}px` }, 'Set height')} />
+        <span className="dockpill__pair">
+          <Scrub label="Width" icon={meta.icon} unit="w" value={Math.round(px(c.width))} step={10} min={1} onChange={(n) => void setStyles({ width: `${n}px` }, 'Set width')} />
+          <Scrub label="Height" unit="h" value={Math.round(px(c.height))} step={10} min={1} onChange={(n) => void setStyles({ height: `${n}px` }, 'Set height')} />
         </span>
       );
+    case 'color':
+    case 'label-color':
+      return <Swatch label="Text colour" text={meta.label} value={toHex(c.color)} onCommit={(hex) => void setStyle('color', hex)} />;
+    case 'fill':
+      return <Swatch label="Fill colour" text={meta.label} value={toHex(c['background-color'])} onCommit={(hex) => void setStyle('background-color', hex)} />;
+    case 'align': {
+      const cur = (ALIGNS as readonly string[]).includes(c['text-align'] ?? '') ? (c['text-align'] as (typeof ALIGNS)[number]) : c['text-align'] === 'end' ? 'right' : 'left';
+      const next = ALIGNS[(ALIGNS.indexOf(cur) + 1) % ALIGNS.length];
+      const Icon = ALIGN_ICON[cur];
+      return (
+        <button type="button" className="dockpill__main" aria-label={`Align ${cur}; click for ${next}`} title={`Align: ${cur} (click for ${next})`} onClick={() => void setStyle('text-align', next)}>
+          <Icon size={18} />
+          <span className="dockpill__label">{cur === 'center' ? 'Centre' : cur[0].toUpperCase() + cur.slice(1)}</span>
+        </button>
+      );
+    }
     case 'fit':
       return (
-        <span className="dockpill__ctl">
-          <select aria-label="Image fit" value={c['object-fit'] || 'fill'} onChange={(e) => void setStyle('object-fit', e.target.value)}>
+        <label className="dockpill__main dockpill__select" title="Image fit">
+          <PillIcon icon={meta.icon} />
+          <select aria-label="Image fit" value={c['object-fit'] || 'fill'} onChange={(e) => void setStyle('object-fit', e.target.value)} onKeyDown={(e) => e.key === 'Escape' && e.currentTarget.blur()}>
             {['cover', 'contain', 'fill', 'none'].map((v) => (
               <option key={v} value={v}>{v}</option>
             ))}
           </select>
-        </span>
+        </label>
       );
-    default:
-      return null;
   }
 }
 
-/* ───────── One pill ───────── */
-
-function Pill({ id, sel, open, onToggle, side, leaving }: { id: PillId; sel: Selection; open: boolean; onToggle: () => void; side: 'left' | 'right'; leaving: boolean }) {
-  const meta = META[id];
-  const run = () => {
-    if (id === 'edit') editSelectedText();
-    else if (id === 'replace') void chooseImageForSelection();
-  };
+function Pill({ id, sel, side, leaving }: { id: PillId; sel: Selection; side: 'left' | 'right'; leaving: boolean }) {
   return (
-    <div className={`dockpill dockpill--${side}${open ? ' is-open' : ''}${leaving ? ' is-leaving' : ''}`} data-goo>
-      <button type="button" className="dockpill__main" aria-expanded={meta.action ? undefined : open} onClick={meta.action ? run : onToggle}>
-        <HugeiconsIcon icon={meta.icon} size={18} strokeWidth={1.8} className="dockpill__icon" />
-        <span className="dockpill__label">{meta.label}</span>
-      </button>
-      {!meta.action && (
-        <div className="dockpill__reveal" aria-hidden={!open} inert={!open}>
-          <div className="dockpill__inner">{open && <Control id={id} sel={sel} />}</div>
-        </div>
-      )}
+    <div className={`dockpill dockpill--${side} dockpill--${id}${leaving ? ' is-leaving' : ''}`} data-goo>
+      <PillBody id={id} sel={sel} />
     </div>
   );
 }
@@ -189,7 +272,6 @@ export function DockRow({ children, tucked = false }: { children: ReactNode; tuc
   const row = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState<Selection | null>(sel);
   const [leaving, setLeaving] = useState(false);
-  const [open, setOpen] = useState<PillId | null>(null);
   const [blobs, setBlobs] = useState<Blob[]>([]);
 
   // Keep the last selection around while the pills melt away.
@@ -201,7 +283,6 @@ export function DockRow({ children, tucked = false }: { children: ReactNode; tuc
     }
     if (!shown) return;
     setLeaving(true);
-    setOpen(null);
     const t = window.setTimeout(() => {
       setShown(null);
       setLeaving(false);
@@ -209,24 +290,7 @@ export function DockRow({ children, tucked = false }: { children: ReactNode; tuc
     return () => window.clearTimeout(t);
   }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // A different kind of element closes whatever was open.
   const kind = shown ? kindOf(shown.tag) : null;
-  useEffect(() => setOpen(null), [kind, shown?.id]);
-
-  // Esc, or a click anywhere else, folds the open pill back in.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(null);
-    const onDown = (e: PointerEvent) => {
-      if (!row.current?.querySelector('.dockpill.is-open')?.contains(e.target as Node)) setOpen(null);
-    };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('pointerdown', onDown, true);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('pointerdown', onDown, true);
-    };
-  }, [open]);
 
   // Mirror the real shapes into the goo layer, frame by frame while anything is moving.
   useLayoutEffect(() => {
@@ -274,7 +338,7 @@ export function DockRow({ children, tucked = false }: { children: ReactNode; tuc
 
   const set = shown && kind ? LAYOUT[kind] : null;
   const pill = (id: PillId, side: 'left' | 'right') => (
-    <Pill key={`${shown!.id}:${id}`} id={id} sel={shown!} open={open === id} onToggle={() => setOpen((cur) => (cur === id ? null : id))} side={side} leaving={leaving} />
+    <Pill key={`${shown!.id}:${id}`} id={id} sel={shown!} side={side} leaving={leaving} />
   );
 
   return (

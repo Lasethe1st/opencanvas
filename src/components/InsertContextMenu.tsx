@@ -113,20 +113,20 @@ export function InsertContextMenu() {
       const live = flat.filter(enabled);
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
         setFocus((f) => (live.length ? (f + (e.key === 'ArrowDown' ? 1 : live.length - 1)) % live.length : 0));
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
         pick(live[focus]);
       } else if (e.key === 'Backspace') {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
         setQuery((v) => v.slice(0, -1));
         setFocus(0);
       } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
         setQuery((v) => v + e.key);
         setFocus(0);
       }
