@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowShrink02Icon, Cancel01Icon, ExpandIcon, MinusSignIcon, SentIcon } from '@hugeicons/core-free-icons';
+import { ArrowShrink02Icon, Cancel01Icon, ExpandIcon, MinusSignIcon, ArrowUp02Icon } from '@hugeicons/core-free-icons';
 import { setAsk, useAsk } from '../lib/ask-box';
 import { openAiSettings, sendToAi } from '../lib/ai';
 import { closeElementMenu } from '../lib/element-menu';
@@ -109,7 +109,7 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
               className="max-h-[3lh] min-h-[1lh] flex-1 resize-none self-center [field-sizing:content] bg-transparent py-0 text-sm outline-none placeholder:text-muted-foreground"
             />
             <button type="button" aria-label="Send" disabled={!text.trim()} className="grid size-8 shrink-0 place-items-center rounded-full bg-foreground text-background disabled:opacity-30" onClick={send}>
-              <HugeiconsIcon icon={SentIcon} size={15} strokeWidth={2} />
+              <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} />
             </button>
           </div>
         ) : (
