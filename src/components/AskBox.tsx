@@ -110,7 +110,7 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
                   send();
                 }
               }}
-              placeholder={busy ? 'Working… you can queue another' : ask.target ? `Ask about ${ask.target.name}…` : 'Ask AI…'}
+              placeholder={busy ? 'Working… you can queue another' : 'Ask…'}
               aria-label="Message"
               className="max-h-[3lh] min-h-[1lh] flex-1 resize-none self-center [field-sizing:content] bg-transparent py-0 text-sm outline-none placeholder:text-muted-foreground"
             />

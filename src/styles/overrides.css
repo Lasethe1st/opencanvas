@@ -1693,11 +1693,11 @@ kbd, .kbd,
 .assistant-docker { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .assistant-docker [data-slot='shapeshift'] { align-self: stretch; }
 .assistant-docker__context {
-  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; margin-left: 6px; padding: 4px 6px 4px 9px;
-  border: 1px solid var(--line); border-radius: var(--pill); corner-shape: round; background: var(--surface);
+  display: inline-flex; flex: none; align-items: center; gap: 5px; max-width: 46%; height: 24px; box-sizing: border-box; margin-left: -6px; padding: 0 4px 0 8px;
+  border: 0; border-radius: var(--pill); corner-shape: round; background: color-mix(in oklab, var(--fg) 8%, transparent);
   color: var(--muted); font-size: 12px; line-height: 16px;
 }
-.assistant-docker__context-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
+.assistant-docker__context-name { min-width: 0; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
 .assistant-docker__context code { font-family: var(--font-mono, monospace); font-size: 11px; }
 .assistant-docker__context button { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; color: inherit; cursor: pointer; }
 .assistant-docker__context button:hover { background: color-mix(in srgb, var(--fg) 10%, transparent); color: var(--fg); }
@@ -1730,7 +1730,7 @@ body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data
 .assistant-docker [data-slot='shapeshift-shell'] { border-radius: var(--pill, 999px) !important; corner-shape: round; transition: border-radius 0.2s var(--ease, ease), width 0.24s var(--ease, ease); }
 .assistant-docker [data-slot='shapeshift']:not([data-state='rest']) [data-slot='shapeshift-shell'],
 .assistant-docker[data-chat] [data-slot='shapeshift-shell'] { border-radius: 22px !important; corner-shape: squircle; }
-.assistant-docker__context { border-radius: 0 !important; }
+.assistant-docker__context { border-radius: 999px !important; }
 
 /* Tool rail: every tool visible at once; scroll only if the window is very short. */
 .workspace > .tool-rails { overflow-y: auto; scrollbar-width: none; }
@@ -1885,7 +1885,7 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .font-bloom__item { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 10px; font-size: 14px; cursor: pointer; }
 .font-bloom__item.is-focused { background: color-mix(in srgb, var(--fg) 8%, transparent); }
 .font-bloom__empty { display: flex; height: 100%; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
-.dockpill__chip { width: 18px; height: 18px; flex: none; border-radius: 999px !important; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 22%, transparent); }
+.dockpill__chip { width: 18px; height: 18px; flex: none; border-radius: 999px !important; box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--fg) 25%, transparent); }
 .dockpill__picker { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 .dockpill :focus-visible { outline: 2px solid var(--accent, #3b82f6); outline-offset: -2px; }
 @media (prefers-reduced-motion: reduce) { .dockpill, .dockpill.is-leaving { animation: none; } }
