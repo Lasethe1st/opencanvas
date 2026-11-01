@@ -2009,3 +2009,16 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
   color: var(--fg);
 }
 .page-wrapper__count { font-size: 12px; color: var(--fg-3); }
+
+/* Frame labels are just a device icon (desktop, tablet, mobile); the frame name lives in the tooltip. */
+.frame-chrome__device {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--fg-3);
+}
+.frame-chrome__label:hover .frame-chrome__device,
+.frame-chrome.is-active .frame-chrome__device { color: var(--fg); }

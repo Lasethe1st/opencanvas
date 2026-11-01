@@ -32,6 +32,7 @@ export function FrameChrome(props: {
   name: ReactNode;
   size?: ReactNode;
   scope: ReactNode;
+  device?: 'base' | 'tablet' | 'mobile';
   active?: boolean;
   fitPage?: boolean;
   onActivate?: () => void;
