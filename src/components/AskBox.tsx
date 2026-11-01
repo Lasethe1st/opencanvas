@@ -4,15 +4,16 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { AiMagicIcon, ArrowShrink02Icon, Cancel01Icon, ArrowExpand01Icon, MinusSignIcon, SentIcon } from '@hugeicons/core-free-icons';
 import { setAsk, useAsk } from '../lib/ask-box';
 import { openAiSettings, sendToAi } from '../lib/ai';
-import { openElementMenu, closeElementMenu } from '../lib/element-menu';
-import { useStore } from '../lib/store';
+import { closeElementMenu } from '../lib/element-menu';
+import { setState, useStore } from '../lib/store';
 import { HomeChat } from './home/HomeChat';
 
 export const CHAT_W = 380;
 export const CHAT_H = 480;
 
+/** Fold the chat back into the dock. The thread is kept; the dock shows it's there and reopens it. */
 export function minimizeAsk() {
-  setAsk({ mode: 'min' });
+  setAsk({ mode: 'none' });
   closeElementMenu();
 }
 export function maximizeAsk() {
@@ -23,10 +24,11 @@ export function closeAsk() {
   setAsk({ mode: 'none' });
   closeElementMenu();
 }
-/** Bring the chat back out of the bubble (or the maximised dialog), blooming from the bottom-left corner. */
+/** Leave the maximised dialog for the dock chat, so the conversation stays in one place. */
 export function restoreAsk() {
-  setAsk({ mode: 'chat' });
-  openElementMenu(16, window.innerHeight - 16);
+  setAsk({ mode: 'none' });
+  closeElementMenu();
+  setState({ dockMode: 'input' });
 }
 
 const iconBtn = 'grid size-7 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground';
@@ -115,10 +117,9 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
   );
 }
 
-/** The minimised bubble and the maximised dialog. (The normal floating box is the context menu's bloom.) */
+/** The maximised dialog. (The normal floating box is the context menu's bloom; minimising folds into the dock.) */
 export function AskBox() {
   const ask = useAsk();
-  const busy = useStore((s) => !!s.aiTurnId);
 
   useEffect(() => {
     if (ask.mode !== 'max') return;
@@ -127,23 +128,6 @@ export function AskBox() {
     return () => window.removeEventListener('keydown', onKey);
   }, [ask.mode]);
 
-  if (ask.mode === 'min') {
-    return createPortal(
-      <button
-        type="button"
-        data-tw=""
-        data-bloom-menu=""
-        aria-label="Open Ask AI chat"
-        title="Open chat"
-        onClick={restoreAsk}
-        className={`fixed z-[300] grid size-11 place-items-center rounded-full border border-[color:var(--frost-border)] bg-[var(--frost-bg)] text-foreground shadow-[var(--shadow-md)] transition-transform hover:scale-105 ${busy ? 'animate-pulse' : ''}`}
-        style={{ left: 16, bottom: 16, WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)' }}
-      >
-        <HugeiconsIcon icon={AiMagicIcon} size={20} strokeWidth={2} />
-      </button>,
-      document.body,
-    );
-  }
   if (ask.mode === 'max') {
     return createPortal(
       <div data-tw="" className="fixed inset-0 z-[300] grid place-items-start justify-items-center bg-overlay p-4 pt-[10vh] motion-safe:animate-[fade-in_0.15s_ease-out]" onPointerDown={(e) => e.target === e.currentTarget && minimizeAsk()}>

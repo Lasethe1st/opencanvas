@@ -1705,7 +1705,8 @@ kbd, .kbd,
 
 
 /* Docker conversation: the home chat thread inside the dock panel. */
-.assistant-docker__chat { overflow: hidden; border-bottom: 1px solid var(--line); }
+.assistant-docker__chat { overflow: clip; border-bottom: 1px solid var(--line); }
+/* clip, not hidden: focusing an answer field must not scroll the header out of the fixed box. */
 .assistant-docker__chat > * { height: 100%; }
 .docker-chat { display: flex; flex-direction: column; height: 100%; background: transparent; }
 .docker-chat__head { display: flex; align-items: center; gap: 2px; padding: 8px 8px 4px 14px; }
@@ -1903,3 +1904,10 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .dockrow .canvas-shapeshift:not([data-chat]) { width: min(420px, calc(100vw - 32px)); }
 /* When the chat blooms, take the squircle corners at once; easing down from 999px would keep it a pill mid-bloom. */
 .assistant-docker[data-chat] [data-slot='shapeshift-shell'] { transition: width 0.24s var(--ease, ease); }
+
+/* Folded chat: the AI icon at the start of the dock reopens it; the dot means a reply is still streaming. */
+.dock-chat-dot { position: relative; display: grid; place-items: center; width: 18px; height: 18px; color: var(--muted); cursor: pointer; }
+.dock-chat-dot:hover { color: var(--fg); }
+.dock-chat-dot[data-busy]::after { content: ''; position: absolute; top: -2px; right: -3px; width: 7px; height: 7px; border-radius: 50% !important; background: var(--fg); box-shadow: 0 0 0 2px var(--goo-fill, var(--surface)); animation: dock-dot 1.2s ease-in-out infinite; }
+@keyframes dock-dot { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .dock-chat-dot[data-busy]::after { animation: none; } }
