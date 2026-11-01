@@ -266,14 +266,31 @@ function stageInsets() {
   return { left: parseFloat(cs.getPropertyValue('--inset-l')) || 0, right: parseFloat(cs.getPropertyValue('--inset-r')) || 0 };
 }
 
+/** Page-wrapper padding in world units: ~48px on screen at 100%, never thinner than 24px (sides) / 48px (top, holds the frame labels) when zoomed out. */
+export const wrapperPad = (zoom: number) => ({ side: Math.max(48, 24 / zoom), top: Math.max(64, 48 / zoom) });
+/** Screen px above a wrapper taken by its title. */
+const WRAPPER_TITLE_H = 40;
+
+/** Frames' union grown to the page wrappers around them, plus room for the wrapper titles above. */
+function fitBounds(all: Rect[], zoom: number): Rect | null {
+  const b = unionRect(all);
+  if (!b) return null;
+  const { side, top } = wrapperPad(zoom);
+  const t = top + WRAPPER_TITLE_H / zoom;
+  return { x: b.x - side, y: b.y - t, width: b.width + 2 * side, height: b.height + t + side };
+}
+
 export function fitAll() {
   const all = rects();
-  const bounds = unionRect(all);
+  let bounds = fitBounds(all, getState().camera.zoom || 1);
   if (!bounds || !stage.width) return;
   const inset = stageInsets();
   const view = { width: Math.max(stage.width - inset.left - inset.right, 80), height: stage.height };
   const rightmost = all.reduce((a, r) => (r.x + r.width > a.x + a.width ? r : a), all[0]);
-  let cam = fitCamera(bounds, view, 72, 1);
+  let cam = fitCamera(bounds, view, 24, 1);
+  // Padding depends on zoom: refit once at the zoom we landed on.
+  bounds = fitBounds(all, cam.zoom)!;
+  cam = fitCamera(bounds, view, 24, 1);
   // Keep the rightmost frame label (fixed screen width) at least 24px clear of the card edge.
   for (let i = 0; i < 3; i++) {
     const labelEnd = rightmost.x * cam.zoom + cam.x + Math.max(rightmost.width * cam.zoom, FRAME_LABEL_W);

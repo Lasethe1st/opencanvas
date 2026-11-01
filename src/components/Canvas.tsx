@@ -48,6 +48,7 @@ import {
   displayRect,
   duplicateFrame,
   fitAll,
+  wrapperPad,
   fitSelection,
   layoutRedo,
   layoutUndo,
@@ -766,8 +767,7 @@ export function Canvas({ hidden }: { hidden: boolean }) {
       const y0 = Math.min(...g.rects.map((r) => r.y));
       const x1 = Math.max(...g.rects.map((r) => r.x + r.width));
       const y1 = Math.max(...g.rects.map((r) => r.y + r.height));
-      const side = 40;
-      const top = Math.max(64, 40 / z);
+      const { side, top } = wrapperPad(z);
       const world = { x: x0 - side, y: y0 - top, width: x1 - x0 + 2 * side, height: y1 - y0 + top + side };
       const p = worldToScreen(camera, world);
       return { id, name: g.name, count: g.rects.length, world, screen: { x: p.x, y: p.y, width: world.width * z } };
