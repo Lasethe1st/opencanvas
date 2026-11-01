@@ -1,5 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { Menu } from 'bloom-menu';
+import { motion } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   AiMagicIcon, ArrowDown01Icon, ArrowUp01Icon, CodeIcon, Copy01Icon, Copy02Icon, Delete02Icon, Download01Icon, Edit02Icon, FolderTransferIcon, LeftToRightListBulletIcon, PackageIcon, Tick02Icon,
@@ -49,41 +51,61 @@ async function exportElement() {
   URL.revokeObjectURL(url);
 }
 
-/** Right-click on an element in the canvas: the actions that used to live in the little bar above it. */
+const BLOOM_SEED = 8;
+/** Matches Menu.Root visualDuration so the close morph finishes before unmount. */
+const BLOOM_CLOSE_MS = 320;
+const MENU_W = 224;
+const MENU_H = 430;
+
+type Snap = { selection: NonNullable<ReturnType<typeof getState>['selection']>; hasSource: boolean; source: { file: string; line: number } | null; editable: boolean };
+
+/** Right-click on an element in the canvas: the menu blooms out of the pointer (bloom-menu) and its options stagger in. */
 export function ElementContextMenu() {
   const at = useElementMenu();
   const selection = useStore((s) => s.selection);
   const sourceInfo = useStore((s) => s.sourceInfo);
   const editable = useStore((s) => s.project?.editable ?? false);
-  const ref = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
-
-  useLayoutEffect(() => {
-    if (!at || !ref.current) return setPos(null);
-    const r = ref.current.getBoundingClientRect();
-    setPos({ left: Math.max(8, Math.min(at.x, window.innerWidth - r.width - 8)), top: Math.max(8, Math.min(at.y, window.innerHeight - r.height - 8)) });
-  }, [at, selection?.id]);
+  const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
+  const [phase, setPhase] = useState<'closed' | 'opening' | 'open'>('closed');
+  const [snap, setSnap] = useState<Snap | null>(null);
+  const timer = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!at) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeElementMenu();
-    const onDown = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) closeElementMenu();
-    };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('pointerdown', onDown, true);
-    window.addEventListener('blur', closeElementMenu);
-    window.addEventListener('resize', closeElementMenu);
+    if (timer.current != null) window.clearTimeout(timer.current);
+    if (at && selection) {
+      setOrigin(at);
+      setSnap({ selection, hasSource: !!sourceInfo, source: sourceInfo ? { file: sourceInfo.file, line: sourceInfo.line } : null, editable });
+      setPhase('opening');
+    } else if (origin) {
+      setPhase('closed');
+      timer.current = window.setTimeout(() => setOrigin(null), BLOOM_CLOSE_MS);
+    }
     return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('pointerdown', onDown, true);
-      window.removeEventListener('blur', closeElementMenu);
-      window.removeEventListener('resize', closeElementMenu);
+      if (timer.current != null) window.clearTimeout(timer.current);
     };
-  }, [at]);
+  }, [at]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!at || !selection) return null;
-  const canEditText = INLINE_TAGS.has(selection.tag) && !!sourceInfo?.textEditable && editable;
+  // 'opening' mounts the menu closed for one frame so the morph has a start state.
+  useEffect(() => {
+    if (phase !== 'opening') return;
+    const id = requestAnimationFrame(() => setPhase('open'));
+    return () => cancelAnimationFrame(id);
+  }, [phase]);
+
+  useEffect(() => {
+    if (!origin) return;
+    const close = () => closeElementMenu();
+    window.addEventListener('blur', close);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('blur', close);
+      window.removeEventListener('resize', close);
+    };
+  }, [origin]);
+
+  if (!origin || !snap) return null;
+  const { selection: sel, editable: canEdit } = snap;
+  const canEditText = INLINE_TAGS.has(sel.tag) && !!sourceInfo?.textEditable && canEdit;
   const groups: Item[][] = [
     [
       { label: 'Ask AI', icon: icon(AiMagicIcon), run: askAi },
@@ -92,32 +114,66 @@ export function ElementContextMenu() {
     ],
     [
       ...(canEditText ? [{ label: 'Edit text', icon: icon(Edit02Icon), hint: 'Enter', run: editSelectedText }] : []),
-      { label: 'Duplicate', icon: icon(Copy02Icon), disabled: !editable, run: () => void duplicateSelected() },
-      { label: 'Select parent', icon: icon(FolderTransferIcon), disabled: !selection.parentId, run: selectParent },
-      { label: 'Move up', icon: icon(ArrowUp01Icon), hint: 'Alt+↑', disabled: !editable, run: () => void moveSelected('up') },
-      { label: 'Move down', icon: icon(ArrowDown01Icon), hint: 'Alt+↓', disabled: !editable, run: () => void moveSelected('down') },
-      { label: 'Group', icon: icon(PackageIcon), disabled: !editable, run: () => void groupSelected() },
-      { label: 'Ungroup', icon: icon(LeftToRightListBulletIcon), disabled: !editable, run: () => void ungroupSelected() },
+      { label: 'Duplicate', icon: icon(Copy02Icon), disabled: !canEdit, run: () => void duplicateSelected() },
+      { label: 'Select parent', icon: icon(FolderTransferIcon), disabled: !sel.parentId, run: selectParent },
+      { label: 'Move up', icon: icon(ArrowUp01Icon), hint: 'Alt+↑', disabled: !canEdit, run: () => void moveSelected('up') },
+      { label: 'Move down', icon: icon(ArrowDown01Icon), hint: 'Alt+↓', disabled: !canEdit, run: () => void moveSelected('down') },
+      { label: 'Group', icon: icon(PackageIcon), disabled: !canEdit, run: () => void groupSelected() },
+      { label: 'Ungroup', icon: icon(LeftToRightListBulletIcon), disabled: !canEdit, run: () => void ungroupSelected() },
     ],
     [
-      { label: 'Open in code', icon: icon(CodeIcon), disabled: !sourceInfo, run: () => sourceInfo && revealInCode(sourceInfo.file, sourceInfo.line) },
-      { label: 'Delete', icon: icon(Delete02Icon), hint: 'Del', danger: true, disabled: !editable, run: () => void removeSelected() },
+      { label: 'Open in code', icon: icon(CodeIcon), disabled: !snap.source, run: () => snap.source && revealInCode(snap.source.file, snap.source.line) },
+      { label: 'Delete', icon: icon(Delete02Icon), hint: 'Del', danger: true, disabled: !canEdit, run: () => void removeSelected() },
     ],
   ];
+  // Grow towards the side with room.
+  const up = origin.y + MENU_H > window.innerHeight - 8;
+  const end = origin.x + MENU_W > window.innerWidth - 8;
+  let n = 0;
   return createPortal(
-    <div ref={ref} className="popover element-menu" role="menu" aria-label={`Actions for ${selection.name}`} style={{ position: 'fixed', zIndex: 60, left: pos?.left ?? at.x, top: pos?.top ?? at.y, visibility: pos ? 'visible' : 'hidden', minWidth: 200 }} onContextMenu={(e) => e.preventDefault()}>
-      <div className="menu-title">{selection.name}</div>
-      {groups.map((g, gi) => (
-        <div key={gi} className="element-menu__group">
-          {g.map((it) => (
-            <button key={it.label} type="button" role="menuitem" className={`menu-item${it.danger ? ' is-danger' : ''}`} disabled={it.disabled} onClick={() => { closeElementMenu(); it.run(); }}>
-              {it.icon}
-              {it.label}
-              {it.hint && <span className="menu-item__hint">{it.hint}</span>}
-            </button>
-          ))}
-        </div>
-      ))}
+    <div
+      data-tw=""
+      data-bloom-menu=""
+      onContextMenu={(e) => e.preventDefault()}
+      style={{ position: 'fixed', top: origin.y - (up ? BLOOM_SEED : 0), left: origin.x - (end ? BLOOM_SEED : 0), width: BLOOM_SEED, height: BLOOM_SEED, zIndex: 400 }}
+    >
+      <Menu.Root open={phase === 'open'} onOpenChange={(next) => !next && closeElementMenu()} direction={up ? 'top' : 'bottom'} anchor={end ? 'end' : 'start'} bounce={0.12} visualDuration={0.28}>
+        <Menu.Container
+          buttonSize={BLOOM_SEED}
+          menuWidth={MENU_W}
+          menuRadius={16}
+          buttonRadius={BLOOM_SEED / 2}
+          className="border border-[color:var(--frost-border)] bg-[var(--frost-bg)] text-foreground"
+          style={{ WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)', boxShadow: phase === 'open' ? 'var(--shadow-md)' : 'none' }}
+        >
+          <Menu.Trigger className="opacity-0">
+            <span className="sr-only">Actions for {sel.name}</span>
+          </Menu.Trigger>
+          <Menu.Content className="flex flex-col p-1.5 pt-2" style={{ width: MENU_W, boxSizing: 'border-box' }}>
+            <div className="truncate px-2.5 pb-1 text-xs font-medium text-muted-foreground">{sel.name}</div>
+            {groups.map((g, gi) => (
+              <div key={gi} className={gi ? 'mt-1 border-t border-foreground/[0.08] pt-1' : ''}>
+                {g.map((it) => {
+                  const delay = 0.05 + 0.022 * n++;
+                  return (
+                    <motion.div key={it.label} initial={{ opacity: 0, y: -4 }} animate={phase === 'open' ? { opacity: 1, y: 0 } : { opacity: 0, y: -4 }} transition={{ delay: phase === 'open' ? delay : 0, duration: 0.18, ease: 'easeOut' }}>
+                      <Menu.Item
+                        disabled={it.disabled}
+                        className={`flex w-full cursor-pointer select-none items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-sm outline-none transition-colors duration-150 hover:bg-accent aria-disabled:pointer-events-none aria-disabled:opacity-40 data-[disabled]:pointer-events-none data-[disabled]:opacity-40 [&_svg]:shrink-0 ${it.danger ? 'text-destructive [&_svg]:text-destructive' : 'text-foreground [&_svg]:text-muted-foreground'}`}
+                        onSelect={it.run}
+                      >
+                        {it.icon}
+                        <span className="flex-1">{it.label}</span>
+                        {it.hint && <span className="text-xs text-muted-foreground">{it.hint}</span>}
+                      </Menu.Item>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ))}
+          </Menu.Content>
+        </Menu.Container>
+      </Menu.Root>
     </div>,
     document.body,
   );

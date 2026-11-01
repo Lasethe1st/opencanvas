@@ -1720,7 +1720,7 @@ kbd, .kbd,
 :where(body:has(.shell .workspace) *:not(
   .assistant-docker [data-slot='shapeshift-shell'], .assistant-docker [data-slot='shapeshift-shell'] *,
   [class*='avatar'], [class*='badge'], [class*='orb'], [class*='spin'], [class*='dot'],
-  [role='dialog'], [role='dialog'] *, .stage__world *, .calm-pill
+  [role='dialog'], [role='dialog'] *, .stage__world *, .calm-pill, [data-bloom-menu], [data-bloom-menu] *
 )) { border-radius: 0 !important; }
 body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data-tip]::before { border-radius: 0 !important; }
 
@@ -1742,7 +1742,7 @@ body:has(.shell .workspace) :is(
   .toggle-more__select, .state-switcher-select, .input, .search, .search input, textarea,
   input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
   .swatch, .section__icon, .field-select, .ai-option, .ai-card__text input
-):not(.assistant-docker *, [class*='avatar'], .stage__world *, .calm-pill) { border-radius: 10px !important; corner-shape: squircle; }
+):not(.assistant-docker *, [class*='avatar'], .stage__world *, .calm-pill, [data-bloom-menu] *) { border-radius: 10px !important; corner-shape: squircle; }
 /* Active, selected and pressed states follow the same soft corner. */
 body:has(.shell .workspace) :is(.is-active, .is-current, .is-selected, [aria-selected='true'], [aria-pressed='true'], [aria-current='true'], .segmented__pill):not(.assistant-docker *, .stage__world *, .calm-pill) { border-radius: 10px !important; corner-shape: squircle; }
 /* Switches are pills; checkboxes and radios get a small radius. */
@@ -1899,9 +1899,3 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 @media (prefers-reduced-motion: reduce) { .merge-layer rect, .merge-layer path { transition: opacity 120ms linear; } }
 /* The bar is 420px wide; size its slot to match so the pills on the right can join it too. */
 .dockrow .canvas-shapeshift:not([data-chat]) { width: min(420px, calc(100vw - 32px)); }
-
-/* Right-click menu on a canvas element */
-.element-menu { padding: 6px; }
-.element-menu__group + .element-menu__group { margin-top: 4px; padding-top: 4px; border-top: 1px solid color-mix(in srgb, var(--fg) 8%, transparent); }
-.element-menu .menu-item { width: 100%; gap: 10px; }
-.element-menu .menu-item.is-danger { color: var(--danger, #dc2626); }
