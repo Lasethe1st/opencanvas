@@ -723,6 +723,31 @@ export function Canvas({ hidden }: { hidden: boolean }) {
     const p = worldToScreen(camera, r);
     return { x: p.x, y: p.y, width: r.width * camera.zoom, height: r.height * camera.zoom };
   };
+  // Wrappers: frames that show the same page (e.g. its desktop, tablet and mobile sizes) sit on one
+  // shared background, titled with the page name just outside it. Padding is in canvas units so it
+  // zooms with the frames; the top never gets thinner on screen than the frame labels it has to hold.
+  const wrappers = (() => {
+    const groups = new Map<string, { name: string; rects: { x: number; y: number; width: number; height: number }[] }>();
+    for (const f of frames) {
+      const page = pageOf(f, { projectConfig });
+      const key = page?.id ?? '';
+      const g = groups.get(key) ?? { name: page?.name ?? 'Page', rects: [] };
+      g.rects.push(rectOf(f));
+      groups.set(key, g);
+    }
+    const z = camera.zoom;
+    return [...groups.entries()].map(([id, g]) => {
+      const x0 = Math.min(...g.rects.map((r) => r.x));
+      const y0 = Math.min(...g.rects.map((r) => r.y));
+      const x1 = Math.max(...g.rects.map((r) => r.x + r.width));
+      const y1 = Math.max(...g.rects.map((r) => r.y + r.height));
+      const side = 40;
+      const top = Math.max(64, 40 / z);
+      const world = { x: x0 - side, y: y0 - top, width: x1 - x0 + 2 * side, height: y1 - y0 + top + side };
+      const p = worldToScreen(camera, world);
+      return { id, name: g.name, count: g.rects.length, world, screen: { x: p.x, y: p.y, width: world.width * z } };
+    });
+  })();
   const toScreenGuide = (g: Guide) =>
     g.axis === 'x'
       ? { axis: g.axis, at: g.at * camera.zoom + camera.x, from: g.from * camera.zoom + camera.y, to: g.to * camera.zoom + camera.y }
@@ -789,6 +814,14 @@ export function Canvas({ hidden }: { hidden: boolean }) {
       world={
         running && (
           <>
+            {wrappers.map((w) => (
+              <div
+                key={`wrap:${w.id}`}
+                className="page-wrapper"
+                aria-hidden="true"
+                style={{ left: w.world.x, top: w.world.y, width: w.world.width, height: w.world.height, borderRadius: 32, borderWidth: 1 / camera.zoom }}
+              />
+            ))}
             {frames.map((f) => {
               const r = rectOf(f);
               const eff = effective(f);
@@ -864,6 +897,12 @@ export function Canvas({ hidden }: { hidden: boolean }) {
       }
       chrome={
         <>
+          {wrappers.map((w) => (
+            <div key={`wrap-title:${w.id}`} className="page-wrapper__title" style={{ left: w.screen.x, top: w.screen.y, maxWidth: Math.max(w.screen.width, 120) }}>
+              <span className="page-wrapper__name">{w.name}</span>
+              {w.count > 1 && <span className="page-wrapper__count">{w.count} frames</span>}
+            </div>
+          ))}
           {frames.map((f) => {
             const eff = effective(f);
             const scope = scopeOf(eff.width);

@@ -1975,3 +1975,31 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .ctx-danger { color: var(--destructive); }
 .ctx-danger svg { color: var(--destructive) !important; }
 .ctx-danger:hover, .ctx-danger[data-highlighted] { background: color-mix(in oklab, var(--destructive) 10%, transparent) !important; }
+
+/* Page wrappers: one background behind all the frames of a page, titled just above it. */
+.page-wrapper {
+  position: absolute;
+  pointer-events: none;
+  background: color-mix(in oklab, var(--fg) 4%, transparent);
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--line) 80%, transparent);
+  corner-shape: superellipse(2);
+}
+.page-wrapper__title {
+  position: absolute;
+  transform: translateY(calc(-100% - 8px));
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.page-wrapper__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.page-wrapper__count { font-size: 12px; color: var(--fg-3); }
