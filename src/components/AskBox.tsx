@@ -64,7 +64,7 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-1 px-3.5 pb-1.5 pt-2.5">
-        <span className="mr-auto truncate ps-0.5 font-mono text-[13px] font-medium" title={ask.target?.name}>{titleOf(ask.target)}</span>
+        <span className="mr-auto truncate ps-0.5 font-mono text-xs font-medium" title={titleOf(ask.target)}>{titleOf(ask.target)}</span>
         <button type="button" aria-label="Minimize" title="Minimize" className={iconBtn} onClick={minimizeAsk}>
           <HugeiconsIcon icon={MinusSignIcon} size={15} strokeWidth={2} />
         </button>
