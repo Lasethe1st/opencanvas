@@ -85,7 +85,7 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
           </p>
         )}
       </div>
-      <div className="p-2.5">
+      <div className="p-3 pt-2">
         {ready ? (
           <div className="flex items-end gap-1.5 rounded-[18px] bg-muted/70 p-1.5 ps-3.5">
             <textarea
@@ -101,7 +101,7 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
               }}
               placeholder={busy ? 'Working… you can queue another' : ask.target ? `Ask about ${ask.target.name}…` : 'Ask AI…'}
               aria-label="Message"
-              className="max-h-[96px] min-h-[28px] flex-1 resize-none self-center bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground"
+              className="max-h-[3lh] min-h-[1lh] flex-1 resize-none self-center [field-sizing:content] bg-transparent py-0 text-sm outline-none placeholder:text-muted-foreground"
             />
             <button type="button" aria-label="Send" disabled={!text.trim()} className="grid size-8 shrink-0 place-items-center rounded-full bg-foreground text-background disabled:opacity-30" onClick={send}>
               <HugeiconsIcon icon={SentIcon} size={15} strokeWidth={2} />

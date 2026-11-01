@@ -55,7 +55,7 @@ const BLOOM_SEED = 8;
 /** Matches Menu.Root visualDuration so the close morph finishes before unmount. */
 const BLOOM_CLOSE_MS = 320;
 const MENU_W = 224;
-const MENU_H = 470;
+const MENU_H = 572;
 
 type Snap = { selection: ReturnType<typeof getState>['selection']; hasSource: boolean; source: { file: string; line: number } | null; editable: boolean };
 
@@ -148,16 +148,23 @@ export function ElementContextMenu() {
       { label: 'Delete', icon: icon(Delete02Icon), hint: 'Del', danger: true, disabled: !canEdit, run: () => void removeSelected() },
     ],
   ];
-  // Grow towards the side with room.
-  const up = origin.y + MENU_H > window.innerHeight - 8;
-  const end = origin.x + MENU_W > window.innerWidth - 8;
+  // Grow towards the side with more room, sized for whichever is bigger (menu or chat) so the
+  // direction never flips mid-morph; when neither side fits, slide the anchor so it stays on screen.
+  const H = Math.max(MENU_H, CHAT_H + 2);
+  const W = Math.max(MENU_W, CHAT_W);
+  const vh = window.innerHeight;
+  const vw = window.innerWidth;
+  const up = origin.y + H > vh - 8 && origin.y > vh - origin.y;
+  const end = origin.x + W > vw - 8 && origin.x > vw - origin.x;
+  const ay = up ? Math.min(vh - 8, Math.max(origin.y, 8 + H)) : Math.max(8, Math.min(origin.y, vh - 8 - H));
+  const ax = end ? Math.min(vw - 8, Math.max(origin.x, 8 + W)) : Math.max(8, Math.min(origin.x, vw - 8 - W));
   let n = 0;
   return createPortal(
     <div
       data-tw=""
       data-bloom-menu=""
       onContextMenu={(e) => e.preventDefault()}
-      style={{ position: 'fixed', top: origin.y - (up ? BLOOM_SEED : 0), left: origin.x - (end ? BLOOM_SEED : 0), width: BLOOM_SEED, height: BLOOM_SEED, zIndex: 400 }}
+      style={{ position: 'fixed', top: ay - (up ? BLOOM_SEED : 0), left: ax - (end ? BLOOM_SEED : 0), width: BLOOM_SEED, height: BLOOM_SEED, zIndex: 400 }}
     >
       <Menu.Root open={phase === 'open'} onOpenChange={(next) => {
           if (next) return;
