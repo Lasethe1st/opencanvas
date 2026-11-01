@@ -7,21 +7,10 @@ import { openAiSettings, sendToAi } from '../lib/ai';
 import { closeElementMenu } from '../lib/element-menu';
 import { setState, useStore } from '../lib/store';
 import { HomeChat } from './home/HomeChat';
+import { LayerIcon, layerKind } from '../lib/layer-icons';
 
 export const CHAT_W = 380;
 /** The chat is titled with the element's class (".hero-title"); elements without one show their tag. */
-/** Rough element families, so the title tag can be tinted by what was picked. */
-const KINDS: Record<string, string[]> = {
-  text: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'label', 'strong', 'em', 'b', 'i', 'li', 'blockquote', 'small', 'code'],
-  media: ['img', 'svg', 'video', 'picture', 'canvas', 'figure', 'iframe'],
-  control: ['button', 'input', 'textarea', 'select', 'form', 'option'],
-  layout: ['div', 'section', 'main', 'header', 'footer', 'nav', 'article', 'aside', 'ul', 'ol', 'body'],
-};
-function kindOf(tag?: string): string {
-  if (!tag) return 'other';
-  for (const [kind, tags] of Object.entries(KINDS)) if (tags.includes(tag)) return kind;
-  return 'other';
-}
 function titleOf(target: { name: string; tag?: string } | null): string {
   if (!target) return 'Ask AI';
   const cls = /\s\.(\S+)$/.exec(target.name)?.[1];
@@ -77,12 +66,9 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-1 px-3.5 pb-1.5 pt-2.5">
         <span className="mr-auto flex min-w-0">
-          <span
-            className="ask-tag truncate font-mono text-xs font-medium"
-            data-kind={kindOf(ask.target?.tag)}
-            title={titleOf(ask.target)}
-          >
-            {titleOf(ask.target)}
+          <span className="ask-tag" data-kind={ask.target?.tag ? layerKind(ask.target.tag) : 'struct'} title={titleOf(ask.target)}>
+            {ask.target?.tag && <LayerIcon tag={ask.target.tag} size={12} color="currentColor" className="shrink-0" />}
+            <span className="truncate">{titleOf(ask.target)}</span>
           </span>
         </span>
         <button type="button" aria-label="Minimize" title="Minimize" className={iconBtn} onClick={minimizeAsk}>

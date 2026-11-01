@@ -1920,27 +1920,53 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
   transition: height 0.24s var(--ease, ease);
 }
 
-/* Right-click menu and the Ask AI chat it blooms into: see-through frosted glass. */
-:root {
-  --glass-bg: color-mix(in srgb, var(--surface) 58%, transparent);
-  --glass-filter: blur(24px) saturate(1.8);
+/* Right-click menu and the Ask AI chat it blooms into: frosted glass from the first frame of the
+   bloom, so the glass grows with the shape. Once it has settled into the chat, the surface firms up
+   to 92% so long replies stay readable over a busy design. */
+.ctx-bloom {
+  --glass-edge: rgb(255 255 255 / 0.4);
+  background: color-mix(in oklab, var(--surface) 72%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-color: var(--glass-edge);
+  transition: background-color 0.2s ease;
 }
-[data-theme='dark'] {
-  --glass-bg: color-mix(in srgb, var(--surface) 74%, transparent);
+[data-theme='dark'] .ctx-bloom { --glass-edge: rgb(255 255 255 / 0.08); }
+.ctx-bloom--chat {
+  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  transition: background-color 0.2s ease 0.28s, height 0.24s var(--ease, ease);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ctx-bloom { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; border-color: var(--line); }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ctx-bloom { background: var(--surface); border-color: var(--line); }
 }
 
-/* Class-name tag in the Ask AI header: a squircle whose radius is the panel's 16px minus the
-   10px it sits in from the edge, tinted by the kind of element that was picked. */
+/* Class-name chip in the Ask AI header, in the layers panel's kind colours. Radius is the panel's
+   16px minus the 10px inset, with the same superellipse curve. Light mode darkens the text for contrast. */
 .ask-tag {
-  --tag: var(--fg-3);
-  padding: 3px 8px;
+  --kind: var(--layer-struct);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 24px;
+  padding: 2px 8px;
   border-radius: 6px;
-  corner-shape: squircle;
-  color: color-mix(in srgb, var(--tag) 80%, var(--fg));
-  background: color-mix(in srgb, var(--tag) 14%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tag) 22%, transparent);
+  corner-shape: superellipse(2);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--kind) 60%, black);
+  background: color-mix(in oklab, var(--kind) 12%, transparent);
 }
-.ask-tag[data-kind='text'] { --tag: #3b82f6; }
-.ask-tag[data-kind='media'] { --tag: #10b981; }
-.ask-tag[data-kind='control'] { --tag: #f97316; }
-.ask-tag[data-kind='layout'] { --tag: #8b5cf6; }
+[data-theme='dark'] .ask-tag {
+  color: var(--kind);
+  background: color-mix(in oklab, var(--kind) 18%, transparent);
+}
+.ask-tag[data-kind='text'] { --kind: var(--layer-text); }
+.ask-tag[data-kind='media'] { --kind: var(--layer-media); }
+.ask-tag[data-kind='action'] { --kind: var(--layer-action); }
+.ask-tag[data-kind='form'] { --kind: var(--layer-form); }
+.ask-tag[data-kind='struct'] { --kind: var(--layer-struct); }
