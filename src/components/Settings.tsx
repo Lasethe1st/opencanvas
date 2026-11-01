@@ -119,8 +119,7 @@ function GeneralSettings() {
             <Tooltip key={id}>
               <TooltipTrigger asChild>
                 <button type="button" role="radio" aria-checked={fontSize === id} aria-label={label} className={`theme-toggle__btn${fontSize === id ? ' is-active' : ''}`} onClick={() => setChatFontSize(id)}>
-                  <Type size={id === 'small' ? 13 : id === 'large' ? 17 : 15} strokeWidth={1.75} aria-hidden />
-                  <span>{label}</span>
+                  <Type size={id === 'small' ? 12 : id === 'large' ? 18 : 15} strokeWidth={1.75} aria-hidden />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom">{label}</TooltipContent>
@@ -149,10 +148,14 @@ function AppearanceSettings() {
         <SettingRow label="Color mode">
           <div className="theme-toggle" role="radiogroup" aria-label="Theme">
             {THEMES.map(({ id, label, icon: Icon }) => (
-              <button key={id} type="button" role="radio" aria-checked={preference === id} className={`theme-toggle__btn${preference === id ? ' is-active' : ''}`} onClick={() => setThemePreference(id)}>
-                <Icon size={15} strokeWidth={1.75} aria-hidden />
-                <span>{label}</span>
-              </button>
+              <Tooltip key={id}>
+                <TooltipTrigger asChild>
+                  <button type="button" role="radio" aria-checked={preference === id} aria-label={label} className={`theme-toggle__btn${preference === id ? ' is-active' : ''}`} onClick={() => setThemePreference(id)}>
+                    <Icon size={15} strokeWidth={1.75} aria-hidden />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{label}</TooltipContent>
+              </Tooltip>
             ))}
           </div>
         </SettingRow>
