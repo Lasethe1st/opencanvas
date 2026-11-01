@@ -116,7 +116,7 @@ export function ElementContextMenu() {
   const askAbout = (request: string) => {
     if (!sel) return;
     switching.current = true;
-    setAsk({ mode: 'chat', target: { id: sel.id, name: sel.name } });
+    setAsk({ mode: 'chat', target: { id: sel.id, name: sel.name, tag: sel.tag } });
     const text = request.trim();
     if (text && getState().aiStatus?.ready) void sendToAi(text, { references: [{ kind: 'layer', name: sel.name, id: sel.id }] });
   };

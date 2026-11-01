@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { AiMagicIcon, ArrowShrink02Icon, Cancel01Icon, ExpandIcon, MinimizeScreenIcon, SentIcon } from '@hugeicons/core-free-icons';
+import { ArrowShrink02Icon, Cancel01Icon, ExpandIcon, MinusSignIcon, SentIcon } from '@hugeicons/core-free-icons';
 import { setAsk, useAsk } from '../lib/ask-box';
 import { openAiSettings, sendToAi } from '../lib/ai';
 import { closeElementMenu } from '../lib/element-menu';
@@ -9,6 +9,12 @@ import { setState, useStore } from '../lib/store';
 import { HomeChat } from './home/HomeChat';
 
 export const CHAT_W = 380;
+/** The chat is titled with the element's class (".hero-title"); elements without one show their tag. */
+function titleOf(target: { name: string; tag?: string } | null): string {
+  if (!target) return 'Ask AI';
+  const cls = /\s\.(\S+)$/.exec(target.name)?.[1];
+  return cls ? `.${cls}` : target.tag ?? target.name;
+}
 export const CHAT_H = 480;
 
 /** Fold the chat back into the dock. The thread is kept; the dock shows it's there and reopens it. */
@@ -58,10 +64,9 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-1 px-3.5 pb-1.5 pt-2.5">
-        <HugeiconsIcon icon={AiMagicIcon} size={16} strokeWidth={2} className="text-muted-foreground" />
-        <span className="mr-auto truncate text-sm font-medium">{ask.target ? `Ask about ${ask.target.name}` : 'Ask AI'}</span>
+        <span className="mr-auto truncate ps-0.5 font-mono text-[13px] font-medium" title={ask.target?.name}>{titleOf(ask.target)}</span>
         <button type="button" aria-label="Minimize" title="Minimize" className={iconBtn} onClick={minimizeAsk}>
-          <HugeiconsIcon icon={MinimizeScreenIcon} size={15} strokeWidth={2} />
+          <HugeiconsIcon icon={MinusSignIcon} size={15} strokeWidth={2} />
         </button>
         {maximized ? (
           <button type="button" aria-label="Restore" title="Restore" className={iconBtn} onClick={restoreAsk}>

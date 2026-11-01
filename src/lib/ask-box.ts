@@ -2,7 +2,7 @@
 import { useSyncExternalStore } from 'react';
 
 export type AskMode = 'none' | 'chat' | 'max';
-export type AskState = { mode: AskMode; target: { id: string; name: string } | null };
+export type AskState = { mode: AskMode; target: { id: string; name: string; tag?: string } | null };
 let state: AskState = { mode: 'none', target: null };
 const listeners = new Set<() => void>();
 const subscribe = (l: () => void) => {
