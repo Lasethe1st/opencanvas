@@ -44,7 +44,7 @@ export function FrameChrome({ rect, name, size, scope, active, fitPage, onActiva
     <div className={cx('frame-chrome', active && 'is-active')} style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}>
       <div className="frame-chrome__label" onPointerDown={onDragStart} onClick={onActivate} onDoubleClick={onRename}>
         <span className="frame-chrome__name">{name}</span>
-        <span className="frame-chrome__size">{size}</span>
+        {size && <span className="frame-chrome__size">{size}</span>}
         <span className="frame-chrome__scope">{scope}</span>
         <IconButton
           size="sm"

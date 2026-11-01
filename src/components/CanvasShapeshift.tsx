@@ -1,8 +1,8 @@
-import { Sparkles, X } from '../lib/hugeicons';
+import { X } from '../lib/hugeicons';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { AiMagicIcon } from '@hugeicons/core-free-icons';
+import { AiMagicIcon, Edit02Icon } from '@hugeicons/core-free-icons';
 import { getAsk, setAsk } from '../lib/ask-box';
 import { closeElementMenu } from '../lib/element-menu';
 import { selectElement } from '../lib/actions';
@@ -55,6 +55,18 @@ export function CanvasShapeshift() {
         ? `Ask AI to change ${pageName}, or type @ or /`
         : 'Ask AI to change this page, or type @ or /';
 
+  // The selected element rides inside the field as an inline chip, so nothing floats above the dock.
+  const contextChip = selection ? (
+        <span className="assistant-docker__context" title="The AI knows this element is selected">
+          <HugeiconsIcon icon={Edit02Icon} size={12} strokeWidth={2} aria-hidden />
+          <span className="assistant-docker__context-name">{selection.name}</span>
+          <code>{`<${selection.tag}>`}</code>
+          <button type="button" aria-label="Deselect" onClick={() => selectElement(null)}>
+            <X size={11} />
+          </button>
+        </span>
+  ) : undefined;
+
   const onSubmit = ({ shape, data, text }: ShapeshiftResult) => {
     if (shape?.id === 'mention') {
       // Enter takes the top result and keeps the field going.
@@ -79,22 +91,13 @@ export function CanvasShapeshift() {
   return (
     <DockRow tucked={chatOpen || focused}>
     <div className="canvas-shapeshift assistant-docker" onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
-      {selection && (
-        <div className="assistant-docker__context" title="The AI knows this element is selected">
-          <Sparkles size={12} aria-hidden />
-          <span className="assistant-docker__context-name">{selection.name}</span>
-          <code>{`<${selection.tag}>`}</code>
-          <button type="button" aria-label="Deselect" onClick={() => selectElement(null)}>
-            <X size={11} />
-          </button>
-        </div>
-      )}
       <Shapeshift
         ref={handle}
         shapes={assistantShapes}
         hotkey={false}
         width={420}
         icon={chatIcon}
+        lead={contextChip}
         label="Ask AI or run a command"
         placeholder={placeholder}
         listAll={false}

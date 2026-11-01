@@ -67,7 +67,7 @@ export function DockerChat() {
       </div>
       <div ref={logRef} className="docker-chat__log">
         {items.length ? (
-          <HomeChat mentions />
+          <HomeChat mentions split />
         ) : (
           <p className="docker-chat__empty">Ask for a change in the bar below. Select an element to point at it, or type @ to mention a layer or page. Everything the AI does in one reply is a single undo step.</p>
         )}

@@ -48,6 +48,7 @@ import {
   displayRect,
   duplicateFrame,
   fitAll,
+  wrapperPad,
   fitSelection,
   layoutRedo,
   layoutUndo,
@@ -75,7 +76,8 @@ import { CanvasNav, FrameChrome, FrameRename, Guides, Minimap, SelectionBar, Siz
 import { BuildOverlay, type SubtreeBox } from './BuildOverlay';
 import { measureSubtree } from '../lib/bridge';
 import { getMeasure } from '../lib/measure';
-import { openElementMenu } from '../lib/element-menu';
+import { openElementMenu, openInsertMenu } from '../lib/element-menu';
+import { InsertContextMenu, prepareFrameInsert } from './InsertContextMenu';
 import { getComments, pushToFrames } from '../lib/comments';
 import { openCommentPopover } from '../lib/comment-ui';
 import { CommentPopover } from './CommentPopover';
@@ -129,6 +131,25 @@ function useSpaceHeld() {
 // Set when a frame becomes active because the user clicked inside it, so its fresh selection isn't overwritten.
 let activatedByFrame = false;
 
+/** Screen pixel → canvas (world) point, using the stage viewport and camera. */
+function worldAt(x: number, y: number) {
+  const vp = document.querySelector('.stage__viewport')?.getBoundingClientRect();
+  const { camera } = getState();
+  return { x: (x - (vp?.left ?? 0) - camera.x) / camera.zoom, y: (y - (vp?.top ?? 0) - camera.y) / camera.zoom };
+}
+
+/** Right-click on the stage itself (bare canvas, a page wrapper, frame chrome or labels): the insert menu. */
+function onStageContextMenu(e: React.MouseEvent<HTMLElement>) {
+  const t = e.target as Element;
+  if (!t.closest('.stage__viewport') || t.closest('[data-bloom-menu], input, textarea, [contenteditable="true"]')) return;
+  e.preventDefault();
+  if (getState().interact) return;
+  const world = worldAt(e.clientX, e.clientY);
+  const hit = [...getState().frames].reverse().find((f) => world.x >= f.x && world.x <= f.x + f.width && world.y >= f.y - 40 && world.y <= f.y + f.height);
+  if (hit) prepareFrameInsert(hit.id);
+  openInsertMenu({ x: e.clientX, y: e.clientY, frameId: hit?.id ?? null, world });
+}
+
 function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     let pendingTimer: ReturnType<typeof setTimeout> | null = null;
@@ -164,7 +185,12 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
           if (el && p && typeof p.x === 'number' && typeof p.y === 'number') {
             const box = el.getBoundingClientRect();
             const scale = el.offsetWidth ? box.width / el.offsetWidth : 1;
-            openElementMenu(box.left + p.x * scale, box.top + p.y * scale);
+            const x = box.left + p.x * scale;
+            const y = box.top + p.y * scale;
+            if ((p as { blank?: boolean }).blank) {
+              prepareFrameInsert(fid);
+              openInsertMenu({ x, y, frameId: fid, world: worldAt(x, y) });
+            } else openElementMenu(x, y);
           }
           break;
         }
@@ -723,6 +749,30 @@ export function Canvas({ hidden }: { hidden: boolean }) {
     const p = worldToScreen(camera, r);
     return { x: p.x, y: p.y, width: r.width * camera.zoom, height: r.height * camera.zoom };
   };
+  // Wrappers: frames that show the same page (e.g. its desktop, tablet and mobile sizes) sit on one
+  // shared background, titled with the page name just outside it. Padding is in canvas units so it
+  // zooms with the frames; the top never gets thinner on screen than the frame labels it has to hold.
+  const wrappers = (() => {
+    const groups = new Map<string, { name: string; rects: { x: number; y: number; width: number; height: number }[] }>();
+    for (const f of frames) {
+      const page = pageOf(f, { projectConfig });
+      const key = page?.id ?? '';
+      const g = groups.get(key) ?? { name: page?.name ?? 'Page', rects: [] };
+      g.rects.push(rectOf(f));
+      groups.set(key, g);
+    }
+    const z = camera.zoom;
+    return [...groups.entries()].map(([id, g]) => {
+      const x0 = Math.min(...g.rects.map((r) => r.x));
+      const y0 = Math.min(...g.rects.map((r) => r.y));
+      const x1 = Math.max(...g.rects.map((r) => r.x + r.width));
+      const y1 = Math.max(...g.rects.map((r) => r.y + r.height));
+      const { side, top } = wrapperPad(z);
+      const world = { x: x0 - side, y: y0 - top, width: x1 - x0 + 2 * side, height: y1 - y0 + top + side };
+      const p = worldToScreen(camera, world);
+      return { id, name: g.name, count: g.rects.length, world, screen: { x: p.x, y: p.y, width: world.width * z } };
+    });
+  })();
   const toScreenGuide = (g: Guide) =>
     g.axis === 'x'
       ? { axis: g.axis, at: g.at * camera.zoom + camera.x, from: g.from * camera.zoom + camera.y, to: g.to * camera.zoom + camera.y }
@@ -784,11 +834,20 @@ export function Canvas({ hidden }: { hidden: boolean }) {
       tool={space ? 'hand' : tool}
       panning={panning}
       onPointerDown={onStagePointerDown}
+      onContextMenu={onStageContextMenu}
       notice={(inlineNotice || (running && project.missingDependencies.length > 0)) && notices}
       overlay={!running && !interact ? <StatusCard /> : undefined}
       world={
         running && (
           <>
+            {wrappers.map((w) => (
+              <div
+                key={`wrap:${w.id}`}
+                className="page-wrapper"
+                aria-hidden="true"
+                style={{ left: w.world.x, top: w.world.y, width: w.world.width, height: w.world.height, borderRadius: 32, borderWidth: 1 / camera.zoom }}
+              />
+            ))}
             {frames.map((f) => {
               const r = rectOf(f);
               const eff = effective(f);
@@ -864,6 +923,12 @@ export function Canvas({ hidden }: { hidden: boolean }) {
       }
       chrome={
         <>
+          {wrappers.map((w) => (
+            <div key={`wrap-title:${w.id}`} className="page-wrapper__title" style={{ left: w.screen.x, top: w.screen.y, maxWidth: Math.max(w.screen.width, 120) }}>
+              <span className="page-wrapper__name">{w.name}</span>
+              {w.count > 1 && <span className="page-wrapper__count">{w.count} frames</span>}
+            </div>
+          ))}
           {frames.map((f) => {
             const eff = effective(f);
             const scope = scopeOf(eff.width);
@@ -873,7 +938,6 @@ export function Canvas({ hidden }: { hidden: boolean }) {
                 key={f.id}
                 rect={rect}
                 name={renaming === f.id ? <FrameRename value={f.name} onCommit={(v) => { setRenaming(null); renameFrame(f.id, v); }} onCancel={() => setRenaming(null)} /> : f.name}
-                size={`${Math.round(eff.width)} × ${Math.round(rectOf(f).height)}${f.fitPage ? ' · fit' : ''}`}
                 scope={SCOPE_LABEL[scope]}
                 active={f.id === activeFrame?.id}
                 fitPage={f.fitPage}
@@ -895,6 +959,7 @@ export function Canvas({ hidden }: { hidden: boolean }) {
             </SizeTip>
           )}
           <ElementContextMenu />
+          <InsertContextMenu />
           <CommentPopover />
           <AskBox />
           {fileDrag && (

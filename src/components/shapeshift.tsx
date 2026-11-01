@@ -254,6 +254,8 @@ export type ShapeshiftProps = {
   hotkey?: string | false;
   /** An icon at the start of the field, if you want one. */
   icon?: ReactNode;
+  /** Inline content after the icon, before the text (e.g. a context chip). */
+  lead?: ReactNode;
   /** A press outside puts an open shape away. */
   closeOnOutsidePress?: boolean;
   /** The field's accessible name. */
@@ -295,6 +297,7 @@ export function Shapeshift({
   placeholder,
   hotkey = "/",
   icon,
+  lead,
   closeOnOutsidePress = true,
   label = "Type anything",
   className,
@@ -584,6 +587,7 @@ export function Shapeshift({
 
           <div data-slot="shapeshift-bar" className={cn("flex h-12 items-center gap-2 ps-4 pe-2", classNames?.bar)}>
             {icon && <span className="me-1 flex size-[18px] shrink-0 items-center justify-center [&>svg]:size-[18px]">{icon}</span>}
+            {lead}
             <span className="relative h-full min-w-0 flex-1">
               {!text && !placeholder && examples.length > 0 && <Cycle lines={examples} />}
               <input
