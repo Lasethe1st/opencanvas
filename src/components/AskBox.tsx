@@ -88,13 +88,7 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
         </button>
       </div>
       <div ref={logRef} className="docker-chat__log min-h-0 flex-1 overflow-y-auto px-3 [scrollbar-width:thin]">
-        {items.length ? (
-          <HomeChat mentions />
-        ) : (
-          <p className="m-1 text-sm leading-relaxed text-muted-foreground">
-            {ready ? 'Describe what you want changed. The AI knows which element you pointed at.' : 'Add an AI provider in Settings to chat here.'}
-          </p>
-        )}
+        {items.length > 0 && <HomeChat mentions />}
       </div>
       <div className="p-3 pt-2">
         {ready ? (
