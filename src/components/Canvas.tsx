@@ -939,7 +939,8 @@ export function Canvas({ hidden }: { hidden: boolean }) {
                 rect={rect}
                 name={renaming === f.id ? <FrameRename value={f.name} onCommit={(v) => { setRenaming(null); renameFrame(f.id, v); }} onCancel={() => setRenaming(null)} /> : f.name}
                 scope={SCOPE_LABEL[scope]}
-                device={scope}
+                device={f.preset}
+                tip={`${f.name} · ${Math.round(eff.width)}`}
                 active={f.id === activeFrame?.id}
                 fitPage={f.fitPage}
                 onActivate={() => setActiveFrame(f.id)}

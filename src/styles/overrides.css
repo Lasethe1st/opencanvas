@@ -2020,5 +2020,5 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
   height: 24px;
   color: var(--fg-3);
 }
-.frame-chrome__label:hover .frame-chrome__device,
-.frame-chrome.is-active .frame-chrome__device { color: var(--fg); }
+.frame-chrome__label:hover .frame-chrome__device { color: var(--fg-2); }
+.frame-chrome.is-active .frame-chrome__device { color: var(--accent); }
