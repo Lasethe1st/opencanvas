@@ -1,6 +1,9 @@
 import { X } from '../lib/hugeicons';
 import { useQuickPills } from '../lib/prefs';
 import { AnimatePresence, motion } from 'motion/react';
+import { createPortal } from 'react-dom';
+import { Waveform } from '../lib/home-icons';
+import { VoiceOrbSession } from './home/VoiceOrbSession';
 import { useEffect, useRef, useState } from 'react';
 import { getAsk, setAsk } from '../lib/ask-box';
 import { closeElementMenu } from '../lib/element-menu';
@@ -25,6 +28,7 @@ function chatHeight() {
 export function CanvasShapeshift() {
   const handle = useRef<ShapeshiftHandle>(null);
   const [focused, setFocused] = useState(false);
+  const [voice, setVoice] = useState(false);
   const quickPills = useQuickPills();
   const selection = useStore((s) => s.selection);
   const ready = useStore((s) => !!s.aiStatus?.ready);
@@ -38,6 +42,18 @@ export function CanvasShapeshift() {
     setAsk({ mode: 'none' });
     closeElementMenu();
   }, [chatOpen]);
+
+  // Voice, as on the home page: the orb listens, the AI answers aloud, and the exchange lands in the chat.
+  const endVoice = () => {
+    const before = chatLenAtStart.current;
+    setVoice(false);
+    if (getState().aiChat.length > before) setState({ dockMode: 'input' });
+  };
+  const chatLenAtStart = useRef(0);
+  const startVoice = () => {
+    chatLenAtStart.current = getState().aiChat.length;
+    setVoice(true);
+  };
 
   const placeholder = !ready
     ? 'Set up AI in Settings to chat here'
@@ -79,7 +95,7 @@ export function CanvasShapeshift() {
   };
 
   return (
-    <DockRow tucked={chatOpen || focused || !quickPills}>
+    <DockRow tucked={chatOpen || focused || voice || !quickPills}>
     <div className="canvas-shapeshift assistant-docker" onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
       <Shapeshift
         ref={handle}
@@ -87,6 +103,11 @@ export function CanvasShapeshift() {
         hotkey={false}
         width={420}
         lead={contextChip}
+        trailing={
+          <button type="button" aria-label="Voice input" title={ready ? 'Talk to the AI' : 'Set up AI in Settings to talk'} disabled={!ready || voice} onClick={startVoice} className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground outline-none transition-[opacity,scale] duration-150 hover:opacity-90 active:scale-95 disabled:cursor-default disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-ring">
+            <Waveform className="size-4" />
+          </button>
+        }
         label="Ask AI or run a command"
         placeholder={placeholder}
         listAll={false}
@@ -116,6 +137,14 @@ export function CanvasShapeshift() {
         }}
       />
     </div>
+    {voice && createPortal(
+      <div data-tw="" className="fixed inset-x-0 z-[300] flex justify-center" style={{ bottom: 88 }} onPointerDown={(e) => e.stopPropagation()}>
+        <div data-bloom-menu="" className="oc-pop rounded-[28px] border border-[color:var(--frost-border)] bg-[var(--frost-bg)] px-10 py-4 shadow-[var(--shadow-md)]" style={{ WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)', transformOrigin: 'bottom center' }}>
+          <VoiceOrbSession onClose={endVoice} />
+        </div>
+      </div>,
+      document.body,
+    )}
     </DockRow>
   );
 }
