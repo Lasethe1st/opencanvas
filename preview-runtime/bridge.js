@@ -82,9 +82,9 @@
       .work i { position: absolute; left: 50%; top: 50%; width: var(--d, 400px); height: var(--d, 400px); margin: calc(var(--d, 400px) / -2) 0 0 calc(var(--d, 400px) / -2);
         background: conic-gradient(from 0deg, transparent 0 60%, rgba(17,17,17,.75) 95%, transparent); animation: oc-rot 2.6s linear infinite; }
       @keyframes oc-rot { to { transform: rotate(360deg); } }
-      .wchip { position: fixed; pointer-events: none; display: none; padding: 5px 6px; border-radius: 999px; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.25), 0 0 0 1px rgba(0,0,0,.14);
+      .wchip { position: fixed; pointer-events: none; display: none; padding: 2px 0;
         transform: scale(var(--k)); transform-origin: left top; }
-      .wstage { position: relative; width: 22px; height: 10px; filter: url(#oc-goo); }
+      .wstage { position: relative; width: 22px; height: 10px; filter: url(#oc-goo) drop-shadow(0 0 1.5px rgba(255,255,255,.95)) drop-shadow(0 0 1px rgba(255,255,255,.8)); }
       .wstage i { position: absolute; left: 7px; top: 1px; width: 8px; height: 8px; border-radius: 50%; background: #111; animation: oc-split 2.4s cubic-bezier(.77,0,.175,1) infinite; }
       .wstage i:last-child { animation-name: oc-split-b; }
       @keyframes oc-split { 0%, 12% { transform: translateX(0); } 42%, 58% { transform: translateX(-6px); } 88%, 100% { transform: translateX(0); } }
@@ -123,7 +123,7 @@
     workBox.style.setProperty('--d', `${Math.hypot(r.width, r.height) + 8}px`);
     workChip.style.display = 'block';
     // Just outside the top-left corner so it never covers the element; tucked inside when there's no room.
-    const w = 34 * k;
+    const w = 26 * k;
     workChip.style.left = `${r.left - w - 4 * k >= 2 ? r.left - w - 4 * k : r.left + 4 * k}px`;
     workChip.style.top = `${Math.max(2, r.top)}px`;
   }

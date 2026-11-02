@@ -2090,7 +2090,7 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 .frame-chrome.is-active .frame-chrome__handle--se::after { border-color: var(--fg-3); }
 
 /* AI at work: one filled circle that splits into two (goo) and merges back, at the top left of the frame (beside its label) or of the element. Monochrome, like the rest. */
-.ai-weave { display: inline-flex; flex: none; padding: 5px 6px; border-radius: 999px !important; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 1px 4px rgb(0 0 0 / 0.1); animation: oc-pop 0.2s var(--ease-out-strong) both; }
+.ai-weave { display: inline-flex; flex: none; padding: 2px 0; animation: oc-pop 0.2s var(--ease-out-strong) both; }
 .ai-weave__stage { position: relative; width: 22px; height: 10px; filter: url(#oc-goo); }
 .ai-weave__stage i { position: absolute; left: 7px; top: 1px; width: 8px; height: 8px; border-radius: 50% !important; background: var(--fg); animation: ai-split 2.4s cubic-bezier(0.77, 0, 0.175, 1) infinite; }
 .ai-weave__stage i:last-child { animation-name: ai-split-b; }
