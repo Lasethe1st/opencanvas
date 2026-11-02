@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { AiMagicIcon, ArrowShrink02Icon, Cancel01Icon, ArrowExpand01Icon, MinusSignIcon, SentIcon } from '@hugeicons/core-free-icons';
@@ -127,32 +128,52 @@ export function AskBox() {
     return () => window.removeEventListener('keydown', onKey);
   }, [ask.mode]);
 
-  if (ask.mode === 'min') {
-    return createPortal(
-      <button
-        type="button"
-        data-tw=""
-        data-bloom-menu=""
-        aria-label="Open Ask AI chat"
-        title="Open chat"
-        onClick={restoreAsk}
-        className={`fixed z-[300] grid size-11 place-items-center rounded-full border border-[color:var(--frost-border)] bg-[var(--frost-bg)] text-foreground shadow-[var(--shadow-md)] transition-transform hover:scale-105 ${busy ? 'animate-pulse' : ''}`}
-        style={{ left: 16, bottom: 16, WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)' }}
-      >
-        <HugeiconsIcon icon={AiMagicIcon} size={20} strokeWidth={2} />
-      </button>,
-      document.body,
-    );
-  }
-  if (ask.mode === 'max') {
-    return createPortal(
-      <div data-tw="" className="fixed inset-0 z-[300] grid place-items-start justify-items-center bg-overlay p-4 pt-[10vh] motion-safe:animate-[fade-in_0.15s_ease-out]" onPointerDown={(e) => e.target === e.currentTarget && minimizeAsk()}>
-        <div role="dialog" aria-modal="true" aria-label="Ask AI" className="h-[min(600px,80vh)] w-full max-w-[640px] overflow-hidden rounded-[24px] border border-border bg-card/90 text-foreground shadow-[var(--shadow-lg)] backdrop-blur-[20px]">
-          <AskChat maximized />
-        </div>
-      </div>,
-      document.body,
-    );
-  }
-  return null;
+  const min = ask.mode === 'min';
+  const max = ask.mode === 'max';
+  return createPortal(
+    <>
+      {min && (
+        <button
+          type="button"
+          data-tw=""
+          data-bloom-menu=""
+          aria-label="Open Ask AI chat"
+          title="Open chat"
+          onClick={restoreAsk}
+          className={`fixed z-[300] grid size-11 place-items-center rounded-full border border-[color:var(--frost-border)] bg-[var(--frost-bg)] text-foreground shadow-[var(--shadow-md)] oc-bubble ${busy ? 'animate-pulse' : ''}`}
+          style={{ left: 16, bottom: 16, WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)' }}
+        >
+          <HugeiconsIcon icon={AiMagicIcon} size={20} strokeWidth={2} />
+        </button>
+      )}
+      <AnimatePresence>
+        {max && (
+          <motion.div
+            key="ask-max"
+            data-tw=""
+            className="fixed inset-0 z-[300] grid place-items-start justify-items-center bg-overlay p-4 pt-[10vh]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+            onPointerDown={(e) => e.target === e.currentTarget && minimizeAsk()}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Ask AI"
+              className="h-[min(600px,80vh)] w-full max-w-[640px] overflow-hidden rounded-[24px] border border-border bg-card/90 text-foreground shadow-[var(--shadow-lg)] backdrop-blur-[20px]"
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: 4, transition: { duration: 0.12 } }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+            >
+              <AskChat maximized />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>,
+    document.body,
+  );
 }
