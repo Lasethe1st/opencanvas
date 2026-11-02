@@ -1698,7 +1698,7 @@ kbd, .kbd,
   color: var(--muted); font-size: 12px; line-height: 16px;
 }
 .assistant-docker__context-name { min-width: 0; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
-.assistant-docker__context code { font-family: var(--font-mono, monospace); font-size: 11px; }
+.assistant-docker__context code { font-family: var(--font-mono, monospace); font-size: 11px; color: var(--fg); }
 .assistant-docker__context button { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; color: inherit; cursor: pointer; }
 .assistant-docker__context button:hover { background: color-mix(in srgb, var(--fg) 10%, transparent); color: var(--fg); }
 .ai-working { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 4px 0 12px; color: var(--muted); font-size: 12px; }
