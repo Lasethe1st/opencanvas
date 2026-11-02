@@ -173,12 +173,10 @@ function AppearanceSettings() {
     <>
       <SettingsGroup title="Theme">
         <div className="theme-cards" role="radiogroup" aria-label="Theme">
-          {THEMES.map(({ id, label }) => (
+          {THEMES.map(({ id, label, icon: Icon }) => (
             <button key={id} type="button" role="radio" aria-checked={preference === id} className={`theme-card${preference === id ? ' is-active' : ''}`} onClick={() => setThemePreference(id)}>
-              <span className={`theme-card__preview theme-card__preview--${id}`} aria-hidden>
-                <i />
-                <i />
-                <i />
+              <span className="theme-card__preview" aria-hidden>
+                <Icon size={22} strokeWidth={1.6} />
               </span>
               <span className="theme-card__label">{label}</span>
             </button>

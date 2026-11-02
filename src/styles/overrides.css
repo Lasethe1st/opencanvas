@@ -2060,15 +2060,8 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .theme-card { display: flex; flex-direction: column; gap: 8px; padding: 6px 6px 8px; border: 1px solid transparent; border-radius: 14px; background: transparent; color: var(--fg-2); font-size: 12px; font-weight: 500; cursor: pointer; transition: background-color 0.15s, border-color 0.15s; }
 .theme-card:hover { background: color-mix(in oklab, var(--fg) 5%, transparent); }
 .theme-card.is-active { border-color: var(--fg); color: var(--fg); }
-.theme-card__preview { position: relative; display: flex; flex-direction: column; gap: 5px; height: 64px; padding: 10px; border: 1px solid color-mix(in oklab, var(--fg) 12%, transparent); border-radius: 10px; overflow: hidden; --pv-bg: #ffffff; --pv-bar: #e4e4e7; }
-.theme-card__preview i { display: block; height: 6px; border-radius: 3px; background: var(--pv-bar); }
-.theme-card__preview i:nth-child(1) { width: 40%; }
-.theme-card__preview i:nth-child(2) { width: 75%; }
-.theme-card__preview i:nth-child(3) { width: 55%; }
-.theme-card__preview { background: var(--pv-bg); }
-.theme-card__preview--dark { --pv-bg: #151517; --pv-bar: #3a3a40; }
-.theme-card__preview--system { background: linear-gradient(115deg, #ffffff 0 50%, #151517 50% 100%); }
-.theme-card__preview--system i { background: #9a9aa2; }
+.theme-card__preview { display: grid; place-items: center; height: 64px; border-radius: 10px; background: color-mix(in oklab, var(--fg) 6%, transparent); color: var(--fg-2); transition: color 0.15s, background-color 0.15s; }
+.theme-card.is-active .theme-card__preview { color: var(--fg); background: color-mix(in oklab, var(--fg) 10%, transparent); }
 .theme-card__label { text-align: center; }
 .settings-page .sx-text-btn { min-width: 0; padding: 0 12px; font-size: 12px; font-weight: 500; }
 
