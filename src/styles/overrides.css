@@ -1847,23 +1847,18 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 
 /* Home + panel toggle: two blobs, fused like the dock pills. */
 
-/* ───────── Dock row: pills · dock · pills, fused like liquid ───────── */
+/* ───────── Dock row: pills · dock · pills, each its own pill ───────── */
 body .canvas-bottom-chrome { max-width: calc(100% - 32px) !important; }
-.dockrow { --goo-fill: color-mix(in srgb, var(--fg) 8%, var(--home-card, var(--surface))); position: relative; display: flex; align-items: flex-end; gap: 16px; }
-.dockrow > :not(.dockrow__goo):not(.dockrow__defs) { position: relative; z-index: 1; }
-.dockrow__defs { position: absolute; }
-.dockrow__goo { position: absolute; inset: 0; z-index: 0; overflow: visible; pointer-events: none; filter: drop-shadow(0 0 0.6px rgba(0, 0, 0, 0.35)) drop-shadow(0 10px 22px rgba(0, 0, 0, 0.12)); }
-.dockrow__goo .merge-layer { fill: var(--goo-fill); filter: none; }
-.dockrow .assistant-docker [data-slot='shapeshift-shell'] { border-color: transparent !important; background: var(--goo-fill) !important; box-shadow: none !important; }
-/* The bar paints its own fill too, so the merged layer (measured a frame behind) never lags its bloom. */
-.dockrow__side { display: flex; align-items: flex-end; gap: 14px; }
+.dockrow { position: relative; display: flex; align-items: flex-end; gap: 8px; }
+.dockrow__side { display: flex; align-items: flex-end; gap: 8px; }
+/* One surface for every pill and the input, so they read as a set. */
+.dockpill, .dockrow .assistant-docker [data-slot='shapeshift-shell'] { border: 1px solid var(--frost-border); background: var(--frost-bg); box-shadow: var(--shadow-md); -webkit-backdrop-filter: var(--frost-filter); backdrop-filter: var(--frost-filter); }
 
-.dockpill { display: flex; align-items: center; height: 36px; margin-bottom: 0; color: var(--fg); font-size: 13px; animation: pill-bud 0.3s var(--ease-out-strong) both; transition: transform 0.16s var(--ease-out-strong); }
-.dockpill--left { --bud: 52px; }
-.dockpill--right { --bud: -52px; }
-.dockpill.is-leaving { animation: pill-melt 0.2s var(--ease-out-strong) both; }
-@keyframes pill-bud { from { transform: translateX(var(--bud)) scale(0.5); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes pill-melt { from { transform: none; opacity: 1; } to { transform: translateX(var(--bud)) scale(0.5); opacity: 0; } }
+/* Pills are seen tens of times a day: fast and subtle. transform + opacity only, never from scale(0). */
+.dockpill { display: flex; align-items: center; height: 36px; margin-bottom: 0; color: var(--fg); font-size: 13px; transform-origin: bottom center; animation: pill-in 0.18s var(--ease-out-strong) calc(var(--i, 0) * 24ms) both; transition: transform 0.16s var(--ease-out-strong); }
+.dockpill.is-leaving { animation: pill-out 0.12s var(--ease-out-strong) both; }
+@keyframes pill-in { from { transform: translateY(6px) scale(0.94); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pill-out { from { transform: none; opacity: 1; } to { transform: translateY(4px) scale(0.96); opacity: 0; } }
 body:has(.shell .workspace) .dockrow .dockpill__main,
 .dockpill__main { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; transition: background-color 0.15s ease; }
 body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important; }

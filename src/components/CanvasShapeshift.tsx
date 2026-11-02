@@ -3,7 +3,7 @@ import { useQuickPills } from '../lib/prefs';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { AiMagicIcon, Edit02Icon } from '@hugeicons/core-free-icons';
+import { Edit02Icon } from '@hugeicons/core-free-icons';
 import { getAsk, setAsk } from '../lib/ask-box';
 import { closeElementMenu } from '../lib/element-menu';
 import { selectElement } from '../lib/actions';
@@ -33,7 +33,6 @@ export function CanvasShapeshift() {
   const busy = useStore((s) => !!s.aiTurnId);
   const chatOpen = useStore((s) => s.dockMode === 'input');
   const pageName = useStore((s) => (s.projectConfig ? activePage()?.name : null));
-  const hasChat = useStore((s) => s.aiChat.length > 0);
 
   // One conversation, one place: opening it in the dock closes the floating Ask AI box.
   useEffect(() => {
@@ -41,13 +40,6 @@ export function CanvasShapeshift() {
     setAsk({ mode: 'none' });
     closeElementMenu();
   }, [chatOpen]);
-
-  // A folded-away chat shows as the AI icon at the start of the bar; a dot on it means a reply is still coming.
-  const chatIcon = hasChat && !chatOpen ? (
-    <button type="button" className="dock-chat-dot" data-busy={busy || undefined} aria-label={busy ? 'Open chat, reply in progress' : 'Open chat'} title="Open chat" onClick={() => setState({ dockMode: 'input' })}>
-      <HugeiconsIcon icon={AiMagicIcon} size={16} strokeWidth={2} />
-    </button>
-  ) : undefined;
 
   const placeholder = !ready
     ? 'Set up AI in Settings to chat here'
@@ -98,7 +90,6 @@ export function CanvasShapeshift() {
         shapes={assistantShapes}
         hotkey={false}
         width={420}
-        icon={chatIcon}
         lead={contextChip}
         label="Ask AI or run a command"
         placeholder={placeholder}
