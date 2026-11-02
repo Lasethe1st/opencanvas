@@ -39,8 +39,20 @@ const BY_TAG: Record<string, [Icon, Kind]> = {
   div: [SquaresFour, 'struct'],
 };
 
-/** The icon and colour that say what kind of element a layer is. Unknown tags (components) get a cube. */
-export function LayerIcon({ tag, size = 14, className }: { tag: string; size?: number; className?: string }) {
-  const [IconCmp, kind] = BY_TAG[tag.toLowerCase()] ?? [tag === tag.toLowerCase() ? Square : Cube, 'struct' as Kind];
-  return <IconCmp size={size} weight="fill" className={className} style={{ color: KIND_COLOR[kind] }} aria-hidden="true" />;
+export type LayerKind = Kind;
+
+function lookup(tag: string): [Icon, Kind] {
+  return BY_TAG[tag.toLowerCase()] ?? [tag === tag.toLowerCase() ? Square : Cube, 'struct'];
+}
+
+/** Which colour family a tag belongs to (text, media, action, form or struct). */
+export function layerKind(tag: string): Kind {
+  return lookup(tag)[1];
+}
+
+/** The icon and colour that say what kind of element a layer is. Unknown tags (components) get a cube.
+ *  Pass `color` to override the kind colour, e.g. `currentColor` inside a tinted chip. */
+export function LayerIcon({ tag, size = 14, className, color }: { tag: string; size?: number; className?: string; color?: string }) {
+  const [IconCmp, kind] = lookup(tag);
+  return <IconCmp size={size} weight="fill" className={className} style={{ color: color ?? KIND_COLOR[kind] }} aria-hidden="true" />;
 }

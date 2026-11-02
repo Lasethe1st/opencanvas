@@ -43,7 +43,8 @@ const TOOL_LABELS: Record<string, string> = {
 const FENCE_RE = /```([\w-]*)\n?([\s\S]*?)```/g;
 
 /** Home conversation thread — grows with content; the parent column scrolls. */
-export function HomeChat({ mentions = false }: { mentions?: boolean } = {}) {
+/** `split`: canvas chats put the user's messages on the right and the AI's on the left; the home page keeps everything on the left. */
+export function HomeChat({ mentions = false, split = false }: { mentions?: boolean; split?: boolean } = {}) {
   const items = useStore((s) => s.aiChat);
   const turnId = useStore((s) => s.aiTurnId);
   const endRef = useRef<HTMLDivElement>(null);
@@ -67,7 +68,11 @@ export function HomeChat({ mentions = false }: { mentions?: boolean } = {}) {
     <div className="w-full px-1 py-2" aria-label="Conversation">
       <div className="flex w-full flex-col gap-4 pb-4">
         {items.map((item) => (
-          <div key={item.id} data-chat-item={item.id} className={item.kind === "user" ? "pb-3" : undefined}>
+          <div
+            key={item.id}
+            data-chat-item={item.id}
+            className={item.kind === "user" ? (split ? "flex justify-end pb-3 ps-10 [&>div]:items-end" : "pb-3") : undefined}
+          >
             <ChatItem item={item} mentions={mentions} />
           </div>
         ))}

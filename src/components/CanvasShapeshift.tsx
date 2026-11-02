@@ -1,5 +1,11 @@
-import { Sparkles, X } from '../lib/hugeicons';
-import { useRef, useState } from 'react';
+import { X } from '../lib/hugeicons';
+import { useQuickPills } from '../lib/prefs';
+import { AnimatePresence, motion } from 'motion/react';
+import { useEffect, useRef, useState } from 'react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { AiMagicIcon, Edit02Icon } from '@hugeicons/core-free-icons';
+import { getAsk, setAsk } from '../lib/ask-box';
+import { closeElementMenu } from '../lib/element-menu';
 import { selectElement } from '../lib/actions';
 import { sendToAi } from '../lib/ai';
 import { activePage } from '../lib/pages';
@@ -9,15 +15,39 @@ import { DockRow } from './dock/DockRow';
 import { assistantShapes, insertMention, referencesIn } from './assistant-shapes';
 import { Shapeshift, type ShapeshiftHandle, type ShapeshiftResult } from './shapeshift';
 
+/** Same spring as the right-click menu's bloom (bloom-menu: visualDuration 0.28, bounce 0.12). */
+const BLOOM = { type: 'spring', visualDuration: 0.28, bounce: 0.12, opacity: { duration: 0.18 }, filter: { duration: 0.2 } } as const;
+
+/** The chat blooms to one fixed height, so text streaming in never resizes the dock. */
+function chatHeight() {
+  return Math.round(Math.min(360, window.innerHeight * 0.5));
+}
+
 /** The assistant docker: bottom-centre of the canvas. Chat with the AI about this project, @ layers and pages, or run quick commands. */
 export function CanvasShapeshift() {
   const handle = useRef<ShapeshiftHandle>(null);
   const [focused, setFocused] = useState(false);
+  const quickPills = useQuickPills();
   const selection = useStore((s) => s.selection);
   const ready = useStore((s) => !!s.aiStatus?.ready);
   const busy = useStore((s) => !!s.aiTurnId);
   const chatOpen = useStore((s) => s.dockMode === 'input');
   const pageName = useStore((s) => (s.projectConfig ? activePage()?.name : null));
+  const hasChat = useStore((s) => s.aiChat.length > 0);
+
+  // One conversation, one place: opening it in the dock closes the floating Ask AI box.
+  useEffect(() => {
+    if (!chatOpen || getAsk().mode === 'none') return;
+    setAsk({ mode: 'none' });
+    closeElementMenu();
+  }, [chatOpen]);
+
+  // A folded-away chat shows as the AI icon at the start of the bar; a dot on it means a reply is still coming.
+  const chatIcon = hasChat && !chatOpen ? (
+    <button type="button" className="dock-chat-dot" data-busy={busy || undefined} aria-label={busy ? 'Open chat, reply in progress' : 'Open chat'} title="Open chat" onClick={() => setState({ dockMode: 'input' })}>
+      <HugeiconsIcon icon={AiMagicIcon} size={16} strokeWidth={2} />
+    </button>
+  ) : undefined;
 
   const placeholder = !ready
     ? 'Set up AI in Settings to chat here'
@@ -26,6 +56,18 @@ export function CanvasShapeshift() {
       : pageName
         ? `Ask AI to change ${pageName}, or type @ or /`
         : 'Ask AI to change this page, or type @ or /';
+
+  // The selected element rides inside the field as an inline chip, so nothing floats above the dock.
+  const contextChip = selection ? (
+        <span className="assistant-docker__context" title="The AI knows this element is selected">
+          <HugeiconsIcon icon={Edit02Icon} size={12} strokeWidth={2} aria-hidden />
+          <span className="assistant-docker__context-name">{selection.name}</span>
+          <code>{`<${selection.tag}>`}</code>
+          <button type="button" aria-label="Deselect" onClick={() => selectElement(null)}>
+            <X size={11} />
+          </button>
+        </span>
+  ) : undefined;
 
   const onSubmit = ({ shape, data, text }: ShapeshiftResult) => {
     if (shape?.id === 'mention') {
@@ -49,27 +91,34 @@ export function CanvasShapeshift() {
   };
 
   return (
-    <DockRow tucked={chatOpen || focused}>
+    <DockRow tucked={chatOpen || focused || !quickPills}>
     <div className="canvas-shapeshift assistant-docker" onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
-      {selection && (
-        <div className="assistant-docker__context" title="The AI knows this element is selected">
-          <Sparkles size={12} aria-hidden />
-          <span className="assistant-docker__context-name">{selection.name}</span>
-          <code>{`<${selection.tag}>`}</code>
-          <button type="button" aria-label="Deselect" onClick={() => selectElement(null)}>
-            <X size={11} />
-          </button>
-        </div>
-      )}
       <Shapeshift
         ref={handle}
         shapes={assistantShapes}
         hotkey={false}
         width={420}
+        icon={chatIcon}
+        lead={contextChip}
         label="Ask AI or run a command"
         placeholder={placeholder}
         listAll={false}
-        above={chatOpen ? <div className="assistant-docker__chat"><InputPanel /></div> : undefined}
+        above={
+          <AnimatePresence initial={false}>
+            {chatOpen && (
+              <motion.div
+                key="chat"
+                className="assistant-docker__chat"
+                initial={{ height: 0, opacity: 0, filter: 'blur(6px)' }}
+                animate={{ height: chatHeight(), opacity: 1, filter: 'blur(0px)' }}
+                exit={{ height: 0, opacity: 0, filter: 'blur(6px)' }}
+                transition={BLOOM}
+              >
+                <InputPanel />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        }
         sendLabel="Send"
         onSubmit={onSubmit}
         classNames={{

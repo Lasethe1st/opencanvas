@@ -505,7 +505,13 @@
     const el = target(event);
     event.preventDefault();
     event.stopPropagation();
-    if (!el) return;
+    // Empty space (the page's html/body, or its outermost root) isn't an element: the editor shows the insert menu.
+    const root = !el || el === document.body || el === document.documentElement || !el.parentElement?.closest(`[${ATTR}]`);
+    if (root) {
+      if (selected) select(null, true, true);
+      post('contextmenu', { x: event.clientX, y: event.clientY, blank: true });
+      return;
+    }
     if (selected !== el) select(el, true, true);
     post('contextmenu', { x: event.clientX, y: event.clientY });
   }, true);

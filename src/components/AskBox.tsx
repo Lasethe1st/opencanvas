@@ -2,18 +2,26 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { AiMagicIcon, ArrowShrink02Icon, Cancel01Icon, ArrowExpand01Icon, MinusSignIcon, SentIcon } from '@hugeicons/core-free-icons';
+import { ArrowShrink02Icon, Cancel01Icon, ExpandIcon, MinusSignIcon, ArrowUp02Icon } from '@hugeicons/core-free-icons';
 import { setAsk, useAsk } from '../lib/ask-box';
 import { openAiSettings, sendToAi } from '../lib/ai';
-import { openElementMenu, closeElementMenu } from '../lib/element-menu';
-import { useStore } from '../lib/store';
+import { closeElementMenu } from '../lib/element-menu';
+import { setState, useStore } from '../lib/store';
 import { HomeChat } from './home/HomeChat';
+import { LayerIcon, layerKind } from '../lib/layer-icons';
 
 export const CHAT_W = 380;
+/** The chat is titled with the element's class (".hero-title"); elements without one show their tag. */
+function titleOf(target: { name: string; tag?: string } | null): string {
+  if (!target) return 'Ask AI';
+  const cls = /\s\.(\S+)$/.exec(target.name)?.[1];
+  return cls ? `.${cls}` : target.tag ?? target.name;
+}
 export const CHAT_H = 480;
 
+/** Fold the chat back into the dock. The thread is kept; the dock shows it's there and reopens it. */
 export function minimizeAsk() {
-  setAsk({ mode: 'min' });
+  setAsk({ mode: 'none' });
   closeElementMenu();
 }
 export function maximizeAsk() {
@@ -24,10 +32,11 @@ export function closeAsk() {
   setAsk({ mode: 'none' });
   closeElementMenu();
 }
-/** Bring the chat back out of the bubble (or the maximised dialog), blooming from the bottom-left corner. */
+/** Leave the maximised dialog for the dock chat, so the conversation stays in one place. */
 export function restoreAsk() {
-  setAsk({ mode: 'chat' });
-  openElementMenu(16, window.innerHeight - 16);
+  setAsk({ mode: 'none' });
+  closeElementMenu();
+  setState({ dockMode: 'input' });
 }
 
 const iconBtn = 'grid size-7 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground';
@@ -57,8 +66,12 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-1 px-3.5 pb-1.5 pt-2.5">
-        <HugeiconsIcon icon={AiMagicIcon} size={16} strokeWidth={2} className="text-muted-foreground" />
-        <span className="mr-auto truncate text-sm font-medium">{ask.target ? `Ask about ${ask.target.name}` : 'Ask AI'}</span>
+        <span className="mr-auto flex min-w-0">
+          <span className="ask-tag" data-kind={ask.target?.tag ? layerKind(ask.target.tag) : 'struct'} title={titleOf(ask.target)}>
+            {ask.target?.tag && <LayerIcon tag={ask.target.tag} size={12} color="currentColor" className="shrink-0" />}
+            <span className="truncate">{titleOf(ask.target)}</span>
+          </span>
+        </span>
         <button type="button" aria-label="Minimize" title="Minimize" className={iconBtn} onClick={minimizeAsk}>
           <HugeiconsIcon icon={MinusSignIcon} size={15} strokeWidth={2} />
         </button>
@@ -68,7 +81,7 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
           </button>
         ) : (
           <button type="button" aria-label="Maximize" title="Maximize" className={iconBtn} onClick={maximizeAsk}>
-            <HugeiconsIcon icon={ArrowExpand01Icon} size={15} strokeWidth={2} />
+            <HugeiconsIcon icon={ExpandIcon} size={15} strokeWidth={2} />
           </button>
         )}
         <button type="button" aria-label="Close" title="Close" className={iconBtn} onClick={closeAsk}>
@@ -76,15 +89,9 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
         </button>
       </div>
       <div ref={logRef} className="docker-chat__log min-h-0 flex-1 overflow-y-auto px-3 [scrollbar-width:thin]">
-        {items.length ? (
-          <HomeChat mentions />
-        ) : (
-          <p className="m-1 text-sm leading-relaxed text-muted-foreground">
-            {ready ? 'Describe what you want changed. The AI knows which element you pointed at.' : 'Add an AI provider in Settings to chat here.'}
-          </p>
-        )}
+        {items.length > 0 && <HomeChat mentions split />}
       </div>
-      <div className="p-2.5">
+      <div className="p-3 pt-2">
         {ready ? (
           <div className="flex items-end gap-1.5 rounded-[18px] bg-muted/70 p-1.5 ps-3.5">
             <textarea
@@ -98,12 +105,12 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
                   send();
                 }
               }}
-              placeholder={busy ? 'Working… you can queue another' : ask.target ? `Ask about ${ask.target.name}…` : 'Ask AI…'}
+              placeholder={busy ? 'Working… you can queue another' : 'Ask…'}
               aria-label="Message"
-              className="max-h-[96px] min-h-[28px] flex-1 resize-none self-center bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground"
+              className="max-h-[3lh] min-h-[1lh] flex-1 resize-none self-center [field-sizing:content] bg-transparent py-0 text-sm outline-none placeholder:text-muted-foreground"
             />
             <button type="button" aria-label="Send" disabled={!text.trim()} className="grid size-8 shrink-0 place-items-center rounded-full bg-foreground text-background disabled:opacity-30" onClick={send}>
-              <HugeiconsIcon icon={SentIcon} size={15} strokeWidth={2} />
+              <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} />
             </button>
           </div>
         ) : (
@@ -116,10 +123,9 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
   );
 }
 
-/** The minimised bubble and the maximised dialog. (The normal floating box is the context menu's bloom.) */
+/** The maximised dialog. (The normal floating box is the context menu's bloom; minimising folds into the dock.) */
 export function AskBox() {
   const ask = useAsk();
-  const busy = useStore((s) => !!s.aiTurnId);
 
   useEffect(() => {
     if (ask.mode !== 'max') return;
@@ -128,24 +134,9 @@ export function AskBox() {
     return () => window.removeEventListener('keydown', onKey);
   }, [ask.mode]);
 
-  const min = ask.mode === 'min';
   const max = ask.mode === 'max';
   return createPortal(
     <>
-      {min && (
-        <button
-          type="button"
-          data-tw=""
-          data-bloom-menu=""
-          aria-label="Open Ask AI chat"
-          title="Open chat"
-          onClick={restoreAsk}
-          className={`fixed z-[300] grid size-11 place-items-center rounded-full border border-[color:var(--frost-border)] bg-[var(--frost-bg)] text-foreground shadow-[var(--shadow-md)] oc-bubble ${busy ? 'animate-pulse' : ''}`}
-          style={{ left: 16, bottom: 16, WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)' }}
-        >
-          <HugeiconsIcon icon={AiMagicIcon} size={20} strokeWidth={2} />
-        </button>
-      )}
       <AnimatePresence>
         {max && (
           <motion.div

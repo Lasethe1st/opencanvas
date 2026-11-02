@@ -1693,11 +1693,11 @@ kbd, .kbd,
 .assistant-docker { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .assistant-docker [data-slot='shapeshift'] { align-self: stretch; }
 .assistant-docker__context {
-  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; margin-left: 6px; padding: 4px 6px 4px 9px;
-  border: 1px solid var(--line); border-radius: var(--pill); corner-shape: round; background: var(--surface);
+  display: inline-flex; flex: none; align-items: center; gap: 5px; max-width: 46%; height: 24px; box-sizing: border-box; margin-left: -6px; padding: 0 4px 0 8px;
+  border: 0; border-radius: var(--pill); corner-shape: round; background: color-mix(in oklab, var(--fg) 8%, transparent);
   color: var(--muted); font-size: 12px; line-height: 16px;
 }
-.assistant-docker__context-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
+.assistant-docker__context-name { min-width: 0; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
 .assistant-docker__context code { font-family: var(--font-mono, monospace); font-size: 11px; }
 .assistant-docker__context button { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; color: inherit; cursor: pointer; }
 .assistant-docker__context button:hover { background: color-mix(in srgb, var(--fg) 10%, transparent); color: var(--fg); }
@@ -1705,8 +1705,10 @@ kbd, .kbd,
 
 
 /* Docker conversation: the home chat thread inside the dock panel. */
-.assistant-docker__chat { border-bottom: 1px solid var(--line); }
-.docker-chat { display: flex; flex-direction: column; max-height: min(460px, 56vh); background: transparent; }
+.assistant-docker__chat { overflow: clip; border-bottom: 1px solid var(--line); }
+/* clip, not hidden: focusing an answer field must not scroll the header out of the fixed box. */
+.assistant-docker__chat > * { height: 100%; }
+.docker-chat { display: flex; flex-direction: column; height: 100%; background: transparent; }
 .docker-chat__head { display: flex; align-items: center; gap: 2px; padding: 8px 8px 4px 14px; }
 .docker-chat__model { margin-right: auto; padding: 0; color: var(--muted); font-size: 12px; cursor: pointer; }
 .docker-chat__log { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px; scrollbar-width: thin; }
@@ -1728,7 +1730,7 @@ body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data
 .assistant-docker [data-slot='shapeshift-shell'] { border-radius: var(--pill, 999px) !important; corner-shape: round; transition: border-radius 0.2s var(--ease, ease), width 0.24s var(--ease, ease); }
 .assistant-docker [data-slot='shapeshift']:not([data-state='rest']) [data-slot='shapeshift-shell'],
 .assistant-docker[data-chat] [data-slot='shapeshift-shell'] { border-radius: 22px !important; corner-shape: squircle; }
-.assistant-docker__context { border-radius: 0 !important; }
+.assistant-docker__context { border-radius: 999px !important; }
 
 /* Tool rail: every tool visible at once; scroll only if the window is very short. */
 .workspace > .tool-rails { overflow-y: auto; scrollbar-width: none; }
@@ -1852,7 +1854,8 @@ body .canvas-bottom-chrome { max-width: calc(100% - 32px) !important; }
 .dockrow__defs { position: absolute; }
 .dockrow__goo { position: absolute; inset: 0; z-index: 0; overflow: visible; pointer-events: none; filter: drop-shadow(0 0 0.6px rgba(0, 0, 0, 0.35)) drop-shadow(0 10px 22px rgba(0, 0, 0, 0.12)); }
 .dockrow__goo .merge-layer { fill: var(--goo-fill); filter: none; }
-.dockrow .assistant-docker [data-slot='shapeshift-shell'] { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
+.dockrow .assistant-docker [data-slot='shapeshift-shell'] { border-color: transparent !important; background: var(--goo-fill) !important; box-shadow: none !important; }
+/* The bar paints its own fill too, so the merged layer (measured a frame behind) never lags its bloom. */
 .dockrow__side { display: flex; align-items: flex-end; gap: 14px; }
 
 .dockpill { display: flex; align-items: center; height: 36px; margin-bottom: 0; color: var(--fg); font-size: 13px; animation: pill-bud 0.3s var(--ease-out-strong) both; transition: transform 0.16s var(--ease-out-strong); }
@@ -1862,28 +1865,32 @@ body .canvas-bottom-chrome { max-width: calc(100% - 32px) !important; }
 @keyframes pill-bud { from { transform: translateX(var(--bud)) scale(0.5); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes pill-melt { from { transform: none; opacity: 1; } to { transform: translateX(var(--bud)) scale(0.5); opacity: 0; } }
 body:has(.shell .workspace) .dockrow .dockpill__main,
-body:has(.shell .workspace) .dockrow .dockpill__ctl button,
-body:has(.shell .workspace) .dockrow .dockpill__ctl select,
-body:has(.shell .workspace) .dockrow .dockpill__ctl input { border-radius: 999px !important; }
 .dockpill__main { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; transition: background-color 0.15s ease; }
 body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important; }
-.dockpill__reveal { display: grid; grid-template-columns: 0fr; transition: grid-template-columns 0.24s var(--ease-out-strong); }
-.dockpill.is-open .dockpill__reveal { grid-template-columns: 1fr; }
-.dockpill__inner { display: flex; align-items: center; min-width: 0; overflow: hidden; opacity: 0; filter: blur(2px); transition: opacity 0.18s ease, filter 0.18s ease; }
-.dockpill.is-open .dockpill__inner { opacity: 1; filter: none; transition-delay: 0.04s; }
+/* The pill is the control. Fixed widths, so changing a value never makes the dock jump. */
+.dockpill__main { position: relative; box-sizing: border-box; width: 100%; justify-content: flex-start; }
+.dockpill--font { width: 168px; } .dockpill--size, .dockpill--padding, .dockpill--margin, .dockpill--corners { width: 96px; }
+.dockpill--box-size { width: 176px; } .dockpill--color, .dockpill--fill, .dockpill--label-color { width: 112px; }
+.dockpill--align { width: 108px; } .dockpill--fit { width: 128px; }
+.dockpill__main:hover, .dockpill__scrub:hover { background: color-mix(in srgb, var(--fg) 6%, transparent); }
+.dockpill__select select { flex: 1; min-width: 0; height: 28px; padding: 0 2px; border: 0; background: transparent; color: inherit; font: inherit; outline: none; cursor: pointer; text-overflow: ellipsis; }
+.dockpill__scrub { display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; width: 100%; height: 36px; padding: 0 12px; border-radius: 999px; cursor: ew-resize; user-select: none; }
+.dockpill__scrub input { width: 4.5ch; field-sizing: content; min-width: 1ch; max-width: 6ch; flex: none; height: 26px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; font-variant-numeric: tabular-nums; text-align: left; outline: none; cursor: text; }
+.dockpill__scrub input:focus { background: color-mix(in srgb, var(--fg) 10%, transparent); }
+.dockpill__pair { display: flex; width: 100%; } .dockpill__pair > .dockpill__scrub { width: 50%; padding: 0 8px 0 12px; } .dockpill__pair > .dockpill__scrub + .dockpill__scrub { padding: 0 12px 0 4px; }
+.dockpill__value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.dockpill__caret { flex: none; opacity: 0.6; }
+.font-bloom__search { height: 30px; margin: 2px 2px 4px; padding: 0 10px; border: 0; border-radius: 10px; background: color-mix(in srgb, var(--fg) 7%, transparent); color: inherit; font: inherit; font-size: 13px; outline: none; }
+.font-bloom__list { max-height: 220px; overflow-y: auto; }
+.font-bloom__item { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 10px; font-size: 14px; cursor: pointer; }
+.font-bloom__item.is-focused { background: color-mix(in srgb, var(--fg) 8%, transparent); }
+.font-bloom__empty { display: flex; height: 100%; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
+.dockpill__chip { width: 18px; height: 18px; flex: none; border-radius: 999px !important; box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--fg) 25%, transparent); }
+.dockpill__picker { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+.dockpill :focus-visible { outline: 2px solid var(--accent, #3b82f6); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .dockpill, .dockpill.is-leaving { animation: none; } }
+.dockpill__unit { margin: 0 0 0 -4px; color: var(--muted); font-size: 11px; }
 .dockpill__main:active { transform: scale(0.97); }
-.dockpill__main { transition: background-color 0.15s ease, transform 0.16s var(--ease-out-strong); }
-.dockpill__ctl { display: inline-flex; align-items: center; gap: 2px; padding: 0 8px 0 2px; white-space: nowrap; }
-.dockpill__ctl button { display: grid; place-items: center; width: 26px; height: 26px; border: 0; background: transparent; color: inherit; font-size: 15px; cursor: pointer; }
-.dockpill__ctl button:hover, .dockpill__ctl button.is-on { background: color-mix(in srgb, var(--fg) 12%, transparent); }
-.dockpill__ctl input:not([type='color']) { width: 38px; height: 26px; border: 0; background: transparent; color: inherit; font: inherit; text-align: center; outline: none; }
-.dockpill__ctl input:not([type='color']):focus-visible { background: color-mix(in srgb, var(--fg) 10%, transparent); }
-.dockpill__ctl select { height: 26px; max-width: 120px; padding: 0 8px; border: 0; background: transparent; color: inherit; font: inherit; outline: none; cursor: pointer; }
-.dockpill__unit { margin: 0 2px 0 -4px; color: var(--muted); font-size: 11px; }
-.dockpill__swatch { width: 22px; height: 22px; padding: 0; border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent); background: none; cursor: pointer; }
-.dockpill__ctl code { margin-left: 4px; color: var(--muted); font-size: 11px; }
-@container stage (max-width: 1100px) { .dockpill:not(.is-open) .dockpill__label { display: none; } .dockpill__main { padding: 0 12px; } }
-@media (prefers-reduced-motion: reduce) { .dockpill, .dockpill.is-leaving { animation: none; } .dockpill__reveal, .dockpill__inner { transition: none; } }
 
 /* Canvas rulers: top and left strips in canvas units, toggled from the ruler pill. */
 .canvas-rulers { position: absolute; inset: 0; pointer-events: none; z-index: 15; }
@@ -1912,3 +1919,155 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .oc-bubble:hover { transform: scale(1.05); }
 .oc-bubble:active { transform: scale(0.95); }
 @media (prefers-reduced-motion: reduce) { .oc-pop, .oc-bubble { animation: none; } }
+
+/* When the chat blooms, take the squircle corners at once; easing down from 999px would keep it a pill mid-bloom. */
+.assistant-docker[data-chat] [data-slot='shapeshift-shell'] { transition: width 0.24s var(--ease, ease); }
+
+/* Folded chat: the AI icon at the start of the dock reopens it; the dot means a reply is still streaming. */
+.dock-chat-dot { position: relative; display: grid; place-items: center; width: 18px; height: 18px; color: var(--muted); cursor: pointer; }
+.dock-chat-dot:hover { color: var(--fg); }
+.dock-chat-dot[data-busy]::after { content: ''; position: absolute; top: -2px; right: -3px; width: 7px; height: 7px; border-radius: 50% !important; background: var(--fg); box-shadow: 0 0 0 2px var(--goo-fill, var(--surface)); animation: dock-dot 1.2s ease-in-out infinite; }
+@keyframes dock-dot { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .dock-chat-dot[data-busy]::after { animation: none; } }
+
+/* bloom-menu measures its open height once, from the menu. When Ask AI turns the menu into
+   the chat, snap the shell to the chat's fixed height (plus its 1px borders) so the input sits
+   on the bottom edge instead of floating above leftover menu space. */
+.ctx-bloom--chat {
+  height: 482px !important;
+  transition: height 0.24s var(--ease, ease);
+}
+
+/* Right-click menu and the Ask AI chat it blooms into: frosted glass from the first frame of the
+   bloom, so the glass grows with the shape. Once it has settled into the chat, the surface firms up
+   to 92% so long replies stay readable over a busy design. */
+.ctx-bloom {
+  --glass-edge: rgb(255 255 255 / 0.4);
+  background: color-mix(in oklab, var(--surface) 72%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-color: var(--glass-edge);
+  transition: background-color 0.2s ease;
+}
+[data-theme='dark'] .ctx-bloom { --glass-edge: rgb(255 255 255 / 0.08); }
+.ctx-bloom--chat {
+  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  transition: background-color 0.2s ease 0.28s, height 0.24s var(--ease, ease);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ctx-bloom { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; border-color: var(--line); }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ctx-bloom { background: var(--surface); border-color: var(--line); }
+}
+
+/* Class-name chip in the Ask AI header, in the layers panel's kind colours. Radius is the panel's
+   16px minus the 10px inset, with the same superellipse curve. Light mode darkens the text for contrast. */
+.ask-tag {
+  --kind: var(--layer-struct);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 24px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  corner-shape: superellipse(2);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--kind) 60%, black);
+  background: color-mix(in oklab, var(--kind) 12%, transparent);
+}
+[data-theme='dark'] .ask-tag {
+  color: var(--kind);
+  background: color-mix(in oklab, var(--kind) 18%, transparent);
+}
+.ask-tag[data-kind='text'] { --kind: var(--layer-text); }
+.ask-tag[data-kind='media'] { --kind: var(--layer-media); }
+.ask-tag[data-kind='action'] { --kind: var(--layer-action); }
+.ask-tag[data-kind='form'] { --kind: var(--layer-form); }
+.ask-tag[data-kind='struct'] { --kind: var(--layer-struct); }
+
+/* Delete in the right-click menu reads as red; its shortcut hint stays muted grey. */
+.ctx-danger { color: var(--destructive); }
+.ctx-danger svg { color: var(--destructive) !important; }
+.ctx-danger:hover, .ctx-danger[data-highlighted] { background: color-mix(in oklab, var(--destructive) 10%, transparent) !important; }
+
+/* Page wrappers: one background behind all the frames of a page, titled just above it. */
+.page-wrapper {
+  position: absolute;
+  pointer-events: none;
+  background: color-mix(in oklab, var(--fg) 4%, transparent);
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--line) 80%, transparent);
+  corner-shape: superellipse(2);
+}
+.page-wrapper__title {
+  position: absolute;
+  transform: translateY(calc(-100% - 8px));
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.page-wrapper__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.page-wrapper__count { font-size: 12px; color: var(--fg-3); }
+
+/* Settings › AI: provider dropdown. Logo, name, and on the far right the status or what it needs; blooms into the list. */
+.provider-select { position: relative; flex: none; }
+.provider-select__shell { border: 1px solid var(--frost-border, var(--line)); background: var(--frost-bg, var(--surface)); color: var(--fg); -webkit-backdrop-filter: var(--frost-filter); backdrop-filter: var(--frost-filter); z-index: 20; }
+.provider-select__trigger,
+.provider-select__item { display: flex; align-items: center; gap: 10px; width: 100%; height: 38px; padding: 0 10px; font-size: 13px; text-align: left; cursor: pointer; }
+.provider-select__list { display: flex; flex-direction: column; gap: 2px; padding: 4px; }
+.provider-select__item { height: 36px; border-radius: 8px; outline: none; transition: background-color 0.15s; }
+.provider-select__item:hover, .provider-select__item[data-highlighted] { background: color-mix(in oklab, var(--fg) 7%, transparent); }
+.provider-select__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.provider-select__tag { flex: none; color: var(--fg-3); font-size: 12px; }
+.provider-select__status { display: inline-flex; flex: none; align-items: center; gap: 6px; color: var(--fg-2); font-size: 12px; }
+.provider-select__dot { width: 6px; height: 6px; border-radius: 999px; background: #22c55e; box-shadow: 0 0 0 2px color-mix(in oklab, #22c55e 22%, transparent); }
+.provider-select__caret { flex: none; color: var(--fg-3); }
+.provider-select__tick { display: inline-flex; width: 14px; flex: none; color: var(--fg); }
+[data-theme='dark'] .provider-select__shell { border-color: rgb(255 255 255 / 0.12); background: color-mix(in oklab, var(--surface) 88%, white 4%); }
+
+.provider-select__trigger { height: 34px; }
+.provider-select__divider { height: 1px; margin: 3px 6px; background: var(--line); }
+.sx-advanced { display: flex; align-items: center; gap: 4px; width: 100%; padding: 10px 12px; color: var(--fg-3); font-size: 12px; font-weight: 500; text-align: left; cursor: pointer; border-top: 1px solid var(--line); }
+.sx-advanced:hover { color: var(--fg); }
+.settings-page .sx-advanced { appearance: none; margin: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0 0 inherit inherit; background: transparent; box-shadow: none; outline: none; }
+.settings-page .sx-advanced:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+/* Settings sidebar: the soft fill marks the open tab; the outline is only for keyboard focus. */
+.settings-page__tab:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+
+.sx-label-icon { display: inline-flex; align-items: center; gap: 6px; }
+.sx-info { display: inline-flex; color: var(--fg-3); cursor: help; }
+.sx-tag { padding: 1px 6px; border-radius: 6px; background: color-mix(in oklab, var(--fg) 7%, transparent); color: var(--fg-2); font-size: 11px; font-weight: 500; }
+
+/* Icon-only segmented controls in settings: square 28px buttons. */
+.settings-page .theme-toggle__btn { min-width: 28px; height: 28px; padding: 0 6px; justify-content: center; }
+
+/* Frame labels are just a device icon (desktop, tablet, mobile); the frame name lives in the tooltip. */
+.frame-chrome__device {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--fg-3);
+}
+.frame-chrome__label:hover .frame-chrome__device { color: var(--fg-2); }
+.frame-chrome.is-active .frame-chrome__device { color: var(--accent); }
+
+.settings-page .sx-text-btn { min-width: 0; padding: 0 12px; font-size: 12px; font-weight: 500; }
+
+/* Reduce motion (Settings › Appearance). */
+html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, html[data-reduce-motion='true'] *::after { animation-duration: 0.001ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; transition-delay: 0ms !important; scroll-behavior: auto !important; }

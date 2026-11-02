@@ -11,6 +11,10 @@ import { CHAT_BUBBLE_PRESETS, setChatBubblePreset, useChatBubblePreset } from '.
 import { CHAT_FONT_SIZE_PRESETS, setChatFontSize, useChatFontSize } from '../lib/chat-font-size';
 import { getOrbColors, ORB_COLOR_PRESETS, setOrbColorPreset, useOrbColorPreset } from '../lib/orb-colors';
 import { setThemePreference, useTheme } from '../lib/theme';
+import { setCalm, useCalm } from '../lib/calm';
+import { setShowMarkers, useShowMarkers } from '../lib/comments';
+import { setAutosave, setDisplayName, setQuickPills, setReduceMotion, setSendKey, useAutosave, useDisplayName, useQuickPills, useReduceMotion, useSendKey } from '../lib/prefs';
+import { setRulers, useRulers } from '../lib/rulers';
 import { Button, InputShell, Notice } from '../ui/primitives.jsx';
 import { ToolButton } from '../ui/ToolRail.jsx';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -85,7 +89,6 @@ export function SettingsPage() {
             <header className="settings-page__head">
               <div>
                 <h2>{current.label}</h2>
-                {current.lead ? <p className="settings-page__lead">{current.lead}</p> : null}
               </div>
               <button className="settings-page__close" aria-label="Close settings" onClick={close}>
                 <X size={16} />
@@ -112,24 +115,76 @@ export function SettingsPage() {
 
 function GeneralSettings() {
   const fontSize = useChatFontSize();
+  const sendKey = useSendKey();
+  const calm = useCalm();
+  const markers = useShowMarkers();
+  const name = useDisplayName();
+  const pills = useQuickPills();
+  const rulers = useRulers();
+  const autosave = useAutosave();
   return (
-    <SettingsGroup title="Chat">
-      <SettingRow label="Message size" hint="How large messages look in the home chat and the canvas AI panel.">
-        <div className="theme-toggle" role="radiogroup" aria-label="Chat font size">
-          {CHAT_FONT_SIZE_PRESETS.map(({ id, label }) => (
-            <Tooltip key={id}>
-              <TooltipTrigger asChild>
-                <button type="button" role="radio" aria-checked={fontSize === id} aria-label={label} className={`theme-toggle__btn${fontSize === id ? ' is-active' : ''}`} onClick={() => setChatFontSize(id)}>
-                  <Type size={id === 'small' ? 13 : id === 'large' ? 17 : 15} strokeWidth={1.75} aria-hidden />
-                  <span>{label}</span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">{label}</TooltipContent>
-            </Tooltip>
-          ))}
-        </div>
-      </SettingRow>
-    </SettingsGroup>
+    <>
+      <SettingsGroup title="You">
+        <SettingRow label="Name" hint="Used in the greeting on the home page.">
+          <InputShell>
+            <input aria-label="Your name" value={name} maxLength={40} placeholder="Optional" onChange={(e) => setDisplayName(e.target.value)} />
+          </InputShell>
+        </SettingRow>
+      </SettingsGroup>
+
+      <SettingsGroup title="Chat">
+        <SettingRow label="Message size" hint="How large replies and your messages read in chat.">
+          <div className="theme-toggle" role="radiogroup" aria-label="Chat font size">
+            {CHAT_FONT_SIZE_PRESETS.map(({ id, label }) => (
+              <Tooltip key={id}>
+                <TooltipTrigger asChild>
+                  <button type="button" role="radio" aria-checked={fontSize === id} aria-label={label} className={`theme-toggle__btn${fontSize === id ? ' is-active' : ''}`} onClick={() => setChatFontSize(id)}>
+                    <Type size={id === 'small' ? 12 : id === 'large' ? 18 : 15} strokeWidth={1.75} aria-hidden />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{label}</TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        </SettingRow>
+        <SettingRow label="Send with" hint={sendKey === 'enter' ? 'Enter sends. Shift+Enter adds a new line.' : 'Ctrl+Enter (⌘+Enter on Mac) sends. Enter adds a new line.'}>
+          <div className="theme-toggle" role="radiogroup" aria-label="Send key">
+            {([['enter', 'Enter'], ['mod-enter', 'Ctrl+Enter']] as const).map(([id, label]) => (
+              <button key={id} type="button" role="radio" aria-checked={sendKey === id} className={`theme-toggle__btn sx-text-btn${sendKey === id ? ' is-active' : ''}`} onClick={() => setSendKey(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </SettingRow>
+      </SettingsGroup>
+
+      <SettingsGroup title="Canvas">
+        <SettingRow label="Calm canvas" hint="Just your site and the dock on a plain background. Panels open from the corner pills.">
+          <Switch label="Calm canvas" checked={calm} onChange={setCalm} />
+        </SettingRow>
+        <SettingRow label="Comment markers" hint="Show the small numbered markers on elements that have comments.">
+          <Switch label="Comment markers" checked={markers} onChange={setShowMarkers} />
+        </SettingRow>
+        <SettingRow label="Quick edit pills" hint="The Edit, Font and Colour pills that appear beside the dock when you select an element.">
+          <Switch label="Quick edit pills" checked={pills} onChange={setQuickPills} />
+        </SettingRow>
+        <SettingRow label="Rulers" hint="Show rulers along the edges of the canvas.">
+          <Switch label="Rulers" checked={rulers} onChange={setRulers} />
+        </SettingRow>
+      </SettingsGroup>
+
+      <SettingsGroup title="Editing">
+        <SettingRow label="Autosave" hint="How soon code changes are written to disk after you stop typing.">
+          <div className="theme-toggle" role="radiogroup" aria-label="Autosave speed">
+            {([['fast', 'Fast'], ['normal', 'Normal'], ['slow', 'Slow']] as const).map(([id, label]) => (
+              <button key={id} type="button" role="radio" aria-checked={autosave === id} className={`theme-toggle__btn sx-text-btn${autosave === id ? ' is-active' : ''}`} onClick={() => setAutosave(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </SettingRow>
+      </SettingsGroup>
+    </>
   );
 }
 
@@ -144,23 +199,28 @@ function AppearanceSettings() {
   const bubble = useChatBubblePreset();
   const orb = useOrbColorPreset();
   const orbColors = getOrbColors(orb);
+  const reduceMotion = useReduceMotion();
   return (
     <>
       <SettingsGroup title="Theme">
-        <SettingRow label="Color mode" hint="System follows your computer’s light or dark setting.">
+        <SettingRow label="Color mode" hint="System follows your device and switches with it.">
           <div className="theme-toggle" role="radiogroup" aria-label="Theme">
             {THEMES.map(({ id, label, icon: Icon }) => (
-              <button key={id} type="button" role="radio" aria-checked={preference === id} className={`theme-toggle__btn${preference === id ? ' is-active' : ''}`} onClick={() => setThemePreference(id)}>
-                <Icon size={15} strokeWidth={1.75} aria-hidden />
-                <span>{label}</span>
-              </button>
+              <Tooltip key={id}>
+                <TooltipTrigger asChild>
+                  <button type="button" role="radio" aria-checked={preference === id} aria-label={label} className={`theme-toggle__btn${preference === id ? ' is-active' : ''}`} onClick={() => setThemePreference(id)}>
+                    <Icon size={15} strokeWidth={1.75} aria-hidden />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{label}</TooltipContent>
+              </Tooltip>
             ))}
           </div>
         </SettingRow>
       </SettingsGroup>
 
       <SettingsGroup title="Chat">
-        <SettingRow label="Your messages" hint="Bubble color for what you write.">
+        <SettingRow label="Your messages">
           <div className="sx-swatch-line">
             <div className="appearance-preview__bubble" aria-hidden>{'Looks good'}</div>
             <div className="swatch-row" role="radiogroup" aria-label="Message bubble color">
@@ -175,7 +235,7 @@ function AppearanceSettings() {
             </div>
           </div>
         </SettingRow>
-        <SettingRow label="Voice orb" hint="The orb you see while talking to the AI.">
+        <SettingRow label="Voice orb">
           <div className="sx-swatch-line">
             <div className="appearance-preview__orb" aria-hidden style={{ background: `radial-gradient(circle at 35% 30%, ${orbColors[0]}, ${orbColors[1]} 70%)` }} />
             <div className="swatch-row" role="radiogroup" aria-label="Voice orb color">
@@ -189,6 +249,12 @@ function AppearanceSettings() {
               ))}
             </div>
           </div>
+        </SettingRow>
+      </SettingsGroup>
+
+      <SettingsGroup title="Motion">
+        <SettingRow label="Reduce motion" hint="Turns off animations and transitions across the app.">
+          <Switch label="Reduce motion" checked={reduceMotion} onChange={setReduceMotion} />
         </SettingRow>
       </SettingsGroup>
     </>
@@ -234,15 +300,15 @@ function McpSettings() {
 
   return (
     <>
-      <SettingsGroup title="Server" hint="The server only accepts connections from this computer that present the access token.">
+      <SettingsGroup title={status.enabled ? 'Server' : undefined} hint={status.enabled ? undefined : 'Lets AI agents such as Cursor and Claude Code read and edit the project you have open, over MCP. Turn it on to get a connection address and one-click setup.'}>
         <SettingRow
           label={
             <span className="sx-status">
               {status.enabled && <span className={`mcp-dot ${running ? 'is-on' : 'is-error'}`} aria-hidden />}
-              {status.enabled ? (running ? 'Server on' : 'Starting…') : 'Server off'}
+              Enabled
+              {status.enabled && <span className="sx-tag">{running ? 'On' : 'Starting…'}</span>}
             </span>
           }
-          hint="Lets AI agents such as Cursor or Claude inspect and edit the open project. Their edits show up live and can be undone like your own."
         >
           <Switch label="Enable MCP server" checked={status.enabled} onChange={(on) => void update(() => api.mcp.setEnabled(on))} />
         </SettingRow>
@@ -250,7 +316,7 @@ function McpSettings() {
           <SettingRow label="Not running" hint={status.error ?? 'Starting…'} />
         )}
         {status.enabled && running && (
-          <SettingRow label="Address" hint="Agents connect here.">
+          <SettingRow label="Address">
             <div className="sx-inline">
               <code className="sx-code">{status.url}</code>
               <Button size="sm" variant="ghost" icon={<Copy size={13} />} aria-label="Copy URL" onClick={() => void copy(status.url, 'URL')} />
@@ -258,7 +324,7 @@ function McpSettings() {
           </SettingRow>
         )}
         {status.enabled && (
-          <SettingRow label="Port" hint="Change if another app already uses it.">
+          <SettingRow label="Port">
             <form
               className="sx-inline"
               onSubmit={(e) => {
@@ -281,17 +347,17 @@ function McpSettings() {
       {status.enabled && running && (
         <>
           <SettingsGroup title="Connect an agent">
-            <SettingRow label="Cursor" hint="Adds OpenCanvas to Cursor’s MCP servers.">
+            <SettingRow label="Cursor">
               <Button size="sm" variant="primary" icon={<Plug size={13} />} onClick={() => void api.mcp.installCursor().catch((err) => toast(errorText(err), 'error'))}>
                 Add to Cursor
               </Button>
             </SettingRow>
-            <SettingRow label="Other editors" hint="Paste this into an mcp.json file.">
+            <SettingRow label="Other editors">
               <Button size="sm" icon={<Copy size={13} />} onClick={() => void copy(cursorConfig(status), 'mcp.json config')}>
                 Copy mcp.json
               </Button>
             </SettingRow>
-            <SettingRow label="Claude Code" hint="Run this in a terminal.">
+            <SettingRow label="Claude Code">
               <Button size="sm" icon={<Copy size={13} />} onClick={() => void copy(claudeCommand(status), 'Claude Code command')}>
                 Copy command
               </Button>
@@ -299,7 +365,7 @@ function McpSettings() {
           </SettingsGroup>
 
           <SettingsGroup title="Access">
-            <SettingRow label="Access token" hint="Treat it like a password.">
+            <SettingRow label="Access token">
               <div className="sx-inline">
                 <KeyRound size={14} aria-hidden />
                 <code className="sx-code">{showToken ? status.token : '•'.repeat(16)}</code>
@@ -309,12 +375,12 @@ function McpSettings() {
                 <Button size="sm" variant="ghost" icon={<Copy size={13} />} aria-label="Copy token" onClick={() => void copy(status.token, 'token')} />
               </div>
             </SettingRow>
-            <SettingRow label="New token" hint="Disconnects every agent that’s using the current one.">
+            <SettingRow label="New token">
               <Button size="sm" icon={<RefreshCw size={13} />} onClick={() => void update(() => api.mcp.regenerateToken())}>
                 Generate
               </Button>
             </SettingRow>
-            <SettingRow label="Activity" hint={status.calls === 0 ? 'No agent has called a tool yet.' : `${plural(status.calls, 'tool call', 'tool calls')}. Last: ${status.lastTool} ${ago(status.lastAt)}.`} />
+            <SettingRow label="Activity" hint={status.calls === 0 ? undefined : `${plural(status.calls, 'tool call', 'tool calls')}. Last: ${status.lastTool} ${ago(status.lastAt)}.`} />
           </SettingsGroup>
         </>
       )}

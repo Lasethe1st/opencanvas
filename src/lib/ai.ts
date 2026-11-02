@@ -9,6 +9,7 @@ import { errorMessage } from './actions';
 import { api } from './api';
 import { activePage } from './pages';
 import { activeFrame, getState, setState, toast } from './store';
+import { getAsk } from './ask-box';
 
 /** Follow-ups while a turn is running — drained when the current turn finishes. */
 const pendingRequests: string[] = [];
@@ -51,8 +52,10 @@ export function handleAiEvent(event: AiEvent) {
     ...(inProject ? { build } : {}),
     ...(done ? { aiTurnId: null } : {}),
   });
-  // The AI is waiting on the user, so bring the conversation into view (in-project dock only).
-  if (inProject && (event.type === 'question' || event.type === 'approval') && s.dockMode !== 'input') setState({ dockMode: 'input' });
+  // The AI is waiting on the user, so bring the conversation into view (in-project dock only),
+  // unless the floating Ask AI chat is already showing it: a conversation lives in one place at a time.
+  const askOpen = getAsk().mode === 'chat' || getAsk().mode === 'max';
+  if (inProject && !askOpen && (event.type === 'question' || event.type === 'approval') && s.dockMode !== 'input') setState({ dockMode: 'input' });
   if (inProject && done && (build.phase === 'stopped' || build.phase === 'failed')) {
     setTimeout(() => {
       if (getState().build.turnId === event.turnId) setState({ build: IDLE_BUILD });
