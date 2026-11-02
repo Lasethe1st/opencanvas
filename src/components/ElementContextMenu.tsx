@@ -197,7 +197,7 @@ export function ElementContextMenu() {
           if (overSide.current) return;
           if (chat) return;
           closeElementMenu();
-        }} direction={up ? 'top' : 'bottom'} anchor={end ? 'end' : 'start'} bounce={0.12} visualDuration={0.28}>
+        }} direction={up ? 'top' : 'bottom'} anchor={end ? 'end' : 'start'} bounce={0.06} visualDuration={0.26}>
         <Menu.Container
           buttonSize={BLOOM_SEED}
           menuWidth={chat ? CHAT_W : MENU_W}
@@ -216,9 +216,9 @@ export function ElementContextMenu() {
             {groups.map((g, gi) => (
               <div key={gi} className={gi ? 'mt-1 border-t border-foreground/[0.08] pt-1' : ''}>
                 {g.map((it) => {
-                  const delay = 0.05 + 0.022 * n++;
+                  const delay = 0.04 + Math.min(0.02 * n++, 0.2);
                   return (
-                    <motion.div key={it.label} ref={it.more ? moreRef : undefined} onMouseEnter={() => (it.more ? (setSideFocus(-1), setMore(true)) : setMore(false))} initial={{ opacity: 0, y: -4 }} animate={phase === 'open' ? { opacity: 1, y: 0 } : { opacity: 0, y: -4 }} transition={{ delay: phase === 'open' ? delay : 0, duration: 0.18, ease: 'easeOut' }}>
+                    <motion.div key={it.label} ref={it.more ? moreRef : undefined} onMouseEnter={() => (it.more ? (setSideFocus(-1), setMore(true)) : setMore(false))} initial={{ opacity: 0, y: -4, filter: 'blur(2px)' }} animate={phase === 'open' ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: -4, filter: 'blur(2px)' }} transition={{ delay: phase === 'open' ? delay : 0, duration: phase === 'open' ? 0.2 : 0.1, ease: [0.23, 1, 0.32, 1] }}>
                       <Menu.Item
                         disabled={it.disabled}
                         className={`flex w-full cursor-pointer select-none items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-sm outline-none transition-colors duration-150 hover:bg-accent aria-disabled:pointer-events-none aria-disabled:opacity-40 data-[disabled]:pointer-events-none data-[disabled]:opacity-40 [&_svg]:shrink-0 ${it.danger ? 'ctx-danger' : 'text-foreground [&_svg]:text-muted-foreground'}${it.more && more ? ' bg-accent' : ''}`}

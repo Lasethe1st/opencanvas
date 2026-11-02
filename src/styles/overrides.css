@@ -1858,12 +1858,12 @@ body .canvas-bottom-chrome { max-width: calc(100% - 32px) !important; }
 /* The bar paints its own fill too, so the merged layer (measured a frame behind) never lags its bloom. */
 .dockrow__side { display: flex; align-items: flex-end; gap: 14px; }
 
-.dockpill { display: flex; align-items: center; height: 36px; margin-bottom: 0; color: var(--fg); font-size: 13px; animation: pill-bud 0.36s cubic-bezier(0.2, 0.9, 0.3, 1.15) both; }
+.dockpill { display: flex; align-items: center; height: 36px; margin-bottom: 0; color: var(--fg); font-size: 13px; animation: pill-bud 0.3s var(--ease-out-strong) both; transition: transform 0.16s var(--ease-out-strong); }
 .dockpill--left { --bud: 52px; }
 .dockpill--right { --bud: -52px; }
-.dockpill.is-leaving { animation: pill-melt 0.26s ease-in both; }
-@keyframes pill-bud { from { transform: translateX(var(--bud)) scale(0.2); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes pill-melt { from { transform: none; opacity: 1; } to { transform: translateX(var(--bud)) scale(0.2); opacity: 0; } }
+.dockpill.is-leaving { animation: pill-melt 0.2s var(--ease-out-strong) both; }
+@keyframes pill-bud { from { transform: translateX(var(--bud)) scale(0.5); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pill-melt { from { transform: none; opacity: 1; } to { transform: translateX(var(--bud)) scale(0.5); opacity: 0; } }
 body:has(.shell .workspace) .dockrow .dockpill__main,
 .dockpill__main { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; transition: background-color 0.15s ease; }
 body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important; }
@@ -1890,6 +1890,7 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .dockpill :focus-visible { outline: 2px solid var(--accent, #3b82f6); outline-offset: -2px; }
 @media (prefers-reduced-motion: reduce) { .dockpill, .dockpill.is-leaving { animation: none; } }
 .dockpill__unit { margin: 0 0 0 -4px; color: var(--muted); font-size: 11px; }
+.dockpill__main:active { transform: scale(0.97); }
 
 /* Canvas rulers: top and left strips in canvas units, toggled from the ruler pill. */
 .canvas-rulers { position: absolute; inset: 0; pointer-events: none; z-index: 15; }
@@ -1908,6 +1909,17 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 @media (prefers-reduced-motion: reduce) { .merge-layer rect, .merge-layer path { transition: opacity 120ms linear; } }
 /* The bar is 420px wide; size its slot to match so the pills on the right can join it too. */
 .dockrow .canvas-shapeshift:not([data-chat]) { width: min(420px, calc(100vw - 32px)); }
+
+/* Motion tokens (Emil Kowalski): strong curves, short durations, nothing from scale(0). */
+:root { --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1); }
+@keyframes oc-pop { from { opacity: 0; transform: scale(0.95); } }
+@keyframes oc-bubble { from { opacity: 0; transform: scale(0.8); } }
+.oc-pop { animation: oc-pop 0.16s var(--ease-out-strong) both; transform-origin: var(--oc-origin, top center); }
+.oc-bubble { animation: oc-bubble 0.2s var(--ease-out-strong) both; transition: transform 0.16s var(--ease-out-strong); }
+.oc-bubble:hover { transform: scale(1.05); }
+.oc-bubble:active { transform: scale(0.95); }
+@media (prefers-reduced-motion: reduce) { .oc-pop, .oc-bubble { animation: none; } }
+
 /* When the chat blooms, take the squircle corners at once; easing down from 999px would keep it a pill mid-bloom. */
 .assistant-docker[data-chat] [data-slot='shapeshift-shell'] { transition: width 0.24s var(--ease, ease); }
 

@@ -62,7 +62,7 @@ export function CommentPopover() {
       data-comment-popover=""
       role="dialog"
       aria-label={`Comments on ${at.elementName}`}
-      className="fixed z-[300] w-[300px] rounded-[16px] border border-[color:var(--frost-border)] bg-[var(--frost-bg)] p-2 text-foreground shadow-[var(--shadow-md)]"
+      className="oc-pop fixed z-[300] w-[300px] rounded-[16px] border border-[color:var(--frost-border)] bg-[var(--frost-bg)] p-2 text-foreground shadow-[var(--shadow-md)]"
       style={{ left: pos?.left ?? at.x, top: pos?.top ?? at.y, visibility: pos ? 'visible' : 'hidden', WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)' }}
       onContextMenu={(e) => e.preventDefault()}
     >
