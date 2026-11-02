@@ -13,7 +13,8 @@ import { getOrbColors, ORB_COLOR_PRESETS, setOrbColorPreset, useOrbColorPreset }
 import { setThemePreference, useTheme } from '../lib/theme';
 import { setCalm, useCalm } from '../lib/calm';
 import { setShowMarkers, useShowMarkers } from '../lib/comments';
-import { setReduceMotion, setSendKey, useReduceMotion, useSendKey } from '../lib/prefs';
+import { setAutosave, setDisplayName, setQuickPills, setReduceMotion, setSendKey, useAutosave, useDisplayName, useQuickPills, useReduceMotion, useSendKey } from '../lib/prefs';
+import { setRulers, useRulers } from '../lib/rulers';
 import { Button, InputShell, Notice } from '../ui/primitives.jsx';
 import { ToolButton } from '../ui/ToolRail.jsx';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -117,8 +118,20 @@ function GeneralSettings() {
   const sendKey = useSendKey();
   const calm = useCalm();
   const markers = useShowMarkers();
+  const name = useDisplayName();
+  const pills = useQuickPills();
+  const rulers = useRulers();
+  const autosave = useAutosave();
   return (
     <>
+      <SettingsGroup title="You">
+        <SettingRow label="Name" hint="Used in the greeting on the home page.">
+          <InputShell>
+            <input aria-label="Your name" value={name} maxLength={40} placeholder="Optional" onChange={(e) => setDisplayName(e.target.value)} />
+          </InputShell>
+        </SettingRow>
+      </SettingsGroup>
+
       <SettingsGroup title="Chat">
         <SettingRow label="Message size" hint="How large replies and your messages read in chat.">
           <div className="theme-toggle" role="radiogroup" aria-label="Chat font size">
@@ -151,6 +164,24 @@ function GeneralSettings() {
         </SettingRow>
         <SettingRow label="Comment markers" hint="Show the small numbered markers on elements that have comments.">
           <Switch label="Comment markers" checked={markers} onChange={setShowMarkers} />
+        </SettingRow>
+        <SettingRow label="Quick edit pills" hint="The Edit, Font and Colour pills that appear beside the dock when you select an element.">
+          <Switch label="Quick edit pills" checked={pills} onChange={setQuickPills} />
+        </SettingRow>
+        <SettingRow label="Rulers" hint="Show rulers along the edges of the canvas.">
+          <Switch label="Rulers" checked={rulers} onChange={setRulers} />
+        </SettingRow>
+      </SettingsGroup>
+
+      <SettingsGroup title="Editing">
+        <SettingRow label="Autosave" hint="How soon code changes are written to disk after you stop typing.">
+          <div className="theme-toggle" role="radiogroup" aria-label="Autosave speed">
+            {([['fast', 'Fast'], ['normal', 'Normal'], ['slow', 'Slow']] as const).map(([id, label]) => (
+              <button key={id} type="button" role="radio" aria-checked={autosave === id} className={`theme-toggle__btn sx-text-btn${autosave === id ? ' is-active' : ''}`} onClick={() => setAutosave(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
         </SettingRow>
       </SettingsGroup>
     </>

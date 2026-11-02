@@ -48,3 +48,39 @@ export function setReduceMotion(on: boolean) {
   listeners.forEach((l) => l());
 }
 export const useReduceMotion = () => useSyncExternalStore(subscribe, getReduceMotion, getReduceMotion);
+
+/* Your name, for the home greeting. */
+const NAME_KEY = 'oc.displayName';
+let displayName = (read(NAME_KEY) ?? '').slice(0, 40);
+export const getDisplayName = () => displayName;
+export function setDisplayName(next: string) {
+  displayName = next.slice(0, 40);
+  write(NAME_KEY, displayName);
+  listeners.forEach((l) => l());
+}
+export const useDisplayName = () => useSyncExternalStore(subscribe, getDisplayName, getDisplayName);
+
+/* The Edit / Font / Colour pills that grow out of the dock when an element is selected. */
+const PILLS_KEY = 'oc.quickPills';
+let quickPills = read(PILLS_KEY) !== '0';
+export const getQuickPills = () => quickPills;
+export function setQuickPills(on: boolean) {
+  quickPills = on;
+  write(PILLS_KEY, on ? '1' : '0');
+  listeners.forEach((l) => l());
+}
+export const useQuickPills = () => useSyncExternalStore(subscribe, getQuickPills, getQuickPills);
+
+/* How soon code edits are written to disk. */
+export type AutosaveSpeed = 'fast' | 'normal' | 'slow';
+const SAVE_KEY = 'oc.autosave';
+export const AUTOSAVE_MS: Record<AutosaveSpeed, number> = { fast: 300, normal: 700, slow: 2000 };
+let autosave: AutosaveSpeed = (['fast', 'normal', 'slow'] as const).find((v) => v === read(SAVE_KEY)) ?? 'normal';
+export const getAutosaveMs = () => AUTOSAVE_MS[autosave];
+export const getAutosave = () => autosave;
+export function setAutosave(next: AutosaveSpeed) {
+  autosave = next;
+  write(SAVE_KEY, next);
+  listeners.forEach((l) => l());
+}
+export const useAutosave = () => useSyncExternalStore(subscribe, getAutosave, getAutosave);
