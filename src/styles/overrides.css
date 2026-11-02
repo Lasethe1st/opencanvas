@@ -2089,12 +2089,14 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 .frame-chrome__handle--se:hover::after { transform: scale(1.15); }
 .frame-chrome.is-active .frame-chrome__handle--se::after { border-color: var(--fg-3); }
 
-/* AI at work: a 3×3 dot weave at the top left of the frame (beside its label) or of the element, plus a light that circles the border. */
-.ai-weave { display: inline-grid; grid-template-columns: repeat(3, 3px); gap: 2.5px; flex: none; padding: 5px; border-radius: 8px !important; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 1px 4px rgb(0 0 0 / 0.1); animation: oc-pop 0.2s var(--ease-out-strong) both; }
-.ai-weave i { width: 3px; height: 3px; border-radius: 50% !important; background: #7c3aed; animation: ai-weave 1.2s ease-in-out infinite; animation-delay: calc(var(--n, 0) * 110ms); }
-[data-theme='dark'] .ai-weave i { background: #a78bfa; }
-@keyframes ai-weave { 0%, 100% { opacity: 0.22; transform: scale(0.7); } 45% { opacity: 1; transform: scale(1.25); } }
+/* AI at work: one filled circle that splits into two (goo) and merges back, at the top left of the frame (beside its label) or of the element. Monochrome, like the rest. */
+.ai-weave { display: inline-flex; flex: none; padding: 5px 6px; border-radius: 999px !important; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 1px 4px rgb(0 0 0 / 0.1); animation: oc-pop 0.2s var(--ease-out-strong) both; }
+.ai-weave__stage { position: relative; width: 22px; height: 10px; filter: url(#oc-goo); }
+.ai-weave__stage i { position: absolute; left: 7px; top: 1px; width: 8px; height: 8px; border-radius: 50% !important; background: var(--fg); animation: ai-split 2.4s cubic-bezier(0.77, 0, 0.175, 1) infinite; }
+.ai-weave__stage i:last-child { animation-name: ai-split-b; }
+@keyframes ai-split { 0%, 12% { transform: translateX(0); } 42%, 58% { transform: translateX(-6px); } 88%, 100% { transform: translateX(0); } }
+@keyframes ai-split-b { 0%, 12% { transform: translateX(0); } 42%, 58% { transform: translateX(6px); } 88%, 100% { transform: translateX(0); } }
 @property --oc-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 @keyframes ai-orbit { to { --oc-a: 360deg; } }
-.frame-chrome.is-ai .frame-chrome__outline::before { content: ''; position: absolute; inset: -1px; padding: 1.5px; background: conic-gradient(from var(--oc-a), transparent 0 55%, #a78bfa 70%, #38bdf8 85%, #34d399 95%, transparent); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: ai-orbit 2.6s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .ai-weave, .ai-weave i, .frame-chrome.is-ai .frame-chrome__outline::before { animation: none; } .ai-weave i { opacity: 0.8; } }
+.frame-chrome.is-ai .frame-chrome__outline::before { content: ''; position: absolute; inset: -1px; padding: 1.5px; background: conic-gradient(from var(--oc-a), transparent 0 60%, color-mix(in srgb, var(--fg) 70%, transparent) 95%, transparent); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: ai-orbit 2.6s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .ai-weave, .ai-weave__stage i, .frame-chrome.is-ai .frame-chrome__outline::before { animation: none; } }

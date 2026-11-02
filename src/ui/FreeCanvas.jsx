@@ -41,13 +41,20 @@ export function WorldFrame({ x, y, width, height, active, shadow, children }) {
   );
 }
 
-/** A 3×3 grid of dots that light up in a diagonal wave: the AI is working here. */
+/** One filled circle that gooily splits into two and melts back, over and over: the AI is working here. */
 export function AiWeave({ className }) {
   return (
     <span className={cx('ai-weave', className)} role="status" aria-label="AI is working">
-      {Array.from({ length: 9 }, (_, n) => (
-        <i key={n} style={{ '--n': (n % 3) + Math.floor(n / 3) }} />
-      ))}
+      <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}>
+        <filter id="oc-goo" x="-50%" y="-100%" width="200%" height="300%" colorInterpolationFilters="sRGB">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b" />
+          <feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" />
+        </filter>
+      </svg>
+      <span className="ai-weave__stage">
+        <i className="ai-weave__a" />
+        <i className="ai-weave__b" />
+      </span>
     </span>
   );
 }

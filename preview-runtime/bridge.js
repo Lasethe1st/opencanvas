@@ -80,13 +80,16 @@
       .work { position: fixed; box-sizing: border-box; pointer-events: none; display: none; padding: calc(1.5px * var(--k)); border-radius: 3px; overflow: hidden;
         -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
       .work i { position: absolute; left: 50%; top: 50%; width: var(--d, 400px); height: var(--d, 400px); margin: calc(var(--d, 400px) / -2) 0 0 calc(var(--d, 400px) / -2);
-        background: conic-gradient(from 0deg, transparent 0 55%, #a78bfa 70%, #38bdf8 85%, #34d399 95%, transparent); animation: oc-rot 2.6s linear infinite; }
+        background: conic-gradient(from 0deg, transparent 0 60%, rgba(17,17,17,.75) 95%, transparent); animation: oc-rot 2.6s linear infinite; }
       @keyframes oc-rot { to { transform: rotate(360deg); } }
-      .wchip { position: fixed; pointer-events: none; display: none; grid-template-columns: repeat(3, 3px); gap: 2.5px; padding: 6px; border-radius: 8px; background: rgba(255,255,255,.92); box-shadow: 0 1px 6px rgba(0,0,0,.2), 0 0 0 1px rgba(0,0,0,.06);
+      .wchip { position: fixed; pointer-events: none; display: none; padding: 5px 6px; border-radius: 999px; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.25), 0 0 0 1px rgba(0,0,0,.14);
         transform: scale(var(--k)); transform-origin: left top; }
-      .wchip i { width: 3px; height: 3px; border-radius: 50%; background: #7c3aed; animation: oc-weave 1.2s ease-in-out infinite; animation-delay: calc(var(--n) * 110ms); }
-      @keyframes oc-weave { 0%, 100% { opacity: .22; transform: scale(.7); } 45% { opacity: 1; transform: scale(1.25); } }
-      @media (prefers-reduced-motion: reduce) { .work i, .wchip i { animation: none; } .wchip i { opacity: .8; } }
+      .wstage { position: relative; width: 22px; height: 10px; filter: url(#oc-goo); }
+      .wstage i { position: absolute; left: 7px; top: 1px; width: 8px; height: 8px; border-radius: 50%; background: #111; animation: oc-split 2.4s cubic-bezier(.77,0,.175,1) infinite; }
+      .wstage i:last-child { animation-name: oc-split-b; }
+      @keyframes oc-split { 0%, 12% { transform: translateX(0); } 42%, 58% { transform: translateX(-6px); } 88%, 100% { transform: translateX(0); } }
+      @keyframes oc-split-b { 0%, 12% { transform: translateX(0); } 42%, 58% { transform: translateX(6px); } 88%, 100% { transform: translateX(0); } }
+      @media (prefers-reduced-motion: reduce) { .work i, .wstage i { animation: none; } }
       .token-hit { border: 1.5px dashed #d97706; box-shadow: 0 0 0 1px rgba(217,119,6,.25); }
       .token-hit .label { background: #d97706; }
     </style>
@@ -99,7 +102,7 @@
   shadow.appendChild(workBox);
   const workChip = document.createElement('div');
   workChip.className = 'wchip';
-  workChip.innerHTML = Array.from({ length: 9 }, (_, n) => `<i style="--n:${(n % 3) + Math.floor(n / 3)}"></i>`).join('');
+  workChip.innerHTML = '<svg width="0" height="0" style="position:absolute"><filter id="oc-goo" x="-50%" y="-100%" width="200%" height="300%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"/></filter></svg><span class="wstage"><i></i><i></i></span>';
   shadow.appendChild(workChip);
   /** The element the AI is working on right now (source id), or null. */
   let workId = null;
@@ -118,9 +121,9 @@
     workBox.style.width = `${r.width}px`;
     workBox.style.height = `${r.height}px`;
     workBox.style.setProperty('--d', `${Math.hypot(r.width, r.height) + 8}px`);
-    workChip.style.display = 'grid';
+    workChip.style.display = 'block';
     // Just outside the top-left corner so it never covers the element; tucked inside when there's no room.
-    const w = 24 * k;
+    const w = 34 * k;
     workChip.style.left = `${r.left - w - 4 * k >= 2 ? r.left - w - 4 * k : r.left + 4 * k}px`;
     workChip.style.top = `${Math.max(2, r.top)}px`;
   }
