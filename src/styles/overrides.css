@@ -538,7 +538,7 @@ body {
 .workspace__center { overflow: hidden; }
 .canvas-nav { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .canvas-nav__bar { border-radius: var(--r-pill); }
-.canvas-bottom-chrome { left: 50%; right: auto; width: max-content; max-width: min(560px, calc(100% - 32px)); transform: translateX(-50%); }
+.canvas-bottom-chrome { left: 50%; right: auto; width: calc(100% - 32px); max-width: calc(100% - 32px); transform: translateX(-50%); }
 .canvas-bottom-chrome .dock.is-open { width: min(560px, calc(100% - 32px)); }
 
 /* Frame labels never run past their frame: narrow frames drop size + scope, name truncates. */
@@ -966,12 +966,12 @@ kbd, .kbd,
 /* Bottom chrome stays inside the visible (uncovered) part of the stage. */
 .workspace--bleed .canvas-nav { right: calc(var(--inset-r, 0px) + 12px); }
 .workspace--bleed .canvas-bottom-chrome {
-  /* Centred in the part of the stage the side panels leave uncovered. */
+  /* Centred in the part of the stage the side panels leave uncovered; wide enough for side pills. */
   --dock-room: calc(100% - var(--inset-l, 0px) - var(--inset-r, 0px));
   left: calc(var(--inset-l, 0px) + var(--dock-room) / 2);
   right: auto;
-  width: max-content;
-  max-width: min(560px, calc(var(--dock-room) - 32px));
+  width: calc(var(--dock-room) - 32px);
+  max-width: calc(var(--dock-room) - 32px);
   margin: 0;
   transform: translateX(-50%);
 }
@@ -1711,7 +1711,8 @@ kbd, .kbd,
 .docker-chat { display: flex; flex-direction: column; height: 100%; background: transparent; }
 .docker-chat__head { display: flex; align-items: center; gap: 2px; padding: 8px 8px 4px 14px; }
 .docker-chat__model { margin-right: auto; padding: 0; color: var(--muted); font-size: 12px; cursor: pointer; }
-.docker-chat__log { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px; scrollbar-width: thin; }
+.docker-chat__log { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px; scrollbar-width: none; }
+.docker-chat__log::-webkit-scrollbar { display: none; }
 .docker-chat__empty { margin: 4px 2px 14px; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .docker-chat__foot { display: flex; align-items: center; justify-content: space-between; padding: 6px 14px 10px; color: var(--muted); font-size: 12px; }
 .docker-chat__foot button { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: var(--pill); color: var(--fg); cursor: pointer; }
@@ -1722,7 +1723,7 @@ kbd, .kbd,
 :where(body:has(.shell .workspace) *:not(
   .assistant-docker [data-slot='shapeshift-shell'], .assistant-docker [data-slot='shapeshift-shell'] *,
   [class*='avatar'], [class*='badge'], [class*='orb'], [class*='spin'], [class*='dot'],
-  [role='dialog'], [role='dialog'] *, .stage__world *, .calm-pill, [data-bloom-menu], [data-bloom-menu] *
+  [role='dialog'], [role='dialog'] *, .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu], [data-bloom-menu] *
 )) { border-radius: 0 !important; }
 body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data-tip]::before { border-radius: 0 !important; }
 
@@ -1744,9 +1745,9 @@ body:has(.shell .workspace) :is(
   .toggle-more__select, .state-switcher-select, .input, .search, .search input, textarea,
   input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
   .swatch, .section__icon, .field-select, .ai-option, .ai-card__text input
-):not(.assistant-docker *, [class*='avatar'], .stage__world *, .calm-pill, [data-bloom-menu] *) { border-radius: 10px !important; corner-shape: squircle; }
+):not(.assistant-docker *, [class*='avatar'], .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu] *, [role='dialog'] *) { border-radius: 10px !important; corner-shape: squircle; }
 /* Active, selected and pressed states follow the same soft corner. */
-body:has(.shell .workspace) :is(.is-active, .is-current, .is-selected, [aria-selected='true'], [aria-pressed='true'], [aria-current='true'], .segmented__pill):not(.assistant-docker *, .stage__world *, .calm-pill) { border-radius: 10px !important; corner-shape: squircle; }
+body:has(.shell .workspace) :is(.is-active, .is-current, .is-selected, [aria-selected='true'], [aria-pressed='true'], [aria-current='true'], .segmented__pill):not(.assistant-docker *, .stage__world *, .calm-pill, .calm-pill *, [role='dialog'] *) { border-radius: 10px !important; corner-shape: squircle; }
 /* Switches are pills; checkboxes and radios get a small radius. */
 body:has(.shell .workspace) :is([role='switch'], .switch, .toggle-switch, .toggle-switch *) { border-radius: 999px !important; corner-shape: round; }
 body:has(.shell .workspace) input[type='checkbox'] { border-radius: 5px !important; }
@@ -1847,10 +1848,25 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 
 /* Home + panel toggle: two blobs, fused like the dock pills. */
 
-/* ───────── Dock row: pills · dock · pills, each its own pill ───────── */
-body .canvas-bottom-chrome { max-width: calc(100% - 32px) !important; }
-.dockrow { position: relative; display: flex; align-items: flex-end; gap: 8px; }
-.dockrow__side { display: flex; align-items: flex-end; gap: 8px; }
+/* ───────── Dock row: one tight cluster (pills + ask); group can sit off-centre ───────── */
+body .canvas-bottom-chrome { width: calc(100% - 32px) !important; max-width: calc(100% - 32px) !important; }
+.dockrow {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+.dockrow__side {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex: none;
+  min-width: 0;
+}
+.dockrow__side--left { justify-content: flex-end; }
+.dockrow__side--right { justify-content: flex-start; }
+.dockrow .canvas-shapeshift { flex: none; min-width: 0; }
 /* One surface for every pill and the input, so they read as a set. */
 .dockpill, .dockrow .assistant-docker [data-slot='shapeshift-shell'] { border: 1px solid var(--frost-border); background: var(--frost-bg); box-shadow: var(--shadow-md); -webkit-backdrop-filter: var(--frost-filter); backdrop-filter: var(--frost-filter); }
 
@@ -1862,18 +1878,18 @@ body .canvas-bottom-chrome { max-width: calc(100% - 32px) !important; }
 body:has(.shell .workspace) .dockrow .dockpill__main,
 .dockpill__main { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; transition: background-color 0.15s ease; }
 body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important; }
-/* The pill is the control. Fixed widths, so changing a value never makes the dock jump. */
-.dockpill__main { position: relative; box-sizing: border-box; width: 100%; justify-content: flex-start; }
-.dockpill--font { width: 168px; } .dockpill--size, .dockpill--padding, .dockpill--margin, .dockpill--corners { width: 96px; }
-.dockpill--box-size { width: 176px; } .dockpill--color, .dockpill--fill, .dockpill--label-color, .dockpill--align { width: 36px; }
-.dockpill--color .dockpill__main, .dockpill--fill .dockpill__main, .dockpill--label-color .dockpill__main, .dockpill--align .dockpill__main { justify-content: center; padding: 0; }
-.dockpill--fit { width: 128px; }
+/* Scrub/text pills size to content; icon-only pills stay square. */
+.dockpill__main { position: relative; box-sizing: border-box; width: auto; justify-content: flex-start; }
+.dockpill--font, .dockpill--fit { width: auto; max-width: 168px; }
+.dockpill--size, .dockpill--padding, .dockpill--margin, .dockpill--corners, .dockpill--box-size { width: auto; }
+.dockpill--color, .dockpill--fill, .dockpill--label-color, .dockpill--align { width: 36px; }
+.dockpill--color .dockpill__main, .dockpill--fill .dockpill__main, .dockpill--label-color .dockpill__main, .dockpill--align .dockpill__main { justify-content: center; padding: 0; width: 100%; }
 .dockpill__main:hover, .dockpill__scrub:hover { background: color-mix(in srgb, var(--fg) 6%, transparent); }
 .dockpill__select select { flex: 1; min-width: 0; height: 28px; padding: 0 2px; border: 0; background: transparent; color: inherit; font: inherit; outline: none; cursor: pointer; text-overflow: ellipsis; }
-.dockpill__scrub { display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; width: 100%; height: 36px; padding: 0 12px; border-radius: 999px; cursor: ew-resize; user-select: none; }
-.dockpill__scrub input { width: 4.5ch; field-sizing: content; min-width: 1ch; max-width: 6ch; flex: none; height: 26px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; font-variant-numeric: tabular-nums; text-align: left; outline: none; cursor: text; }
+.dockpill__scrub { display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; width: auto; height: 36px; padding: 0 12px; border-radius: 999px; cursor: ew-resize; user-select: none; }
+.dockpill__scrub input { width: auto; field-sizing: content; min-width: 1ch; max-width: 6ch; flex: none; height: 26px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; font-family: var(--font-mono, ui-monospace, monospace); font-size: inherit; font-variant-numeric: tabular-nums; text-align: left; outline: none; cursor: text; }
 .dockpill__scrub input:focus { background: color-mix(in srgb, var(--fg) 10%, transparent); }
-.dockpill__pair { display: flex; width: 100%; } .dockpill__pair > .dockpill__scrub { width: 50%; padding: 0 8px 0 12px; } .dockpill__pair > .dockpill__scrub + .dockpill__scrub { padding: 0 12px 0 4px; }
+.dockpill__pair { display: flex; width: auto; } .dockpill__pair > .dockpill__scrub { width: auto; padding: 0 8px 0 12px; } .dockpill__pair > .dockpill__scrub + .dockpill__scrub { padding: 0 12px 0 4px; }
 .dockpill__value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .dockpill__caret { flex: none; opacity: 0.6; }
 .font-bloom__search { height: 30px; margin: 2px 2px 4px; padding: 0 10px; border: 0; border-radius: 10px; background: color-mix(in srgb, var(--fg) 7%, transparent); color: inherit; font: inherit; font-size: 13px; outline: none; }

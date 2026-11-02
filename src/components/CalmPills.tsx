@@ -46,7 +46,7 @@ export function CalmPills() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button data-merge="" variant="ghost" className="calm-pill calm-pill--round calm-pill--user relative size-9 overflow-hidden rounded-full bg-transparent p-2 hover:bg-transparent" aria-label="Account and settings" onClick={() => setState({ settingsOpen: true })}>
-                <img src={USER_AVATAR_SRC} alt="" width={36} height={36} className="size-full rounded-[var(--r-pill)] object-cover" draggable={false} referrerPolicy="no-referrer" />
+                <img src={USER_AVATAR_SRC} alt="" width={36} height={36} className="avatar size-full rounded-[var(--r-pill)] object-cover" draggable={false} referrerPolicy="no-referrer" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">Account</TooltipContent>

@@ -3,7 +3,7 @@ import { chooseImageForSelection, setFontFamily, setStyle, setStyles } from '../
 import { editSelectedText } from '../../lib/inline-edit';
 import { useStore, type Selection } from '../../lib/store';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { ArrowDown01Icon, Tick02Icon, AlignHorizontalSpaceAroundIcon, Edit02Icon, FitToScreenIcon, FrameIcon, ImageUploadIcon, PaintBucketIcon, Resize01Icon, SquareRoundCornerIcon, TextAlignLeft01Icon, TextColorIcon, TextFontIcon, TextIcon } from '@hugeicons/core-free-icons';
+import { ArrowDown01Icon, Tick02Icon, AlignHorizontalSpaceAroundIcon, ArtboardIcon, Edit02Icon, FitToScreenIcon, ImageUploadIcon, PaintBucketIcon, Resize01Icon, SquareRoundCornerIcon, TextAlignLeft01Icon, TextColorIcon, TextFontIcon, TextIcon } from '@hugeicons/core-free-icons';
 import { TextAlignCenter, TextAlignLeft, TextAlignRight } from '../../lib/hugeicons';
 import { createPortal } from 'react-dom';
 import { Menu } from 'bloom-menu';
@@ -28,7 +28,7 @@ const META: Record<PillId, { label: string; icon: IconSvgElement }> = {
   color: { label: 'Colour', icon: TextColorIcon },
   align: { label: 'Align', icon: TextAlignLeft01Icon },
   padding: { label: 'Spacing', icon: AlignHorizontalSpaceAroundIcon },
-  margin: { label: 'Margin', icon: FrameIcon },
+  margin: { label: 'Margin', icon: ArtboardIcon },
   'box-size': { label: 'Size', icon: Resize01Icon },
   fill: { label: 'Fill', icon: PaintBucketIcon },
   corners: { label: 'Corners', icon: SquareRoundCornerIcon },
@@ -382,9 +382,17 @@ export function DockRow({ children, tucked = false }: { children: ReactNode; tuc
 
   return (
     <div className="dockrow" ref={row} onPointerDown={(e) => e.stopPropagation()}>
-      {set && <div className="dockrow__side dockrow__side--left" role="toolbar" aria-label="Change the selected element">{set.left.map((id, i) => pill(id, 'left', set.left.length - 1 - i))}</div>}
+      {set && (
+        <div className="dockrow__side dockrow__side--left" role="toolbar" aria-label="Change the selected element">
+          {set.left.map((id, i) => pill(id, 'left', set.left.length - 1 - i))}
+        </div>
+      )}
       {children}
-      {set && <div className="dockrow__side dockrow__side--right" role="toolbar" aria-label="More changes">{set.right.map((id, i) => pill(id, 'right', i))}</div>}
+      {set && (
+        <div className="dockrow__side dockrow__side--right" role="toolbar" aria-label="More changes">
+          {set.right.map((id, i) => pill(id, 'right', i))}
+        </div>
+      )}
     </div>
   );
 }

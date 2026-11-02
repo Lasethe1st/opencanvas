@@ -22,6 +22,21 @@ export const THINKING_PHRASES = [
   'Checking under the couch',
   'Rehearsing the punchline',
   'Calibrating the vibes',
+  'Brewing fresh coffee',
+  'Stirring the cauldron',
+  'Tweaking the Turing test',
+  'Checking the quantum state',
+  'Polishing the quantum foam',
+  'Gathering side quests',  
+  'Solving the Rubik\'s Cube',
+  'Twisting the narrative',
+  'Adjusting the filters',
+  'Polishing the pixel',
+  'Tweaking the algorithm',
+  'Polishing the syntax',
+  'Gathering the data',
+  'Wrangling stray pixels',
+  'Telling your crush how you feel',
 ] as const;
 
 export function pickThinkingPhrase(except?: string): string {

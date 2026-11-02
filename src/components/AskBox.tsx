@@ -88,12 +88,12 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
           <HugeiconsIcon icon={Cancel01Icon} size={15} strokeWidth={2} />
         </button>
       </div>
-      <div ref={logRef} className="docker-chat__log min-h-0 flex-1 overflow-y-auto px-3 [scrollbar-width:thin]">
+      <div ref={logRef} className="docker-chat__log min-h-0 flex-1 overflow-y-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.length > 0 && <HomeChat mentions split />}
       </div>
       <div className="p-3 pt-2">
         {ready ? (
-          <div className="flex items-end gap-1.5 rounded-[18px] bg-muted/70 p-1.5 ps-3.5">
+          <div className="flex items-end gap-1.5 rounded-[var(--r-pill)] bg-muted/70 p-1.5 ps-3.5">
             <textarea
               autoFocus
               value={text}
@@ -109,7 +109,7 @@ export function AskChat({ maximized = false }: { maximized?: boolean }) {
               aria-label="Message"
               className="max-h-[3lh] min-h-[1lh] flex-1 resize-none self-center [field-sizing:content] bg-transparent py-0 text-sm outline-none placeholder:text-muted-foreground"
             />
-            <button type="button" aria-label="Send" disabled={!text.trim()} className="grid size-8 shrink-0 place-items-center rounded-full bg-foreground text-background disabled:opacity-30" onClick={send}>
+            <button type="button" aria-label="Send" disabled={!text.trim()} className="grid size-8 shrink-0 place-items-center rounded-[var(--r-pill)] bg-foreground text-background disabled:opacity-30" onClick={send}>
               <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} />
             </button>
           </div>
