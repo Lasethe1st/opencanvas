@@ -1,10 +1,11 @@
 import { FolderOpen } from '../../lib/home-icons';
 import type { AiChatItem } from "../../../shared/ai";
 import { AgentOrb, type AgentOrbVariant } from "@/components/ui/agent-orb";
+import { useThinkingPhrase, withEllipsis } from "../../lib/thinking-phrases";
 import { useStore } from "../../lib/store";
 import { cn } from "@/lib/utils";
 
-function runningStatus(chat: AiChatItem[], turnId: string | null): { label: string; variant: AgentOrbVariant } | null {
+function runningStatus(chat: AiChatItem[], turnId: string | null): { label: string; variant: AgentOrbVariant; fun?: boolean } | null {
   if (!turnId) return null;
   const waiting = chat.some((i) => (i.kind === "question" || i.kind === "approval") && i.answer === null);
   if (waiting) return { label: "Waiting for your answer", variant: "C2" };
@@ -13,7 +14,7 @@ function runningStatus(chat: AiChatItem[], turnId: string | null): { label: stri
     const s = tool.summary.replace(/…$/u, "").trim();
     return { label: s || tool.tool, variant: "S3" };
   }
-  return { label: "Working…", variant: "S2" };
+  return { label: "Working…", variant: "S2", fun: true };
 }
 
 /** Status pills above the home composer: open project (if any) + current work. */
@@ -28,6 +29,8 @@ export function HomeStatusPills({
   const chat = useStore((s) => s.aiChat);
   const projectName = useStore((s) => s.project?.name ?? null);
   const run = runningStatus(chat, turnId);
+  const funPhrase = useThinkingPhrase(!!run?.fun);
+  const runLabel = run?.fun ? withEllipsis(funPhrase) : run?.label;
 
   if (!projectName && !run) return null;
 
@@ -44,16 +47,16 @@ export function HomeStatusPills({
           <span className="min-w-0 truncate">{projectName}</span>
         </button>
       )}
-      {run && (
+      {run && runLabel && (
         <div
           className="inline-flex max-w-full items-center gap-2 rounded-[var(--pill)] bg-[color:var(--surface-3)]/90 px-3 py-2.5 text-[length:var(--chat-font-size)] font-normal text-foreground shadow-[var(--shadow-sm)] backdrop-blur-[12px] backdrop-saturate-150"
           role="status"
           aria-live="polite"
         >
           <span aria-hidden className="shrink-0 text-foreground">
-            <AgentOrb variant={run.variant} size={14} label={run.label} style={{ color: "currentColor" }} />
+            <AgentOrb variant={run.variant} size={14} label={runLabel} style={{ color: "currentColor" }} />
           </span>
-          <span className="min-w-0 truncate">{run.label}</span>
+          <span className="min-w-0 truncate">{runLabel}</span>
         </div>
       )}
     </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowUp02Icon } from "@hugeicons/core-free-icons";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
 import { type ReactNode, type Ref, useEffect, useId, useImperativeHandle, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -626,22 +628,7 @@ export function Shapeshift({
             </span>
             {/* 48px bar, 8px in: 32px keys with 12px corners */}
             <AnimatePresence mode="popLayout" initial={false}>
-              {text || open ? (
-                <motion.button
-                  key="clear"
-                  type="button"
-                  onClick={() => {
-                    clear();
-                    input.current?.focus();
-                  }}
-                  aria-label="Clear"
-                  {...SWAP}
-                  // on a narrow field the action needs the room more than a second way to press Esc
-                  className={cn(key, "cursor-pointer outline-none transition-colors duration-150 hover:text-popover-foreground focus-visible:ring-2 focus-visible:ring-ring", (ready || sendable) && "@max-sm:hidden")}
-                >
-                  esc
-                </motion.button>
-              ) : hotkey ? (
+              {!text && !open && hotkey ? (
                 <motion.kbd key="hotkey" {...SWAP} className={key}>
                   {hotkey}
                 </motion.kbd>
@@ -651,11 +638,11 @@ export function Shapeshift({
                   key="action"
                   type="button"
                   onClick={() => submit()}
+                  aria-label={open ? (open.action ?? "Add") : sendLabel}
                   {...SWAP}
-                  className="flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-[12px] bg-primary ps-3 pe-2 text-[13px] font-medium whitespace-nowrap text-primary-foreground outline-none transition-[opacity,scale] duration-150 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover active:scale-[0.96]"
+                  className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground outline-none transition-[opacity,scale] duration-150 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover active:scale-[0.96]"
                 >
-                  {open ? (open.action ?? "Add") : sendLabel}
-                  <ReturnIcon />
+                  <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} aria-hidden />
                 </motion.button>
               )}
             </AnimatePresence>
@@ -704,8 +691,3 @@ function Cycle({ lines }: { lines: string[] }) {
   );
 }
 
-const ReturnIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="opacity-60">
-    <path d="M14.6 4.4v3.4a2.2 2.2 0 01-2.2 2.2H3.6M6.5 7.1L3.6 10l2.9 2.9" />
-  </svg>
-);

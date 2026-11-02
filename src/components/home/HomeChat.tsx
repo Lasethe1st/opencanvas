@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/trace";
 import { ThinkingReasoning } from "@/components/ui/thinking-reasoning";
 import { getVote, isRemembered, setVote, subscribeMemory, toggleRemember, type Vote } from "../../lib/ai-memory";
+import { useThinkingPhrase, withEllipsis } from "../../lib/thinking-phrases";
 import { AgentOrb } from "@/components/ui/agent-orb";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { cn } from "@/lib/utils";
@@ -59,6 +60,7 @@ export function HomeChat({ mentions = false, split = false }: { mentions?: boole
       last?.kind === "thinking" ||
       (last?.kind === "tool" && last.state === "running")
     );
+  const thinkingPhrase = useThinkingPhrase(waitingOnModel);
 
   useLayoutEffect(() => {
     endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
@@ -81,7 +83,7 @@ export function HomeChat({ mentions = false, split = false }: { mentions?: boole
             <span aria-hidden className="text-foreground">
               <AgentOrb variant="S2" size={20} style={{ color: "currentColor" }} />
             </span>
-            <ShimmeringText text="Thinking…" className="text-[length:var(--chat-font-size-sm)]" startOnView={false} />
+            <ShimmeringText key={thinkingPhrase} text={withEllipsis(thinkingPhrase)} className="text-[length:var(--chat-font-size-sm)]" startOnView={false} />
           </div>
         )}
         <div ref={endRef} aria-hidden />

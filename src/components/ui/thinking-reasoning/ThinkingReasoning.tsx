@@ -2,6 +2,7 @@
 
 import styles from "./ThinkingReasoning.module.css";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useThinkingPhrase, withEllipsis } from "@/lib/thinking-phrases";
 import { cn } from "@/lib/utils";
 
 // Geometry — keep in sync with the CSS module.
@@ -41,6 +42,7 @@ export function ThinkingReasoning({ text, done = false, className }: ThinkingRea
   const [fade, setFade] = useState({ top: false, bottom: true });
   const viewportRef = useRef<HTMLDivElement>(null);
   const sentences = useMemo(() => splitReasoning(text), [text]);
+  const thinkingPhrase = useThinkingPhrase(!done);
 
   useEffect(() => {
     if (done) {
@@ -106,13 +108,13 @@ export function ThinkingReasoning({ text, done = false, className }: ThinkingRea
         type="button"
         className={styles.trHeader + (done ? " " + styles.isClickable : "")}
         aria-expanded={expanded}
-        aria-label={done ? "Toggle thought" : "Thinking"}
+        aria-label={done ? "Toggle thought" : thinkingPhrase}
         onClick={done ? toggle : undefined}
       >
         {done ? (
           <span className={styles.trLabel}>{summary}</span>
         ) : (
-          <span className={styles.trLabel + " " + styles.trShimmer}>Thinking…</span>
+          <span className={styles.trLabel + " " + styles.trShimmer}>{withEllipsis(thinkingPhrase)}</span>
         )}
         {done && (
           <svg className={styles.trChevron} viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">

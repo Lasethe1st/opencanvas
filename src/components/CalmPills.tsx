@@ -45,8 +45,8 @@ export function CalmPills() {
         <MergeGroup className="calm-pill-pair calm-pill-pair--right absolute end-3 top-3 z-20 flex items-center gap-3">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button data-merge="" variant="ghost" className="calm-pill calm-pill--round calm-pill--user relative size-9 overflow-hidden rounded-full bg-transparent p-0 hover:bg-transparent" aria-label="Account and settings" onClick={() => setState({ settingsOpen: true })}>
-                <img src={USER_AVATAR_SRC} alt="" width={36} height={36} className="size-full object-cover" draggable={false} referrerPolicy="no-referrer" />
+              <Button data-merge="" variant="ghost" className="calm-pill calm-pill--round calm-pill--user relative size-9 overflow-hidden rounded-full bg-transparent p-2 hover:bg-transparent" aria-label="Account and settings" onClick={() => setState({ settingsOpen: true })}>
+                <img src={USER_AVATAR_SRC} alt="" width={36} height={36} className="size-full rounded-[var(--r-pill)] object-cover" draggable={false} referrerPolicy="no-referrer" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">Account</TooltipContent>

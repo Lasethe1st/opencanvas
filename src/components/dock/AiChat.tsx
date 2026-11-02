@@ -10,6 +10,7 @@ import { scheduleWorkspaceSave } from '../../lib/workspace';
 import { AgentOrb } from '@/components/ui/agent-orb';
 import { ThinkingReasoning } from '@/components/ui/thinking-reasoning';
 import { humanizeAiError } from '../../lib/ai-errors';
+import { useThinkingPhrase, withEllipsis } from '../../lib/thinking-phrases';
 import { Button, IconButton, cx } from '../../ui/primitives.jsx';
 
 export async function showAgentActivity() {
@@ -56,6 +57,7 @@ export function AiChat({ bare = false }: { bare?: boolean } = {}) {
   const last = items[items.length - 1];
   const waitingOnModel =
     busy && !waiting && !(last?.kind === 'assistant' || last?.kind === 'thinking' || (last?.kind === 'tool' && last.state === 'running'));
+  const thinkingPhrase = useThinkingPhrase(waitingOnModel);
 
   useLayoutEffect(() => {
     const log = logRef.current;
@@ -107,7 +109,7 @@ export function AiChat({ bare = false }: { bare?: boolean } = {}) {
             <span aria-hidden>
               <AgentOrb variant="S2" size={18} style={{ color: 'currentColor' }} />
             </span>
-            Thinking…
+            {withEllipsis(thinkingPhrase)}
           </div>
         )}
       </div>

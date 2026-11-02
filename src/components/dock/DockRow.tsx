@@ -154,20 +154,32 @@ function Scrub({ value, min = 0, step = 1, unit = 'px', onChange, label, icon }:
   );
 }
 
-/** The pill is the swatch: clicking anywhere on it opens the colour picker; the change lands when the picker closes. */
+/** The pill is the swatch: clicking anywhere on it opens the colour picker; colour updates live as you drag. */
 function Swatch({ value, label, onCommit }: { value: string; label: string; onCommit: (hex: string) => void }) {
   const ref = useRef<HTMLInputElement>(null);
+  const live = useRef(value);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || el.value === value) return;
+    // Outside updates only — remounting via key would close the native picker mid-drag.
+    el.value = value;
+    live.current = value;
+  }, [value]);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const on = () => el.value !== value && onCommit(el.value);
-    el.addEventListener('change', on);
-    return () => el.removeEventListener('change', on);
-  }, [onCommit, value]);
+    const on = () => {
+      if (el.value === live.current) return;
+      live.current = el.value;
+      onCommit(el.value);
+    };
+    el.addEventListener('input', on);
+    return () => el.removeEventListener('input', on);
+  }, [onCommit]);
   return (
     <label className="dockpill__main dockpill__colour" title={`${label} ${value}`} aria-label={label}>
       <span className="dockpill__chip" style={{ background: value }} />
-      <input ref={ref} type="color" aria-label={label} defaultValue={value} key={value} className="dockpill__picker" />
+      <input ref={ref} type="color" aria-label={label} defaultValue={value} className="dockpill__picker" />
     </label>
   );
 }
