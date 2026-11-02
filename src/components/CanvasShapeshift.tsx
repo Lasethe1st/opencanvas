@@ -2,8 +2,6 @@ import { X } from '../lib/hugeicons';
 import { useQuickPills } from '../lib/prefs';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { AiMagicIcon, Edit02Icon } from '@hugeicons/core-free-icons';
 import { getAsk, setAsk } from '../lib/ask-box';
 import { closeElementMenu } from '../lib/element-menu';
 import { selectElement } from '../lib/actions';
@@ -33,7 +31,6 @@ export function CanvasShapeshift() {
   const busy = useStore((s) => !!s.aiTurnId);
   const chatOpen = useStore((s) => s.dockMode === 'input');
   const pageName = useStore((s) => (s.projectConfig ? activePage()?.name : null));
-  const hasChat = useStore((s) => s.aiChat.length > 0);
 
   // One conversation, one place: opening it in the dock closes the floating Ask AI box.
   useEffect(() => {
@@ -41,13 +38,6 @@ export function CanvasShapeshift() {
     setAsk({ mode: 'none' });
     closeElementMenu();
   }, [chatOpen]);
-
-  // A folded-away chat shows as the AI icon at the start of the bar; a dot on it means a reply is still coming.
-  const chatIcon = hasChat && !chatOpen ? (
-    <button type="button" className="dock-chat-dot" data-busy={busy || undefined} aria-label={busy ? 'Open chat, reply in progress' : 'Open chat'} title="Open chat" onClick={() => setState({ dockMode: 'input' })}>
-      <HugeiconsIcon icon={AiMagicIcon} size={16} strokeWidth={2} />
-    </button>
-  ) : undefined;
 
   const placeholder = !ready
     ? 'Set up AI in Settings to chat here'
@@ -59,10 +49,8 @@ export function CanvasShapeshift() {
 
   // The selected element rides inside the field as an inline chip, so nothing floats above the dock.
   const contextChip = selection ? (
-        <span className="assistant-docker__context" title="The AI knows this element is selected">
-          <HugeiconsIcon icon={Edit02Icon} size={12} strokeWidth={2} aria-hidden />
-          <span className="assistant-docker__context-name">{selection.name}</span>
-          <code>{`<${selection.tag}>`}</code>
+        <span className="assistant-docker__context" title={`The AI knows ${selection.name} is selected`}>
+          <code>{`.${/\s\.(\S+)$/.exec(selection.name)?.[1] ?? selection.tag}`}</code>
           <button type="button" aria-label="Deselect" onClick={() => selectElement(null)}>
             <X size={11} />
           </button>
@@ -98,7 +86,6 @@ export function CanvasShapeshift() {
         shapes={assistantShapes}
         hotkey={false}
         width={420}
-        icon={chatIcon}
         lead={contextChip}
         label="Ask AI or run a command"
         placeholder={placeholder}

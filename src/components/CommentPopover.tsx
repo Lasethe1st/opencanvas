@@ -14,61 +14,22 @@ const ago = (t: number) => {
   return new Date(t).toLocaleDateString();
 };
 
-/** Note box for an element: its comments so far, and a field for a new one. */
-export function CommentPopover() {
-  const at = useCommentPopover();
+/** The comment thread and its field. Shared by the right-click bloom and the marker popover. */
+export function CommentPanel({ elementId, elementName, onClose }: { elementId: string; elementName: string; onClose: () => void }) {
   useComments();
-  const ref = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
-
-  useEffect(() => {
-    setDraft('');
-    setEditing(null);
-  }, [at?.elementId]);
-
-  useLayoutEffect(() => {
-    if (!at || !ref.current) return setPos(null);
-    const r = ref.current.getBoundingClientRect();
-    setPos({ left: Math.max(8, Math.min(at.x, window.innerWidth - r.width - 8)), top: Math.max(8, Math.min(at.y + 8, window.innerHeight - r.height - 8)) });
-  }, [at, commentsFor(at?.elementId ?? '').length]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!at) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeCommentPopover();
-    const onDown = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) closeCommentPopover();
-    };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('pointerdown', onDown, true);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('pointerdown', onDown, true);
-    };
-  }, [at]);
-
-  if (!at) return null;
-  const list = commentsFor(at.elementId);
+  const list = commentsFor(elementId);
   const save = () => {
     if (!draft.trim()) return;
-    addComment(at.elementId, at.elementName, draft);
+    addComment(elementId, elementName, draft);
     setDraft('');
   };
-  return createPortal(
-    <div
-      ref={ref}
-      data-tw=""
-      data-comment-popover=""
-      role="dialog"
-      aria-label={`Comments on ${at.elementName}`}
-      className="oc-pop fixed z-[300] w-[300px] rounded-[16px] border border-[color:var(--frost-border)] bg-[var(--frost-bg)] p-2 text-foreground shadow-[var(--shadow-md)]"
-      style={{ left: pos?.left ?? at.x, top: pos?.top ?? at.y, visibility: pos ? 'visible' : 'hidden', WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)' }}
-      onContextMenu={(e) => e.preventDefault()}
-    >
+  return (
+    <>
       <div className="flex items-center justify-between px-2 pb-1 pt-0.5">
-        <span className="truncate text-xs font-medium text-muted-foreground">Comments on {at.elementName}</span>
-        <button type="button" aria-label="Close" className="grid size-6 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground" onClick={closeCommentPopover}>
+        <span className="truncate text-xs font-medium text-muted-foreground">Comments on {elementName}</span>
+        <button type="button" aria-label="Close" className="grid size-6 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onClose}>
           <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={2} />
         </button>
       </div>
@@ -134,6 +95,50 @@ export function CommentPopover() {
           </button>
         </div>
       </div>
+    </>
+  );
+}
+
+/** Note box for an element: its comments so far, and a field for a new one. */
+export function CommentPopover() {
+  const at = useCommentPopover();
+  useComments();
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!at || !ref.current) return setPos(null);
+    const r = ref.current.getBoundingClientRect();
+    setPos({ left: Math.max(8, Math.min(at.x, window.innerWidth - r.width - 8)), top: Math.max(8, Math.min(at.y + 8, window.innerHeight - r.height - 8)) });
+  }, [at, commentsFor(at?.elementId ?? '').length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!at) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeCommentPopover();
+    const onDown = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) closeCommentPopover();
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('pointerdown', onDown, true);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('pointerdown', onDown, true);
+    };
+  }, [at]);
+
+  if (!at) return null;
+  return createPortal(
+    <div
+      ref={ref}
+      data-tw=""
+      data-comment-popover=""
+      role="dialog"
+      aria-label={`Comments on ${at.elementName}`}
+      className="oc-pop fixed z-[300] w-[300px] rounded-[16px] border border-[color:var(--frost-border)] bg-[var(--frost-bg)] p-2 text-foreground shadow-[var(--shadow-md)]"
+      style={{ left: pos?.left ?? at.x, top: pos?.top ?? at.y, visibility: pos ? 'visible' : 'hidden', WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)' }}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <CommentPanel elementId={at.elementId} elementName={at.elementName} onClose={closeCommentPopover} key={at.elementId} />
     </div>,
     document.body,
   );

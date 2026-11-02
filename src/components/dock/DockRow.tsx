@@ -7,7 +7,6 @@ import { ArrowDown01Icon, Tick02Icon, AlignHorizontalSpaceAroundIcon, Edit02Icon
 import { TextAlignCenter, TextAlignLeft, TextAlignRight } from '../../lib/hugeicons';
 import { createPortal } from 'react-dom';
 import { Menu } from 'bloom-menu';
-import { MergeLayer, radiusOf, type MergeBox } from '../MergeLayer';
 
 /* ───────── What each kind of element offers ───────── */
 
@@ -156,7 +155,7 @@ function Scrub({ value, min = 0, step = 1, unit = 'px', onChange, label, icon }:
 }
 
 /** The pill is the swatch: clicking anywhere on it opens the colour picker; the change lands when the picker closes. */
-function Swatch({ value, label, text, onCommit }: { value: string; label: string; text: string; onCommit: (hex: string) => void }) {
+function Swatch({ value, label, onCommit }: { value: string; label: string; onCommit: (hex: string) => void }) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -166,9 +165,8 @@ function Swatch({ value, label, text, onCommit }: { value: string; label: string
     return () => el.removeEventListener('change', on);
   }, [onCommit, value]);
   return (
-    <label className="dockpill__main dockpill__colour" title={`${label} ${value}`}>
+    <label className="dockpill__main dockpill__colour" title={`${label} ${value}`} aria-label={label}>
       <span className="dockpill__chip" style={{ background: value }} />
-      <span className="dockpill__label">{text}</span>
       <input ref={ref} type="color" aria-label={label} defaultValue={value} key={value} className="dockpill__picker" />
     </label>
   );
@@ -301,9 +299,9 @@ function PillBody({ id, sel }: { id: PillId; sel: Selection }) {
       );
     case 'color':
     case 'label-color':
-      return <Swatch label="Text colour" text={meta.label} value={toHex(c.color)} onCommit={(hex) => void setStyle('color', hex)} />;
+      return <Swatch label="Text colour" value={toHex(c.color)} onCommit={(hex) => void setStyle('color', hex)} />;
     case 'fill':
-      return <Swatch label="Fill colour" text={meta.label} value={toHex(c['background-color'])} onCommit={(hex) => void setStyle('background-color', hex)} />;
+      return <Swatch label="Fill colour" value={toHex(c['background-color'])} onCommit={(hex) => void setStyle('background-color', hex)} />;
     case 'align': {
       const cur = (ALIGNS as readonly string[]).includes(c['text-align'] ?? '') ? (c['text-align'] as (typeof ALIGNS)[number]) : c['text-align'] === 'end' ? 'right' : 'left';
       const next = ALIGNS[(ALIGNS.indexOf(cur) + 1) % ALIGNS.length];
@@ -311,7 +309,6 @@ function PillBody({ id, sel }: { id: PillId; sel: Selection }) {
       return (
         <button type="button" className="dockpill__main" aria-label={`Align ${cur}; click for ${next}`} title={`Align: ${cur} (click for ${next})`} onClick={() => void setStyle('text-align', next)}>
           <Icon size={18} />
-          <span className="dockpill__label">{cur === 'center' ? 'Centre' : cur[0].toUpperCase() + cur.slice(1)}</span>
         </button>
       );
     }
@@ -329,27 +326,24 @@ function PillBody({ id, sel }: { id: PillId; sel: Selection }) {
   }
 }
 
-function Pill({ id, sel, side, leaving }: { id: PillId; sel: Selection; side: 'left' | 'right'; leaving: boolean }) {
+function Pill({ id, sel, side, leaving, index }: { id: PillId; sel: Selection; side: 'left' | 'right'; leaving: boolean; index: number }) {
   return (
-    <div className={`dockpill dockpill--${side} dockpill--${id}${leaving ? ' is-leaving' : ''}`} data-goo>
+    <div className={`dockpill dockpill--${side} dockpill--${id}${leaving ? ' is-leaving' : ''}`} style={{ '--i': index } as React.CSSProperties}>
       <PillBody id={id} sel={sel} />
     </div>
   );
 }
 
-/* ───────── The row: pills · dock · pills, fused by a goo layer ───────── */
+/* ───────── The row: pills · dock · pills, separate pills ───────── */
 
-type Blob = MergeBox;
-
-/** The pills grow out of the dock when something is selected and melt back into it when it isn't. */
+/** The pills ease in beside the dock when something is selected and ease out when it isn't. */
 export function DockRow({ children, tucked = false }: { children: ReactNode; tucked?: boolean }) {
   const picked = useStore((s) => s.selection);
-  // While you chat in the dock the pills melt back into it.
+  // While you chat in the dock the pills ease away.
   const sel = tucked ? null : picked;
   const row = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState<Selection | null>(sel);
   const [leaving, setLeaving] = useState(false);
-  const [blobs, setBlobs] = useState<Blob[]>([]);
 
   // Keep the last selection around while the pills melt away.
   useEffect(() => {
@@ -363,69 +357,22 @@ export function DockRow({ children, tucked = false }: { children: ReactNode; tuc
     const t = window.setTimeout(() => {
       setShown(null);
       setLeaving(false);
-    }, 280);
+    }, 160);
     return () => window.clearTimeout(t);
   }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const kind = shown ? kindOf(shown.tag) : null;
 
-  // Mirror the real shapes into the goo layer, frame by frame while anything is moving.
-  useLayoutEffect(() => {
-    const el = row.current;
-    if (!el) return;
-    let raf = 0;
-    let still = 0;
-    let last = '';
-    const measure = () => {
-      const box = el.getBoundingClientRect();
-      const next: Blob[] = [];
-      for (const n of el.querySelectorAll<HTMLElement>('[data-goo], [data-slot="shapeshift-shell"]')) {
-        const r = n.getBoundingClientRect();
-        if (!r.width || !r.height) continue;
-        const cs = getComputedStyle(n);
-        next.push({ x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height, r: radiusOf(cs, r.width, r.height), o: parseFloat(cs.opacity) });
-      }
-      const key = JSON.stringify(next);
-      if (key !== last) {
-        last = key;
-        still = 0;
-        setBlobs(next);
-      } else still++;
-      raf = still > 20 ? 0 : requestAnimationFrame(measure);
-    };
-    const wake = () => {
-      if (!raf) raf = requestAnimationFrame(measure);
-      still = 0;
-    };
-    wake();
-    const ro = new ResizeObserver(wake);
-    ro.observe(el);
-    const mo = new MutationObserver(wake);
-    mo.observe(el, { childList: true, subtree: true, attributes: true });
-    for (const ev of ['transitionrun', 'animationstart', 'focusin', 'pointerdown'] as const) el.addEventListener(ev, wake);
-    window.addEventListener('resize', wake);
-    return () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-      mo.disconnect();
-      for (const ev of ['transitionrun', 'animationstart', 'focusin', 'pointerdown'] as const) el.removeEventListener(ev, wake);
-      window.removeEventListener('resize', wake);
-    };
-  }, []);
-
   const set = shown && kind ? LAYOUT[kind] : null;
-  const pill = (id: PillId, side: 'left' | 'right') => (
-    <Pill key={`${shown!.id}:${id}`} id={id} sel={shown!} side={side} leaving={leaving} />
+  const pill = (id: PillId, side: 'left' | 'right', index: number) => (
+    <Pill key={`${shown!.id}:${id}`} id={id} sel={shown!} side={side} leaving={leaving} index={index} />
   );
 
   return (
     <div className="dockrow" ref={row} onPointerDown={(e) => e.stopPropagation()}>
-      <div className="dockrow__goo" aria-hidden>
-        <MergeLayer boxes={blobs} />
-      </div>
-      {set && <div className="dockrow__side dockrow__side--left" role="toolbar" aria-label="Change the selected element">{set.left.map((id) => pill(id, 'left'))}</div>}
+      {set && <div className="dockrow__side dockrow__side--left" role="toolbar" aria-label="Change the selected element">{set.left.map((id, i) => pill(id, 'left', set.left.length - 1 - i))}</div>}
       {children}
-      {set && <div className="dockrow__side dockrow__side--right" role="toolbar" aria-label="More changes">{set.right.map((id) => pill(id, 'right'))}</div>}
+      {set && <div className="dockrow__side dockrow__side--right" role="toolbar" aria-label="More changes">{set.right.map((id, i) => pill(id, 'right', i))}</div>}
     </div>
   );
 }
