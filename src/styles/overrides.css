@@ -1865,8 +1865,9 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 /* The pill is the control. Fixed widths, so changing a value never makes the dock jump. */
 .dockpill__main { position: relative; box-sizing: border-box; width: 100%; justify-content: flex-start; }
 .dockpill--font { width: 168px; } .dockpill--size, .dockpill--padding, .dockpill--margin, .dockpill--corners { width: 96px; }
-.dockpill--box-size { width: 176px; } .dockpill--color, .dockpill--fill, .dockpill--label-color { width: 112px; }
-.dockpill--align { width: 108px; } .dockpill--fit { width: 128px; }
+.dockpill--box-size { width: 176px; } .dockpill--color, .dockpill--fill, .dockpill--label-color, .dockpill--align { width: 36px; }
+.dockpill--color .dockpill__main, .dockpill--fill .dockpill__main, .dockpill--label-color .dockpill__main, .dockpill--align .dockpill__main { justify-content: center; padding: 0; }
+.dockpill--fit { width: 128px; }
 .dockpill__main:hover, .dockpill__scrub:hover { background: color-mix(in srgb, var(--fg) 6%, transparent); }
 .dockpill__select select { flex: 1; min-width: 0; height: 28px; padding: 0 2px; border: 0; background: transparent; color: inherit; font: inherit; outline: none; cursor: pointer; text-overflow: ellipsis; }
 .dockpill__scrub { display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; width: 100%; height: 36px; padding: 0 12px; border-radius: 999px; cursor: ew-resize; user-select: none; }

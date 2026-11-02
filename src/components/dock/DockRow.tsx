@@ -155,7 +155,7 @@ function Scrub({ value, min = 0, step = 1, unit = 'px', onChange, label, icon }:
 }
 
 /** The pill is the swatch: clicking anywhere on it opens the colour picker; the change lands when the picker closes. */
-function Swatch({ value, label, text, onCommit }: { value: string; label: string; text: string; onCommit: (hex: string) => void }) {
+function Swatch({ value, label, onCommit }: { value: string; label: string; onCommit: (hex: string) => void }) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -165,9 +165,8 @@ function Swatch({ value, label, text, onCommit }: { value: string; label: string
     return () => el.removeEventListener('change', on);
   }, [onCommit, value]);
   return (
-    <label className="dockpill__main dockpill__colour" title={`${label} ${value}`}>
+    <label className="dockpill__main dockpill__colour" title={`${label} ${value}`} aria-label={label}>
       <span className="dockpill__chip" style={{ background: value }} />
-      <span className="dockpill__label">{text}</span>
       <input ref={ref} type="color" aria-label={label} defaultValue={value} key={value} className="dockpill__picker" />
     </label>
   );
@@ -300,9 +299,9 @@ function PillBody({ id, sel }: { id: PillId; sel: Selection }) {
       );
     case 'color':
     case 'label-color':
-      return <Swatch label="Text colour" text={meta.label} value={toHex(c.color)} onCommit={(hex) => void setStyle('color', hex)} />;
+      return <Swatch label="Text colour" value={toHex(c.color)} onCommit={(hex) => void setStyle('color', hex)} />;
     case 'fill':
-      return <Swatch label="Fill colour" text={meta.label} value={toHex(c['background-color'])} onCommit={(hex) => void setStyle('background-color', hex)} />;
+      return <Swatch label="Fill colour" value={toHex(c['background-color'])} onCommit={(hex) => void setStyle('background-color', hex)} />;
     case 'align': {
       const cur = (ALIGNS as readonly string[]).includes(c['text-align'] ?? '') ? (c['text-align'] as (typeof ALIGNS)[number]) : c['text-align'] === 'end' ? 'right' : 'left';
       const next = ALIGNS[(ALIGNS.indexOf(cur) + 1) % ALIGNS.length];
@@ -310,7 +309,6 @@ function PillBody({ id, sel }: { id: PillId; sel: Selection }) {
       return (
         <button type="button" className="dockpill__main" aria-label={`Align ${cur}; click for ${next}`} title={`Align: ${cur} (click for ${next})`} onClick={() => void setStyle('text-align', next)}>
           <Icon size={18} />
-          <span className="dockpill__label">{cur === 'center' ? 'Centre' : cur[0].toUpperCase() + cur.slice(1)}</span>
         </button>
       );
     }
