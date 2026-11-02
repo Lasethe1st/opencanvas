@@ -2010,6 +2010,38 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 }
 .page-wrapper__count { font-size: 12px; color: var(--fg-3); }
 
+/* Settings › AI: provider dropdown. Logo, name, and on the far right the status or what it needs; blooms into the list. */
+.provider-select { position: relative; flex: none; }
+.provider-select__shell { border: 1px solid var(--frost-border, var(--line)); background: var(--frost-bg, var(--surface)); color: var(--fg); -webkit-backdrop-filter: var(--frost-filter); backdrop-filter: var(--frost-filter); z-index: 20; }
+.provider-select__trigger,
+.provider-select__item { display: flex; align-items: center; gap: 10px; width: 100%; height: 38px; padding: 0 10px; font-size: 13px; text-align: left; cursor: pointer; }
+.provider-select__list { display: flex; flex-direction: column; gap: 2px; padding: 4px; }
+.provider-select__item { height: 36px; border-radius: 8px; outline: none; transition: background-color 0.15s; }
+.provider-select__item:hover, .provider-select__item[data-highlighted] { background: color-mix(in oklab, var(--fg) 7%, transparent); }
+.provider-select__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.provider-select__tag { flex: none; color: var(--fg-3); font-size: 12px; }
+.provider-select__status { display: inline-flex; flex: none; align-items: center; gap: 6px; color: var(--fg-2); font-size: 12px; }
+.provider-select__dot { width: 6px; height: 6px; border-radius: 999px; background: #22c55e; box-shadow: 0 0 0 2px color-mix(in oklab, #22c55e 22%, transparent); }
+.provider-select__caret { flex: none; color: var(--fg-3); }
+.provider-select__tick { display: inline-flex; width: 14px; flex: none; color: var(--fg); }
+[data-theme='dark'] .provider-select__shell { border-color: rgb(255 255 255 / 0.12); background: color-mix(in oklab, var(--surface) 88%, white 4%); }
+
+.provider-select__trigger { height: 34px; }
+.provider-select__divider { height: 1px; margin: 3px 6px; background: var(--line); }
+.sx-advanced { display: flex; align-items: center; gap: 4px; width: 100%; padding: 10px 12px; color: var(--fg-3); font-size: 12px; font-weight: 500; text-align: left; cursor: pointer; border-top: 1px solid var(--line); }
+.sx-advanced:hover { color: var(--fg); }
+.settings-page .sx-advanced { appearance: none; margin: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0 0 inherit inherit; background: transparent; box-shadow: none; outline: none; }
+.settings-page .sx-advanced:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+/* Settings sidebar: the soft fill marks the open tab; the outline is only for keyboard focus. */
+.settings-page__tab:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+
+.sx-label-icon { display: inline-flex; align-items: center; gap: 6px; }
+.sx-info { display: inline-flex; color: var(--fg-3); cursor: help; }
+.sx-tag { padding: 1px 6px; border-radius: 6px; background: color-mix(in oklab, var(--fg) 7%, transparent); color: var(--fg-2); font-size: 11px; font-weight: 500; }
+
+/* Icon-only segmented controls in settings: square 28px buttons. */
+.settings-page .theme-toggle__btn { min-width: 28px; height: 28px; padding: 0 6px; justify-content: center; }
+
 /* Frame labels are just a device icon (desktop, tablet, mobile); the frame name lives in the tooltip. */
 .frame-chrome__device {
   display: inline-flex;
