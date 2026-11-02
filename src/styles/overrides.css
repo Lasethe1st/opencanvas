@@ -2067,3 +2067,8 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 
 /* Reduce motion (Settings › Appearance). */
 html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, html[data-reduce-motion='true'] *::after { animation-duration: 0.001ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; transition-delay: 0ms !important; scroll-behavior: auto !important; }
+
+/* Frame resize grip: a small round knob (white, hairline, soft shadow) instead of a square. */
+.frame-chrome__handle--se::after { inset: 2px; border: 1px solid color-mix(in srgb, var(--fg) 20%, var(--line)); border-radius: 999px; corner-shape: round; background: var(--surface); box-shadow: 0 1px 4px rgb(0 0 0 / 0.2); transition: opacity 0.12s var(--ease), transform 0.16s var(--ease-out-strong); }
+.frame-chrome__handle--se:hover::after { transform: scale(1.15); }
+.frame-chrome.is-active .frame-chrome__handle--se::after { border-color: var(--fg-3); }
