@@ -2041,3 +2041,16 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 
 /* Icon-only segmented controls in settings: square 28px buttons. */
 .settings-page .theme-toggle__btn { min-width: 28px; height: 28px; padding: 0 6px; justify-content: center; }
+
+/* Frame labels are just a device icon (desktop, tablet, mobile); the frame name lives in the tooltip. */
+.frame-chrome__device {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--fg-3);
+}
+.frame-chrome__label:hover .frame-chrome__device { color: var(--fg-2); }
+.frame-chrome.is-active .frame-chrome__device { color: var(--accent); }

@@ -1,4 +1,7 @@
-import { Focus, Link2, Maximize, Minus, MoreHorizontal, Plus, Redo2, ScanSearch, Undo2 } from '../lib/hugeicons';
+import { Computer, Focus, Frame, Link2, Maximize, Minus, MoreHorizontal, Plus, Redo2, ScanSearch, Smartphone, Tablet, Undo2 } from '../lib/hugeicons';
+
+/** One icon per frame preset, in place of a text label. Custom-size frames get a plain frame icon. */
+const DEVICE_ICON = { desktop: Computer, laptop: Computer, tablet: Tablet, mobile: Smartphone, custom: Frame };
 import { cx, IconButton } from './primitives.jsx';
 
 /** The infinite surface: a dotted background that pans/zooms with the camera and a transformed world layer. */
@@ -39,16 +42,21 @@ export function WorldFrame({ x, y, width, height, active, shadow, children }) {
 }
 
 /** Screen-space chrome for one frame: label above, outline and resize handles. */
-export function FrameChrome({ rect, name, size, scope, active, fitPage, onActivate, onDragStart, onRename, onResizeStart, menuOpen, onMenu, menu }) {
+export function FrameChrome({ rect, name, size, scope, device, tip, active, fitPage, onActivate, onDragStart, onRename, onResizeStart, menuOpen, onMenu, menu }) {
   return (
     <div className={cx('frame-chrome', active && 'is-active')} style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}>
       <div className="frame-chrome__label" onPointerDown={onDragStart} onClick={onActivate} onDoubleClick={onRename}>
-        <span className="frame-chrome__name">{name}</span>
+        {typeof name === 'string' ? (
+          <span className="frame-chrome__device" title={tip ?? name} aria-label={tip ?? name}>
+            {(() => { const Icon = DEVICE_ICON[device] ?? Frame; return <Icon size={14} aria-hidden="true" />; })()}
+          </span>
+        ) : (
+          <span className="frame-chrome__name">{name}</span>
+        )}
         {size && <span className="frame-chrome__size">{size}</span>}
-        <span className="frame-chrome__scope">{scope}</span>
         <IconButton
           size="sm"
-          label={`${name} options`}
+          label={`${typeof name === 'string' ? name : 'Frame'} options`}
           className="frame-chrome__menu"
           active={menuOpen}
           onPointerDown={(e) => e.stopPropagation()}
