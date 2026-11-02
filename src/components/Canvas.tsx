@@ -79,6 +79,7 @@ import { getMeasure } from '../lib/measure';
 import { openElementMenu, openInsertMenu } from '../lib/element-menu';
 import { InsertContextMenu, prepareFrameInsert } from './InsertContextMenu';
 import { getComments, pushToFrames } from '../lib/comments';
+import { getAiTargetId, useAiTarget } from '../lib/ai-working';
 import { openCommentPopover } from '../lib/comment-ui';
 import { CommentPopover } from './CommentPopover';
 import { AskBox } from './AskBox';
@@ -210,6 +211,7 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
           sendToFrame(fid, 'zoom', { zoom: state.camera.zoom });
           if (getMeasure()) sendToFrame(fid, 'measure', { on: true });
           pushToFrames(fid);
+          if (getAiTargetId()) sendToFrame(fid, 'working', { id: getAiTargetId() });
           const id = state.pendingSelectId ?? state.selection?.id;
           if (id) sendToFrame(fid, 'select', active ? { id, scroll: false, additive: 'keep' } : { id, linked: true });
           if (state.multiSelect.length) sendMulti(state.multiSelect.map((m) => m.id), fid);
@@ -534,6 +536,13 @@ type Manip =
   | { kind: 'resize'; id: string; edge: 'e' | 's' | 'se'; startX: number; startY: number; originW: number; originH: number; width: number; height: number; tipX: number; tipY: number };
 
 export function Canvas({ hidden }: { hidden: boolean }) {
+  const aiTarget = useAiTarget();
+  const aiElementId = aiTarget?.elementId ?? null;
+  // The weave on the element the AI is working on lives inside each preview frame.
+  useEffect(() => {
+    sendToPreview('working', { id: aiElementId });
+    return () => sendToPreview('working', { id: null });
+  }, [aiElementId]);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const status = useStore((s) => s.previewStatus);
   const project = useStore((s) => s.project)!;
@@ -942,6 +951,7 @@ export function Canvas({ hidden }: { hidden: boolean }) {
                 device={f.preset}
                 tip={`${f.name} · ${Math.round(eff.width)}`}
                 active={f.id === activeFrame?.id}
+                working={!!aiTarget && !aiTarget.elementId && aiTarget.frameId === f.id}
                 fitPage={f.fitPage}
                 onActivate={() => setActiveFrame(f.id)}
                 onDragStart={startMove(f)}

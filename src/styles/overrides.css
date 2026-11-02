@@ -2088,3 +2088,13 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 .frame-chrome__handle--se::after { inset: 2px; border: 1px solid color-mix(in srgb, var(--fg) 20%, var(--line)); border-radius: 999px; corner-shape: round; background: var(--surface); box-shadow: 0 1px 4px rgb(0 0 0 / 0.2); transition: opacity 0.12s var(--ease), transform 0.16s var(--ease-out-strong); }
 .frame-chrome__handle--se:hover::after { transform: scale(1.15); }
 .frame-chrome.is-active .frame-chrome__handle--se::after { border-color: var(--fg-3); }
+
+/* AI at work: a 3×3 dot weave at the top left of the frame (beside its label) or of the element, plus a light that circles the border. */
+.ai-weave { display: inline-grid; grid-template-columns: repeat(3, 3px); gap: 2.5px; flex: none; padding: 5px; border-radius: 8px !important; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 1px 4px rgb(0 0 0 / 0.1); animation: oc-pop 0.2s var(--ease-out-strong) both; }
+.ai-weave i { width: 3px; height: 3px; border-radius: 50% !important; background: #7c3aed; animation: ai-weave 1.2s ease-in-out infinite; animation-delay: calc(var(--n, 0) * 110ms); }
+[data-theme='dark'] .ai-weave i { background: #a78bfa; }
+@keyframes ai-weave { 0%, 100% { opacity: 0.22; transform: scale(0.7); } 45% { opacity: 1; transform: scale(1.25); } }
+@property --oc-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@keyframes ai-orbit { to { --oc-a: 360deg; } }
+.frame-chrome.is-ai .frame-chrome__outline::before { content: ''; position: absolute; inset: -1px; padding: 1.5px; background: conic-gradient(from var(--oc-a), transparent 0 55%, #a78bfa 70%, #38bdf8 85%, #34d399 95%, transparent); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: ai-orbit 2.6s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .ai-weave, .ai-weave i, .frame-chrome.is-ai .frame-chrome__outline::before { animation: none; } .ai-weave i { opacity: 0.8; } }
