@@ -1,3 +1,4 @@
+import { getAutosaveMs } from './prefs';
 import type { EditCommand, FileChange, ImportResult, InsertKind, McpApplied, McpRequest, ProjectInfo, TemplateId } from '../../shared/types';
 import { mergeChanges } from '../../shared/history';
 import type { ProjectSetup } from '../../shared/api';
@@ -380,7 +381,7 @@ let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
 let autosaveGen = 0;
 
 /** Debounce dirty buffer writes so the editor autosaves without a manual Save. */
-export function scheduleAutosave(delayMs = 700) {
+export function scheduleAutosave(delayMs = getAutosaveMs()) {
   if (autosaveTimer) clearTimeout(autosaveTimer);
   autosaveTimer = setTimeout(() => {
     autosaveTimer = null;

@@ -38,13 +38,14 @@ import { VoiceOrbSession } from './home/VoiceOrbSession';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useDisplayName } from '../lib/prefs';
 
 type HomeDialogState = { kind: 'new'; path: StartPath | null; brief: string; repo: string } | { kind: 'projects' } | { kind: 'chats' } | { kind: 'memory' };
 
-function greeting(): string {
+function greeting(name: string): string {
   const hour = new Date().getHours();
   const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  return `${part}. What are we building?`;
+  return `${part}${name.trim() ? `, ${name.trim()}` : ''}. What are we building?`;
 }
 
 const focusPrompt = () => requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-home-prompt]')?.focus());
@@ -65,6 +66,7 @@ export function Onboarding() {
   const [chats, setChats] = useState<HomeChatRecord[]>(loadHomeChats);
   const activeChatId = useRef<string | null>(null);
   const prevTurnId = useRef<string | null>(null);
+  const displayName = useDisplayName();
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
   const onboarding = useOnboarding();
@@ -451,7 +453,7 @@ export function Onboarding() {
               </>
             ) : (
               <div className="flex w-full max-w-[680px] flex-col items-center">
-                <h1 className="mb-6 font-geist text-balance text-center text-[32px] font-medium leading-[1.1] tracking-[-0.02em]">{greeting()}</h1>
+                <h1 className="mb-6 font-geist text-balance text-center text-[32px] font-medium leading-[1.1] tracking-[-0.02em]">{greeting(displayName)}</h1>
                 <div className="flex w-full flex-col items-center gap-3">
                   <HomePrompt
                     value={dockDraft}

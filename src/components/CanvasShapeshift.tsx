@@ -1,4 +1,5 @@
 import { X } from '../lib/hugeicons';
+import { useQuickPills } from '../lib/prefs';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -26,6 +27,7 @@ function chatHeight() {
 export function CanvasShapeshift() {
   const handle = useRef<ShapeshiftHandle>(null);
   const [focused, setFocused] = useState(false);
+  const quickPills = useQuickPills();
   const selection = useStore((s) => s.selection);
   const ready = useStore((s) => !!s.aiStatus?.ready);
   const busy = useStore((s) => !!s.aiTurnId);
@@ -89,7 +91,7 @@ export function CanvasShapeshift() {
   };
 
   return (
-    <DockRow tucked={chatOpen || focused}>
+    <DockRow tucked={chatOpen || focused || !quickPills}>
     <div className="canvas-shapeshift assistant-docker" onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
       <Shapeshift
         ref={handle}

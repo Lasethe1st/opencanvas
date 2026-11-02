@@ -2054,3 +2054,16 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 }
 .frame-chrome__label:hover .frame-chrome__device { color: var(--fg-2); }
 .frame-chrome.is-active .frame-chrome__device { color: var(--accent); }
+
+/* Settings › Appearance: theme cards with a tiny preview of each mode. */
+.theme-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px; }
+.theme-card { display: flex; flex-direction: column; gap: 8px; padding: 6px 6px 8px; border: 1px solid transparent; border-radius: 14px; background: transparent; color: var(--fg-2); font-size: 12px; font-weight: 500; cursor: pointer; transition: background-color 0.15s, border-color 0.15s; }
+.theme-card:hover { background: color-mix(in oklab, var(--fg) 5%, transparent); }
+.theme-card.is-active { border-color: var(--fg); color: var(--fg); }
+.theme-card__preview { display: grid; place-items: center; height: 64px; border-radius: 10px; background: color-mix(in oklab, var(--fg) 6%, transparent); color: var(--fg-2); transition: color 0.15s, background-color 0.15s; }
+.theme-card.is-active .theme-card__preview { color: var(--fg); background: color-mix(in oklab, var(--fg) 10%, transparent); }
+.theme-card__label { text-align: center; }
+.settings-page .sx-text-btn { min-width: 0; padding: 0 12px; font-size: 12px; font-weight: 500; }
+
+/* Reduce motion (Settings › Appearance). */
+html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, html[data-reduce-motion='true'] *::after { animation-duration: 0.001ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; transition-delay: 0ms !important; scroll-behavior: auto !important; }

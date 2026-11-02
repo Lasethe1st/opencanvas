@@ -11,6 +11,10 @@ import { CHAT_BUBBLE_PRESETS, setChatBubblePreset, useChatBubblePreset } from '.
 import { CHAT_FONT_SIZE_PRESETS, setChatFontSize, useChatFontSize } from '../lib/chat-font-size';
 import { getOrbColors, ORB_COLOR_PRESETS, setOrbColorPreset, useOrbColorPreset } from '../lib/orb-colors';
 import { setThemePreference, useTheme } from '../lib/theme';
+import { setCalm, useCalm } from '../lib/calm';
+import { setShowMarkers, useShowMarkers } from '../lib/comments';
+import { setAutosave, setDisplayName, setQuickPills, setReduceMotion, setSendKey, useAutosave, useDisplayName, useQuickPills, useReduceMotion, useSendKey } from '../lib/prefs';
+import { setRulers, useRulers } from '../lib/rulers';
 import { Button, InputShell, Notice } from '../ui/primitives.jsx';
 import { ToolButton } from '../ui/ToolRail.jsx';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -111,23 +115,76 @@ export function SettingsPage() {
 
 function GeneralSettings() {
   const fontSize = useChatFontSize();
+  const sendKey = useSendKey();
+  const calm = useCalm();
+  const markers = useShowMarkers();
+  const name = useDisplayName();
+  const pills = useQuickPills();
+  const rulers = useRulers();
+  const autosave = useAutosave();
   return (
-    <SettingsGroup>
-      <SettingRow label="Message size">
-        <div className="theme-toggle" role="radiogroup" aria-label="Chat font size">
-          {CHAT_FONT_SIZE_PRESETS.map(({ id, label }) => (
-            <Tooltip key={id}>
-              <TooltipTrigger asChild>
-                <button type="button" role="radio" aria-checked={fontSize === id} aria-label={label} className={`theme-toggle__btn${fontSize === id ? ' is-active' : ''}`} onClick={() => setChatFontSize(id)}>
-                  <Type size={id === 'small' ? 12 : id === 'large' ? 18 : 15} strokeWidth={1.75} aria-hidden />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">{label}</TooltipContent>
-            </Tooltip>
-          ))}
-        </div>
-      </SettingRow>
-    </SettingsGroup>
+    <>
+      <SettingsGroup title="You">
+        <SettingRow label="Name" hint="Used in the greeting on the home page.">
+          <InputShell>
+            <input aria-label="Your name" value={name} maxLength={40} placeholder="Optional" onChange={(e) => setDisplayName(e.target.value)} />
+          </InputShell>
+        </SettingRow>
+      </SettingsGroup>
+
+      <SettingsGroup title="Chat">
+        <SettingRow label="Message size" hint="How large replies and your messages read in chat.">
+          <div className="theme-toggle" role="radiogroup" aria-label="Chat font size">
+            {CHAT_FONT_SIZE_PRESETS.map(({ id, label }) => (
+              <Tooltip key={id}>
+                <TooltipTrigger asChild>
+                  <button type="button" role="radio" aria-checked={fontSize === id} aria-label={label} className={`theme-toggle__btn${fontSize === id ? ' is-active' : ''}`} onClick={() => setChatFontSize(id)}>
+                    <Type size={id === 'small' ? 12 : id === 'large' ? 18 : 15} strokeWidth={1.75} aria-hidden />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{label}</TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        </SettingRow>
+        <SettingRow label="Send with" hint={sendKey === 'enter' ? 'Enter sends. Shift+Enter adds a new line.' : 'Ctrl+Enter (⌘+Enter on Mac) sends. Enter adds a new line.'}>
+          <div className="theme-toggle" role="radiogroup" aria-label="Send key">
+            {([['enter', 'Enter'], ['mod-enter', 'Ctrl+Enter']] as const).map(([id, label]) => (
+              <button key={id} type="button" role="radio" aria-checked={sendKey === id} className={`theme-toggle__btn sx-text-btn${sendKey === id ? ' is-active' : ''}`} onClick={() => setSendKey(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </SettingRow>
+      </SettingsGroup>
+
+      <SettingsGroup title="Canvas">
+        <SettingRow label="Calm canvas" hint="Just your site and the dock on a plain background. Panels open from the corner pills.">
+          <Switch label="Calm canvas" checked={calm} onChange={setCalm} />
+        </SettingRow>
+        <SettingRow label="Comment markers" hint="Show the small numbered markers on elements that have comments.">
+          <Switch label="Comment markers" checked={markers} onChange={setShowMarkers} />
+        </SettingRow>
+        <SettingRow label="Quick edit pills" hint="The Edit, Font and Colour pills that appear beside the dock when you select an element.">
+          <Switch label="Quick edit pills" checked={pills} onChange={setQuickPills} />
+        </SettingRow>
+        <SettingRow label="Rulers" hint="Show rulers along the edges of the canvas.">
+          <Switch label="Rulers" checked={rulers} onChange={setRulers} />
+        </SettingRow>
+      </SettingsGroup>
+
+      <SettingsGroup title="Editing">
+        <SettingRow label="Autosave" hint="How soon code changes are written to disk after you stop typing.">
+          <div className="theme-toggle" role="radiogroup" aria-label="Autosave speed">
+            {([['fast', 'Fast'], ['normal', 'Normal'], ['slow', 'Slow']] as const).map(([id, label]) => (
+              <button key={id} type="button" role="radio" aria-checked={autosave === id} className={`theme-toggle__btn sx-text-btn${autosave === id ? ' is-active' : ''}`} onClick={() => setAutosave(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </SettingRow>
+      </SettingsGroup>
+    </>
   );
 }
 
@@ -142,23 +199,20 @@ function AppearanceSettings() {
   const bubble = useChatBubblePreset();
   const orb = useOrbColorPreset();
   const orbColors = getOrbColors(orb);
+  const reduceMotion = useReduceMotion();
   return (
     <>
       <SettingsGroup title="Theme">
-        <SettingRow label="Color mode">
-          <div className="theme-toggle" role="radiogroup" aria-label="Theme">
-            {THEMES.map(({ id, label, icon: Icon }) => (
-              <Tooltip key={id}>
-                <TooltipTrigger asChild>
-                  <button type="button" role="radio" aria-checked={preference === id} aria-label={label} className={`theme-toggle__btn${preference === id ? ' is-active' : ''}`} onClick={() => setThemePreference(id)}>
-                    <Icon size={15} strokeWidth={1.75} aria-hidden />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">{label}</TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </SettingRow>
+        <div className="theme-cards" role="radiogroup" aria-label="Theme">
+          {THEMES.map(({ id, label, icon: Icon }) => (
+            <button key={id} type="button" role="radio" aria-checked={preference === id} className={`theme-card${preference === id ? ' is-active' : ''}`} onClick={() => setThemePreference(id)}>
+              <span className="theme-card__preview" aria-hidden>
+                <Icon size={22} strokeWidth={1.6} />
+              </span>
+              <span className="theme-card__label">{label}</span>
+            </button>
+          ))}
+        </div>
       </SettingsGroup>
 
       <SettingsGroup title="Chat">
@@ -191,6 +245,12 @@ function AppearanceSettings() {
               ))}
             </div>
           </div>
+        </SettingRow>
+      </SettingsGroup>
+
+      <SettingsGroup title="Motion">
+        <SettingRow label="Reduce motion" hint="Turns off animations and transitions across the app.">
+          <Switch label="Reduce motion" checked={reduceMotion} onChange={setReduceMotion} />
         </SettingRow>
       </SettingsGroup>
     </>
@@ -236,7 +296,7 @@ function McpSettings() {
 
   return (
     <>
-      <SettingsGroup title={status.enabled ? 'Server' : undefined}>
+      <SettingsGroup title={status.enabled ? 'Server' : undefined} hint={status.enabled ? undefined : 'Lets AI agents such as Cursor and Claude Code read and edit the project you have open, over MCP. Turn it on to get a connection address and one-click setup.'}>
         <SettingRow
           label={
             <span className="sx-status">
