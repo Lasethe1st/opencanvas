@@ -1,3 +1,4 @@
+import { getSendKey } from "../../lib/prefs";
 import { ArrowUp, FolderOpen, Stop, Waveform } from '../../lib/home-icons';
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
@@ -223,6 +224,8 @@ export function HomePrompt({
       }
     }
     if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+    // "Ctrl+Enter to send" leaves a plain Enter as a new line.
+    if (getSendKey() === "mod-enter" && !(e.ctrlKey || e.metaKey)) return;
     e.preventDefault();
     if (hasText && !disabled && !sending) onSubmit();
   };
