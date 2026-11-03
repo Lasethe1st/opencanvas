@@ -409,3 +409,49 @@ test('dependencies declared but not installed are reported', () => {
 test.after(() => {
   fs.rmSync(TMP, { recursive: true, force: true });
 });
+
+test('motion edit writes data-motion attributes, the motion.dev runtime, its import and the dependency; undo restores everything', () => {
+  const project = makeProject('landing');
+  const heroBefore = read(project, 'src/components/Hero.jsx');
+  const mainBefore = read(project, 'src/main.jsx');
+  const pkgBefore = read(project, 'package.json');
+  const id = idFor(project, 'src/components/Hero.jsx', '<h1');
+
+  const spec = { trigger: 'in-view', preset: 'rise', duration: 0.6, delay: 0.1, ease: 'spring' };
+  const res = h.applyEdit(project, { type: 'setMotion', id, motion: spec });
+  assert.equal(res.ok, true, res.error);
+  assert.equal(res.addedDependency, 'motion');
+  const hero = read(project, 'src/components/Hero.jsx');
+  assert.match(hero, /data-motion="rise"/);
+  assert.match(hero, /data-motion-on="in-view"/);
+  assert.match(hero, /data-motion-duration="0.6"/);
+  assert.match(hero, /data-motion-delay="0.1"/);
+  assert.match(hero, /data-motion-ease="spring"/);
+  assert.match(read(project, 'src/open-canvas-motion.js'), /from 'motion'/);
+  assert.match(read(project, 'src/main.jsx'), /import '\.\/open-canvas-motion\.js';/);
+  assert.equal(JSON.parse(read(project, 'package.json')).dependencies.motion, '^14.6.0');
+  assert.equal(h.inspectElement(project, id).attributes['data-motion'], 'rise');
+
+  // A second element reuses the runtime and does not add the dependency again.
+  const id2 = idFor(project, 'src/components/Hero.jsx', '<section');
+  const again = h.applyEdit(project, { type: 'setMotion', id: id2, motion: { trigger: 'hover', preset: 'lift', duration: 0.2, delay: 0, ease: 'ease-out' } });
+  assert.equal(again.ok, true, again.error);
+  assert.equal(again.addedDependency, undefined);
+  assert.equal((read(project, 'src/main.jsx').match(/open-canvas-motion/g) ?? []).length, 1);
+
+  // Removing motion clears every attribute.
+  const cleared = h.applyEdit(project, { type: 'setMotion', id, motion: null });
+  assert.equal(cleared.ok, true, cleared.error);
+  assert.doesNotMatch(h.inspectElement(project, id).attributes['data-motion'] ?? '', /./);
+
+  // Anything the panel would not offer is refused.
+  const bad = h.applyEdit(project, { type: 'setMotion', id, motion: { ...spec, preset: 'wobble' } });
+  assert.equal(bad.ok, false);
+
+  assert.equal(h.revertChanges(project.root, cleared.changes, 'undo').ok, true);
+  assert.equal(h.revertChanges(project.root, again.changes, 'undo').ok, true);
+  assert.equal(h.revertChanges(project.root, res.changes, 'undo').ok, true);
+  assert.equal(read(project, 'src/components/Hero.jsx'), heroBefore);
+  assert.equal(read(project, 'src/main.jsx'), mainBefore);
+  assert.equal(read(project, 'package.json'), pkgBefore);
+});

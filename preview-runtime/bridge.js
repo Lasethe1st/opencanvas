@@ -909,6 +909,12 @@
         commentsShow = msg.show !== false;
         render();
         break;
+      case 'motion-replay': {
+        // The project's motion runtime (motion.dev) listens for this on the element itself.
+        const target = (msg.id && byId(msg.id)) || selected;
+        if (target) target.dispatchEvent(new CustomEvent('oc-motion-replay', { bubbles: true }));
+        break;
+      }
       case 'measure':
         measureOn = !!msg.on;
         render();

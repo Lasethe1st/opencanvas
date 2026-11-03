@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { isValidMotion, MOTION_ATTRS, motionToAttributes } from '../../shared/motion';
+import { MOTION_DEPENDENCY, MOTION_RUNTIME_NAME, MOTION_RUNTIME_SOURCE } from '../../shared/motion-runtime';
 import { ensureGoogleFontLink, isGoogleFamilyParam } from '../../shared/fonts';
 import { parseSourceId } from '../../shared/source/ast';
 import { copyElementStyles, readElementStyles, setElementStyle } from '../../shared/source/css';
@@ -201,6 +203,48 @@ function ensureStylesheet(set: ChangeSet, project: ProjectInfo): string {
   return set.read(project.stylesFile)!;
 }
 
+/** Adds `import '<target>'` to the app entry after its last import, unless it is already there. */
+function ensureEntryImport(set: ChangeSet, project: ProjectInfo, target: string) {
+  const entry = set.read(project.entryFile!) ?? '';
+  const name = path.posix.basename(target);
+  if (entry.includes(name)) return;
+  const importLine = `import '${relativeImport(project.entryFile!, target)}';`;
+  const lines = entry.split('\n');
+  let lastImport = -1;
+  lines.forEach((line, i) => {
+    if (/^import\s/.test(line)) lastImport = i;
+  });
+  const next = lastImport === -1 ? `${importLine}\n${entry}` : [...lines.slice(0, lastImport + 1), importLine, ...lines.slice(lastImport + 1)].join('\n');
+  set.write(project.entryFile!, next);
+}
+
+/**
+ * Makes sure the project can play motion: the runtime file, its import in the app entry and the `motion`
+ * package in package.json. Returns the package name when it had to be added.
+ */
+function ensureMotionRuntime(set: ChangeSet, project: ProjectInfo): string | undefined {
+  if (!project.entryFile) throw new EditError('Could not find the app entry file to load motion from. Add a module script to index.html.');
+  if (project.framework === 'next' && /(^|\/)app\/layout\./.test(project.entryFile)) {
+    throw new EditError('Motion for the Next.js App Router is not supported yet (its layout is a server component). Pages Router and Vite projects work.');
+  }
+  const runtime = path.posix.join(path.posix.dirname(project.stylesFile), MOTION_RUNTIME_NAME);
+  if (set.read(runtime) === null) set.write(runtime, MOTION_RUNTIME_SOURCE);
+  ensureEntryImport(set, project, runtime);
+  const raw = set.read('package.json');
+  if (raw === null) return undefined;
+  let pkg: Record<string, any>;
+  try {
+    pkg = JSON.parse(raw);
+  } catch {
+    throw new EditError('package.json is not valid JSON, so motion could not be added to it.');
+  }
+  if (pkg.dependencies?.[MOTION_DEPENDENCY.name] || pkg.devDependencies?.[MOTION_DEPENDENCY.name]) return undefined;
+  pkg.dependencies = { ...(pkg.dependencies ?? {}), [MOTION_DEPENDENCY.name]: MOTION_DEPENDENCY.range };
+  const indent = /^\{\n(\s+)"/.exec(raw)?.[1] ?? '  ';
+  set.write('package.json', JSON.stringify(pkg, null, indent) + (raw.endsWith('\n') ? '\n' : ''));
+  return MOTION_DEPENDENCY.name;
+}
+
 /** Unique source locations, last in each file first, so editing one never shifts the ones still to do. */
 function bottomUp(ids: string[]) {
   const seen = new Set<string>();
@@ -221,6 +265,7 @@ export function applyEdit(project: ProjectInfo, command: EditCommand): EditResul
   const set = new ChangeSet(project.root);
   try {
     let selectId: string | null | undefined;
+    let addedDependency: string | undefined;
     switch (command.type) {
       case 'setStyle': {
         const entries = Object.entries(command.styles).map(([p, v]) => [p.trim().toLowerCase(), v.trim()] as const);
@@ -351,6 +396,17 @@ export function applyEdit(project: ProjectInfo, command: EditCommand): EditResul
         selectId = command.id;
         break;
       }
+      case 'setMotion': {
+        if (command.motion && !isValidMotion(command.motion)) throw new EditError('That motion is not one the panel offers.');
+        const { file, line, column } = requireId(command.id);
+        const attrs = motionToAttributes(command.motion);
+        let code = readSource(set, file);
+        for (const name of MOTION_ATTRS) code = setAttribute(code, file, line, column, name, attrs[name]);
+        set.write(file, code);
+        if (command.motion) addedDependency = ensureMotionRuntime(set, project);
+        selectId = command.id;
+        break;
+      }
       case 'setAttribute': {
         if (!EDITABLE_ATTRIBUTES.has(command.name)) throw new EditError(`The "${command.name}" attribute can't be edited visually.`);
         const { file, line, column } = requireId(command.id);
@@ -361,7 +417,7 @@ export function applyEdit(project: ProjectInfo, command: EditCommand): EditResul
       }
     }
     const changes = set.commit();
-    return { ok: true, changes, selectId };
+    return { ok: true, changes, selectId, addedDependency };
   } catch (err) {
     const message = err instanceof EditError ? err.message : `Edit failed: ${(err as Error).message}`;
     return { ok: false, error: message, changes: [] };

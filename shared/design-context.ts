@@ -42,6 +42,7 @@ export function buildDesignContext(direction: DirectionConfig, options: DesignCo
   }
   lines.push(`Typeface: ${font ? `${font} (load it from Google Fonts if it isn't installed)` : 'no preference; pick one that fits the style'}.`);
   lines.push(`Icons: ${iconPack === 'phosphor' ? 'Phosphor (@phosphor-icons/react)' : 'Lucide (lucide-react)'}.`);
+  lines.push('Motion: use motion.dev (the `motion` package), not hand-written @keyframes. To animate an element, give it data-motion attributes: data-motion="fade|rise|drop|slide-left|slide-right|scale|blur" (enter) or "lift|grow|dim" (hover) or "shrink|sink|dim" (press), data-motion-on="load|in-view|hover|press", data-motion-duration and data-motion-delay in seconds, data-motion-ease="ease-out|ease-in-out|ease|linear|spring". The project\'s open-canvas-motion.js plays them and the Motion panel edits them. For anything richer (sequences, stagger, scroll-linked) import { animate, stagger, scroll, inView } from \'motion\'. Plain colour and size hover transitions can stay in CSS. Always respect prefers-reduced-motion.');
 
   if (designSystem) {
     const entries = Object.entries(designSystem.tokens);

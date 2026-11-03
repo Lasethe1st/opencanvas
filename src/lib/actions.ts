@@ -1,7 +1,8 @@
 import { getAutosaveMs } from './prefs';
-import type { EditCommand, FileChange, ImportResult, InsertKind, McpApplied, McpRequest, ProjectInfo, TemplateId } from '../../shared/types';
+import type { EditCommand, EditResult, FileChange, ImportResult, InsertKind, McpApplied, McpRequest, ProjectInfo, TemplateId } from '../../shared/types';
 import { mergeChanges } from '../../shared/history';
 import type { ProjectSetup } from '../../shared/api';
+import type { MotionSpec } from '../../shared/motion';
 import { EMPTY_AGENT_GRAPH } from '../../shared/agent-graph';
 import { defaultWorkspace } from '../../shared/workspace-layout';
 import { api } from './api';
@@ -555,7 +556,7 @@ export function selectElement(id: string | null, uid?: string, scroll = true) {
 /* ---------- Edits & history ---------- */
 
 /** Applies an edit as one history entry; `prefix` changes (e.g. an imported file) join the same entry. */
-export async function runEdit(command: EditCommand, label: string, prefix: FileChange[] = []): Promise<boolean> {
+export async function runEdit(command: EditCommand, label: string, prefix: FileChange[] = [], onResult?: (result: EditResult) => void): Promise<boolean> {
   if (getState().busy) return false;
   setState({ busy: true });
   try {
@@ -564,6 +565,7 @@ export async function runEdit(command: EditCommand, label: string, prefix: FileC
       toast(result.error ?? 'Edit failed.', 'error');
       return false;
     }
+    onResult?.(result);
     if (result.changes.length || prefix.length) {
       const entry: HistoryEntry = { label, changes: [...prefix, ...result.changes], selectId: result.selectId };
       setState((s) => ({ past: [...s.past, entry], future: [] }));
@@ -603,6 +605,33 @@ export async function setStyles(styles: Record<string, string>, label?: string) 
     { type: 'setStyle', id: selection.id, breakpoint: activeBreakpoint(), styles, state, extraIds: extraIds() },
     (label ?? `Set ${props[0]}`) + (state === 'hover' ? ' (hover)' : '') + groupSuffix(),
   );
+}
+
+/**
+ * Motion for the selected element (null removes it). It is written as data-motion attributes that the
+ * motion.dev runtime in the project plays; the first time, the runtime and the `motion` package are added too.
+ */
+export async function setMotion(motion: MotionSpec | null, label?: string) {
+  const { selection } = getState();
+  if (!selection) return;
+  let added: string | undefined;
+  const ok = await runEdit({ type: 'setMotion', id: selection.id, motion }, label ?? (motion ? 'Set motion' : 'Remove motion'), [], (r) => {
+    added = r.addedDependency;
+  });
+  if (!ok || !added) return;
+  const project = getState().project;
+  if (project?.hasNodeModules && !project.managedPreview) {
+    toast('Installing motion…');
+    await installDependencies();
+  } else {
+    await reloadProjectConfig();
+  }
+}
+
+/** Plays the selected element's motion again in the preview. */
+export function replayMotion() {
+  const { selection } = getState();
+  if (selection) sendToPreview('motion-replay', { id: selection.id });
 }
 
 export async function setTag(tag: string) {
