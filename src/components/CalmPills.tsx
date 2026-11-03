@@ -97,13 +97,33 @@ function open(item: Mentionable) {
   scheduleWorkspaceSave();
 }
 
+/** Filter pills in the search: each one is a set of tags (or pages). Pick several to widen; none picked means everything. */
+type Filter = { id: string; label: string; hint: string; match: (i: Mentionable) => boolean };
+const tagIn = (tags: string[]) => (i: Mentionable) => i.kind === 'layer' && !!i.tag && tags.includes(i.tag.toLowerCase());
+const FILTERS: Filter[] = [
+  { id: 'pages', label: 'Pages', hint: 'Pages of the project', match: (i) => i.kind === 'page' },
+  { id: 'headings', label: 'Headings', hint: 'h1 – h6', match: tagIn(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']) },
+  { id: 'text', label: 'Text', hint: 'p, span, strong, em, blockquote, code…', match: tagIn(['p', 'span', 'strong', 'em', 'b', 'i', 'small', 'blockquote', 'code', 'pre', 'label']) },
+  { id: 'links', label: 'Links', hint: 'a', match: tagIn(['a']) },
+  { id: 'buttons', label: 'Buttons', hint: 'button', match: tagIn(['button']) },
+  { id: 'images', label: 'Media', hint: 'img, picture, svg, video, audio, canvas', match: tagIn(['img', 'picture', 'svg', 'video', 'audio', 'canvas']) },
+  { id: 'forms', label: 'Forms', hint: 'form, input, textarea, select', match: tagIn(['form', 'input', 'textarea', 'select']) },
+  { id: 'boxes', label: 'Divs', hint: 'div, section, header, footer, nav, main, article, aside, ul, ol, li, figure', match: tagIn(['div', 'section', 'header', 'footer', 'nav', 'main', 'article', 'aside', 'ul', 'ol', 'li', 'figure']) },
+];
+
 function CalmSearch({ onClose }: { onClose: () => void }) {
   const [q, setQ] = useState('');
   const [at, setAt] = useState(0);
+  const [on, setOn] = useState<string[]>([]);
+  const all = useMemo(() => mentionables().filter((i) => i.name), []);
+  // Only offer a pill when the project has something it would show.
+  const counts = useMemo(() => FILTERS.map((f) => ({ f, n: all.filter(f.match).length })).filter((c) => c.n > 0), [all]);
   const items = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return mentionables().filter((i) => i.name && (!s || i.name.toLowerCase().includes(s))).slice(0, 40);
-  }, [q]);
+    const active = FILTERS.filter((f) => on.includes(f.id));
+    return all.filter((i) => (!s || i.name.toLowerCase().includes(s)) && (!active.length || active.some((f) => f.match(i)))).slice(0, 40);
+  }, [q, on, all]);
+  const toggle = (id: string) => { setOn((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id])); setAt(0); };
   const go = (i?: Mentionable) => {
     if (!i) return;
     open(i);
@@ -127,8 +147,28 @@ function CalmSearch({ onClose }: { onClose: () => void }) {
           className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
       </div>
+      {counts.length > 0 && (
+        <div data-bloom-menu="" role="group" aria-label="Filter results" className="flex flex-wrap gap-1.5 px-3 pb-2.5">
+          {counts.map(({ f, n }) => {
+            const active = on.includes(f.id);
+            return (
+              <button
+                key={f.id}
+                type="button"
+                title={f.hint}
+                aria-pressed={active}
+                onClick={() => toggle(f.id)}
+                className={`calm-pill inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-medium outline-none transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring ${active ? 'bg-foreground text-background' : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+              >
+                {f.label}
+                <span className={`tabular-nums ${active ? 'opacity-70' : 'opacity-60'}`}>{n}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
       <ul role="listbox" aria-label="Results" className="m-0 list-none p-0">
-        {items.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted-foreground">Nothing matches “{q}”.</li>}
+        {items.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted-foreground">{q.trim() ? `Nothing matches “${q}”.` : 'Nothing in those filters.'}</li>}
         {items.map((i, n) => (
           <li key={`${i.kind}:${i.id}:${n}`} role="option" aria-selected={n === at}>
             <button type="button" onMouseEnter={() => setAt(n)} onClick={() => go(i)} className={`flex w-full items-center justify-between gap-3 rounded-[10px] px-3 py-2 text-start text-sm ${n === at ? 'bg-muted' : ''}`}>

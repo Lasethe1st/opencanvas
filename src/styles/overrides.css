@@ -1919,8 +1919,9 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .merge-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; fill: var(--merge-fill); filter: drop-shadow(0 0 0.5px color-mix(in srgb, var(--fg) 30%, transparent)); }
 .merge-layer rect, .merge-layer path { transition: opacity 180ms ease; }
 @media (prefers-reduced-motion: reduce) { .merge-layer rect, .merge-layer path { transition: opacity 120ms linear; } }
-/* The bar is 420px wide; size its slot to match so the pills on the right can join it too. */
-.dockrow .canvas-shapeshift:not([data-chat]) { width: min(420px, calc(100vw - 32px)); }
+/* The bar is 420px wide; its slot is too, open or closed, so the dock stays centred in its row. */
+.dockrow .canvas-shapeshift { width: min(420px, calc(100vw - 32px)); }
+.dockrow .canvas-shapeshift [data-slot='shapeshift'] { margin-inline: auto; }
 
 /* Motion tokens (Emil Kowalski): strong curves, short durations, nothing from scale(0). */
 :root { --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1); }
