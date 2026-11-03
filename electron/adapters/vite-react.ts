@@ -1,6 +1,6 @@
 import type { DetectContext, FrameworkAdapter } from './types';
 
-const MANAGED_DEPS = new Set(['react', 'react-dom', 'vite', '@vitejs/plugin-react']);
+const MANAGED_DEPS = new Set(['react', 'react-dom', 'vite', '@vitejs/plugin-react', 'motion']);
 
 function findEntry(ctx: DetectContext): string | null {
   const html = ctx.read('index.html');

@@ -80,6 +80,8 @@ export interface EditResult {
   changes: FileChange[];
   /** Source id of the element that should be selected after the edit. */
   selectId?: string | null;
+  /** A package the edit added to package.json; it needs installing before the preview can use it. */
+  addedDependency?: string;
 }
 
 export type InsertKind =
@@ -133,7 +135,9 @@ export type EditCommand =
   | { type: 'insertJsx'; parentId: string; jsx: string }
   | { type: 'rename'; id: string; name: string }
   | { type: 'setText'; id: string; text: string }
-  | { type: 'setAttribute'; id: string; name: string; value: string };
+  | { type: 'setAttribute'; id: string; name: string; value: string }
+  /** Motion for an element (null removes it): written as data-motion attributes, played by the motion.dev runtime in the project. */
+  | { type: 'setMotion'; id: string; motion: import('./motion').MotionSpec | null };
 
 /** Whether an element's text is plain (editable) or why it isn't. */
 export type TextReason = 'plain' | 'nested' | 'expression' | 'self-closing';
