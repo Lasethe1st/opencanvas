@@ -41,10 +41,28 @@ export function WorldFrame({ x, y, width, height, active, shadow, children }) {
   );
 }
 
-/** Screen-space chrome for one frame: label above, outline and resize handles. */
-export function FrameChrome({ rect, name, size, scope, device, tip, active, fitPage, onActivate, onDragStart, onRename, onResizeStart, menuOpen, onMenu, menu }) {
+/** One filled circle that gooily splits into two and melts back, over and over: the AI is working here. */
+export function AiWeave({ className }) {
   return (
-    <div className={cx('frame-chrome', active && 'is-active')} style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}>
+    <span className={cx('ai-weave', className)} role="status" aria-label="AI is working">
+      <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}>
+        <filter id="oc-goo" x="-50%" y="-100%" width="200%" height="300%" colorInterpolationFilters="sRGB">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b" />
+          <feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" />
+        </filter>
+      </svg>
+      <span className="ai-weave__stage">
+        <i className="ai-weave__a" />
+        <i className="ai-weave__b" />
+      </span>
+    </span>
+  );
+}
+
+/** Screen-space chrome for one frame: label above, outline and resize handles. */
+export function FrameChrome({ rect, name, size, scope, device, tip, active, fitPage, onActivate, onDragStart, onRename, onResizeStart, menuOpen, onMenu, menu, working }) {
+  return (
+    <div className={cx('frame-chrome', active && 'is-active', working && 'is-ai')} style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}>
       <div className="frame-chrome__label" onPointerDown={onDragStart} onClick={onActivate} onDoubleClick={onRename}>
         {typeof name === 'string' ? (
           <span className="frame-chrome__device" title={tip ?? name} aria-label={tip ?? name}>
@@ -54,6 +72,7 @@ export function FrameChrome({ rect, name, size, scope, device, tip, active, fitP
           <span className="frame-chrome__name">{name}</span>
         )}
         {size && <span className="frame-chrome__size">{size}</span>}
+        {working && <AiWeave />}
         <IconButton
           size="sm"
           label={`${typeof name === 'string' ? name : 'Frame'} options`}

@@ -77,12 +77,56 @@
       .m-line { position: absolute; background: #f43f5e; }
       .m-label { position: absolute; transform: translate(-50%, -50%) scale(var(--k)); font: 600 10px/1 Inter, system-ui, sans-serif; color: #fff; background: #f43f5e; padding: 3px 5px; border-radius: 999px; white-space: nowrap; }
       .m-box { position: absolute; box-sizing: border-box; border: 1px solid #f43f5e; }
+      .work { position: fixed; box-sizing: border-box; pointer-events: none; display: none; padding: calc(1.5px * var(--k)); border-radius: 3px; overflow: hidden;
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+      .work i { position: absolute; left: 50%; top: 50%; width: var(--d, 400px); height: var(--d, 400px); margin: calc(var(--d, 400px) / -2) 0 0 calc(var(--d, 400px) / -2);
+        background: conic-gradient(from 0deg, transparent 0 60%, rgba(17,17,17,.75) 95%, transparent); animation: oc-rot 2.6s linear infinite; }
+      @keyframes oc-rot { to { transform: rotate(360deg); } }
+      .wchip { position: fixed; pointer-events: none; display: none; padding: 2px 0;
+        transform: scale(var(--k)); transform-origin: left top; }
+      .wstage { position: relative; width: 22px; height: 10px; filter: url(#oc-goo) drop-shadow(0 0 1.5px rgba(255,255,255,.95)) drop-shadow(0 0 1px rgba(255,255,255,.8)); }
+      .wstage i { position: absolute; left: 7px; top: 1px; width: 8px; height: 8px; border-radius: 50%; background: #111; animation: oc-split 2.4s cubic-bezier(.77,0,.175,1) infinite; }
+      .wstage i:last-child { animation-name: oc-split-b; }
+      @keyframes oc-split { 0%, 12% { transform: translateX(0); } 42%, 58% { transform: translateX(-6px); } 88%, 100% { transform: translateX(0); } }
+      @keyframes oc-split-b { 0%, 12% { transform: translateX(0); } 42%, 58% { transform: translateX(6px); } 88%, 100% { transform: translateX(0); } }
+      @media (prefers-reduced-motion: reduce) { .work i, .wstage i { animation: none; } }
       .token-hit { border: 1.5px dashed #d97706; box-shadow: 0 0 0 1px rgba(217,119,6,.25); }
       .token-hit .label { background: #d97706; }
     </style>
     <div class="box hover"><span class="label"></span></div>
     <div class="box linked"></div>
     <div class="box select"><span class="label"></span><i class="handle tl"></i><i class="handle tr"></i><i class="handle bl"></i><i class="handle br"></i></div>`;
+  const workBox = document.createElement('div');
+  workBox.className = 'work';
+  workBox.innerHTML = '<i></i>';
+  shadow.appendChild(workBox);
+  const workChip = document.createElement('div');
+  workChip.className = 'wchip';
+  workChip.innerHTML = '<svg width="0" height="0" style="position:absolute"><filter id="oc-goo" x="-50%" y="-100%" width="200%" height="300%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"/></filter></svg><span class="wstage"><i></i><i></i></span>';
+  shadow.appendChild(workChip);
+  /** The element the AI is working on right now (source id), or null. */
+  let workId = null;
+  function drawWork() {
+    const el = workId ? byId(workId) : null;
+    const r = el && el.isConnected ? el.getBoundingClientRect() : null;
+    if (!r || (!r.width && !r.height)) {
+      workBox.style.display = 'none';
+      workChip.style.display = 'none';
+      return;
+    }
+    const k = parseFloat(host.style.getPropertyValue('--k')) || 1;
+    workBox.style.display = 'block';
+    workBox.style.left = `${r.left}px`;
+    workBox.style.top = `${r.top}px`;
+    workBox.style.width = `${r.width}px`;
+    workBox.style.height = `${r.height}px`;
+    workBox.style.setProperty('--d', `${Math.hypot(r.width, r.height) + 8}px`);
+    workChip.style.display = 'block';
+    // Just outside the top-left corner so it never covers the element; tucked inside when there's no room.
+    const w = 26 * k;
+    workChip.style.left = `${r.left - w - 4 * k >= 2 ? r.left - w - 4 * k : r.left + 4 * k}px`;
+    workChip.style.top = `${Math.max(2, r.top)}px`;
+  }
   const commentLayer = document.createElement('div');
   commentLayer.className = 'cmarks';
   shadow.appendChild(commentLayer);
@@ -273,6 +317,7 @@
 
   function render() {
     attachOverlay();
+    drawWork();
     drawComments();
     drawMeasure();
     const active = mode === 'select';
@@ -909,12 +954,25 @@
         commentsShow = msg.show !== false;
         render();
         break;
-      case 'motion-replay': {
-        // The project's motion runtime (motion.dev) listens for this on the element itself.
-        const target = (msg.id && byId(msg.id)) || selected;
-        if (target) target.dispatchEvent(new CustomEvent('oc-motion-replay', { bubbles: true }));
-        break;
-      }
+case 'comments':
+  commentMarks = Array.isArray(msg.items) ? msg.items.filter((m) => m && typeof m.cid === 'string' && typeof m.id === 'string') : [];
+  commentsShow = msg.show !== false;
+  render();
+  break;
+case 'motion-replay': {
+  // The project's motion runtime (motion.dev) listens for this on the element itself.
+  const target = (msg.id && byId(msg.id)) || selected;
+  if (target) target.dispatchEvent(new CustomEvent('oc-motion-replay', { bubbles: true }));
+  break;
+}
+case 'working':
+  workId = typeof msg.id === 'string' ? msg.id : null;
+  render();
+  break;
+case 'measure':
+  measureOn = !!msg.on;
+  render();
+  break;
       case 'measure':
         measureOn = !!msg.on;
         render();

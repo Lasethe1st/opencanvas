@@ -1919,8 +1919,9 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .merge-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; fill: var(--merge-fill); filter: drop-shadow(0 0 0.5px color-mix(in srgb, var(--fg) 30%, transparent)); }
 .merge-layer rect, .merge-layer path { transition: opacity 180ms ease; }
 @media (prefers-reduced-motion: reduce) { .merge-layer rect, .merge-layer path { transition: opacity 120ms linear; } }
-/* The bar is 420px wide; size its slot to match so the pills on the right can join it too. */
-.dockrow .canvas-shapeshift:not([data-chat]) { width: min(420px, calc(100vw - 32px)); }
+/* The bar is 420px wide; its slot is too, open or closed, so the dock stays centred in its row. */
+.dockrow .canvas-shapeshift { width: min(420px, calc(100vw - 32px)); }
+.dockrow .canvas-shapeshift [data-slot='shapeshift'] { margin-inline: auto; }
 
 /* Motion tokens (Emil Kowalski): strong curves, short durations, nothing from scale(0). */
 :root { --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1); }
@@ -2088,3 +2089,15 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 .frame-chrome__handle--se::after { inset: 2px; border: 1px solid color-mix(in srgb, var(--fg) 20%, var(--line)); border-radius: 999px; corner-shape: round; background: var(--surface); box-shadow: 0 1px 4px rgb(0 0 0 / 0.2); transition: opacity 0.12s var(--ease), transform 0.16s var(--ease-out-strong); }
 .frame-chrome__handle--se:hover::after { transform: scale(1.15); }
 .frame-chrome.is-active .frame-chrome__handle--se::after { border-color: var(--fg-3); }
+
+/* AI at work: one filled circle that splits into two (goo) and merges back, at the top left of the frame (beside its label) or of the element. Monochrome, like the rest. */
+.ai-weave { display: inline-flex; flex: none; padding: 2px 0; animation: oc-pop 0.2s var(--ease-out-strong) both; }
+.ai-weave__stage { position: relative; width: 22px; height: 10px; filter: url(#oc-goo); }
+.ai-weave__stage i { position: absolute; left: 7px; top: 1px; width: 8px; height: 8px; border-radius: 50% !important; background: var(--fg); animation: ai-split 2.4s cubic-bezier(0.77, 0, 0.175, 1) infinite; }
+.ai-weave__stage i:last-child { animation-name: ai-split-b; }
+@keyframes ai-split { 0%, 12% { transform: translateX(0); } 42%, 58% { transform: translateX(-6px); } 88%, 100% { transform: translateX(0); } }
+@keyframes ai-split-b { 0%, 12% { transform: translateX(0); } 42%, 58% { transform: translateX(6px); } 88%, 100% { transform: translateX(0); } }
+@property --oc-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@keyframes ai-orbit { to { --oc-a: 360deg; } }
+.frame-chrome.is-ai .frame-chrome__outline::before { content: ''; position: absolute; inset: -1px; padding: 1.5px; background: conic-gradient(from var(--oc-a), transparent 0 60%, color-mix(in srgb, var(--fg) 70%, transparent) 95%, transparent); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: ai-orbit 2.6s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .ai-weave, .ai-weave__stage i, .frame-chrome.is-ai .frame-chrome__outline::before { animation: none; } }

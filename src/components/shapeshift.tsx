@@ -258,6 +258,8 @@ export type ShapeshiftProps = {
   icon?: ReactNode;
   /** Inline content after the icon, before the text (e.g. a context chip). */
   lead?: ReactNode;
+  /** A control at the end of the field while it is empty (e.g. a voice button). It gives way to the send button once there is something to send. */
+  trailing?: ReactNode;
   /** A press outside puts an open shape away. */
   closeOnOutsidePress?: boolean;
   /** The field's accessible name. */
@@ -300,6 +302,7 @@ export function Shapeshift({
   hotkey = "/",
   icon,
   lead,
+  trailing,
   closeOnOutsidePress = true,
   label = "Type anything",
   className,
@@ -632,6 +635,11 @@ export function Shapeshift({
                 <motion.kbd key="hotkey" {...SWAP} className={key}>
                   {hotkey}
                 </motion.kbd>
+              ) : null}
+              {!text && !open && !hotkey && trailing ? (
+                <motion.div key="trailing" {...SWAP} className="flex shrink-0">
+                  {trailing}
+                </motion.div>
               ) : null}
               {((ready && open) || sendable) && (
                 <motion.button

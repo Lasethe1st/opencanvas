@@ -36,6 +36,7 @@ export function FrameChrome(props: {
   tip?: string;
   active?: boolean;
   fitPage?: boolean;
+  working?: boolean;
   onActivate?: () => void;
   onDragStart?: (e: PointerEvent<HTMLDivElement>) => void;
   onRename?: () => void;

@@ -10,6 +10,7 @@ import { api } from './api';
 import { activePage } from './pages';
 import { activeFrame, getState, setState, toast } from './store';
 import { getAsk } from './ask-box';
+import { clearAiTarget, markAiTarget } from './ai-working';
 
 /** Follow-ups while a turn is running — drained when the current turn finishes. */
 const pendingRequests: string[] = [];
@@ -31,6 +32,7 @@ export function handleAiEvent(event: AiEvent) {
   const inProject = !!s.project;
   if (event.projectRoot && s.project && event.projectRoot !== s.project.root) return;
   if (event.type === 'start') {
+    markAiTarget();
     setState({
       aiTurnId: event.turnId,
       aiChat: reduceAiChat(s.aiChat, event),
@@ -62,6 +64,7 @@ export function handleAiEvent(event: AiEvent) {
     }, 800);
   }
   if (done) {
+    clearAiTarget();
     sendLock = false;
     drainQueue();
   }
