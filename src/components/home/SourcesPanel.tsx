@@ -589,7 +589,7 @@ export function SourcesPanel({ sources, file, onFile }: { sources: Source[]; fil
                 key={c.id}
                 type="button"
                 aria-pressed={chip === c.id}
-                className={cn('h-6 rounded-[8px] px-2 text-[11px] transition-colors', chip === c.id ? 'bg-foreground text-background' : 'bg-accent text-muted-foreground hover:text-foreground')}
+                className={cn('h-6 rounded-[var(--pill)] px-2.5 text-[11px] transition-colors', chip === c.id ? 'bg-foreground text-background' : 'bg-accent text-muted-foreground hover:text-foreground')}
                 onClick={() => setChip(c.id)}
               >
                 {c.label} <span className="tabular-nums opacity-70">{c.total}</span>
