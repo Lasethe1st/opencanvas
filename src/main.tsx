@@ -6,7 +6,6 @@ import './lib/chat-bubble';
 import './lib/chat-font-size';
 import '@fontsource-variable/geist';
 import '@fontsource-variable/inter';
-import '@fontsource/ibm-plex-serif/400.css';
 import '@fontsource-variable/geist-mono';
 import './styles/tokens.css';
 import './styles/ui.css';
