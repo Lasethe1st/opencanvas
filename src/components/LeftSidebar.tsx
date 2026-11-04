@@ -429,34 +429,7 @@ function countNodes(nodes: TreeNode[]): number {
   return nodes.reduce((n, node) => n + 1 + countNodes(node.children), 0);
 }
 
-/** Pages live above the layers: the current page at a glance, the full list one click away. */
-function PagesFold({ forceOpen }: { forceOpen: boolean }) {
-  const [open, setOpen] = useState(forceOpen);
-  const state = useStore((s) => s.projectConfig);
-  const activeId = useStore((s) => pageOf(activeFrame(s), s)?.id ?? s.workspace.activePageId);
-  const current = state?.pages.find((p) => p.id === activeId);
-  useEffect(() => {
-    if (forceOpen) setOpen(true);
-  }, [forceOpen]);
-  if (!state) return null;
-  return (
-    <div className="pages-fold">
-      <button type="button" className="pages-fold__head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        {open ? <CaretDown size={11} weight="bold" /> : <CaretRight size={11} weight="bold" />}
-        Pages
-        <span className="pages-fold__current">{current ? `${current.name} · ${state.pages.length}` : state.pages.length}</span>
-      </button>
-      {open && (
-        <>
-          <PagesSection bare />
-          <SyncScrollOption />
-        </>
-      )}
-    </div>
-  );
-}
-
-function LayersPanel({ query, pagesOpen }: { query: string; pagesOpen: boolean }) {
+function LayersPanel({ query }: { query: string }) {
   const domTree = useStore((s) => s.domTree);
   const selection = useStore((s) => s.selection);
   const status = useStore((s) => s.previewStatus.state);
@@ -523,7 +496,6 @@ function LayersPanel({ query, pagesOpen }: { query: string; pagesOpen: boolean }
 
   return (
     <>
-      <PagesFold forceOpen={pagesOpen} />
       <SectionLabel>
         Layers
         {domTree.length > 0 && <span className="section-label__count">{countNodes(domTree)}</span>}
@@ -544,8 +516,7 @@ function LayersPanel({ query, pagesOpen }: { query: string; pagesOpen: boolean }
 
 export function LeftSidebar() {
   const rawTab = useStore((s) => s.leftTab);
-  const pagesRequested = rawTab === 'frames' || rawTab === 'pages';
-  const tab = pagesRequested ? 'layers' : rawTab;
+  const tab = rawTab === 'frames' ? 'pages' : rawTab;
   const width = useStore((s) => s.leftWidth);
   const calm = useCalm();
   const calmLeft = useCalmPanels().left;
@@ -563,6 +534,7 @@ export function LeftSidebar() {
           value={tab}
           onChange={(id) => setState({ leftTab: id as typeof tab })}
           options={[
+            { id: 'pages', label: 'Pages', text: 'Pages' },
             { id: 'layers', label: 'Layers', text: 'Layers' },
             { id: 'files', label: 'Files', text: 'Files' },
             { id: 'ai', label: 'AI', text: 'AI' },
@@ -576,10 +548,15 @@ export function LeftSidebar() {
           <AiChat bare />
           <CanvasShapeshift variant="panel" />
         </div>
+      ) : tab === 'pages' ? (
+        <>
+          <PagesSection bare />
+          <SyncScrollOption />
+        </>
       ) : (
         <>
           <SearchField placeholder={tab === 'files' ? 'Search files' : 'Search layers'} value={queries[tab]} onChange={(v) => setQueries((q) => ({ ...q, [tab]: v }))} />
-          {tab === 'files' ? <FilesPanel query={queries.files} /> : <LayersPanel query={queries.layers} pagesOpen={pagesRequested} />}
+          {tab === 'files' ? <FilesPanel query={queries.files} /> : <LayersPanel query={queries.layers} />}
         </>
       )}
     </Panel>
