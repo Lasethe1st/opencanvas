@@ -140,7 +140,9 @@ function Palette() {
     setState({ canvasSearchOpen: false });
   };
 
-  const activeName = frames.find((f) => f.id === activeFrameId)?.name ?? '';
+  const activeFrame = frames.find((f) => f.id === activeFrameId);
+  const activeName = activeFrame?.name ?? '';
+  const activeDevice = activeFrame?.preset ?? 'custom';
   const elements = useMemo(() => flatten(domTree), [domTree]);
   const commands: Item[] = useMemo(
     () => [
@@ -165,7 +167,10 @@ function Palette() {
     const hits: Hit[] = [];
     const add = (it: Item, text: string) => {
       const idx = match(text, query);
-      if (idx) hits.push({ ...it, idx, s: score(text, idx) });
+      if (!idx) return;
+      // Fuzzy matches still rank, but only a contiguous substring gets highlighted.
+      const contiguous = text.toLowerCase().includes(query);
+      hits.push({ ...it, idx: contiguous ? idx : [], s: score(text, idx) });
     };
     if (!commandMode && !query) {
       // No recents yet: offer a few commands instead of blank glass.
@@ -176,7 +181,7 @@ function Palette() {
       for (const f of frames) add({ key: `f-${f.id}`, kind: 'frame', label: f.name, id: f.id, device: f.preset, }, f.name);
       for (const n of elements) {
         const label = n.name || n.tag;
-        add({ key: `e-${n.uid}`, kind: 'element', label, tag: n.tag, id: n.id, uid: n.uid, meta: activeName }, label);
+        add({ key: `e-${n.uid}`, kind: 'element', label, tag: n.tag, id: n.id, uid: n.uid, meta: activeName, device: activeDevice }, label);
       }
     }
     for (const c of commands) add(c, c.label);
@@ -185,7 +190,7 @@ function Palette() {
     // Cap each group so huge trees stay snappy.
     const per: Record<Kind, number> = { frame: 0, element: 0, command: 0 };
     return hits.filter((h) => ++per[h.kind] <= (h.kind === 'element' ? 50 : 20));
-  }, [frames, elements, commands, query, commandMode, recents, activeName]);
+  }, [frames, elements, commands, query, commandMode, recents, activeName, activeDevice]);
 
   useEffect(() => setSel(0), [query, commandMode]);
   useEffect(() => {
@@ -203,7 +208,7 @@ function Palette() {
       pushRecent({ kind: 'frame', id: it.id, label: it.label, device: it.device });
     } else if (it.kind === 'element' && it.id && it.uid) {
       jumpToElement(it.id, it.uid);
-      pushRecent({ kind: 'element', id: it.id, uid: it.uid, label: it.label, meta: it.meta, tag: it.tag });
+      pushRecent({ kind: 'element', id: it.id, uid: it.uid, label: it.label, meta: it.meta, tag: it.tag, device: it.device });
     }
   };
 
@@ -273,6 +278,7 @@ function Palette() {
 function Row({ it, index, sel, setSel, choose }: { it: Item & { idx?: number[] }; index: number; sel: number; setSel: (i: number) => void; choose: (it: Item) => void }) {
   const kind = it.kind === 'element' ? layerKind(it.tag ?? 'div') : it.kind === 'frame' ? 'frame' : 'command';
   const DeviceIcon = (it.kind === 'frame' ? DEVICE_ICON[it.device ?? 'custom'] ?? Frame : null) as Icon | null;
+  const PlaceIcon = (it.kind !== 'command' ? DEVICE_ICON[it.device ?? 'custom'] ?? Frame : null) as Icon | null;
   const CmdIcon = it.icon;
   return (
     <div
@@ -291,12 +297,10 @@ function Row({ it, index, sel, setSel, choose }: { it: Item & { idx?: number[] }
       <span className="canvas-search__label">
         <Highlight text={it.label} idx={it.idx ?? []} />
       </span>
-      {it.kind === 'frame' && DeviceIcon ? (
-        <span className="canvas-search__device">
-          <DeviceIcon size={14} aria-hidden="true" />
+      {PlaceIcon && (
+        <span className="canvas-search__device" title={it.kind === 'element' ? it.meta : undefined}>
+          <PlaceIcon size={14} aria-hidden="true" />
         </span>
-      ) : (
-        it.meta && <span className="canvas-search__meta">{it.meta}</span>
       )}
     </div>
   );

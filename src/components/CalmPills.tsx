@@ -23,7 +23,6 @@ export function CalmPills() {
   const { left, right } = useCalmPanels();
   const measuring = useMeasure();
   const rulers = useRulers();
-  const [searching, setSearching] = useState(false);
   return (
     <TooltipProvider>
       <div data-tw="" className={`calm-pills${rulers ? ' calm-pills--rulers' : ''}`}>
@@ -81,7 +80,6 @@ export function CalmPills() {
         </Tooltip>
         </div>
       </div>
-      {searching && <CalmSearch onClose={() => setSearching(false)} />}
     </TooltipProvider>
   );
 }
