@@ -1,4 +1,6 @@
-import { ChevronDown, FileCode2, X } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { FolderAttachmentIcon } from '@hugeicons/core-free-icons';
+import { ChevronDown, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { PickedImage } from '../../../shared/api';
 import { firstFamily } from '../../../shared/fonts';
@@ -15,10 +17,10 @@ import { IconPackPicker } from './IconPackPicker';
 import { InspirationProviders } from './InspirationProviders';
 import { ReferenceManager } from './ReferenceManager';
 
-export function DirectionSection({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+export function DirectionSection({ title, hint, children }: { title?: string; hint?: string; children: ReactNode }) {
   return (
     <section className="direction-section">
-      <h3 className="direction-section__title">{title}</h3>
+      {title ? <h3 className="direction-section__title">{title}</h3> : null}
       {hint && <p className="direction-section__hint">{hint}</p>}
       {children}
     </section>
@@ -49,7 +51,7 @@ export function FontChoice({ value, onChange }: { value: string | null; onChange
           <X size={12} />
         </IconButton>
       )}
-      {open && trigger.current && <FontMenu anchor={trigger.current} current={value ?? ''} onClose={close} onPick={(stack) => onChange(firstFamily(stack) || stack)} />}
+      {open && trigger.current && <FontMenu anchor={trigger.current} current={value ?? ''} matchAnchorWidth onClose={close} onPick={(stack) => onChange(firstFamily(stack) || stack)} />}
     </div>
   );
 }
@@ -70,9 +72,10 @@ export function DesignSystemImport({ value, onChange }: { value: DesignSystemCon
   };
   if (!value) {
     return (
-      <Button size="sm" icon={<FileCode2 size={13} />} disabled={busy} onClick={() => void pick()}>
-        {busy ? 'Reading…' : 'Import CSS or tokens JSON'}
-      </Button>
+      <button type="button" className="ds-upload" disabled={busy} onClick={() => void pick()}>
+        <HugeiconsIcon icon={FolderAttachmentIcon} size={22} strokeWidth={1.8} />
+        <span>{busy ? 'Reading…' : 'Upload your Design System here'}</span>
+      </button>
     );
   }
   const entries = Object.entries(value.tokens);
@@ -80,7 +83,7 @@ export function DesignSystemImport({ value, onChange }: { value: DesignSystemCon
   return (
     <div className="ds-summary">
       <div className="ds-summary__head">
-        <FileCode2 size={14} aria-hidden />
+        <HugeiconsIcon icon={FolderAttachmentIcon} size={14} strokeWidth={2} aria-hidden />
         <span className="ds-summary__file">{value.file}</span>
         <span className="ds-summary__count">{plural(entries.length, 'token', 'tokens')}</span>
         <Button size="sm" variant="ghost" disabled={busy} onClick={() => void pick()}>
@@ -112,7 +115,7 @@ export function DirectionEditor({ draft, onChange, compact }: { draft: Direction
   const set = (patch: Partial<DirectionConfig>) => onChange({ direction: { ...direction, ...patch }, pending });
   return (
     <div className={`direction-editor${compact ? ' is-compact' : ''}`}>
-      <DirectionSection title="Visual style" hint="Drag the point, or focus it and use the arrow keys.">
+      <DirectionSection>
         <DirectionPicker value={direction.visualStyle} onChange={(visualStyle) => set({ visualStyle })} compact={compact} />
       </DirectionSection>
       <DirectionSection title="Typeface">
@@ -121,10 +124,10 @@ export function DirectionEditor({ draft, onChange, compact }: { draft: Direction
       <DirectionSection title="Icons">
         <IconPackPicker value={direction.iconPack} onChange={(iconPack) => set({ iconPack })} />
       </DirectionSection>
-      <DirectionSection title="Design system" hint="Optional. Tokens are shared with your AI agent as context.">
+      <DirectionSection title="Design system">
         <DesignSystemImport value={direction.designSystem} onChange={(designSystem) => set({ designSystem })} />
       </DirectionSection>
-      <DirectionSection title="References" hint="Saved inside the project in .opencanvas so they travel with it.">
+      <DirectionSection title="References">
         <ReferenceManager value={direction.references} pending={pending} onChange={(references, p) => onChange({ direction: { ...direction, references }, pending: p ?? pending })} />
       </DirectionSection>
       {!compact && (

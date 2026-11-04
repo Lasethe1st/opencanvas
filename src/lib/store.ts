@@ -124,6 +124,8 @@ interface State {
   /** Side panels dismissed for focus mode (persisted per project). */
   panelsHidden: { left: boolean; right: boolean };
   settingsOpen: boolean;
+  /** Canvas search palette (Ctrl/Cmd+K on the canvas page). */
+  canvasSearchOpen: boolean;
   fullPreview: boolean;
   gitOpen: boolean;
   gitStatus: GitStatus | null;
@@ -222,6 +224,7 @@ export const initialState: State = {
   shortcutsOpen: false,
   panelsHidden: { left: false, right: false },
   settingsOpen: false,
+  canvasSearchOpen: false,
   fullPreview: false,
   gitOpen: false,
   gitStatus: null,

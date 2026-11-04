@@ -29,11 +29,17 @@
   border-radius: var(--r-lg);
 }
 
-/* 2. Visible keyboard focus — monochrome; canvas selection keeps --select */
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+/* 2. App feel: no browser-style focus outlines or rings anywhere. Selection and state are shown by the
+   components themselves (fills, canvas selection), never by a focus stroke. */
+:focus,
+:focus-visible,
+*:focus-visible,
+[data-slot]:focus-visible {
+  outline: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
 }
+* { -webkit-tap-highlight-color: transparent; }
 
 /* 3. Accent stays monochrome from tokens.css (--select is only for canvas selection). */
 
@@ -482,15 +488,15 @@ body {
   min-height: 0;
   max-height: 100%;
 }
-.workspace > .panel > .panel__head,
-.workspace--bleed > .panel > .panel__head {
+.workspace > .panel > .panel__inner > .panel__head,
+.workspace--bleed > .panel > .panel__inner > .panel__head {
   overflow: hidden;
   border-radius: inherit;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
-.workspace > .panel > .panel__body,
-.workspace--bleed > .panel > .panel__body {
+.workspace > .panel > .panel__inner > .panel__body,
+.workspace--bleed > .panel > .panel__inner > .panel__body {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -501,23 +507,23 @@ body {
   border-top-right-radius: 0;
 }
 /* Inspector content scrolls in the body; left panel keeps overflow hidden so the file tree scrolls alone. */
-.workspace > .panel.panel--right > .panel__body,
-.workspace--bleed > .panel.panel--right > .panel__body {
+.workspace > .panel.panel--right > .panel__inner > .panel__body,
+.workspace--bleed > .panel.panel--right > .panel__inner > .panel__body {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
 }
 /* File tree scrolls; drop hint stays pinned without forcing a body scrollbar. */
-.workspace > .panel > .panel__body .files-drop > .tree,
-.workspace--bleed > .panel > .panel__body .files-drop > .tree {
+.workspace > .panel > .panel__inner > .panel__body .files-drop > .tree,
+.workspace--bleed > .panel > .panel__inner > .panel__body .files-drop > .tree {
   flex: 1;
   min-height: 0;
   overflow: auto;
   scrollbar-width: none;
 }
-.workspace > .panel > .panel__body .files-drop > .tree::-webkit-scrollbar,
-.workspace--bleed > .panel > .panel__body .files-drop > .tree::-webkit-scrollbar {
+.workspace > .panel > .panel__inner > .panel__body .files-drop > .tree::-webkit-scrollbar,
+.workspace--bleed > .panel > .panel__inner > .panel__body .files-drop > .tree::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
@@ -1083,7 +1089,9 @@ kbd, .kbd,
   .golive__prompt,
   .icon-btn,
   .icon-btn--sm,
-  .icon-pack,
+  .icon-pack-select__trigger,
+  .icon-pack-select__option,
+  .ds-upload,
   .import-summary,
   .input,
   .input__reset,
@@ -1182,8 +1190,8 @@ kbd, .kbd,
 .workspace--bleed > .panel--left,
 .workspace > .panel--right,
 .workspace--bleed > .panel--right { border-radius: 40px; }
-.workspace > .panel > .panel__head { height: fit-content; padding: 16px; }
-.workspace > .panel > .panel__body { padding-bottom: 8px; }
+.workspace > .panel > .panel__inner > .panel__head { height: fit-content; padding: 16px; }
+.workspace > .panel > .panel__inner > .panel__body { padding-bottom: 8px; }
 .workspace > .tool-rails > .tool-rail,
 .workspace--bleed > .tool-rails > .tool-rail { padding-block: 10px; }
 
@@ -1202,7 +1210,7 @@ kbd, .kbd,
 .align-grid { display: grid; grid-template-columns: repeat(3, 1fr); width: 72px; height: 72px; flex: none; border-radius: var(--r); background: var(--surface-2, var(--hover)); box-shadow: inset 0 0 0 1px var(--border); }
 .align-grid__cell { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; background: none; border-radius: var(--r-sm); cursor: pointer; color: var(--fg-3); }
 .align-grid__cell:hover .align-grid__dot { background: var(--fg-2); transform: scale(1.4); }
-.align-grid__cell:focus-visible { outline: 1.5px solid var(--accent); outline-offset: -2px; }
+.align-grid__cell:focus-visible { outline: none; }
 .align-grid__dot { width: 3px; height: 3px; border-radius: 50%; background: color-mix(in srgb, var(--fg-3) 70%, transparent); transition: transform .12s, background .12s; }
 .align-grid__bars, .align-grid__dist { display: flex; gap: 2px; align-items: flex-end; }
 .align-grid__bars i, .align-grid__dist i { display: block; width: 3px; border-radius: 1px; background: var(--accent); }
@@ -1219,24 +1227,29 @@ kbd, .kbd,
 .align-grid__toggle.is-active .align-grid__dist i { background: var(--accent); }
 .align-grid__dist.is-column { flex-direction: column; }
 .align-grid__dist.is-column i { width: 9px; height: 3px; }
-/* Focus mode: dismissable side panels. Collapse flex space so rails slide to the edge. */
-.workspace > .panel { transition: transform 150ms ease-out, opacity 150ms ease-out, visibility 0s linear 0s, width 150ms ease-out, margin 150ms ease-out; }
+/* Side panels: home-style width clip (content stays full width inside .panel__inner). */
+.workspace > .panel {
+  transition: width 200ms cubic-bezier(0.2, 0, 0, 1), margin 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+.workspace > .panel > .panel__inner {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
 .workspace > .panel.is-hidden {
+  overflow: hidden;
   flex: 0 0 0 !important;
-  width: 0 !important;
   min-width: 0 !important;
   max-width: 0 !important;
   padding: 0 !important;
   border: none !important;
-  overflow: hidden;
-  opacity: 0;
-  visibility: hidden;
   pointer-events: none;
-  transition: transform 150ms ease-out, opacity 150ms ease-out, visibility 0s linear 150ms, width 150ms ease-out, margin 150ms ease-out;
 }
 /* Cancel workspace gap so tool-rails sit on the padding edge when a side is hidden. */
-.workspace > .panel--left.is-hidden { margin-inline-end: -8px; transform: none; }
-.workspace > .panel--right.is-hidden { margin-inline-start: -8px; transform: none; }
+.workspace > .panel--left.is-hidden { margin-inline-end: -8px; }
+.workspace > .panel--right.is-hidden { margin-inline-start: -8px; }
 
 .segmented {
   height: fit-content;
@@ -1479,8 +1492,8 @@ kbd, .kbd,
 .workspace.is-focus .dock, .workspace.is-focus .canvas-nav { opacity: 0.4; transition: opacity 150ms ease-out; }
 .workspace.is-focus .dock:hover, .workspace.is-focus .dock:focus-within, .workspace.is-focus .canvas-nav:hover, .workspace.is-focus .canvas-nav:focus-within { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
-  .workspace > .panel, .workspace > .panel.is-hidden, .workspace.is-focus .dock, .workspace.is-focus .canvas-nav { transition: none; }
-  .workspace > .panel.is-hidden { transform: none; }
+  .workspace > .panel, .workspace > .panel.is-hidden, .workspace.is-focus .dock, .workspace.is-focus .canvas-nav,
+  .shell--calm .workspace > .workspace__center { transition: none; }
 }
 
 /* ---------- Canvas panels v2 ---------- */
@@ -1673,8 +1686,8 @@ kbd, .kbd,
 .workspace > .panel--left, .workspace--bleed > .panel--left { border: 0 !important; border-right: 1px solid var(--line) !important; }
 .workspace > .panel--right, .workspace--bleed > .panel--right { border: 0 !important; border-left: 1px solid var(--line) !important; }
 .workspace > .panel.is-hidden { border-width: 0 !important; }
-.workspace > .panel > .panel__head, .workspace--bleed > .panel > .panel__head { padding: 10px 12px 8px; border-bottom: 0; }
-.workspace > .panel > .panel__body, .workspace--bleed > .panel > .panel__body { padding: 0 8px 8px; }
+.workspace > .panel > .panel__inner > .panel__head, .workspace--bleed > .panel > .panel__inner > .panel__head { padding: 10px 12px 8px; border-bottom: 0; }
+.workspace > .panel > .panel__inner > .panel__body, .workspace--bleed > .panel > .panel__inner > .panel__body { padding: 0 8px 8px; }
 .workspace > .panel .search { margin-inline: 0; }
 .inspector-sticky { background: var(--surface); }
 
@@ -1807,7 +1820,7 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 .sx-switch span::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50% !important; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); transition: transform 0.15s ease; }
 .sx-switch input:checked + span { background: var(--fg); }
 .sx-switch input:checked + span::after { transform: translateX(16px); }
-.sx-switch input:focus-visible + span { outline: 2px solid var(--fg); outline-offset: 2px; }
+.sx-switch input:focus-visible + span { outline: none; }
 
 @media (max-width: 760px) {
   .settings-page { flex-direction: column; }
@@ -1829,22 +1842,44 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 .settings-page .ai-provider.is-active .ai-provider__logo { background: var(--bg); }
 
 /* ───────── Calm canvas: home-style background + foreground, only the site and the dock ───────── */
-.shell--calm:has(.workspace) { grid-template-rows: minmax(0, 1fr); box-sizing: border-box; padding: 8px; background: var(--home-bg); }
+.shell--calm:has(.workspace) { grid-template-rows: minmax(0, 1fr); box-sizing: border-box; padding: 0; background: var(--home-bg); }
 .shell--calm:has(.workspace) > .topbar { display: none; }
-.shell--calm .workspace { padding: 0; gap: 8px; overflow: visible; border: 0; border-radius: 0 !important; background: transparent; }
+/* No gap — spacing comes from the center card’s margin, same as home. */
+.shell--calm .workspace { padding: 0; gap: 0; overflow: visible; border: 0; border-radius: 0 !important; background: transparent; }
 .shell--calm .workspace > .tool-rails,
 .shell--calm .workspace .terminal-panel { display: none !important; }
-/* Like the home page: the site is the rounded foreground card, opened panels sit on the background beside it. */
-.shell--calm .workspace > .workspace__center { position: relative; inset: auto; flex: 1 1 0; min-width: 0; overflow: hidden; border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent); border-radius: 10px !important; background: var(--home-card); }
+/* Like the home page: the site is the rounded foreground card; margin/radius animate with the panes. */
+.shell--calm .workspace > .workspace__center {
+  position: relative;
+  inset: auto;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  margin: 8px;
+  border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent);
+  border-radius: 10px !important;
+  background: var(--home-card);
+  transition: margin 200ms cubic-bezier(0.2, 0, 0, 1), border-radius 200ms cubic-bezier(0.2, 0, 0, 1), border-color 200ms cubic-bezier(0.2, 0, 0, 1);
+}
 .shell--calm .workspace .stage { background: var(--home-card); }
-.shell--calm:not([data-calm-left]) .workspace > .panel--left,
-.shell--calm:not([data-calm-right]) .workspace > .panel--right { display: none !important; }
-.shell--calm[data-calm-left] .workspace > .panel--left,
-.shell--calm[data-calm-right] .workspace > .panel--right { display: flex !important; }
 /* With both panels closed the card fills the whole window. */
-.shell--calm:not([data-calm-left], [data-calm-right]):has(.workspace) { padding: 0; }
-.shell--calm:not([data-calm-left], [data-calm-right]) .workspace > .workspace__center { border-color: transparent; border-radius: 0 !important; }
-.shell--calm .workspace > .panel { position: relative; z-index: 2; background: transparent; border-color: transparent !important; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.shell--calm:not([data-calm-left], [data-calm-right]) .workspace > .workspace__center {
+  margin: 0;
+  border-color: transparent;
+  border-radius: 0 !important;
+}
+.shell--calm .workspace > .panel {
+  position: relative;
+  z-index: 2;
+  margin: 0 !important;
+  overflow: hidden;
+  background: transparent;
+  border-color: transparent !important;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.shell--calm .workspace > .panel .panel__resizer { display: none; }
 
 /* Home + panel toggle: two blobs, fused like the dock pills. */
 
@@ -1899,7 +1934,7 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .font-bloom__empty { display: flex; height: 100%; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
 .dockpill__chip { width: 18px; height: 18px; flex: none; border-radius: 999px !important; box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--fg) 25%, transparent); }
 .dockpill__picker { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
-.dockpill :focus-visible { outline: 2px solid var(--accent, #3b82f6); outline-offset: -2px; }
+.dockpill :focus-visible { outline: none; }
 @media (prefers-reduced-motion: reduce) { .dockpill, .dockpill.is-leaving { animation: none; } }
 .dockpill__unit { margin: 0 0 0 -4px; color: var(--muted); font-size: 11px; }
 .dockpill__main:active { transform: scale(0.97); }
@@ -1911,7 +1946,7 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .canvas-rulers__left { top: 0; left: 0; width: 20px; height: 100%; border-right: 1px solid var(--line); }
 .canvas-rulers__corner { z-index: 1; top: 0; left: 0; width: 20px; height: 20px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .calm-pills--rulers .top-3 { top: 28px !important; }
-.calm-pills--rulers .calm-pill-pair { left: 28px !important; inset-inline-start: 28px !important; }
+.calm-pills--rulers .calm-pill-pair:not(.calm-pill-pair--right) { left: 28px !important; inset-inline-start: 28px !important; }
 
 /* Merged bubbles: neighbouring pills share one shape, joined by curved necks (after cult-ui's merging-bubbles). */
 .merge-group { --merge-fill: var(--surface-3); }
@@ -1954,17 +1989,22 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 /* Right-click menu and the Ask AI chat it blooms into: frosted glass from the first frame of the
    bloom, so the glass grows with the shape. Once it has settled into the chat, the surface firms up
    to 92% so long replies stay readable over a busy design. */
+:root {
+  /* Settled dock-chat glass, shared with the canvas search palette in dark mode. */
+  --glass-settled-bg: color-mix(in oklab, var(--surface) 92%, transparent);
+  --glass-settled-filter: blur(20px) saturate(160%);
+}
 .ctx-bloom {
   --glass-edge: rgb(255 255 255 / 0.4);
   background: color-mix(in oklab, var(--surface) 72%, transparent);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: var(--glass-settled-filter);
+  backdrop-filter: var(--glass-settled-filter);
   border-color: var(--glass-edge);
   transition: background-color 0.2s ease;
 }
 [data-theme='dark'] .ctx-bloom { --glass-edge: rgb(255 255 255 / 0.08); }
 .ctx-bloom--chat {
-  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  background: var(--glass-settled-bg);
   transition: background-color 0.2s ease 0.28s, height 0.24s var(--ease, ease);
 }
 @media (prefers-reduced-transparency: reduce) {
@@ -2056,7 +2096,7 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .sx-advanced { display: flex; align-items: center; gap: 4px; width: 100%; padding: 10px 12px; color: var(--fg-3); font-size: 12px; font-weight: 500; text-align: left; cursor: pointer; border-top: 1px solid var(--line); }
 .sx-advanced:hover { color: var(--fg); }
 .settings-page .sx-advanced { appearance: none; margin: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0 0 inherit inherit; background: transparent; box-shadow: none; outline: none; }
-.settings-page .sx-advanced:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.settings-page .sx-advanced:focus-visible { box-shadow: none; }
 /* Settings sidebar: the soft fill marks the open tab; the outline is only for keyboard focus. */
 .settings-page__tab:focus:not(:focus-visible) { outline: none; box-shadow: none; }
 
@@ -2111,3 +2151,173 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 .left-ai .ai-log { flex: 1; min-height: 0; max-height: none; margin: 0 -4px; padding: 4px; }
 /* The panel uses the dock's own input bar, just sized to the panel. */
 .left-ai .canvas-shapeshift { flex: none; width: 100%; margin-bottom: 4px; }
+
+/* Corner circles (panel toggles, home, account, rulers, measure): each is its own frosted circle. */
+.calm-circle { border: 1px solid var(--frost-border); background: var(--frost-bg); box-shadow: var(--shadow-md); -webkit-backdrop-filter: var(--frost-filter); backdrop-filter: var(--frost-filter); transition: transform 0.16s var(--ease-out-strong), background-color 0.15s ease, color 0.15s ease; }
+.calm-circle:hover { background: var(--frost-bg); }
+.calm-circle:active { transform: scale(0.96); }
+.calm-circle[aria-pressed='true'] { border-color: var(--fg); background: var(--fg); color: var(--surface); }
+.calm-circle[aria-pressed='true']:hover { background: var(--fg); }
+
+/* ---------- Canvas search palette (Ctrl/Cmd+K on the canvas page) ---------- */
+.canvas-search__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 14vh;
+  background: var(--backdrop);
+  animation: fade-in 0.15s var(--ease);
+}
+[data-theme='dark'] .canvas-search {
+  background: var(--glass-settled-bg);
+  -webkit-backdrop-filter: var(--glass-settled-filter);
+  backdrop-filter: var(--glass-settled-filter);
+}
+.canvas-search {
+  width: min(560px, calc(100vw - 32px));
+  height: 380px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--frost-border);
+  border-radius: 22px;
+  corner-shape: squircle;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  box-shadow: var(--shadow-md);
+  -webkit-backdrop-filter: var(--frost-filter);
+  backdrop-filter: var(--frost-filter);
+  transform-origin: 50% 0;
+  animation: canvas-search-bloom 260ms cubic-bezier(0.2, 0.9, 0.25, 1.15);
+}
+@keyframes canvas-search-bloom {
+  from { opacity: 0; transform: scale(0.92, 0.6); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .canvas-search { animation: none; }
+}
+.canvas-search__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  flex: none;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--frost-border);
+  color: var(--fg-3);
+}
+.canvas-search__field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+}
+.canvas-search__kbd {
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--frost-border);
+  color: var(--fg-3);
+}
+.canvas-search__list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 6px;
+  scroll-padding: 28px 0 6px;
+}
+.canvas-search__group {
+  padding: 8px 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-3);
+}
+.canvas-search__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 10px;
+  corner-shape: squircle;
+  cursor: default;
+  color: var(--fg);
+  font-size: 13px;
+  transition: background-color 120ms ease;
+}
+.canvas-search__row.is-active {
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+}
+.canvas-search__chip {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 7px;
+  corner-shape: squircle;
+  color: var(--kind);
+  background: color-mix(in srgb, var(--kind) 16%, transparent);
+}
+.canvas-search__row { --kind: var(--layer-struct); }
+.canvas-search__row[data-kind='text'] { --kind: var(--layer-text); }
+.canvas-search__row[data-kind='media'] { --kind: var(--layer-media); }
+.canvas-search__row[data-kind='action'] { --kind: var(--layer-action); }
+.canvas-search__row[data-kind='form'] { --kind: var(--layer-form); }
+.canvas-search__row[data-kind='frame'] { --kind: var(--select); }
+.canvas-search__row[data-kind='command'] { --kind: var(--fg-3); }
+.canvas-search__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.canvas-search__label mark {
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--kind) 20%, transparent);
+  color: inherit;
+  font-weight: 600;
+}
+.canvas-search__hint {
+  margin-top: auto;
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  color: var(--fg-3);
+}
+.canvas-search__hint kbd {
+  font: inherit;
+  padding: 0 4px;
+  border-radius: 4px;
+  border: 1px solid var(--frost-border);
+}
+.canvas-search__device {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--fg-3);
+}
+.canvas-search__meta {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+.canvas-search__empty {
+  padding: 32px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--fg-3);
+}

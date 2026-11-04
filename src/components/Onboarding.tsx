@@ -76,22 +76,9 @@ export function Onboarding() {
   const [chipHost, setChipHost] = useState<HTMLDivElement | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
-  const [navOpen, setNavOpen] = useState(() => {
-    try {
-      return localStorage.getItem('oc-home-nav-open') === '1';
-    } catch {
-      return false;
-    }
-  });
-
-  const setNav = useCallback((open: boolean) => {
-    setNavOpen(open);
-    try {
-      localStorage.setItem('oc-home-nav-open', open ? '1' : '0');
-    } catch {
-      /* storage blocked */
-    }
-  }, []);
+  // Home opens with the left nav closed; the toggle still works for the session.
+  const [navOpen, setNavOpen] = useState(false);
+  const setNav = useCallback((open: boolean) => setNavOpen(open), []);
 
   const chatActive = aiChat.length > 0 || !!aiTurnId || voiceMode;
 
@@ -317,7 +304,7 @@ export function Onboarding() {
           id: c.id,
           label: titleFromPrompt(c.text),
           meta: timeAgo(c.at),
-          icon: <ChatCircle weight="fill" className="size-5 p-0.5" style={{ color: 'var(--src-chat)' }} aria-hidden />,
+          icon: <ChatCircle weight="fill" className="size-5 p-0.5 text-muted-foreground" aria-hidden />,
           onSelect: () => pickChat(c),
           menu: chatMenu(c),
         })),

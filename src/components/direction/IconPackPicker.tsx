@@ -1,11 +1,11 @@
-import { Heart, House, Search, Settings, Star } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { ChevronDown, Heart, House, Search, Settings, Star } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { IconPack } from '../../../shared/project-config';
 import { cx } from '../../ui/primitives.jsx';
 
 /** Phosphor isn't a dependency of OpenCanvas; these are static drawings in its regular style (256 grid, 16 stroke). */
 function PhosphorPreview() {
-  const props = { width: 18, height: 18, viewBox: '0 0 256 256', fill: 'none', stroke: 'currentColor', strokeWidth: 16, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  const props = { width: 16, height: 16, viewBox: '0 0 256 256', fill: 'none', stroke: 'currentColor', strokeWidth: 16, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   return (
     <>
       <svg {...props}>
@@ -35,40 +35,67 @@ const PACKS: { id: IconPack; name: string; note: string; preview: () => ReactNod
     id: 'lucide',
     name: 'Lucide',
     note: 'Clean, consistent 2px strokes',
-    preview: () => [House, Search, Heart, Star, Settings].map((I, i) => <I key={i} size={18} strokeWidth={1.75} />),
+    preview: () => [House, Search, Heart, Star, Settings].map((I, i) => <I key={i} size={16} strokeWidth={1.75} />),
   },
   { id: 'phosphor', name: 'Phosphor', note: 'Rounder, friendlier, six weights', preview: PhosphorPreview },
 ];
 
-/** Icon pack preference for new UI. Nothing in the project is replaced when this changes. */
+/** Icon pack preference as a single dropdown: name left, example icons right. */
 export function IconPackPicker({ value, onChange }: { value: IconPack; onChange: (v: IconPack) => void }) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const current = PACKS.find((p) => p.id === value) ?? PACKS[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
   return (
-    <div className="icon-packs" role="radiogroup" aria-label="Icon pack">
-      {PACKS.map((p) => (
-        <button
-          key={p.id}
-          type="button"
-          role="radio"
-          aria-checked={value === p.id}
-          className={cx('icon-pack', value === p.id && 'is-active')}
-          onClick={() => onChange(p.id)}
-          onKeyDown={(e) => {
-            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
-            e.preventDefault();
-            const next = PACKS[(PACKS.findIndex((x) => x.id === value) + 1) % PACKS.length];
-            onChange(next.id);
-            (e.currentTarget.parentElement?.querySelector(`[data-pack="${next.id}"]`) as HTMLElement | null)?.focus();
-          }}
-          data-pack={p.id}
-          tabIndex={value === p.id ? 0 : -1}
-        >
-          <span className="icon-pack__preview" aria-hidden>
-            {p.preview()}
-          </span>
-          <span className="icon-pack__name">{p.name}</span>
-          <span className="icon-pack__note">{p.note}</span>
-        </button>
-      ))}
+    <div ref={root} className="icon-pack-select">
+      <button
+        type="button"
+        className="icon-pack-select__trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="Icon pack"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="icon-pack-select__name">{current.name}</span>
+        <span className="icon-pack-select__preview" aria-hidden>
+          {current.preview()}
+        </span>
+        <ChevronDown size={14} aria-hidden className="icon-pack-select__caret" />
+      </button>
+      {open && (
+        <div className="icon-pack-select__menu" role="listbox" aria-label="Icon packs">
+          {PACKS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              role="option"
+              aria-selected={value === p.id}
+              className={cx('icon-pack-select__option', value === p.id && 'is-active')}
+              onClick={() => {
+                onChange(p.id);
+                setOpen(false);
+              }}
+            >
+              <span className="icon-pack-select__option-text">
+                <span className="icon-pack-select__name">{p.name}</span>
+                <span className="icon-pack-select__note">{p.note}</span>
+              </span>
+              <span className="icon-pack-select__preview" aria-hidden>
+                {p.preview()}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

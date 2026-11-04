@@ -3,7 +3,7 @@ import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import {
   Add01Icon, AiBrain02Icon, AiMagicIcon, ArrowDown01Icon, ArrowExpandIcon, ArrowLeft01Icon, ArrowReloadHorizontalIcon, ArrowRight01Icon, ArrowUp01Icon, ArrowUpRight01Icon,
   AudioWave01Icon, Call02Icon, Cancel01Icon, Comment01Icon, Copy01Icon, CpuIcon, Delete02Icon, DragDropVerticalIcon, Edit02Icon,
-  File01Icon, FlashIcon, FolderClosedIcon, FolderOpenIcon, GlobalIcon, HelpCircleIcon, HistoryIcon, LaptopMinimalIcon, Layers01Icon, LayoutIcon, LeftToRightListNumberIcon, Loading03Icon,
+  File01Icon, FileAddIcon, FlashIcon, FolderClosedIcon, FolderOpenIcon, GlobalIcon, HelpCircleIcon, HistoryIcon, LaptopMinimalIcon, Layers01Icon, LayoutIcon, LeftToRightListNumberIcon, Loading03Icon,
   Message02Icon, MessageMultiple02Icon, MinusSignIcon, MoreHorizontalIcon, PauseIcon, Search01Icon, Settings02Icon, Shield01Icon, StopIcon, ThumbsDownIcon, ThumbsUpIcon,
   Tick02Icon, UnfoldMoreIcon, VolumeHighIcon, Wrench01Icon, BookOpen01Icon, TextAlignLeft01Icon,
 } from '@hugeicons/core-free-icons';
@@ -40,6 +40,7 @@ export const Cpu = make(CpuIcon, 'Cpu');
 export const DotsSixVertical = make(DragDropVerticalIcon, 'DotsSixVertical');
 export const DotsThree = make(MoreHorizontalIcon, 'DotsThree');
 export const FileText = make(File01Icon, 'FileText');
+export const FileAdd = make(FileAddIcon, 'FileAdd');
 export const FolderOpen = make(FolderOpenIcon, 'FolderOpen');
 export const FolderSimple = make(FolderClosedIcon, 'FolderSimple');
 export const Gear = make(Settings02Icon, 'Gear');

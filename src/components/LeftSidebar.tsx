@@ -17,6 +17,7 @@ import {
 } from '../lib/actions';
 import { sendToPreview } from '../lib/bridge';
 import { LayerIcon } from '../lib/layer-icons';
+import { useCalm, useCalmPanels } from '../lib/calm';
 import { activeFrame, findPath, pageOf, setState, useStore, type TreeNode } from '../lib/store';
 import { Panel, SearchField, Tree, TreeRow } from '../ui/Panels.jsx';
 import { IconButton, Menu, MenuItem, SectionLabel, Segmented } from '../ui/primitives.jsx';
@@ -546,6 +547,8 @@ export function LeftSidebar() {
   const pagesRequested = rawTab === 'frames' || rawTab === 'pages';
   const tab = pagesRequested ? 'layers' : rawTab;
   const width = useStore((s) => s.leftWidth);
+  const calm = useCalm();
+  const calmLeft = useCalmPanels().left;
   const hiddenPanel = useStore((s) => s.panelsHidden.left);
   const [queries, setQueries] = useState({ files: '', layers: '' });
 
@@ -553,7 +556,7 @@ export function LeftSidebar() {
     <Panel
       side="left"
       width={width}
-      hidden={hiddenPanel}
+      hidden={calm ? !calmLeft : hiddenPanel}
       head={
         <Segmented
           label="Sidebar"

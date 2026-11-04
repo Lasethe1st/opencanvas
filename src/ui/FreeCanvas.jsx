@@ -1,7 +1,7 @@
 import { Computer, Focus, Frame, Link2, Maximize, Minus, MoreHorizontal, Plus, Redo2, ScanSearch, Smartphone, Tablet, Undo2 } from '../lib/hugeicons';
 
 /** One icon per frame preset, in place of a text label. Custom-size frames get a plain frame icon. */
-const DEVICE_ICON = { desktop: Computer, laptop: Computer, tablet: Tablet, mobile: Smartphone, custom: Frame };
+export const DEVICE_ICON = { desktop: Computer, laptop: Computer, tablet: Tablet, mobile: Smartphone, custom: Frame };
 import { cx, IconButton } from './primitives.jsx';
 
 /** The infinite surface: a dotted background that pans/zooms with the camera and a transformed world layer. */

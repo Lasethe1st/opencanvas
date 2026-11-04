@@ -33,7 +33,7 @@ const SKILLS = [
 ];
 
 const TEMPLATES: TemplateMeta[] = [
-  { id: 'blank', name: 'Blank', description: 'An empty page with a minimal React + Vite setup.' },
+  { id: 'blank', name: 'Blank', description: 'A completely blank canvas — empty page, ready to build.' },
   { id: 'landing', name: 'Landing page', description: 'Header, hero, feature grid and footer split into components.' },
   { id: 'portfolio', name: 'Portfolio', description: 'Personal intro, selected work and contact section.' },
   { id: 'dashboard', name: 'Dashboard', description: 'Sidebar navigation, stat cards and an activity table.' },

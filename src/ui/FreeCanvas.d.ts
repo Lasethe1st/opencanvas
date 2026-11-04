@@ -79,3 +79,6 @@ export function CanvasNav(props: {
   /** Optional control for the free-canvas backdrop color. */
   canvasBg?: ReactNode;
 }): JSX.Element;
+
+/** One Hugeicon per frame preset (desktop, laptop, tablet, mobile, custom). */
+export declare const DEVICE_ICON: Record<string, import('react').ComponentType<{ size?: number; 'aria-hidden'?: boolean | 'true' }>>;
