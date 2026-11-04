@@ -488,15 +488,15 @@ body {
   min-height: 0;
   max-height: 100%;
 }
-.workspace > .panel > .panel__head,
-.workspace--bleed > .panel > .panel__head {
+.workspace > .panel > .panel__inner > .panel__head,
+.workspace--bleed > .panel > .panel__inner > .panel__head {
   overflow: hidden;
   border-radius: inherit;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
-.workspace > .panel > .panel__body,
-.workspace--bleed > .panel > .panel__body {
+.workspace > .panel > .panel__inner > .panel__body,
+.workspace--bleed > .panel > .panel__inner > .panel__body {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -507,23 +507,23 @@ body {
   border-top-right-radius: 0;
 }
 /* Inspector content scrolls in the body; left panel keeps overflow hidden so the file tree scrolls alone. */
-.workspace > .panel.panel--right > .panel__body,
-.workspace--bleed > .panel.panel--right > .panel__body {
+.workspace > .panel.panel--right > .panel__inner > .panel__body,
+.workspace--bleed > .panel.panel--right > .panel__inner > .panel__body {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
 }
 /* File tree scrolls; drop hint stays pinned without forcing a body scrollbar. */
-.workspace > .panel > .panel__body .files-drop > .tree,
-.workspace--bleed > .panel > .panel__body .files-drop > .tree {
+.workspace > .panel > .panel__inner > .panel__body .files-drop > .tree,
+.workspace--bleed > .panel > .panel__inner > .panel__body .files-drop > .tree {
   flex: 1;
   min-height: 0;
   overflow: auto;
   scrollbar-width: none;
 }
-.workspace > .panel > .panel__body .files-drop > .tree::-webkit-scrollbar,
-.workspace--bleed > .panel > .panel__body .files-drop > .tree::-webkit-scrollbar {
+.workspace > .panel > .panel__inner > .panel__body .files-drop > .tree::-webkit-scrollbar,
+.workspace--bleed > .panel > .panel__inner > .panel__body .files-drop > .tree::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
@@ -1089,7 +1089,9 @@ kbd, .kbd,
   .golive__prompt,
   .icon-btn,
   .icon-btn--sm,
-  .icon-pack,
+  .icon-pack-select__trigger,
+  .icon-pack-select__option,
+  .ds-upload,
   .import-summary,
   .input,
   .input__reset,
@@ -1188,8 +1190,8 @@ kbd, .kbd,
 .workspace--bleed > .panel--left,
 .workspace > .panel--right,
 .workspace--bleed > .panel--right { border-radius: 40px; }
-.workspace > .panel > .panel__head { height: fit-content; padding: 16px; }
-.workspace > .panel > .panel__body { padding-bottom: 8px; }
+.workspace > .panel > .panel__inner > .panel__head { height: fit-content; padding: 16px; }
+.workspace > .panel > .panel__inner > .panel__body { padding-bottom: 8px; }
 .workspace > .tool-rails > .tool-rail,
 .workspace--bleed > .tool-rails > .tool-rail { padding-block: 10px; }
 
@@ -1225,24 +1227,29 @@ kbd, .kbd,
 .align-grid__toggle.is-active .align-grid__dist i { background: var(--accent); }
 .align-grid__dist.is-column { flex-direction: column; }
 .align-grid__dist.is-column i { width: 9px; height: 3px; }
-/* Focus mode: dismissable side panels. Collapse flex space so rails slide to the edge. */
-.workspace > .panel { transition: transform 150ms ease-out, opacity 150ms ease-out, visibility 0s linear 0s, width 150ms ease-out, margin 150ms ease-out; }
+/* Side panels: home-style width clip (content stays full width inside .panel__inner). */
+.workspace > .panel {
+  transition: width 200ms cubic-bezier(0.2, 0, 0, 1), margin 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+.workspace > .panel > .panel__inner {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
 .workspace > .panel.is-hidden {
+  overflow: hidden;
   flex: 0 0 0 !important;
-  width: 0 !important;
   min-width: 0 !important;
   max-width: 0 !important;
   padding: 0 !important;
   border: none !important;
-  overflow: hidden;
-  opacity: 0;
-  visibility: hidden;
   pointer-events: none;
-  transition: transform 150ms ease-out, opacity 150ms ease-out, visibility 0s linear 150ms, width 150ms ease-out, margin 150ms ease-out;
 }
 /* Cancel workspace gap so tool-rails sit on the padding edge when a side is hidden. */
-.workspace > .panel--left.is-hidden { margin-inline-end: -8px; transform: none; }
-.workspace > .panel--right.is-hidden { margin-inline-start: -8px; transform: none; }
+.workspace > .panel--left.is-hidden { margin-inline-end: -8px; }
+.workspace > .panel--right.is-hidden { margin-inline-start: -8px; }
 
 .segmented {
   height: fit-content;
@@ -1485,8 +1492,8 @@ kbd, .kbd,
 .workspace.is-focus .dock, .workspace.is-focus .canvas-nav { opacity: 0.4; transition: opacity 150ms ease-out; }
 .workspace.is-focus .dock:hover, .workspace.is-focus .dock:focus-within, .workspace.is-focus .canvas-nav:hover, .workspace.is-focus .canvas-nav:focus-within { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
-  .workspace > .panel, .workspace > .panel.is-hidden, .workspace.is-focus .dock, .workspace.is-focus .canvas-nav { transition: none; }
-  .workspace > .panel.is-hidden { transform: none; }
+  .workspace > .panel, .workspace > .panel.is-hidden, .workspace.is-focus .dock, .workspace.is-focus .canvas-nav,
+  .shell--calm .workspace > .workspace__center { transition: none; }
 }
 
 /* ---------- Canvas panels v2 ---------- */
@@ -1679,8 +1686,8 @@ kbd, .kbd,
 .workspace > .panel--left, .workspace--bleed > .panel--left { border: 0 !important; border-right: 1px solid var(--line) !important; }
 .workspace > .panel--right, .workspace--bleed > .panel--right { border: 0 !important; border-left: 1px solid var(--line) !important; }
 .workspace > .panel.is-hidden { border-width: 0 !important; }
-.workspace > .panel > .panel__head, .workspace--bleed > .panel > .panel__head { padding: 10px 12px 8px; border-bottom: 0; }
-.workspace > .panel > .panel__body, .workspace--bleed > .panel > .panel__body { padding: 0 8px 8px; }
+.workspace > .panel > .panel__inner > .panel__head, .workspace--bleed > .panel > .panel__inner > .panel__head { padding: 10px 12px 8px; border-bottom: 0; }
+.workspace > .panel > .panel__inner > .panel__body, .workspace--bleed > .panel > .panel__inner > .panel__body { padding: 0 8px 8px; }
 .workspace > .panel .search { margin-inline: 0; }
 .inspector-sticky { background: var(--surface); }
 
@@ -1835,22 +1842,44 @@ body:has(.shell .workspace) input[type='radio'] { border-radius: 50% !important;
 .settings-page .ai-provider.is-active .ai-provider__logo { background: var(--bg); }
 
 /* ───────── Calm canvas: home-style background + foreground, only the site and the dock ───────── */
-.shell--calm:has(.workspace) { grid-template-rows: minmax(0, 1fr); box-sizing: border-box; padding: 8px; background: var(--home-bg); }
+.shell--calm:has(.workspace) { grid-template-rows: minmax(0, 1fr); box-sizing: border-box; padding: 0; background: var(--home-bg); }
 .shell--calm:has(.workspace) > .topbar { display: none; }
-.shell--calm .workspace { padding: 0; gap: 8px; overflow: visible; border: 0; border-radius: 0 !important; background: transparent; }
+/* No gap — spacing comes from the center card’s margin, same as home. */
+.shell--calm .workspace { padding: 0; gap: 0; overflow: visible; border: 0; border-radius: 0 !important; background: transparent; }
 .shell--calm .workspace > .tool-rails,
 .shell--calm .workspace .terminal-panel { display: none !important; }
-/* Like the home page: the site is the rounded foreground card, opened panels sit on the background beside it. */
-.shell--calm .workspace > .workspace__center { position: relative; inset: auto; flex: 1 1 0; min-width: 0; overflow: hidden; border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent); border-radius: 10px !important; background: var(--home-card); }
+/* Like the home page: the site is the rounded foreground card; margin/radius animate with the panes. */
+.shell--calm .workspace > .workspace__center {
+  position: relative;
+  inset: auto;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  margin: 8px;
+  border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent);
+  border-radius: 10px !important;
+  background: var(--home-card);
+  transition: margin 200ms cubic-bezier(0.2, 0, 0, 1), border-radius 200ms cubic-bezier(0.2, 0, 0, 1), border-color 200ms cubic-bezier(0.2, 0, 0, 1);
+}
 .shell--calm .workspace .stage { background: var(--home-card); }
-.shell--calm:not([data-calm-left]) .workspace > .panel--left,
-.shell--calm:not([data-calm-right]) .workspace > .panel--right { display: none !important; }
-.shell--calm[data-calm-left] .workspace > .panel--left,
-.shell--calm[data-calm-right] .workspace > .panel--right { display: flex !important; }
 /* With both panels closed the card fills the whole window. */
-.shell--calm:not([data-calm-left], [data-calm-right]):has(.workspace) { padding: 0; }
-.shell--calm:not([data-calm-left], [data-calm-right]) .workspace > .workspace__center { border-color: transparent; border-radius: 0 !important; }
-.shell--calm .workspace > .panel { position: relative; z-index: 2; background: transparent; border-color: transparent !important; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.shell--calm:not([data-calm-left], [data-calm-right]) .workspace > .workspace__center {
+  margin: 0;
+  border-color: transparent;
+  border-radius: 0 !important;
+}
+.shell--calm .workspace > .panel {
+  position: relative;
+  z-index: 2;
+  margin: 0 !important;
+  overflow: hidden;
+  background: transparent;
+  border-color: transparent !important;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.shell--calm .workspace > .panel .panel__resizer { display: none; }
 
 /* Home + panel toggle: two blobs, fused like the dock pills. */
 

@@ -3,6 +3,7 @@ import { LayerIcon } from '../lib/layer-icons';
 import { useEffect, useState } from 'react';
 import { RETAGGABLE_TAGS, type StyleState } from '../../shared/types';
 import { chooseImageForSelection, revealInCode, runEdit, setStyle, setTag } from '../lib/actions';
+import { useCalm, useCalmPanels } from '../lib/calm';
 import { setState, useStore, type Selection } from '../lib/store';
 import type { SourceElementInfo } from '../../shared/types';
 import { InspectorHeader, KeyValue } from '../ui/Inspector.jsx';
@@ -467,6 +468,8 @@ export function Inspector() {
   const [tab, setTab] = useState<InspectorTab>('visual');
 
   const disabled = !info || !project.editable;
+  const calm = useCalm();
+  const calmRight = useCalmPanels().right;
   const hiddenPanel = useStore((s) => s.panelsHidden.right);
 
   useEffect(() => {
@@ -477,7 +480,7 @@ export function Inspector() {
     <Panel
       side="right"
       width={width}
-      hidden={hiddenPanel}
+      hidden={calm ? !calmRight : hiddenPanel}
       aria-label="Inspector"
       head={
         <Segmented

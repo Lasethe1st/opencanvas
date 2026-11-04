@@ -2,14 +2,17 @@ import { CaretDown, CaretRight, MagnifyingGlass, X } from '../lib/hugeicons';
 import { cx } from './primitives.jsx';
 
 export function Panel({ side, width, head, children, resizer, hidden, ...rest }) {
+  // Width collapses to 0 when hidden (home-style clip); inner stays at `width` so content doesn’t reflow.
   return (
-    <aside className={cx('panel', `panel--${side}`, hidden && 'is-hidden')} style={{ width }} aria-hidden={hidden || undefined} inert={hidden ? '' : undefined} {...rest}>
-      {head && (
-        <div className="panel__head">
-          {head}
-        </div>
-      )}
-      <div className="panel__body">{children}</div>
+    <aside className={cx('panel', `panel--${side}`, hidden && 'is-hidden')} style={{ width: hidden ? 0 : width }} aria-hidden={hidden || undefined} inert={hidden ? '' : undefined} {...rest}>
+      <div className="panel__inner" style={{ width }}>
+        {head && (
+          <div className="panel__head">
+            {head}
+          </div>
+        )}
+        <div className="panel__body">{children}</div>
+      </div>
       {resizer}
     </aside>
   );

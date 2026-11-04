@@ -63,11 +63,14 @@ export function FontMenu({
   current,
   onClose,
   onPick = (stack, google) => void setFontFamily(stack, google),
+  matchAnchorWidth = false,
 }: {
   anchor: HTMLElement;
   current: string;
   onClose: (refocus: boolean) => void;
   onPick?: (stack: string, googleFamily?: string) => void;
+  /** Stretch the menu to the trigger's width (used by the direction typeface field). */
+  matchAnchorWidth?: boolean;
 }) {
   const catalog = useGoogleFonts(true);
   const projectFamilies = useProjectFonts(true);
@@ -81,12 +84,15 @@ export function FontMenu({
 
   useLayoutEffect(() => {
     const r = anchor.getBoundingClientRect();
-    const left = Math.max(8, Math.min(r.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8));
+    const width = matchAnchorWidth ? Math.max(r.width, MENU_WIDTH) : MENU_WIDTH;
+    const left = matchAnchorWidth
+      ? Math.max(8, Math.min(r.left, window.innerWidth - width - 8))
+      : Math.max(8, Math.min(r.right - width, window.innerWidth - width - 8));
     const below = window.innerHeight - r.bottom - 8;
     const height = Math.min(MENU_HEIGHT, Math.max(below, r.top - 8) - 4);
     const top = below >= Math.min(MENU_HEIGHT, 280) ? r.bottom + 4 : Math.max(8, r.top - 4 - height);
-    setPos({ left, top, width: MENU_WIDTH, height });
-  }, [anchor]);
+    setPos({ left, top, width, height });
+  }, [anchor, matchAnchorWidth]);
 
   useEffect(() => {
     const onDown = (e: PointerEvent) => {
@@ -94,11 +100,19 @@ export function FontMenu({
       if (!menuRef.current?.contains(t) && !anchor.contains(t)) onClose(false);
     };
     const onBlur = () => onClose(false);
+    // Fixed menus drift from their trigger when a parent scrolls — close instead of chasing.
+    const onScroll = (e: Event) => {
+      const t = e.target;
+      if (t instanceof Node && menuRef.current?.contains(t)) return;
+      onClose(false);
+    };
     window.addEventListener('pointerdown', onDown, true);
+    window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', onBlur);
     window.addEventListener('blur', onBlur);
     return () => {
       window.removeEventListener('pointerdown', onDown, true);
+      window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', onBlur);
       window.removeEventListener('blur', onBlur);
     };
