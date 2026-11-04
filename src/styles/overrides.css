@@ -1911,7 +1911,7 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .canvas-rulers__left { top: 0; left: 0; width: 20px; height: 100%; border-right: 1px solid var(--line); }
 .canvas-rulers__corner { z-index: 1; top: 0; left: 0; width: 20px; height: 20px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .calm-pills--rulers .top-3 { top: 28px !important; }
-.calm-pills--rulers .calm-pill-pair { left: 28px !important; inset-inline-start: 28px !important; }
+.calm-pills--rulers .calm-pill-pair:not(.calm-pill-pair--right) { left: 28px !important; inset-inline-start: 28px !important; }
 
 /* Merged bubbles: neighbouring pills share one shape, joined by curved necks (after cult-ui's merging-bubbles). */
 .merge-group { --merge-fill: var(--surface-3); }
@@ -2101,3 +2101,10 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 @keyframes ai-orbit { to { --oc-a: 360deg; } }
 .frame-chrome.is-ai .frame-chrome__outline::before { content: ''; position: absolute; inset: -1px; padding: 1.5px; background: conic-gradient(from var(--oc-a), transparent 0 60%, color-mix(in srgb, var(--fg) 70%, transparent) 95%, transparent); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: ai-orbit 2.6s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .ai-weave, .ai-weave__stage i, .frame-chrome.is-ai .frame-chrome__outline::before { animation: none; } }
+
+/* Corner circles (panel toggles, home, account, rulers, measure): each is its own frosted circle. */
+.calm-circle { border: 1px solid var(--frost-border); background: var(--frost-bg); box-shadow: var(--shadow-md); -webkit-backdrop-filter: var(--frost-filter); backdrop-filter: var(--frost-filter); transition: transform 0.16s var(--ease-out-strong), background-color 0.15s ease, color 0.15s ease; }
+.calm-circle:hover { background: var(--frost-bg); }
+.calm-circle:active { transform: scale(0.96); }
+.calm-circle[aria-pressed='true'] { border-color: var(--fg); background: var(--fg); color: var(--surface); }
+.calm-circle[aria-pressed='true']:hover { background: var(--fg); }
