@@ -111,7 +111,8 @@ const GROUPS: { kind: Kind; title: string }[] = [
 
 export function CanvasSearch() {
   const open = useStore((s) => s.canvasSearchOpen);
-  return open ? <Palette /> : null;
+  const root = useStore((s) => s.project?.root ?? '');
+  return open ? <Palette key={root} /> : null;
 }
 
 function Palette() {
@@ -173,8 +174,12 @@ function Palette() {
       hits.push({ ...it, idx: contiguous ? idx : [], s: score(text, idx) });
     };
     if (!commandMode && !query) {
-      // No recents yet: offer a few commands instead of blank glass.
-      if (!recents.length) return commands.slice(0, 4).map((c): Hit => ({ ...c, idx: [], s: 0 }));
+      // No recents yet: offer a few frames, then commands, instead of blank glass.
+      if (!recents.length)
+        return [
+          ...frames.slice(0, 3).map((f): Hit => ({ key: `f-${f.id}`, kind: 'frame', label: f.name, id: f.id, device: f.preset, idx: [], s: 0 })),
+          ...commands.slice(0, 4).map((c): Hit => ({ ...c, idx: [], s: 0 })),
+        ];
       return recents.map((r): Hit => ({ key: `r-${r.kind}-${r.id}-${r.uid ?? ''}`, ...r, idx: [], s: 0 }));
     }
     if (!commandMode) {
@@ -192,7 +197,17 @@ function Palette() {
     return hits.filter((h) => ++per[h.kind] <= (h.kind === 'element' ? 50 : 20));
   }, [frames, elements, commands, query, commandMode, recents, activeName, activeDevice]);
 
-  useEffect(() => setSel(0), [query, commandMode]);
+  const typed = raw.trim();
+  const empty = !typed;
+  // The debounced query lags the input by ~80ms; don't flash recents or 'No matches' meanwhile.
+  const pending = !empty && raw !== q;
+  // Layers arrive from the preview after the project opens; until then, show placeholders, not 'No matches'.
+  const loading = !commandMode && !empty && domTree.length === 0;
+  const noMatch = !empty && !pending && !loading && results.length === 0;
+  const fallback = noMatch ? commands.filter((c) => ['c-fit', 'c-desktop', 'c-keys'].includes(c.key)) : [];
+  const shown = pending || loading ? [] : noMatch ? fallback.map((c) => ({ ...c, idx: [] as number[] })) : results;
+  const showRecents = empty && recents.length > 0;
+  useEffect(() => setSel(0), [query, commandMode, noMatch]);
   useEffect(() => {
     listRef.current?.querySelector<HTMLElement>(`[data-index="${sel}"]`)?.scrollIntoView({ block: 'nearest' });
   }, [sel]);
@@ -215,13 +230,13 @@ function Palette() {
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSel((i) => Math.min(results.length - 1, i + 1));
+      setSel((i) => Math.min(shown.length - 1, i + 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSel((i) => Math.max(0, i - 1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      choose(results[sel]);
+      choose(shown[sel]);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
@@ -232,7 +247,13 @@ function Palette() {
   };
 
   let index = -1;
-  const empty = !commandMode && !query;
+  const onInput = (value: string) => {
+    // A '>' anywhere switches to commands: keep only what follows the last '>'.
+    const at = value.lastIndexOf('>');
+    if (at > 0 || (at === 0 && value !== value.trimStart())) value = '>' + value.slice(at + 1);
+    else if (at < 0 && value.trimStart().startsWith('>')) value = value.trimStart();
+    setRaw(value);
+  };
   return (
     <div className="canvas-search__scrim" onPointerDown={(e) => e.target === e.currentTarget && close(true)}>
       <div className="canvas-search" role="dialog" aria-label="Search canvas" onKeyDown={onKey}>
@@ -241,20 +262,33 @@ function Palette() {
           <input
             ref={inputRef}
             value={raw}
-            onChange={(e) => setRaw(e.target.value)}
+            onChange={(e) => onInput(e.target.value)}
             placeholder="Search"
             spellCheck={false}
             aria-label="Search canvas"
-            aria-activedescendant={results[sel] ? `cs-${results[sel].key}` : undefined}
+            aria-activedescendant={shown[sel] ? `cs-${shown[sel].key}` : undefined}
           />
           <kbd className="canvas-search__kbd">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
         </div>
         <div className="canvas-search__list" ref={listRef} role="listbox">
-          {empty && results.length > 0 && <div className="canvas-search__group">{recents.length ? 'Recent' : 'Commands'}</div>}
-          {empty
-            ? results.map((it) => <Row key={it.key} it={it} index={++index} sel={sel} setSel={setSel} choose={choose} />)
+          {(pending || loading) &&
+            [0, 1, 2].map((i) => (
+              <div key={i} className="canvas-search__skeleton" aria-hidden="true">
+                <span />
+                <span style={{ width: `${[46, 32, 58][i]}%` }} />
+              </div>
+            ))}
+          {noMatch && (
+            <>
+              <div className="canvas-search__empty">No matches for “{typed.replace(/^>\s*/, '')}”</div>
+              <div className="canvas-search__group">Try</div>
+            </>
+          )}
+          {showRecents && <div className="canvas-search__group">Recent</div>}
+          {showRecents || noMatch
+            ? shown.map((it) => <Row key={it.key} it={it} index={++index} sel={sel} setSel={setSel} choose={choose} />)
             : GROUPS.map((g) => {
-                const rows = results.filter((r) => r.kind === g.kind);
+                const rows = shown.filter((r) => r.kind === g.kind);
                 if (!rows.length) return null;
                 return (
                   <div key={g.kind}>
@@ -263,7 +297,6 @@ function Palette() {
                   </div>
                 );
               })}
-          {!results.length && !empty && <div className="canvas-search__empty">No matches</div>}
           {empty && (
             <div className="canvas-search__hint">
               Type <kbd>&gt;</kbd> for commands
