@@ -3,6 +3,7 @@ import { Home04Icon, LayoutAlignLeftIcon, LayoutAlignRightIcon, RulerDimensionLi
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toggleCalmPanel, useCalmPanels } from '../lib/calm';
+import { useExperienceLevel } from '../lib/experience';
 import { closeProject } from '../lib/actions';
 import { setMeasure, useMeasure } from '../lib/measure';
 import { setRulers, useRulers } from '../lib/rulers';
@@ -12,15 +13,19 @@ import { USER_AVATAR_SRC } from '../lib/user-avatar';
 /** Corner and centre pills of the calm canvas: the same shapes as the home page's toggles, plus search. */
 export function CalmPills() {
   const { left, right } = useCalmPanels();
+  const level = useExperienceLevel();
+  const showSidePanels = level !== 'beginner';
   const measuring = useMeasure();
   const rulers = useRulers();
   return (
     <TooltipProvider>
       <div data-tw="" className={`calm-pills${rulers ? ' calm-pills--rulers' : ''}`}>
         <div className="calm-pill-pair absolute start-3 top-3 z-20 flex items-center gap-1.5">
-          <Button variant="ghost" className="calm-circle calm-pill calm-pill--round relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]" aria-label={left ? 'Close left panel' : 'Open left panel'} aria-expanded={left} onClick={() => toggleCalmPanel('left')}>
-            <HugeiconsIcon icon={left ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
-          </Button>
+          {showSidePanels && (
+            <Button variant="ghost" className="calm-circle calm-pill calm-pill--round relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]" aria-label={left ? 'Close left panel' : 'Open left panel'} aria-expanded={left} onClick={() => toggleCalmPanel('left')}>
+              <HugeiconsIcon icon={left ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
+            </Button>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" className="calm-circle calm-pill calm-pill--round relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]" aria-label="Go home" onClick={() => void closeProject()}>
@@ -43,14 +48,16 @@ export function CalmPills() {
             </TooltipTrigger>
             <TooltipContent side="bottom">Account</TooltipContent>
           </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" className="calm-circle calm-pill calm-pill--right calm-pill--round relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]" aria-label={right ? 'Close right panel' : 'Open right panel'} aria-expanded={right} onClick={() => toggleCalmPanel('right')}>
-                <HugeiconsIcon icon={right ? LayoutAlignLeftIcon : LayoutAlignRightIcon} strokeWidth={2} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">{right ? 'Close right panel' : 'Open right panel'}</TooltipContent>
-          </Tooltip>
+          {showSidePanels && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" className="calm-circle calm-pill calm-pill--right calm-pill--round relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]" aria-label={right ? 'Close right panel' : 'Open right panel'} aria-expanded={right} onClick={() => toggleCalmPanel('right')}>
+                  <HugeiconsIcon icon={right ? LayoutAlignLeftIcon : LayoutAlignRightIcon} strokeWidth={2} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">{right ? 'Close right panel' : 'Open right panel'}</TooltipContent>
+            </Tooltip>
+          )}
         </div>
         <div className="calm-pill-stack absolute end-3 z-20 flex flex-col gap-1.5" style={{ bottom: 12 }}>
           <Tooltip>

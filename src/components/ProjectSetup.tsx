@@ -4,8 +4,7 @@ import { defaultDirection } from '../../shared/project-config';
 import { createProject } from '../lib/actions';
 import { sendToAi } from '../lib/ai';
 import { copyAgentPrompt } from '../lib/prompt';
-
-const FIRST_REQUEST = 'Build the first version of the home page, following the design direction.';
+import { firstBuildRequest } from '../lib/start-project';
 import { setState, useStore } from '../lib/store';
 import { Button } from '../ui/primitives.jsx';
 import { DirectionEditor, DirectionSection, uploadPaths, type DirectionDraft } from './direction/DirectionEditor';
@@ -32,12 +31,13 @@ export function ProjectSetup({
   const generate = async () => {
     const ok = await createProject('blank', name.trim() || 'Untitled project', { direction: draft.direction, uploads: uploadPaths(draft.pending) });
     if (!ok) return;
+    const prompt = firstBuildRequest(request.trim() || 'Build the first version of the home page, following the design direction.');
     if (aiReady) {
       setState({ dockMode: 'input' });
-      if (await sendToAi(request.trim() || FIRST_REQUEST)) return;
+      if (await sendToAi(prompt)) return;
     }
     setState({ dockDraft: request, dockMode: 'input' });
-    if (!aiReady) await copyAgentPrompt(request);
+    if (!aiReady) await copyAgentPrompt(prompt);
   };
 
   return (

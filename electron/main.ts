@@ -509,6 +509,36 @@ const rethrowScrubbed = (err: unknown): never => {
   throw scrub(err);
 };
 
+const PAGE_SOURCE_CAP = 14_000;
+
+/** Attach the page the user is looking at so Q&A works without opening the code editor. */
+function currentPageSourceForAi(ctx?: AiTurnContext): string {
+  if (!project) return '';
+  const state = pagesState(project);
+  const fromCtx = ctx?.page?.file?.replace(/\\/g, '/').replace(/^\.?\//, '');
+  const match = fromCtx
+    ? state.pages.find((p) => p.file?.replace(/\\/g, '/') === fromCtx)
+    : state.pages.find((p) => p.path === (ctx?.page?.path ?? '/')) ?? state.pages.find((p) => p.path === '/') ?? state.pages[0];
+  const rel = (fromCtx || match?.file || (project.framework.startsWith('vite') ? 'src/App.jsx' : null))?.replace(/\\/g, '/');
+  if (!rel) return '';
+  try {
+    const abs = safeResolve(project.root, rel);
+    if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) return '';
+    let body = fs.readFileSync(abs, 'utf8');
+    if (body.length > PAGE_SOURCE_CAP) body = `${body.slice(0, PAGE_SOURCE_CAP)}\n…(truncated)`;
+    return [
+      '',
+      `[Current page source — already loaded from disk; do not ask the user to open ${rel} in the editor]`,
+      `File: ${rel}`,
+      '```',
+      body,
+      '```',
+    ].join('\n');
+  } catch {
+    return '';
+  }
+}
+
 function projectContextForAi(): string {
   if (!project) return 'No project is open right now. Chat normally; only suggest opening or creating a project if they need canvas or file edits.';
   const state = pagesState(project);
@@ -517,6 +547,7 @@ function projectContextForAi(): string {
     `# Open project: ${project.name}`,
     `Framework: ${project.framework}. Styles file: ${project.stylesFile}. ${project.editable ? '' : 'The project is read-only in OpenCanvas.'}`,
     `Pages (${state.routing}): ${state.pages.map((p) => `${p.name} ${p.path}${p.file ? ` → ${p.file}` : ''}`).join('; ')}`,
+    'Files are on disk. Use list_files / read_file / get_outline anytime — the code editor does not need those files open.',
     '',
     buildDesignContext(state.config.direction, { projectName: project.name, pages: state.pages }),
     '',
@@ -978,7 +1009,9 @@ function registerIpc() {
     const reason = aiNotReadyReason(aiSettings, secretStore.has(aiKeyName(aiSettings.provider)));
     if (reason) throw new Error(reason);
     // Home chat may send before a project exists; tools that need a project refuse at call time.
-    return agent.send(String(request ?? ''), context && typeof context === 'object' ? context : undefined);
+    const ctx = context && typeof context === 'object' ? context : undefined;
+    // Attach the current page from disk so answers don't depend on the code editor having it open.
+    return agent.send(`${String(request ?? '')}${currentPageSourceForAi(ctx)}`, ctx);
   });
   handle('ai:answer', (id: string, answer: string) => agent.answer(String(id), String(answer ?? '')));
   handle('ai:approve', (id: string, allow: boolean) => agent.approve(String(id), allow === true));

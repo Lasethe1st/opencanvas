@@ -83,7 +83,7 @@ function turnContext(extra?: Pick<AiTurnContext, 'skills' | 'references'>): AiTu
   const page = activePage();
   return {
     selection: s.selection ? { id: s.selection.id, name: s.selection.name, tag: s.selection.tag } : null,
-    page: page ? { name: page.name, path: page.path } : null,
+    page: page ? { name: page.name, path: page.path, file: page.file } : null,
     frameWidth: activeFrame(s)?.width ?? null,
     memory: memoryLines(),
     skills: extra?.skills,

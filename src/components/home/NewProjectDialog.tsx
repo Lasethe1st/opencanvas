@@ -6,8 +6,10 @@ import type { TemplateId, TemplateMeta } from '../../../shared/types';
 import { createProject, importFromGithub, importZip, openFileFromDisk, openProjectDialog } from '../../lib/actions';
 import { sendToAi } from '../../lib/ai';
 import { api } from '../../lib/api';
+import { getExperienceLevel } from '../../lib/experience';
 import { copyAgentPrompt } from '../../lib/prompt';
 import { setState, useStore } from '../../lib/store';
+import { firstBuildRequest, nameFromBrief } from '../../lib/start-project';
 import { GithubMark } from '../../ui/StartScreen.jsx';
 import { DirectionEditor, uploadPaths, type DirectionDraft } from '../direction/DirectionEditor';
 import { HomeDialog } from './HomeDialog';
@@ -19,15 +21,21 @@ import { cn } from '@/lib/utils';
 export type StartPath = 'ai' | 'scratch' | 'template' | 'github' | 'open';
 type StepId = 'start' | 'name' | 'brief' | 'direction' | 'template' | 'repo' | 'open' | 'review';
 
-const FIRST_REQUEST = 'Build the first version of the home page, following the design direction.';
 
-const STEPS: Record<StartPath, StepId[]> = {
+const STEPS_BASE: Record<StartPath, StepId[]> = {
   ai: ['start', 'name', 'brief', 'direction', 'review'],
   scratch: ['start', 'name', 'review'],
   template: ['start', 'template', 'name', 'review'],
   github: ['start', 'repo'],
   open: ['start', 'open'],
 };
+
+/** Beginners skip visual direction — get to a site faster. */
+function stepsFor(path: StartPath): StepId[] {
+  const steps = STEPS_BASE[path];
+  if (path === 'ai' && getExperienceLevel() === 'beginner') return steps.filter((s) => s !== 'direction');
+  return steps;
+}
 
 const TITLES: Record<StepId, string> = {
   start: 'How do you want to start?',
@@ -103,7 +111,7 @@ export function NewProjectDialog({
     void api.templates().then((all) => setTemplates(all.filter((t) => t.id !== 'blank')));
   }, []);
 
-  const steps = path ? STEPS[path] : (['start'] as StepId[]);
+  const steps = path ? stepsFor(path) : (['start'] as StepId[]);
   const step = steps[Math.min(index, steps.length - 1)];
   const last = index >= steps.length - 1 && step !== 'start';
   const templateMeta = templates.find((t) => t.id === template);
@@ -130,14 +138,21 @@ export function NewProjectDialog({
       return;
     }
     if (path === 'ai') {
-      const ok = await createProject('blank', name.trim() || 'Untitled project', { direction: draft.direction, uploads: uploadPaths(draft.pending) });
+      const beginner = getExperienceLevel() === 'beginner';
+      const projectName = name.trim() || nameFromBrief(brief) || 'Untitled project';
+      const ok = await createProject(
+        'blank',
+        projectName,
+        beginner ? undefined : { direction: draft.direction, uploads: uploadPaths(draft.pending) },
+      );
       if (!ok) return;
+      const request = firstBuildRequest(brief.trim() || 'Build the first version of the home page, following the design direction.');
       if (aiReady) {
         setState({ dockMode: 'input' });
-        if (await sendToAi(brief.trim() || FIRST_REQUEST)) return;
+        if (await sendToAi(request)) return;
       }
       setState({ dockDraft: brief, dockMode: 'input' });
-      if (!aiReady) await copyAgentPrompt(brief);
+      if (!aiReady) await copyAgentPrompt(request);
     }
   };
 

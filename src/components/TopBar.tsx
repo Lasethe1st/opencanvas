@@ -8,6 +8,7 @@ import { stopInlineEdit } from '../lib/inline-edit';
 import { setState, useStore } from '../lib/store';
 import { Menu, MenuItem } from '../ui/primitives.jsx';
 import { Divider, ModeSwitch, PanelsButton, PreviewButton, ProjectButton, TopBar as Bar } from '../ui/TopBar.jsx';
+import { useExperienceLevel } from '../lib/experience';
 import { togglePanels } from '../lib/panels';
 import { CanvasBgControl } from './CanvasBgControl';
 import { openFullPreview } from './FullPreview';
@@ -176,7 +177,9 @@ export function TopBar() {
   const mode = useStore((s) => s.mode);
   const interact = useStore((s) => s.interact);
   const panelsHidden = useStore((s) => s.panelsHidden.left && s.panelsHidden.right);
-  const switchValue = mode === 'code' ? 'code' : interact ? 'interact' : 'visual';
+  const level = useExperienceLevel();
+  const showCode = level === 'veteran';
+  const switchValue = mode === 'code' && showCode ? 'code' : interact ? 'interact' : 'visual';
 
   return (
     <Bar
@@ -189,9 +192,11 @@ export function TopBar() {
       }
       center={
         <ModeSwitch
+          showCode={showCode}
           value={switchValue}
           onChange={(id) => {
             if (id === 'code') {
+              if (!showCode) return;
               stopInlineEdit(true);
               setState({ mode: 'code', interact: false, tool: 'select' });
               sendToPreview('mode', { mode: 'select' });

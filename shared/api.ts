@@ -50,8 +50,8 @@ export type { DesignReference };
 export interface AiTurnContext {
   /** Selected element id and name. */
   selection?: { id: string; name: string; tag: string } | null;
-  /** Page shown in the active frame. */
-  page?: { name: string; path: string } | null;
+  /** Page shown in the active frame (`file` is the project-relative source when known). */
+  page?: { name: string; path: string; file?: string | null } | null;
   /** Width of the active frame, to hint which breakpoint the user is designing. */
   frameWidth?: number | null;
   /** Skills the user called with "/" for this message. */

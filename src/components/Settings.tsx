@@ -13,6 +13,7 @@ import { getOrbColors, ORB_COLOR_PRESETS, setOrbColorPreset, useOrbColorPreset }
 import { setThemePreference, useTheme } from '../lib/theme';
 import { setCalm, useCalm } from '../lib/calm';
 import { setShowMarkers, useShowMarkers } from '../lib/comments';
+import { setExperienceLevel, useExperienceLevel, type ExperienceLevel } from '../lib/experience';
 import { setAutosave, setDisplayName, setQuickPills, setReduceMotion, setSendKey, useAutosave, useDisplayName, useQuickPills, useReduceMotion, useSendKey } from '../lib/prefs';
 import { setRulers, useRulers } from '../lib/rulers';
 import { Button, InputShell, Notice } from '../ui/primitives.jsx';
@@ -113,9 +114,16 @@ export function SettingsPage() {
   );
 }
 
+const LEVELS: { id: ExperienceLevel; label: string }[] = [
+  { id: 'beginner', label: 'Beginner' },
+  { id: 'intermediate', label: 'Intermediate' },
+  { id: 'veteran', label: 'Veteran' },
+];
+
 function GeneralSettings() {
   const fontSize = useChatFontSize();
   const sendKey = useSendKey();
+  const level = useExperienceLevel();
   const calm = useCalm();
   const markers = useShowMarkers();
   const name = useDisplayName();
@@ -159,8 +167,33 @@ function GeneralSettings() {
       </SettingsGroup>
 
       <SettingsGroup title="Canvas">
+        <SettingRow
+          label="Experience"
+          hint={
+            level === 'beginner'
+              ? 'Chat and quick edits only — layers, inspector and code stay hidden.'
+              : level === 'intermediate'
+                ? 'Adds layers, pages and the property inspector.'
+                : 'Full editor: code, terminal, tools and MCP.'
+          }
+        >
+          <div className="theme-toggle" role="radiogroup" aria-label="Experience level">
+            {LEVELS.map(({ id, label }) => (
+              <button key={id} type="button" role="radio" aria-checked={level === id} className={`theme-toggle__btn sx-text-btn${level === id ? ' is-active' : ''}`} onClick={() => setExperienceLevel(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </SettingRow>
         <SettingRow label="Calm canvas" hint="Just your site and the dock on a plain background. Panels open from the corner pills.">
-          <Switch label="Calm canvas" checked={calm} onChange={setCalm} />
+          <Switch
+            label="Calm canvas"
+            checked={level === 'beginner' ? true : calm}
+            onChange={(on) => {
+              if (level === 'beginner' && !on) return;
+              setCalm(on);
+            }}
+          />
         </SettingRow>
         <SettingRow label="Comment markers" hint="Show the small numbered markers on elements that have comments.">
           <Switch label="Comment markers" checked={markers} onChange={setShowMarkers} />

@@ -17,6 +17,7 @@ import {
   updateHomeChatItems,
   type HomeChat as HomeChatRecord,
 } from '../lib/home-chats';
+import { startProjectFromBrief } from '../lib/start-project';
 import { getState, setState, toast, useStore } from '../lib/store';
 import { homeItemActions } from './home/HomeItemMenu';
 import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
@@ -213,9 +214,12 @@ export function Onboarding() {
     setChats((current) => updateHomeChatItems(current, id, items));
   }, [aiTurnId]);
 
-  const continueToSetup = useCallback(() => {
-    openNew({ path: 'ai', brief: briefFromChat(aiChat) || dockDraft.trim() });
-  }, [aiChat, dockDraft, openNew]);
+  /** Skip the wizard: brief → blank project → canvas → first AI turn. */
+  const continueToProject = useCallback(() => {
+    const brief = briefFromChat(aiChat) || dockDraft.trim();
+    if (!brief || busy) return;
+    void startProjectFromBrief(brief);
+  }, [aiChat, dockDraft, busy]);
 
   const RECENT = 4;
   const newChat = useCallback(() => {
@@ -332,11 +336,35 @@ export function Onboarding() {
   const tasks: OnboardingTask[] = useMemo(
     () => [
       { id: 'key', label: 'Add an AI provider key', done: aiReady, onSelect: () => setState({ settingsOpen: true }) },
-      { id: 'project', label: 'Create your first project', done: (recent?.length ?? 0) > 0 || onboarding.done.includes('project'), onSelect: () => openNew() },
-      { id: 'skill', label: 'Try a skill with /', done: onboarding.done.includes('skill'), onSelect: () => { setState({ dockDraft: '/' }); focusPrompt(); } },
-      { id: 'mention', label: 'Reference something with @', done: onboarding.done.includes('mention'), onSelect: () => { setState({ dockDraft: '@' }); focusPrompt(); } },
+      {
+        id: 'describe',
+        label: 'Describe a site and build it',
+        done: (recent?.length ?? 0) > 0 || onboarding.done.includes('describe') || onboarding.done.includes('project'),
+        onSelect: () => {
+          if (dockDraft.trim() || briefFromChat(aiChat)) continueToProject();
+          else focusPrompt();
+        },
+      },
+      {
+        id: 'click',
+        label: 'Click something and change it',
+        done: onboarding.done.includes('click'),
+        onSelect: () => {
+          if ((recent?.length ?? 0) > 0) void openRecent(recent![0].root);
+          else focusPrompt();
+        },
+      },
+      {
+        id: 'ask-more',
+        label: 'Ask AI for one more change',
+        done: onboarding.done.includes('ask-more'),
+        onSelect: () => {
+          if ((recent?.length ?? 0) > 0) void openRecent(recent![0].root);
+          else focusPrompt();
+        },
+      },
     ],
-    [aiReady, recent, onboarding.done, openNew],
+    [aiReady, recent, onboarding.done, dockDraft, aiChat, continueToProject],
   );
 
   return (
@@ -430,8 +458,13 @@ export function Onboarding() {
                           onOpenSkills={openSkills}
                         />
                         <HomeComposerExtras />
-                        <div className="px-1">
+                        <div className="flex flex-wrap items-center gap-2 px-1">
                           <HomeAiHint />
+                          {(briefFromChat(aiChat) || dockDraft.trim()) && (
+                            <Button type="button" variant="secondary" className="rounded-[var(--pill)] text-[13px] font-normal" disabled={busy || !!aiTurnId} onClick={continueToProject}>
+                              {aiReady ? 'Build this site' : 'Continue to project'}
+                            </Button>
+                          )}
                         </div>
                       </>
                     )}
@@ -456,9 +489,9 @@ export function Onboarding() {
                   />
                   <HomeComposerExtras />
                   <HomeAiHint className="text-center" />
-                  {dockDraft.trim() && !aiReady && (
-                    <Button type="button" variant="secondary" className="rounded-[var(--pill)] text-[13px] font-normal" onClick={continueToSetup}>
-                      Continue to project
+                  {dockDraft.trim() && (
+                    <Button type="button" variant="secondary" className="rounded-[var(--pill)] text-[13px] font-normal" disabled={busy} onClick={continueToProject}>
+                      {aiReady ? 'Build this site' : 'Continue to project'}
                     </Button>
                   )}
                 </div>
