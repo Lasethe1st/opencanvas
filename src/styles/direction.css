@@ -984,7 +984,7 @@
   transform: scale(0.96);
 }
 
-.dock__tool:focus-visible {
+.dock__tool:focus-visible { outline: none !important;
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
