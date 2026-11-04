@@ -23,6 +23,7 @@ import { IconButton, Menu, MenuItem, SectionLabel, Segmented } from '../ui/primi
 import { createPortal } from 'react-dom';
 import { PagesSection, SyncScrollOption } from './PagesSection';
 import { AiChat } from './dock/AiChat';
+import { CanvasShapeshift } from './CanvasShapeshift';
 import { Resizer } from './Resizer';
 
 function fileIcon(name: string) {
@@ -569,7 +570,8 @@ export function LeftSidebar() {
     >
       {tab === 'ai' ? (
         <div className="left-ai">
-          <AiChat />
+          <AiChat bare />
+          <CanvasShapeshift variant="panel" />
         </div>
       ) : (
         <>

@@ -2109,5 +2109,5 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 .left-ai .dock-head__title { display: none; }
 .left-ai .ai-chat__model { margin-right: auto; max-width: 150px; }
 .left-ai .ai-log { flex: 1; min-height: 0; max-height: none; margin: 0 -4px; padding: 4px; }
-.left-ai .ai-composer { flex: none; margin-bottom: 4px; border-radius: 16px !important; background: var(--surface); }
-.left-ai .ai-composer__input { border: 0 !important; outline: none !important; box-shadow: none !important; background: transparent !important; border-radius: 0 !important; }
+/* The panel uses the dock's own input bar, just sized to the panel. */
+.left-ai .canvas-shapeshift { flex: none; width: 100%; margin-bottom: 4px; }
