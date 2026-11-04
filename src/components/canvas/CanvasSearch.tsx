@@ -168,10 +168,12 @@ function Palette() {
       if (idx) hits.push({ ...it, idx, s: score(text, idx) });
     };
     if (!commandMode && !query) {
+      // No recents yet: offer a few commands instead of blank glass.
+      if (!recents.length) return commands.slice(0, 4).map((c): Hit => ({ ...c, idx: [], s: 0 }));
       return recents.map((r): Hit => ({ key: `r-${r.kind}-${r.id}-${r.uid ?? ''}`, ...r, idx: [], s: 0 }));
     }
     if (!commandMode) {
-      for (const f of frames) add({ key: `f-${f.id}`, kind: 'frame', label: f.name, id: f.id, device: f.preset, meta: `${Math.round(f.width)}` }, f.name);
+      for (const f of frames) add({ key: `f-${f.id}`, kind: 'frame', label: f.name, id: f.id, device: f.preset, }, f.name);
       for (const n of elements) {
         const label = n.name || n.tag;
         add({ key: `e-${n.uid}`, kind: 'element', label, tag: n.tag, id: n.id, uid: n.uid, meta: activeName }, label);
@@ -198,7 +200,7 @@ function Palette() {
       if (!getState().frames.some((f) => f.id === it.id)) return;
       setActiveFrame(it.id);
       fitFrame(it.id);
-      pushRecent({ kind: 'frame', id: it.id, label: it.label, meta: it.meta, device: it.device });
+      pushRecent({ kind: 'frame', id: it.id, label: it.label, device: it.device });
     } else if (it.kind === 'element' && it.id && it.uid) {
       jumpToElement(it.id, it.uid);
       pushRecent({ kind: 'element', id: it.id, uid: it.uid, label: it.label, meta: it.meta, tag: it.tag });
@@ -235,7 +237,7 @@ function Palette() {
             ref={inputRef}
             value={raw}
             onChange={(e) => setRaw(e.target.value)}
-            placeholder="Search frames and layers, or > for commands"
+            placeholder="Search"
             spellCheck={false}
             aria-label="Search canvas"
             aria-activedescendant={results[sel] ? `cs-${results[sel].key}` : undefined}
@@ -243,7 +245,7 @@ function Palette() {
           <kbd className="canvas-search__kbd">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
         </div>
         <div className="canvas-search__list" ref={listRef} role="listbox">
-          {empty && results.length > 0 && <div className="canvas-search__group">Recent</div>}
+          {empty && results.length > 0 && <div className="canvas-search__group">{recents.length ? 'Recent' : 'Commands'}</div>}
           {empty
             ? results.map((it) => <Row key={it.key} it={it} index={++index} sel={sel} setSel={setSel} choose={choose} />)
             : GROUPS.map((g) => {
@@ -256,7 +258,12 @@ function Palette() {
                   </div>
                 );
               })}
-          {!results.length && <div className="canvas-search__empty">{empty ? 'Nothing visited yet' : 'No matches'}</div>}
+          {!results.length && !empty && <div className="canvas-search__empty">No matches</div>}
+          {empty && (
+            <div className="canvas-search__hint">
+              Type <kbd>&gt;</kbd> for commands
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -273,17 +280,24 @@ function Row({ it, index, sel, setSel, choose }: { it: Item & { idx?: number[] }
       role="option"
       aria-selected={index === sel}
       data-index={index}
+      data-kind={kind}
       className={`canvas-search__row${index === sel ? ' is-active' : ''}`}
       onPointerMove={() => index !== sel && setSel(index)}
       onClick={() => choose(it)}
     >
-      <span className="canvas-search__chip" data-kind={kind}>
+      <span className="canvas-search__chip">
         {it.kind === 'element' ? <LayerIcon tag={it.tag ?? 'div'} size={13} color="currentColor" /> : DeviceIcon ? <DeviceIcon size={13} aria-hidden="true" /> : CmdIcon ? <CmdIcon size={13} aria-hidden="true" /> : null}
       </span>
       <span className="canvas-search__label">
         <Highlight text={it.label} idx={it.idx ?? []} />
       </span>
-      {it.meta && <span className="canvas-search__meta">{it.meta}</span>}
+      {it.kind === 'frame' && DeviceIcon ? (
+        <span className="canvas-search__device">
+          <DeviceIcon size={14} aria-hidden="true" />
+        </span>
+      ) : (
+        it.meta && <span className="canvas-search__meta">{it.meta}</span>
+      )}
     </div>
   );
 }

@@ -40,7 +40,7 @@ export function CalmPills() {
             <TooltipContent side="bottom">Home</TooltipContent>
           </Tooltip>
         </div>
-        <Button variant="ghost" className="calm-pill calm-pill--search absolute top-3 z-20 h-9 gap-2 rounded-full bg-muted px-4 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground [&_svg]:size-4" aria-label="Search layers and pages" style={{ left: '50%', translate: '-50% 0' }} onClick={() => setSearching(true)}>
+        <Button variant="ghost" className="calm-pill calm-pill--search absolute top-3 z-20 h-9 gap-2 rounded-full bg-muted px-4 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground [&_svg]:size-4" aria-label="Search layers and pages" style={{ left: '50%', translate: '-50% 0' }} onClick={() => setState({ canvasSearchOpen: true })}>
           <HugeiconsIcon icon={Search02Icon} strokeWidth={2} />
           <span>Search</span>
         </Button>

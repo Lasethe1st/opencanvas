@@ -1989,17 +1989,22 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 /* Right-click menu and the Ask AI chat it blooms into: frosted glass from the first frame of the
    bloom, so the glass grows with the shape. Once it has settled into the chat, the surface firms up
    to 92% so long replies stay readable over a busy design. */
+:root {
+  /* Settled dock-chat glass, shared with the canvas search palette in dark mode. */
+  --glass-settled-bg: color-mix(in oklab, var(--surface) 92%, transparent);
+  --glass-settled-filter: blur(20px) saturate(160%);
+}
 .ctx-bloom {
   --glass-edge: rgb(255 255 255 / 0.4);
   background: color-mix(in oklab, var(--surface) 72%, transparent);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: var(--glass-settled-filter);
+  backdrop-filter: var(--glass-settled-filter);
   border-color: var(--glass-edge);
   transition: background-color 0.2s ease;
 }
 [data-theme='dark'] .ctx-bloom { --glass-edge: rgb(255 255 255 / 0.08); }
 .ctx-bloom--chat {
-  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  background: var(--glass-settled-bg);
   transition: background-color 0.2s ease 0.28s, height 0.24s var(--ease, ease);
 }
 @media (prefers-reduced-transparency: reduce) {
@@ -2153,6 +2158,13 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
   justify-content: center;
   align-items: flex-start;
   padding-top: 14vh;
+  background: var(--backdrop);
+  animation: fade-in 0.15s var(--ease);
+}
+[data-theme='dark'] .canvas-search {
+  background: var(--glass-settled-bg);
+  -webkit-backdrop-filter: var(--glass-settled-filter);
+  backdrop-filter: var(--glass-settled-filter);
 }
 .canvas-search {
   width: min(560px, calc(100vw - 32px));
@@ -2207,6 +2219,8 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 }
 .canvas-search__list {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   padding: 6px;
   scroll-padding: 28px 0 6px;
@@ -2234,7 +2248,6 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
   background: color-mix(in srgb, var(--fg) 8%, transparent);
 }
 .canvas-search__chip {
-  --kind: var(--layer-struct);
   display: grid;
   place-items: center;
   width: 22px;
@@ -2245,12 +2258,13 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
   color: var(--kind);
   background: color-mix(in srgb, var(--kind) 16%, transparent);
 }
-.canvas-search__chip[data-kind='text'] { --kind: var(--layer-text); }
-.canvas-search__chip[data-kind='media'] { --kind: var(--layer-media); }
-.canvas-search__chip[data-kind='action'] { --kind: var(--layer-action); }
-.canvas-search__chip[data-kind='form'] { --kind: var(--layer-form); }
-.canvas-search__chip[data-kind='frame'] { --kind: var(--select); }
-.canvas-search__chip[data-kind='command'] { --kind: var(--fg-3); }
+.canvas-search__row { --kind: var(--layer-struct); }
+.canvas-search__row[data-kind='text'] { --kind: var(--layer-text); }
+.canvas-search__row[data-kind='media'] { --kind: var(--layer-media); }
+.canvas-search__row[data-kind='action'] { --kind: var(--layer-action); }
+.canvas-search__row[data-kind='form'] { --kind: var(--layer-form); }
+.canvas-search__row[data-kind='frame'] { --kind: var(--select); }
+.canvas-search__row[data-kind='command'] { --kind: var(--fg-3); }
 .canvas-search__label {
   flex: 1;
   min-width: 0;
@@ -2259,9 +2273,28 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
   text-overflow: ellipsis;
 }
 .canvas-search__label mark {
-  background: none;
-  color: var(--select);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--kind) 20%, transparent);
+  color: inherit;
   font-weight: 600;
+}
+.canvas-search__hint {
+  margin-top: auto;
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  color: var(--fg-3);
+}
+.canvas-search__hint kbd {
+  font: inherit;
+  padding: 0 4px;
+  border-radius: 4px;
+  border: 1px solid var(--frost-border);
+}
+.canvas-search__device {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--fg-3);
 }
 .canvas-search__meta {
   flex: none;
