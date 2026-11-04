@@ -1,4 +1,4 @@
-import { CaretDown, CaretRight, Copy, File, FileCode, FilePlus, Folder, FolderOpen, FolderPlus, Image, PencilSimple, Trash, UploadSimple } from '../lib/hugeicons';
+import { CaretDown, CaretRight, Copy, Layers, Sparkles, SquareStack, File, FileCode, FilePlus, Folder, FolderOpen, FolderPlus, Image, PencilSimple, Trash, UploadSimple } from '../lib/hugeicons';
 import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import type { FileNode } from '../../shared/types';
 import {
@@ -20,7 +20,8 @@ import { LayerIcon } from '../lib/layer-icons';
 import { useCalm, useCalmPanels } from '../lib/calm';
 import { activeFrame, findPath, pageOf, setState, useStore, type TreeNode } from '../lib/store';
 import { Panel, SearchField, Tree, TreeRow } from '../ui/Panels.jsx';
-import { IconButton, Menu, MenuItem, SectionLabel, Segmented } from '../ui/primitives.jsx';
+import { IconButton, Menu, MenuItem, SectionLabel } from '../ui/primitives.jsx';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { createPortal } from 'react-dom';
 import { PagesSection, SyncScrollOption } from './PagesSection';
 import { AiChat } from './dock/AiChat';
@@ -514,6 +515,47 @@ function LayersPanel({ query }: { query: string }) {
   );
 }
 
+type LeftTabId = 'pages' | 'layers' | 'files' | 'ai';
+const LEFT_TABS: { id: LeftTabId; label: string; icon: typeof Layers }[] = [
+  { id: 'pages', label: 'Pages', icon: SquareStack },
+  { id: 'layers', label: 'Layers', icon: Layers },
+  { id: 'files', label: 'Files', icon: Folder },
+  { id: 'ai', label: 'AI', icon: Sparkles },
+];
+
+/** One dropdown instead of four crowded toggles. */
+function LeftTabMenu({ value, onChange }: { value: LeftTabId; onChange: (id: LeftTabId) => void }) {
+  const current = LEFT_TABS.find((t) => t.id === value) ?? LEFT_TABS[1];
+  const Icon = current.icon;
+  return (
+    <div data-tw="" className="w-full">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label="Sidebar view"
+            className="flex h-9 w-full items-center gap-2 rounded-[var(--r-lg)] bg-muted px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted/70 data-[state=open]:bg-muted/70 [&_svg]:size-4 [&_svg]:shrink-0"
+          >
+            <Icon />
+            <span className="flex-1 truncate text-left">{current.label}</span>
+            <CaretDown size={12} weight="bold" className="opacity-60" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" sideOffset={6} style={{ width: 'var(--radix-dropdown-menu-trigger-width)', minWidth: 0 }} className="rounded-2xl bg-card p-1">
+          <DropdownMenuRadioGroup value={value} onValueChange={(v) => onChange(v as LeftTabId)}>
+            {LEFT_TABS.map((t) => (
+              <DropdownMenuRadioItem key={t.id} value={t.id} className="rounded-xl">
+                <t.icon />
+                {t.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 export function LeftSidebar() {
   const rawTab = useStore((s) => s.leftTab);
   const tab = rawTab === 'frames' ? 'pages' : rawTab;
@@ -529,17 +571,7 @@ export function LeftSidebar() {
       width={width}
       hidden={calm ? !calmLeft : hiddenPanel}
       head={
-        <Segmented
-          label="Sidebar"
-          value={tab}
-          onChange={(id) => setState({ leftTab: id as typeof tab })}
-          options={[
-            { id: 'pages', label: 'Pages', text: 'Pages' },
-            { id: 'layers', label: 'Layers', text: 'Layers' },
-            { id: 'files', label: 'Files', text: 'Files' },
-            { id: 'ai', label: 'AI', text: 'AI' },
-          ]}
-        />
+        <LeftTabMenu value={tab as LeftTabId} onChange={(id) => setState({ leftTab: id })} />
       }
       resizer={<Resizer value={width} min={200} max={460} onChange={(v) => setState({ leftWidth: v })} />}
     >
