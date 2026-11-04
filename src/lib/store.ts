@@ -68,7 +68,7 @@ export interface Toast {
 }
 
 export type Tool = 'select' | 'hand';
-export type LeftTab = 'layers' | 'files' | 'frames' | 'pages';
+export type LeftTab = 'layers' | 'files' | 'ai' | 'frames' | 'pages';
 export type InsertPanel = 'frame' | 'section' | 'more';
 
 /** Shown instead of entering inline text editing when the source can't be edited safely. */
@@ -271,7 +271,7 @@ function readLeftTab(): LeftTab {
     const tab = localStorage.getItem('oc-left-tab');
     // Legacy 'frames' tab folded into Pages.
     if (tab === 'frames' || tab === 'pages') return 'pages';
-    return tab === 'files' ? 'files' : 'layers';
+    return tab === 'files' ? 'files' : tab === 'ai' ? 'ai' : 'layers';
   } catch {
     return 'layers';
   }

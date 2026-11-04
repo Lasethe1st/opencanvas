@@ -2101,3 +2101,13 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 @keyframes ai-orbit { to { --oc-a: 360deg; } }
 .frame-chrome.is-ai .frame-chrome__outline::before { content: ''; position: absolute; inset: -1px; padding: 1.5px; background: conic-gradient(from var(--oc-a), transparent 0 60%, color-mix(in srgb, var(--fg) 70%, transparent) 95%, transparent); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: ai-orbit 2.6s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .ai-weave, .ai-weave__stage i, .frame-chrome.is-ai .frame-chrome__outline::before { animation: none; } }
+
+/* Left panel › AI tab: the conversation fills the panel; the tab already says "AI", so drop the dock title. */
+.left-ai { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+.left-ai .ai-chat { display: flex; flex: 1; min-height: 0; flex-direction: column; gap: 8px; padding: 4px 0 0; }
+.left-ai .dock-head { justify-content: flex-end; padding: 0 2px; }
+.left-ai .dock-head__title { display: none; }
+.left-ai .ai-chat__model { margin-right: auto; max-width: 150px; }
+.left-ai .ai-log { flex: 1; min-height: 0; max-height: none; margin: 0 -4px; padding: 4px; }
+.left-ai .ai-composer { flex: none; margin-bottom: 4px; border-radius: 16px !important; background: var(--surface); }
+.left-ai .ai-composer__input { border: 0 !important; outline: none !important; box-shadow: none !important; background: transparent !important; border-radius: 0 !important; }

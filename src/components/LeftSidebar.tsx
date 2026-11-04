@@ -22,6 +22,7 @@ import { Panel, SearchField, Tree, TreeRow } from '../ui/Panels.jsx';
 import { IconButton, Menu, MenuItem, SectionLabel, Segmented } from '../ui/primitives.jsx';
 import { createPortal } from 'react-dom';
 import { PagesSection, SyncScrollOption } from './PagesSection';
+import { AiChat } from './dock/AiChat';
 import { Resizer } from './Resizer';
 
 function fileIcon(name: string) {
@@ -560,13 +561,22 @@ export function LeftSidebar() {
           options={[
             { id: 'layers', label: 'Layers', text: 'Layers' },
             { id: 'files', label: 'Files', text: 'Files' },
+            { id: 'ai', label: 'AI', text: 'AI' },
           ]}
         />
       }
       resizer={<Resizer value={width} min={200} max={460} onChange={(v) => setState({ leftWidth: v })} />}
     >
-      <SearchField placeholder={tab === 'files' ? 'Search files' : 'Search layers'} value={queries[tab]} onChange={(v) => setQueries((q) => ({ ...q, [tab]: v }))} />
-      {tab === 'files' ? <FilesPanel query={queries.files} /> : <LayersPanel query={queries.layers} pagesOpen={pagesRequested} />}
+      {tab === 'ai' ? (
+        <div className="left-ai">
+          <AiChat />
+        </div>
+      ) : (
+        <>
+          <SearchField placeholder={tab === 'files' ? 'Search files' : 'Search layers'} value={queries[tab]} onChange={(v) => setQueries((q) => ({ ...q, [tab]: v }))} />
+          {tab === 'files' ? <FilesPanel query={queries.files} /> : <LayersPanel query={queries.layers} pagesOpen={pagesRequested} />}
+        </>
+      )}
     </Panel>
   );
 }
