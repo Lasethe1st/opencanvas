@@ -6,6 +6,7 @@ import { FullPreview } from './components/FullPreview';
 import { GitPanel } from './components/GitMenu';
 import { SettingsPage } from './components/Settings';
 import { ShortcutsDialog } from './components/ShortcutsDialog';
+import { CanvasSearch } from './components/canvas/CanvasSearch';
 import { Inspector } from './components/Inspector';
 import { LeftSidebar } from './components/LeftSidebar';
 import { Onboarding } from './components/Onboarding';
@@ -96,6 +97,12 @@ export default function App() {
         handleShortcut(event.key, meta, event.shiftKey, false);
         return;
       }
+      // Canvas search opens from anywhere on the canvas page, even while a field has focus.
+      if (meta && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'k' && getState().project && getState().mode === 'visual') {
+        event.preventDefault();
+        handleShortcut(event.key, meta, false, false);
+        return;
+      }
       if (isTyping(event.target)) return;
       if (event.key === 'Enter' && event.target instanceof HTMLButtonElement) return;
       // Tab keeps moving focus between controls; it only walks the element tree from the canvas.
@@ -156,6 +163,7 @@ export default function App() {
         {auditOpen ? <BugCheckPanel /> : mode === 'visual' && !onAgentPage && <Inspector />}
         <SettingsPage />
       </div>
+      {mode === 'visual' && <CanvasSearch />}
       <FullPreview />
       <ExportDialog />
       <ImportSummaryDialog />

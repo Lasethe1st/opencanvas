@@ -117,6 +117,10 @@ export function handleShortcut(key: string, meta: boolean, shift: boolean, alt =
     void redo();
     return true;
   }
+  if (meta && !alt && !shift && lower === 'k' && visual && project) {
+    setState({ canvasSearchOpen: !getState().canvasSearchOpen });
+    return true;
+  }
   if ((meta && key === '/') || (plain && key === '?')) {
     setState({ shortcutsOpen: true });
     return true;

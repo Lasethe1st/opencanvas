@@ -1989,17 +1989,22 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 /* Right-click menu and the Ask AI chat it blooms into: frosted glass from the first frame of the
    bloom, so the glass grows with the shape. Once it has settled into the chat, the surface firms up
    to 92% so long replies stay readable over a busy design. */
+:root {
+  /* Settled dock-chat glass, shared with the canvas search palette in dark mode. */
+  --glass-settled-bg: color-mix(in oklab, var(--surface) 92%, transparent);
+  --glass-settled-filter: blur(20px) saturate(160%);
+}
 .ctx-bloom {
   --glass-edge: rgb(255 255 255 / 0.4);
   background: color-mix(in oklab, var(--surface) 72%, transparent);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: var(--glass-settled-filter);
+  backdrop-filter: var(--glass-settled-filter);
   border-color: var(--glass-edge);
   transition: background-color 0.2s ease;
 }
 [data-theme='dark'] .ctx-bloom { --glass-edge: rgb(255 255 255 / 0.08); }
 .ctx-bloom--chat {
-  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  background: var(--glass-settled-bg);
   transition: background-color 0.2s ease 0.28s, height 0.24s var(--ease, ease);
 }
 @media (prefers-reduced-transparency: reduce) {
@@ -2143,3 +2148,166 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 .calm-circle:active { transform: scale(0.96); }
 .calm-circle[aria-pressed='true'] { border-color: var(--fg); background: var(--fg); color: var(--surface); }
 .calm-circle[aria-pressed='true']:hover { background: var(--fg); }
+
+/* ---------- Canvas search palette (Ctrl/Cmd+K on the canvas page) ---------- */
+.canvas-search__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 14vh;
+  background: var(--backdrop);
+  animation: fade-in 0.15s var(--ease);
+}
+[data-theme='dark'] .canvas-search {
+  background: var(--glass-settled-bg);
+  -webkit-backdrop-filter: var(--glass-settled-filter);
+  backdrop-filter: var(--glass-settled-filter);
+}
+.canvas-search {
+  width: min(560px, calc(100vw - 32px));
+  height: 380px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--frost-border);
+  border-radius: 22px;
+  corner-shape: squircle;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  box-shadow: var(--shadow-md);
+  -webkit-backdrop-filter: var(--frost-filter);
+  backdrop-filter: var(--frost-filter);
+  transform-origin: 50% 0;
+  animation: canvas-search-bloom 260ms cubic-bezier(0.2, 0.9, 0.25, 1.15);
+}
+@keyframes canvas-search-bloom {
+  from { opacity: 0; transform: scale(0.92, 0.6); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .canvas-search { animation: none; }
+}
+.canvas-search__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  flex: none;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--frost-border);
+  color: var(--fg-3);
+}
+.canvas-search__field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+}
+.canvas-search__kbd {
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--frost-border);
+  color: var(--fg-3);
+}
+.canvas-search__list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 6px;
+  scroll-padding: 28px 0 6px;
+}
+.canvas-search__group {
+  padding: 8px 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-3);
+}
+.canvas-search__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 10px;
+  corner-shape: squircle;
+  cursor: default;
+  color: var(--fg);
+  font-size: 13px;
+  transition: background-color 120ms ease;
+}
+.canvas-search__row.is-active {
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+}
+.canvas-search__chip {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 7px;
+  corner-shape: squircle;
+  color: var(--kind);
+  background: color-mix(in srgb, var(--kind) 16%, transparent);
+}
+.canvas-search__row { --kind: var(--layer-struct); }
+.canvas-search__row[data-kind='text'] { --kind: var(--layer-text); }
+.canvas-search__row[data-kind='media'] { --kind: var(--layer-media); }
+.canvas-search__row[data-kind='action'] { --kind: var(--layer-action); }
+.canvas-search__row[data-kind='form'] { --kind: var(--layer-form); }
+.canvas-search__row[data-kind='frame'] { --kind: var(--select); }
+.canvas-search__row[data-kind='command'] { --kind: var(--fg-3); }
+.canvas-search__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.canvas-search__label mark {
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--kind) 20%, transparent);
+  color: inherit;
+  font-weight: 600;
+}
+.canvas-search__hint {
+  margin-top: auto;
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  color: var(--fg-3);
+}
+.canvas-search__hint kbd {
+  font: inherit;
+  padding: 0 4px;
+  border-radius: 4px;
+  border: 1px solid var(--frost-border);
+}
+.canvas-search__device {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--fg-3);
+}
+.canvas-search__meta {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+.canvas-search__empty {
+  padding: 32px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--fg-3);
+}
