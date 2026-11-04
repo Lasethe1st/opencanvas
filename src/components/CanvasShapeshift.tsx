@@ -25,7 +25,8 @@ function chatHeight() {
 }
 
 /** The assistant docker: bottom-centre of the canvas. Chat with the AI about this project, @ layers and pages, or run quick commands. */
-export function CanvasShapeshift() {
+export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'panel' } = {}) {
+  const panel = variant === 'panel';
   const handle = useRef<ShapeshiftHandle>(null);
   const [focused, setFocused] = useState(false);
   const [voice, setVoice] = useState(false);
@@ -47,7 +48,7 @@ export function CanvasShapeshift() {
   const endVoice = () => {
     const before = chatLenAtStart.current;
     setVoice(false);
-    if (getState().aiChat.length > before) setState({ dockMode: 'input' });
+    if (!panel && getState().aiChat.length > before) setState({ dockMode: 'input' });
   };
   const chatLenAtStart = useRef(0);
   const startVoice = () => {
@@ -55,7 +56,9 @@ export function CanvasShapeshift() {
     setVoice(true);
   };
 
-  const placeholder = !ready
+  const placeholder = panel && ready && !selection
+    ? 'Ask AI, or type @ or /'
+    : !ready
     ? 'Set up AI in Settings to chat here'
     : selection
       ? `Ask about ${selection.name}…`
@@ -86,17 +89,18 @@ export function CanvasShapeshift() {
     if (!request) return;
     if (!getState().aiStatus?.ready) {
       // No AI provider yet: the dock's hand-off panel can copy it as a prompt for another agent.
-      setState({ dockDraft: request, dockMode: 'input' });
+      setState({ dockDraft: request, ...(panel ? {} : { dockMode: 'input' as const }) });
       return;
     }
     const references = referencesIn(request).map((r) => ({ kind: r.kind, name: r.name, id: r.id, path: r.path }));
-    setState({ dockMode: 'input' });
+    if (!panel) setState({ dockMode: 'input' });
     void sendToAi(request, { references });
   };
 
-  return (
-    <DockRow tucked={chatOpen || focused || voice || !quickPills}>
-    <div className="canvas-shapeshift assistant-docker" onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
+  const wrap = (children: React.ReactNode) => (panel ? <>{children}</> : <DockRow tucked={chatOpen || focused || voice || !quickPills}>{children}</DockRow>);
+  return wrap(
+    <>
+    <div className={`canvas-shapeshift assistant-docker${panel ? ' assistant-docker--panel' : ''}`} onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
       <Shapeshift
         ref={handle}
         shapes={assistantShapes}
@@ -112,7 +116,7 @@ export function CanvasShapeshift() {
         placeholder={placeholder}
         listAll={false}
         above={
-          <AnimatePresence initial={false}>
+          panel ? undefined : <AnimatePresence initial={false}>
             {chatOpen && (
               <motion.div
                 key="chat"
@@ -145,6 +149,6 @@ export function CanvasShapeshift() {
       </div>,
       document.body,
     )}
-    </DockRow>
+    </>,
   );
 }
