@@ -2311,3 +2311,7 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
   font-size: 13px;
   color: var(--fg-3);
 }
+
+/* @ mention list: rounded icon tiles and rows, like the rest of the docker. */
+body:has(.shell .workspace) .assistant-docker [role='listbox'] button { border-radius: 12px !important; }
+body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:first-child { border-radius: 9px !important; }
