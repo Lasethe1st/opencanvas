@@ -2321,3 +2321,30 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
   font-size: 13px;
   color: var(--fg-3);
 }
+
+.canvas-search__skeleton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 8px;
+}
+.canvas-search__skeleton span {
+  height: 10px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+  animation: canvas-search-pulse 1.2s ease-in-out infinite;
+}
+.canvas-search__skeleton span:first-child {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  corner-shape: squircle;
+}
+@keyframes canvas-search-pulse {
+  50% { opacity: 0.5; }
+}
+.canvas-search__list > .canvas-search__empty {
+  padding: 14px 8px 4px;
+  text-align: left;
+}
