@@ -13,6 +13,7 @@ import { getAsk, setAsk, useAsk } from '../lib/ask-box';
 import { AskChat, CHAT_H, CHAT_W } from './AskBox';
 import { ROW, sideBloomKey, type SideItem } from './SideBloom';
 import { CommentPanel } from './CommentPopover';
+import { getExperienceLevel } from '../lib/experience';
 import { editSelectedText, INLINE_TAGS } from '../lib/inline-edit';
 import { getState, toast, useStore } from '../lib/store';
 import { sendToAi } from '../lib/ai';
@@ -313,7 +314,9 @@ export function ElementContextMenu() {
     { label: 'Move down', icon: icon(ArrowDown01Icon), hint: 'Alt+↓', disabled: !canEdit, run: () => void moveSelected('down') },
     { label: 'Ungroup', icon: icon(LeftToRightListBulletIcon), disabled: !canEdit, run: () => void ungroupSelected() },
     { label: markers ? 'Hide comments' : 'Show comments', icon: icon(markers ? ViewOffIcon : ViewIcon), run: () => setShowMarkers(!markers) },
-    { label: 'Open in code', icon: icon(CodeIcon), disabled: !snap?.source, run: () => snap?.source && revealInCode(snap.source.file, snap.source.line) },
+    ...(getExperienceLevel() === 'veteran'
+      ? [{ label: 'Open in code', icon: icon(CodeIcon), disabled: !snap?.source, run: () => snap?.source && revealInCode(snap.source.file, snap.source.line) }]
+      : []),
   ];
   const groups: Item[][] = !sel ? [] : [
     ai,

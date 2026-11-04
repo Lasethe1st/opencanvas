@@ -2,6 +2,7 @@ import { AtSign, Download, Eye, GitBranch, Maximize, MessageSquarePlus, PanelBot
 import type { ReactNode } from 'react';
 import { closeProject, redo, undo } from '../lib/actions';
 import { setCalm } from '../lib/calm';
+import { setExperienceLevel } from '../lib/experience';
 import { newAiChat } from '../lib/ai';
 import { addFrame, fitAll } from '../lib/canvas';
 import { getState, setState, toast, type TreeNode } from '../lib/store';
@@ -161,7 +162,7 @@ export const assistantShapes: Shape[] = [
   command('preview', 'Preview', 'Open the full-screen preview', <Eye />, ['preview', 'play'], () => setState({ fullPreview: true }), 'Preview'),
   command('versions', 'Versions', 'Open Git to save or publish a version', <GitBranch />, ['versions', 'commit', 'git', 'save version'], () => (setCalm(false), setState({ gitOpen: true })), 'Open'),
   command('export', 'Export', 'Export the project', <Download />, ['export', 'download'], () => setState({ exportOpen: true }), 'Export'),
-  command('panels', 'Show panels', 'Bring back the top bar, tools, layers, inspector and terminal', <PanelBottom />, ['panels', 'show panels', 'layers', 'inspector', 'tools', 'code', 'terminal'], () => setCalm(false), 'Show'),
+  command('panels', 'Show panels', 'Bring back the top bar, tools, layers, inspector and terminal', <PanelBottom />, ['panels', 'show panels', 'layers', 'inspector', 'tools', 'code', 'terminal'], () => { setExperienceLevel('veteran'); setCalm(false); }, 'Show'),
   command('calm', 'Hide panels', 'Back to just your site and this dock', <PanelBottom />, ['hide panels', 'calm', 'focus'], () => setCalm(true), 'Hide'),
   command('settings', 'Settings', 'Open settings', <Settings />, ['settings', 'preferences'], () => setState({ settingsOpen: true }), 'Open'),
   command('home', 'Home', 'Close this project and go back to home', <Square />, ['home', 'close project', 'projects'], () => void closeProject(), 'Go home'),

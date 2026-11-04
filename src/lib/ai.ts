@@ -83,7 +83,7 @@ function turnContext(extra?: Pick<AiTurnContext, 'skills' | 'references'>): AiTu
   const page = activePage();
   return {
     selection: s.selection ? { id: s.selection.id, name: s.selection.name, tag: s.selection.tag } : null,
-    page: page ? { name: page.name, path: page.path } : null,
+    page: page ? { name: page.name, path: page.path, file: page.file } : null,
     frameWidth: activeFrame(s)?.width ?? null,
     memory: memoryLines(),
     skills: extra?.skills,
@@ -96,9 +96,13 @@ export async function sendToAi(request: string, extra?: Pick<AiTurnContext, 'ski
   const text = request.trim();
   if (!text) return false;
 
+  // A follow-up in an open project (chat already has turns) completes the “ask for one more change” step.
+  const followUp = !!getState().project && getState().aiChat.length > 0;
+
   if (getState().aiTurnId || sendLock) {
     pendingRequests.push(text);
     if (getState().dockDraft.trim() === text) setState({ dockDraft: '' });
+    if (followUp) void import('./onboarding').then((m) => m.completeOnboardingTask('ask-more'));
     return true;
   }
 
@@ -106,6 +110,7 @@ export async function sendToAi(request: string, extra?: Pick<AiTurnContext, 'ski
   try {
     await api.ai.send(text, turnContext(extra));
     if (getState().dockDraft.trim() === text) setState({ dockDraft: '' });
+    if (followUp) void import('./onboarding').then((m) => m.completeOnboardingTask('ask-more'));
     return true;
   } catch (err) {
     sendLock = false;

@@ -103,6 +103,10 @@ When the user needs current facts, docs, news, or anything you should verify onl
 
 When they want canvas or project changes: use the project tools. Edits show up live. Prefer get_design_system tokens via var(--…) and registered components; don't invent duplicates. For broad token edits, call design_system_impact or propose_token_change (preview first) and say who it hits before applying. Plan briefly, run tools, then summarize in a few sentences — not a checklist. One reply = one undo step, so make coherent changes.
 
+Building the first version of a mostly empty page: write_file the page (usually src/App.jsx) with real sections in one go, then set_styles. Don't stop at get_outline / get_design_direction without writing UI. Skip ask_user unless a choice would change the whole site.
+
+Project files live on disk. Use list_files, read_file, and get_outline whenever you need source — the user does not need to open anything in the code editor. Never say you can't help because a file isn't open; read it yourself.
+
 If a project action is ambiguous in a way that would change the result, call ask_user once with a few short options. Never ask more than two questions in one reply.
 
 git_commit, git_publish, go_live, import_files and run_command need permission each time; the app asks for you. If they decline, accept it and move on.
@@ -217,7 +221,9 @@ function elementIdOf(args: Record<string, any>, content: McpContent[]): string |
 function describeTurnContext(ctx: AiTurnContext | undefined): string {
   if (!ctx) return '';
   const lines: string[] = [];
-  if (ctx.page) lines.push(`The user is looking at the page "${ctx.page.name}" (${ctx.page.path}).`);
+  if (ctx.page) {
+    lines.push(`The user is looking at the page "${ctx.page.name}" (${ctx.page.path})${ctx.page.file ? ` — source ${ctx.page.file}` : ''}.`);
+  }
   if (ctx.frameWidth) lines.push(`Active frame width: ${Math.round(ctx.frameWidth)}px.`);
   if (ctx.selection) lines.push(`Selected element: <${ctx.selection.tag}> "${ctx.selection.name}" (id ${ctx.selection.id}). "This", "it" or "here" most likely means this element.`);
   for (const ref of (ctx.references ?? []).slice(0, 12)) {

@@ -15,6 +15,8 @@ export function ViewportSwitch(props: { value: ViewportId; onChange?: (id: Viewp
 export function ModeSwitch(props: {
   value: 'visual' | 'interact' | 'code';
   onChange?: (id: 'visual' | 'interact' | 'code') => void;
+  /** Hide Code for beginner/intermediate experience levels. */
+  showCode?: boolean;
 }): JSX.Element;
 export function PreviewButton(props: { onClick?: () => void }): JSX.Element;
 export function PanelsButton(props: { hidden: boolean; onClick?: () => void }): JSX.Element;

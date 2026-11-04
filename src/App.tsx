@@ -24,6 +24,7 @@ import { handleShortcut } from './lib/shortcuts';
 import { loadPanels } from './lib/panels';
 import { useAutoReadAloud } from './lib/read-aloud';
 import { useCalm, useCalmPanels } from './lib/calm';
+import { getExperienceLevel, useExperienceLevel } from './lib/experience';
 import { CalmPills } from './components/CalmPills';
 import { getState, setState, useStore } from './lib/store';
 import { initTerminals, toggleTerminal } from './lib/terminal';
@@ -37,11 +38,16 @@ export default function App() {
   useAutoReadAloud();
   const calm = useCalm();
   const calmPanels = useCalmPanels();
+  const level = useExperienceLevel();
   const project = useStore((s) => s.project);
   const mode = useStore((s) => s.mode);
   const auditOpen = useStore((s) => s.auditOpen);
   const gitOpen = useStore((s) => s.gitOpen);
   const insertPanel = useStore((s) => s.insertPanel);
+  const showLayers = level !== 'beginner';
+  const showInspector = level !== 'beginner';
+  const showTerminal = level === 'veteran';
+  const showToolRail = level === 'veteran';
 
   useEffect(() => {
     const offStatus = api.onPreviewStatus((status) => setState({ previewStatus: status }));
@@ -82,7 +88,7 @@ export default function App() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const meta = event.ctrlKey || event.metaKey;
-      if (meta && event.key === '`' && getState().project) {
+      if (meta && event.key === '`' && getState().project && getExperienceLevel() === 'veteran') {
         event.preventDefault();
         toggleTerminal();
         return;
@@ -131,6 +137,10 @@ export default function App() {
   useEffect(() => {
     if (projectRoot) loadPanels();
   }, [projectRoot]);
+  // Code mode is veteran-only — drop back to the canvas if the level is lower.
+  useEffect(() => {
+    if (level !== 'veteran' && mode === 'code') setState({ mode: 'visual' });
+  }, [level, mode]);
   const panelsHidden = useStore((s) => s.panelsHidden);
   // The agent page brings its own inspector, so the canvas's Visual/Code/Motion panel steps aside there.
   const onAgentPage = useStore((s) => (s.projectConfig?.pages.find((p) => p.id === s.workspace.activePageId)?.viewType ?? 'design') === 'agent');
@@ -153,14 +163,14 @@ export default function App() {
     <div className={`shell${calm ? ' shell--calm' : ''}`} data-calm-left={calm && calmPanels.left ? '' : undefined} data-calm-right={calm && calmPanels.right ? '' : undefined}>
       <TopBar />
       <div className={`workspace${mode === 'visual' ? ' workspace--bleed' : ''}${focus ? ' is-focus' : ''}`} ref={workspaceRef}>
-        <ToolRail />
-        {gitOpen ? <GitPanel /> : insertPanel === 'frame' ? <InsertPanel /> : <LeftSidebar />}
+        {showToolRail && <ToolRail />}
+        {showLayers && (gitOpen ? <GitPanel /> : insertPanel === 'frame' ? <InsertPanel /> : <LeftSidebar />)}
         <div className="workspace__center">
           <WorkspaceSplit />
-          <TerminalPanel />
+          {showTerminal && <TerminalPanel />}
           {calm && mode === 'visual' && <CalmPills />}
         </div>
-        {auditOpen ? <BugCheckPanel /> : mode === 'visual' && !onAgentPage && <Inspector />}
+        {showInspector && (auditOpen ? <BugCheckPanel /> : mode === 'visual' && !onAgentPage && <Inspector />)}
         <SettingsPage />
       </div>
       {mode === 'visual' && <CanvasSearch />}

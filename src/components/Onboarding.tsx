@@ -17,6 +17,7 @@ import {
   updateHomeChatItems,
   type HomeChat as HomeChatRecord,
 } from '../lib/home-chats';
+import { startProjectFromBrief } from '../lib/start-project';
 import { getState, setState, toast, useStore } from '../lib/store';
 import { homeItemActions } from './home/HomeItemMenu';
 import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
@@ -53,6 +54,19 @@ const focusPrompt = () => requestAnimationFrame(() => document.querySelector<HTM
 function briefFromChat(items: { kind: string; text?: string }[]): string {
   const users = items.filter((i): i is { kind: 'user'; text: string } => i.kind === 'user' && typeof i.text === 'string');
   return users[0]?.text ?? users[users.length - 1]?.text ?? '';
+}
+
+/** True when the person asks to turn the idea into a site — not just while they're describing it. */
+const BUILD_INTENT =
+  /\b(build|make|create|turn|start|generate|spin)\b.{0,40}\b(site|website|web\s*page|page|project|it|this|that)\b|\b(lets?|let'?s|can we|could we|shall we|please)\b.{0,24}\b(build|make|create|start|go)\b|\b(go ahead|build it|make it|ship it|do it|start building|build this)\b|^(go|build|make it|create it|start|yes,? build)\b/i;
+
+function wantsToBuildSite(draft: string, items: { kind: string; text?: string }[]): boolean {
+  if (BUILD_INTENT.test(draft.trim())) return true;
+  const recent = items
+    .filter((i): i is { kind: 'user'; text: string } => i.kind === 'user' && typeof i.text === 'string')
+    .slice(-4)
+    .map((i) => i.text);
+  return recent.some((t) => BUILD_INTENT.test(t.trim()));
 }
 
 export function Onboarding() {
@@ -177,7 +191,12 @@ export function Onboarding() {
 
   const sendHome = useCallback(async () => {
     const text = dockDraft.trim();
-    if (!text || !aiReady) return;
+    if (!text || busy) return;
+    // No AI yet: Enter still starts the project from the brief — the key is optional, not a gate.
+    if (!aiReady) {
+      void startProjectFromBrief(text);
+      return;
+    }
     const first = aiChat.length === 0;
     const refs = [...mentioned, ...chatSources].filter((x) => text.includes(x.title)).sort((a, b) => text.indexOf(a.title) - text.indexOf(b.title));
     const full = refs.length ? `${text}\n\nReferenced:\n${refs.map((x) => `- [${x.kind}] ${x.title} (${x.detail.replace(/\s+/g, ' ').slice(0, 500)})`).join('\n')}` : text;
@@ -194,7 +213,7 @@ export function Onboarding() {
       });
     }
     if (ok) focusPrompt();
-  }, [dockDraft, aiReady, aiChat.length, mentioned, chatSources]);
+  }, [dockDraft, busy, aiReady, aiChat.length, mentioned, chatSources]);
 
   // Keep the composer ready for the next turn — chat should feel continuous, not transactional.
   useEffect(() => {
@@ -213,9 +232,12 @@ export function Onboarding() {
     setChats((current) => updateHomeChatItems(current, id, items));
   }, [aiTurnId]);
 
-  const continueToSetup = useCallback(() => {
-    openNew({ path: 'ai', brief: briefFromChat(aiChat) || dockDraft.trim() });
-  }, [aiChat, dockDraft, openNew]);
+  /** Skip the wizard: brief → blank project → canvas → first AI turn. */
+  const continueToProject = useCallback(() => {
+    const brief = briefFromChat(aiChat) || dockDraft.trim();
+    if (!brief || busy) return;
+    void startProjectFromBrief(brief);
+  }, [aiChat, dockDraft, busy]);
 
   const RECENT = 4;
   const newChat = useCallback(() => {
@@ -329,15 +351,51 @@ export function Onboarding() {
     ],
     [chats, recent, busy, pickChat, openNew, chatMenu, projectMenu],
   );
-  const tasks: OnboardingTask[] = useMemo(
-    () => [
-      { id: 'key', label: 'Add an AI provider key', done: aiReady, onSelect: () => setState({ settingsOpen: true }) },
-      { id: 'project', label: 'Create your first project', done: (recent?.length ?? 0) > 0 || onboarding.done.includes('project'), onSelect: () => openNew() },
-      { id: 'skill', label: 'Try a skill with /', done: onboarding.done.includes('skill'), onSelect: () => { setState({ dockDraft: '/' }); focusPrompt(); } },
-      { id: 'mention', label: 'Reference something with @', done: onboarding.done.includes('mention'), onSelect: () => { setState({ dockDraft: '@' }); focusPrompt(); } },
-    ],
-    [aiReady, recent, onboarding.done, openNew],
-  );
+  const tasks: OnboardingTask[] = useMemo(() => {
+    const core: OnboardingTask[] = [
+      {
+        id: 'describe',
+        label: 'Describe a site and build it',
+        done: (recent?.length ?? 0) > 0 || onboarding.done.includes('describe') || onboarding.done.includes('project'),
+        onSelect: () => {
+          if (dockDraft.trim() || briefFromChat(aiChat)) continueToProject();
+          else focusPrompt();
+        },
+      },
+      {
+        id: 'click',
+        label: 'Click something and change it',
+        done: onboarding.done.includes('click'),
+        onSelect: () => {
+          if ((recent?.length ?? 0) > 0) void openRecent(recent![0].root);
+          else focusPrompt();
+        },
+      },
+      {
+        id: 'ask-more',
+        label: 'Ask AI for one more change',
+        done: onboarding.done.includes('ask-more'),
+        onSelect: () => {
+          if (!aiReady) {
+            setState({ settingsOpen: true, settingsTab: 'ai' });
+            return;
+          }
+          if ((recent?.length ?? 0) > 0) void openRecent(recent![0].root);
+          else focusPrompt();
+        },
+      },
+    ];
+    // AI key comes last and only while missing — the loop works without it (scratch / prompt hand-off).
+    if (!aiReady) {
+      core.push({
+        id: 'key',
+        label: 'Connect AI when you’re ready',
+        done: false,
+        onSelect: () => setState({ settingsOpen: true, settingsTab: 'ai' }),
+      });
+    }
+    return core;
+  }, [aiReady, recent, onboarding.done, dockDraft, aiChat, continueToProject]);
 
   return (
     <>
@@ -405,7 +463,7 @@ export function Onboarding() {
                 <div className="mx-auto w-full max-w-[680px] flex-1 px-8 pt-16">
                   <HomeChat />
                 </div>
-                <div className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-[var(--home-card)] from-[40%] via-[color-mix(in_srgb,var(--home-card)_60%,transparent)] via-[55%] to-transparent to-75% px-8 pb-6 pt-8">
+                <div className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-[var(--home-card)] from-[40%] via-[color-mix(in_srgb,var(--home-card)_60%,transparent)] via-[55%] to-transparent to-75% px-8 pb-3 pt-8">
                   <div className="mx-auto flex w-full max-w-[680px] flex-col gap-2">
                     {!voiceMode && (
                       <HomeStatusPills
@@ -417,12 +475,19 @@ export function Onboarding() {
                       <VoiceOrbSession onClose={endVoice} />
                     ) : (
                       <>
+                        {wantsToBuildSite(dockDraft, aiChat) && (
+                          <div className="flex w-full justify-start px-1">
+                            <Button type="button" variant="secondary" className="rounded-[var(--pill)] text-[13px] font-normal" disabled={busy || !!aiTurnId} onClick={continueToProject}>
+                              {aiReady ? 'Build this site' : 'Continue to project'}
+                            </Button>
+                          </div>
+                        )}
                         <HomePrompt
                           value={dockDraft}
                           onChange={(value) => setState({ dockDraft: value })}
                           onSubmit={() => void sendHome()}
-                          onVoice={startVoice}
-                          disabled={busy || !aiReady}
+                          onVoice={aiReady ? startVoice : undefined}
+                          disabled={busy}
                           sending={!!aiTurnId}
                           mentions={mentionOptions}
                           onMention={onMention}
@@ -430,7 +495,7 @@ export function Onboarding() {
                           onOpenSkills={openSkills}
                         />
                         <HomeComposerExtras />
-                        <div className="px-1">
+                        <div className="flex flex-wrap items-center gap-2 px-1">
                           <HomeAiHint />
                         </div>
                       </>
@@ -442,12 +507,19 @@ export function Onboarding() {
               <div className="flex w-full max-w-[680px] flex-col items-center">
                 <h1 className="mb-6 font-geist text-balance text-center text-[32px] font-medium leading-[1.1] tracking-[-0.02em]">{greeting(displayName)}</h1>
                 <div className="flex w-full flex-col items-center gap-3">
+                  {wantsToBuildSite(dockDraft, aiChat) && (
+                    <div className="flex w-full justify-start">
+                      <Button type="button" variant="secondary" className="rounded-[var(--pill)] text-[13px] font-normal" disabled={busy} onClick={continueToProject}>
+                        {aiReady ? 'Build this site' : 'Continue to project'}
+                      </Button>
+                    </div>
+                  )}
                   <HomePrompt
                     value={dockDraft}
                     onChange={(value) => setState({ dockDraft: value })}
                     onSubmit={() => void sendHome()}
-                    onVoice={startVoice}
-                    disabled={busy || !aiReady}
+                    onVoice={aiReady ? startVoice : undefined}
+                    disabled={busy}
                     sending={!!aiTurnId}
                     mentions={mentionOptions}
                     onMention={onMention}
@@ -456,11 +528,6 @@ export function Onboarding() {
                   />
                   <HomeComposerExtras />
                   <HomeAiHint className="text-center" />
-                  {dockDraft.trim() && !aiReady && (
-                    <Button type="button" variant="secondary" className="rounded-[var(--pill)] text-[13px] font-normal" onClick={continueToSetup}>
-                      Continue to project
-                    </Button>
-                  )}
                 </div>
               </div>
             )}
