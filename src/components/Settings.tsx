@@ -46,6 +46,9 @@ const TABS: { id: SettingsTab; label: string; icon: typeof Sun; lead: string | n
 export function SettingsPage() {
   const open = useStore((s) => s.settingsOpen);
   const tab = useStore((s) => s.settingsTab);
+  const level = useExperienceLevel();
+  const tabs = TABS.filter((t) => t.id !== 'mcp' || level === 'veteran');
+  const activeTab = tab === 'mcp' && level !== 'veteran' ? 'general' : tab;
   const setTab = (id: SettingsTab) => setState({ settingsTab: id });
   const close = () => setState({ settingsOpen: false });
   const dialog = useRef<HTMLElement>(null);
@@ -65,8 +68,12 @@ export function SettingsPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
+  useEffect(() => {
+    if (tab === 'mcp' && level !== 'veteran') setState({ settingsTab: 'general' });
+  }, [tab, level]);
+
   if (!open) return null;
-  const current = TABS.find((t) => t.id === tab)!;
+  const current = tabs.find((t) => t.id === activeTab) ?? tabs[0]!;
   // Portaled to <body>: the workspace restyles its direct children, which pushed this page off to the side.
   return createPortal(
     <TooltipProvider>
@@ -74,8 +81,8 @@ export function SettingsPage() {
         <section ref={dialog} className="settings-page" role="dialog" aria-modal="true" aria-label="Settings">
           <nav className="settings-page__nav" role="tablist" aria-label="Settings sections" aria-orientation="vertical">
             <h1 className="settings-page__title">Settings</h1>
-            {TABS.map(({ id, label, icon: Icon }) => (
-              <button key={id} role="tab" aria-selected={tab === id} className={`settings-page__tab${tab === id ? ' is-active' : ''}`} onClick={() => setTab(id)}>
+            {tabs.map(({ id, label, icon: Icon }) => (
+              <button key={id} role="tab" aria-selected={activeTab === id} className={`settings-page__tab${activeTab === id ? ' is-active' : ''}`} onClick={() => setTab(id)}>
                 <Icon size={16} />
                 {label}
               </button>
@@ -96,11 +103,11 @@ export function SettingsPage() {
               </button>
             </header>
             <div className="settings-page__inner">
-              {tab === 'general' ? (
+              {activeTab === 'general' ? (
                 <GeneralSettings />
-              ) : tab === 'appearance' ? (
+              ) : activeTab === 'appearance' ? (
                 <AppearanceSettings />
-              ) : tab === 'ai' ? (
+              ) : activeTab === 'ai' ? (
                 <AiSettingsPanel />
               ) : (
                 <McpSettings />
@@ -199,7 +206,14 @@ function GeneralSettings() {
           <Switch label="Comment markers" checked={markers} onChange={setShowMarkers} />
         </SettingRow>
         <SettingRow label="Quick edit pills" hint="The Edit, Font and Colour pills that appear beside the dock when you select an element.">
-          <Switch label="Quick edit pills" checked={pills} onChange={setQuickPills} />
+          <Switch
+            label="Quick edit pills"
+            checked={level === 'beginner' ? true : pills}
+            onChange={(on) => {
+              if (level === 'beginner' && !on) return;
+              setQuickPills(on);
+            }}
+          />
         </SettingRow>
         <SettingRow label="Rulers" hint="Show rulers along the edges of the canvas.">
           <Switch label="Rulers" checked={rulers} onChange={setRulers} />

@@ -1,6 +1,7 @@
 /** Experience level: one editor that reveals more as the person grows. Beginner is the default. */
 import { useSyncExternalStore } from 'react';
-import { setCalm } from './calm';
+import { closeCalmPanels, setCalm } from './calm';
+import { setQuickPills } from './prefs';
 import { setState } from './store';
 
 export type ExperienceLevel = 'beginner' | 'intermediate' | 'veteran';
@@ -24,8 +25,15 @@ const read = (): ExperienceLevel => {
 
 let level: ExperienceLevel = read();
 
-/** Beginner defaults to the calm canvas so the first open matches the vision. */
-if (level === 'beginner') setCalm(true);
+/** Beginner: calm canvas, quick pills, no side chrome — matches the vision default. */
+function applyBeginnerDefaults() {
+  setCalm(true);
+  setQuickPills(true);
+  closeCalmPanels();
+  setState({ mode: 'visual', interact: false, tool: 'select', settingsTab: 'general' });
+}
+
+if (level === 'beginner') applyBeginnerDefaults();
 
 export const getExperienceLevel = () => level;
 
@@ -37,10 +45,7 @@ export function setExperienceLevel(next: ExperienceLevel) {
   } catch {
     /* storage blocked */
   }
-  if (next === 'beginner') {
-    setCalm(true);
-    setState({ mode: 'visual', interact: false, tool: 'select' });
-  }
+  if (next === 'beginner') applyBeginnerDefaults();
   listeners.forEach((l) => l());
 }
 

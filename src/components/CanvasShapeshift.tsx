@@ -9,6 +9,7 @@ import { getAsk, setAsk } from '../lib/ask-box';
 import { closeElementMenu } from '../lib/element-menu';
 import { selectElement } from '../lib/actions';
 import { sendToAi } from '../lib/ai';
+import { useExperienceLevel } from '../lib/experience';
 import { activePage } from '../lib/pages';
 import { getState, setState, useStore } from '../lib/store';
 import { InputPanel } from './Dock';
@@ -31,6 +32,8 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
   const [focused, setFocused] = useState(false);
   const [voice, setVoice] = useState(false);
   const quickPills = useQuickPills();
+  const level = useExperienceLevel();
+  const showPills = level === 'beginner' || quickPills;
   const selection = useStore((s) => s.selection);
   const ready = useStore((s) => !!s.aiStatus?.ready);
   const busy = useStore((s) => !!s.aiTurnId);
@@ -59,7 +62,7 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
   const placeholder = panel && ready && !selection
     ? 'Ask AI, or type @ or /'
     : !ready
-    ? 'Set up AI in Settings to chat here'
+    ? 'Select something to edit by hand — connect AI in Settings when ready'
     : selection
       ? `Ask about ${selection.name}…`
       : pageName
@@ -97,7 +100,7 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
     void sendToAi(request, { references });
   };
 
-  const wrap = (children: React.ReactNode) => (panel ? <>{children}</> : <DockRow tucked={chatOpen || focused || voice || !quickPills}>{children}</DockRow>);
+  const wrap = (children: React.ReactNode) => (panel ? <>{children}</> : <DockRow tucked={chatOpen || focused || voice || !showPills}>{children}</DockRow>);
   return wrap(
     <>
     <div className={`canvas-shapeshift assistant-docker${panel ? ' assistant-docker--panel' : ''}`} onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>

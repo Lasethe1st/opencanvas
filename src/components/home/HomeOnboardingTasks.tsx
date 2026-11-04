@@ -1,5 +1,12 @@
 import { Check, X } from '../../lib/home-icons';
 import { useCallback, useEffect, useState } from 'react';
+import {
+  completeOnboardingTask,
+  dismissOnboarding,
+  loadOnboarding,
+  subscribeOnboarding,
+  type OnboardingSaved,
+} from '../../lib/onboarding';
 import { cn } from '@/lib/utils';
 
 export interface OnboardingTask {
@@ -10,38 +17,20 @@ export interface OnboardingTask {
   onSelect: () => void;
 }
 
-const KEY = 'oc-onboarding';
+export { completeOnboardingTask };
 
-interface Saved {
-  done: string[];
-  dismissed: boolean;
-}
-
-function load(): Saved {
-  try {
-    const raw = JSON.parse(localStorage.getItem(KEY) ?? '{}');
-    return { done: Array.isArray(raw.done) ? raw.done.filter((x: unknown): x is string => typeof x === 'string') : [], dismissed: raw.dismissed === true };
-  } catch {
-    return { done: [], dismissed: false };
-  }
-}
-
-/** Remembers which first-run tasks were finished, even ones the app can't detect later (like trying `/`). */
+/** Remembers which first-run tasks were finished, even ones the app can't detect later. */
 export function useOnboarding() {
-  const [saved, setSaved] = useState<Saved>(load);
-  const update = useCallback((fn: (s: Saved) => Saved) => {
-    setSaved((cur) => {
-      const next = fn(cur);
-      try {
-        localStorage.setItem(KEY, JSON.stringify(next));
-      } catch {
-        /* storage blocked */
-      }
-      return next;
-    });
+  const [saved, setSaved] = useState<OnboardingSaved>(loadOnboarding);
+  useEffect(() => subscribeOnboarding(() => setSaved(loadOnboarding())), []);
+  const complete = useCallback((id: string) => {
+    completeOnboardingTask(id);
+    setSaved(loadOnboarding());
   }, []);
-  const complete = useCallback((id: string) => update((s) => (s.done.includes(id) ? s : { ...s, done: [...s.done, id] })), [update]);
-  const dismiss = useCallback(() => update((s) => ({ ...s, dismissed: true })), [update]);
+  const dismiss = useCallback(() => {
+    dismissOnboarding();
+    setSaved(loadOnboarding());
+  }, []);
   return { done: saved.done, dismissed: saved.dismissed, complete, dismiss };
 }
 

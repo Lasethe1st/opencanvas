@@ -174,6 +174,7 @@ export async function createProject(template: TemplateId, name: string, setup?: 
   setState({ busy: true });
   try {
     await loadProject(await api.createProject(template, name, setup));
+    void import('./onboarding').then((m) => m.completeOnboardingTask('describe'));
     return true;
   } catch (err) {
     toast(errorMessage(err), 'error');
@@ -571,6 +572,10 @@ export async function runEdit(command: EditCommand, label: string, prefix: FileC
       setState((s) => ({ past: [...s.past, entry], future: [] }));
     }
     afterChange(result.selectId ?? null, result.changes.map((c) => c.path));
+    // Getting started: a hand edit on the canvas completes “click something and change it”.
+    if (result.changes.length || prefix.length) {
+      void import('./onboarding').then((m) => m.completeOnboardingTask('click'));
+    }
     return true;
   } catch (err) {
     toast(errorMessage(err), 'error');

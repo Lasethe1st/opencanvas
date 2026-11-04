@@ -51,4 +51,16 @@ export function toggleCalmPanel(side: 'left' | 'right') {
   listeners.forEach((l) => l());
 }
 
+/** Beginner path: both side panels stay shut until the person levels up. */
+export function closeCalmPanels() {
+  if (!panels.left && !panels.right) return;
+  panels = { left: false, right: false };
+  try {
+    localStorage.setItem(PANELS_KEY, JSON.stringify(panels));
+  } catch {
+    /* storage blocked */
+  }
+  listeners.forEach((l) => l());
+}
+
 export const useCalmPanels = () => useSyncExternalStore(subscribe, getCalmPanels, getCalmPanels);

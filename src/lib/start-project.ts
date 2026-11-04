@@ -1,6 +1,7 @@
 /** Turn a home brief into a live project and kick off the first AI build. */
 import { createProject } from './actions';
 import { sendToAi } from './ai';
+import { completeOnboardingTask } from './onboarding';
 import { copyAgentPrompt } from './prompt';
 import { getState, setState } from './store';
 
@@ -37,6 +38,7 @@ export async function startProjectFromBrief(brief: string, opts?: { name?: strin
   const name = (opts?.name?.trim() || nameFromBrief(text) || 'Untitled project').slice(0, 80);
   const ok = await createProject('blank', name);
   if (!ok) return false;
+  completeOnboardingTask('describe');
   setState({ dockMode: 'input', mode: 'visual', interact: false, tool: 'select' });
   const request = firstBuildRequest(text);
   if (getState().aiStatus?.ready) {

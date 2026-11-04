@@ -15,11 +15,12 @@ export function CalmPills() {
   const { left, right } = useCalmPanels();
   const level = useExperienceLevel();
   const showSidePanels = level !== 'beginner';
+  const showGuides = level !== 'beginner';
   const measuring = useMeasure();
   const rulers = useRulers();
   return (
     <TooltipProvider>
-      <div data-tw="" className={`calm-pills${rulers ? ' calm-pills--rulers' : ''}`}>
+      <div data-tw="" className={`calm-pills${rulers && showGuides ? ' calm-pills--rulers' : ''}`}>
         <div className="calm-pill-pair absolute start-3 top-3 z-20 flex items-center gap-1.5">
           {showSidePanels && (
             <Button variant="ghost" className="calm-circle calm-pill calm-pill--round relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]" aria-label={left ? 'Close left panel' : 'Open left panel'} aria-expanded={left} onClick={() => toggleCalmPanel('left')}>
@@ -59,24 +60,26 @@ export function CalmPills() {
             </Tooltip>
           )}
         </div>
-        <div className="calm-pill-stack absolute end-3 z-20 flex flex-col gap-1.5" style={{ bottom: 12 }}>
+        {showGuides && (
+          <div className="calm-pill-stack absolute end-3 z-20 flex flex-col gap-1.5" style={{ bottom: 12 }}>
+            <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" className={`calm-circle calm-pill calm-pill--round calm-pill--ruler relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]`} aria-label={rulers ? 'Hide rulers' : 'Show rulers'} aria-pressed={rulers} onClick={() => setRulers(!rulers)}>
+                <HugeiconsIcon icon={RulerIcon} strokeWidth={2} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">{rulers ? 'Hide rulers' : 'Show rulers'}</TooltipContent>
+          </Tooltip>
           <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" className={`calm-circle calm-pill calm-pill--round calm-pill--ruler relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]`} aria-label={rulers ? 'Hide rulers' : 'Show rulers'} aria-pressed={rulers} onClick={() => setRulers(!rulers)}>
-              <HugeiconsIcon icon={RulerIcon} strokeWidth={2} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="left">{rulers ? 'Hide rulers' : 'Show rulers'}</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" className={`calm-circle calm-pill calm-pill--round calm-pill--measure relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]`} aria-label="Measure distances" aria-pressed={measuring} onClick={() => setMeasure(!measuring)}>
-              <HugeiconsIcon icon={RulerDimensionLineIcon} strokeWidth={2} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="left">{measuring ? 'Stop measuring' : 'Measure distances'}</TooltipContent>
-        </Tooltip>
-        </div>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" className={`calm-circle calm-pill calm-pill--round calm-pill--measure relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]`} aria-label="Measure distances" aria-pressed={measuring} onClick={() => setMeasure(!measuring)}>
+                <HugeiconsIcon icon={RulerDimensionLineIcon} strokeWidth={2} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">{measuring ? 'Stop measuring' : 'Measure distances'}</TooltipContent>
+          </Tooltip>
+          </div>
+        )}
       </div>
     </TooltipProvider>
   );
