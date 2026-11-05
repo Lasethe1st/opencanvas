@@ -442,8 +442,8 @@ export function ReasoningEffort({
         <path
           d={shellPath(center, open, plateauW)}
           fill={`url(#${gradId})`}
-          stroke="var(--ss-line)"
-          strokeWidth="0.5"
+          stroke="none"
+          strokeWidth="0"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
         />
