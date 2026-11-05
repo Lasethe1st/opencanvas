@@ -505,7 +505,6 @@ export function Onboarding() {
               </>
             ) : (
               <div className="relative z-10 flex w-full max-w-[680px] flex-col items-center">
-                <div className="home-ambient" aria-hidden="true" />
                 <h1 className="mb-6 font-geist text-balance text-center text-[32px] font-medium leading-[1.1] tracking-[-0.02em]">{greeting(displayName)}</h1>
                 <div className="flex w-full flex-col items-center gap-3">
                   {wantsToBuildSite(dockDraft, aiChat) && (
