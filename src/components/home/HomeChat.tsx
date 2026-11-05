@@ -45,6 +45,9 @@ const TOOL_LABELS: Record<string, string> = {
 const FENCE_RE = /```([\w-]*)\n?([\s\S]*?)```/g;
 
 /** Nearest ancestor set to scroll — home uses the main column, the dock uses its own log. */
+/** Smooth by default; instant for people who ask their system for reduced motion. */
+const scrollBehavior = (): ScrollBehavior => (window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
+
 function scrollParentOf(el: HTMLElement): HTMLElement | null {
   let node: HTMLElement | null = el.parentElement;
   while (node && node !== document.body) {
@@ -68,7 +71,7 @@ function useStickToBottom(rootRef: RefObject<HTMLElement | null>, items: AiChatI
     if (!scroller) return;
     pinned.current = true;
     setAway(false);
-    scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: scrollBehavior() });
   }, [rootRef]);
 
   // A fresh user message means they just sent — jump back to following the thread.
@@ -161,7 +164,7 @@ function ChatOutline({ rootRef, items }: { rootRef: RefObject<HTMLElement | null
   if (marks.length < 3 || !edge) return null;
   const go = (id: string) => {
     const el = rootRef.current?.querySelector<HTMLElement>(`[data-chat-item="${id}"]`);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    el?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
   };
   return (
     <nav
