@@ -11,6 +11,7 @@ import { AgentOrb } from '@/components/ui/agent-orb';
 import { ThinkingReasoning } from '@/components/ui/thinking-reasoning';
 import { humanizeAiError } from '../../lib/ai-errors';
 import { useThinkingPhrase, withEllipsis } from '../../lib/thinking-phrases';
+import { SoftRevealText } from '../home/SoftRevealText';
 import { Button, IconButton, cx } from '../../ui/primitives.jsx';
 
 export async function showAgentActivity() {
@@ -102,7 +103,15 @@ export function AiChat({ bare = false }: { bare?: boolean } = {}) {
       >
         {!items.length && <p className="dock-empty">Ask for a change in the bar below. Select an element first to point at it, or type @ to mention a layer or page. Everything the AI does in one reply is a single undo step.</p>}
         {items.map((item) => (
-          <ChatItem key={item.id} item={item} />
+          <div
+            key={item.id}
+            className={item.kind === 'user' ? 'flex w-full justify-end ps-8' : 'w-full pe-6'}
+          >
+            <ChatItem
+              item={item}
+              pending={busy && !waiting && item.kind === 'assistant' && item.id === last?.id}
+            />
+          </div>
         ))}
         {waitingOnModel && (
           <div className="ai-thinking">
@@ -166,12 +175,27 @@ export function AiChat({ bare = false }: { bare?: boolean } = {}) {
   );
 }
 
-function ChatItem({ item }: { item: AiChatItem }) {
+function ChatItem({ item, pending = false }: { item: AiChatItem; pending?: boolean }) {
+  const phrase = useThinkingPhrase(pending && item.kind === 'assistant');
   switch (item.kind) {
     case 'user':
       return <div className="ai-msg ai-msg--user">{item.text}</div>;
     case 'assistant':
-      return <div className="ai-msg ai-msg--assistant">{item.text}</div>;
+      if (pending) {
+        return (
+          <div className="ai-thinking" aria-busy="true">
+            <span aria-hidden>
+              <AgentOrb variant="S2" size={18} style={{ color: 'currentColor' }} />
+            </span>
+            {withEllipsis(phrase)}
+          </div>
+        );
+      }
+      return (
+        <div className="ai-msg ai-msg--assistant">
+          <SoftRevealText text={item.text} />
+        </div>
+      );
     case 'thinking':
       return <ThinkingReasoning text={item.text} done={item.done} />;
     case 'error':
