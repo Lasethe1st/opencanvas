@@ -67,9 +67,9 @@ export function HomeComposerShadow({
         marginInline: INSET,
         marginBottom: -TUCK,
         height: PEEK + TUCK,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-      }}
+        borderRadius: 20,
+        cornerShape: "squircle",
+      } as React.CSSProperties}
     >
       <div className="flex min-w-0 items-center gap-0.5 px-1.5" style={{ height: PEEK }}>
         <DropdownMenu>

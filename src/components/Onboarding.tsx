@@ -593,7 +593,7 @@ export function Onboarding() {
                     />
                     <div className="relative z-10">
                       <HomePrompt
-                        minLines={3}
+                        deck
                         value={dockDraft}
                         onChange={(value) => setState({ dockDraft: value })}
                         onSubmit={() => void sendHome()}
