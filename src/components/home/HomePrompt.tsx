@@ -1,7 +1,7 @@
 import { getSendKey } from "../../lib/prefs";
 import { FolderOpen, Stop, Waveform } from '../../lib/home-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowUp02Icon, Attachment01Icon, Cancel01Icon, CommandLineIcon, File01Icon } from '@hugeicons/core-free-icons';
+import { ArrowUp02Icon, PlusSignIcon, Cancel01Icon, CommandLineIcon, File01Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
@@ -400,7 +400,7 @@ export function HomePrompt({
             />
             <InputGroupAddon align="inline-start" className={`${textareaHeight <= 44 ? "self-center" : "self-end"} ps-1.5 pb-0`}>
               <InputGroupButton variant="ghost" size="icon" className="rounded-[var(--pill)] text-muted-foreground" aria-label="Attach files" onClick={() => fileRef.current?.click()}>
-                <HugeiconsIcon icon={Attachment01Icon} size={18} strokeWidth={1.8} aria-hidden />
+                <HugeiconsIcon icon={PlusSignIcon} size={18} strokeWidth={1.8} aria-hidden />
               </InputGroupButton>
             </InputGroupAddon>
           </>
