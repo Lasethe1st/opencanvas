@@ -1,4 +1,4 @@
-import { AtSign, Download, Eye, GitBranch, Maximize, MessageSquarePlus, PanelBottom, Redo2, Settings, Square, Undo2 } from '../lib/hugeicons';
+import { AtSign, File, Download, Eye, GitBranch, Maximize, MessageSquarePlus, PanelBottom, Redo2, Settings, Square, Undo2 } from '../lib/hugeicons';
 import type { ReactNode } from 'react';
 import { closeProject, redo, undo } from '../lib/actions';
 import { setCalm } from '../lib/calm';
@@ -6,6 +6,7 @@ import { setExperienceLevel } from '../lib/experience';
 import { newAiChat } from '../lib/ai';
 import { addFrame, fitAll } from '../lib/canvas';
 import { getState, setState, toast, type TreeNode } from '../lib/store';
+import { LayerIcon } from '../lib/layer-icons';
 import { shape, type Shape } from './shapeshift';
 
 /* ---------- @ mentions ---------- */
@@ -71,7 +72,7 @@ export function referencesIn(text: string): Mentionable[] {
 export const insertMention = (text: string, item: Mentionable) => text.replace(/@[^@\n]{0,40}$/, `@${item.name} `);
 
 const row =
-  'flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left text-[13px] outline-none transition-colors hover:bg-popover-foreground/[0.06] focus-visible:bg-popover-foreground/[0.06]';
+  'flex w-full cursor-pointer items-center gap-2.5 rounded-[12px] px-2 py-1.5 text-left text-[13px] outline-none transition-colors hover:bg-popover-foreground/[0.06] focus-visible:bg-popover-foreground/[0.06]';
 
 export const mention = shape<{ query: string; items: Mentionable[] }>({
   id: 'mention',
@@ -90,9 +91,11 @@ export const mention = shape<{ query: string; items: Mentionable[] }>({
         {data.items.map((item, i) => (
           <li key={`${item.kind}-${item.name}-${i}`} role="option" aria-selected={i === 0}>
             <button type="button" className={`${row} ${i === 0 ? 'bg-popover-foreground/[0.06]' : ''}`} onMouseDown={(e) => e.preventDefault()} onClick={() => setText(insertMention(text, item))}>
-              <span className="flex size-6 shrink-0 items-center justify-center rounded-[7px] bg-popover-foreground/[0.06] text-[10px] font-medium uppercase text-muted-foreground">{item.kind === 'page' ? 'P' : (item.tag ?? 'L').slice(0, 2)}</span>
-              <span className="min-w-0 flex-1 truncate">{item.name}</span>
-              <span className="shrink-0 text-[11px] text-muted-foreground">{item.kind === 'page' ? 'Page' : 'Layer'}</span>
+              <span className="flex size-7 shrink-0 items-center justify-center !rounded-[9px] bg-popover-foreground/[0.06] text-foreground/70 [&>svg]:size-4">
+                {item.kind === 'page' ? <File size={16} /> : <LayerIcon tag={item.tag ?? 'div'} size={16} />}
+              </span>
+              <span className="min-w-0 flex-1 truncate font-medium">{item.name}</span>
+              <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{item.kind === 'page' ? 'Page' : `<${item.tag ?? 'div'}>`}</span>
             </button>
           </li>
         ))}

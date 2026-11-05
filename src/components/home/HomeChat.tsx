@@ -29,10 +29,10 @@ import { getVote, isRemembered, setVote, subscribeMemory, toggleRemember, type V
 import { useThinkingPhrase, withEllipsis } from "../../lib/thinking-phrases";
 import { AgentOrb } from "@/components/ui/agent-orb";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
-import { SoftRevealText } from "./SoftRevealText";
 import { cn } from "@/lib/utils";
 import { speakReply, stopSpeech, useSpeech } from "../../lib/read-aloud";
 import { referencesIn } from "../assistant-shapes";
+import { ChatMarkdown } from "./ChatMarkdown";
 
 const TOOL_LABELS: Record<string, string> = {
   git_commit: "Save a version (commit)",
@@ -354,9 +354,7 @@ function AssistantMessage({ id, text, pending = false }: { id: string; text: str
               </CodeBlockContent>
             </CodeBlock>
           ) : (
-            <p key={i} className="m-0 whitespace-pre-wrap">
-              <SoftRevealText text={part.text} />
-            </p>
+            <ChatMarkdown key={i} text={part.text} />
           ),
         )}
       </div>
