@@ -2,50 +2,22 @@ import * as Popover from '@radix-ui/react-popover';
 import { Brain, CaretDown, Check } from '../../lib/home-icons';
 import { providerMeta, type AiProviderKind, type AiThinkingEffort } from '../../../shared/ai';
 import { ModelLogo } from './ModelLogo';
+import { EFFORTS, ReasoningEffort } from './ReasoningEffort';
 import { cn } from '@/lib/utils';
 
 export type PickerModel = { id: string; label: string; hint?: string; provider: AiProviderKind };
 
-export const EFFORTS: { id: AiThinkingEffort; label: string; hint: string }[] = [
-  { id: 'low', label: 'Instant', hint: 'Faster, lighter replies' },
-  { id: 'medium', label: 'Balanced', hint: 'A good mix of speed and depth' },
-  { id: 'high', label: 'Harder', hint: 'Slower, deeper reasoning' },
-];
-
-/** The thinking slider: a track that comes alive as it climbs. Native range input on top keeps keyboard + a11y. */
-function ThinkingSlider({ value, onChange }: { value: AiThinkingEffort; onChange: (v: AiThinkingEffort) => void }) {
+/** Thinking: title row, then the draggable effort slider. */
+function ThinkingSlider({ value, onChange, modelLabel }: { value: AiThinkingEffort; onChange: (v: AiThinkingEffort) => void; modelLabel: string }) {
   const level = Math.max(0, EFFORTS.findIndex((e) => e.id === value));
-  const meta = EFFORTS[level];
   return (
     <div className="think px-2.5 pb-1 pt-2.5" data-level={level}>
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-1 flex items-center gap-2">
         <span className="think__brain"><Brain className="size-4" /></span>
         <span className="text-[13px] font-medium text-foreground">Thinking</span>
-        <span className="ms-auto text-xs font-medium text-foreground">{meta.label}</span>
+        <span className="ms-auto text-xs font-medium text-foreground">{EFFORTS[level].label}</span>
       </div>
-      <div className="think__rail" style={{ ['--lvl' as string]: level / (EFFORTS.length - 1) }}>
-        <div className="think__track"><div className="think__fill" /></div>
-        {EFFORTS.map((e, i) => (
-          <span key={e.id} className="think__stop" data-on={i <= level} style={{ left: `${(i / (EFFORTS.length - 1)) * 100}%` }} />
-        ))}
-        <div className="think__thumb"><span className="think__spark" /><span className="think__spark think__spark--b" /><span className="think__spark think__spark--c" /></div>
-        <input
-          type="range"
-          min={0}
-          max={EFFORTS.length - 1}
-          step={1}
-          value={level}
-          aria-label="Thinking effort"
-          aria-valuetext={meta.label}
-          className="think__input"
-          onChange={(e) => onChange(EFFORTS[Number(e.target.value)].id)}
-        />
-      </div>
-      <div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground">
-        {EFFORTS.map((e, i) => (
-          <span key={e.id} className={cn('transition-colors', i === level && 'text-foreground')}>{e.label}</span>
-        ))}
-      </div>
+      <ReasoningEffort value={value} onChange={onChange} modelLabel={modelLabel} />
     </div>
   );
 }
@@ -130,7 +102,7 @@ export function ModelPopover({
             )}
           </div>
           <div className="mx-2.5 my-2 h-px bg-border/70" />
-          <ThinkingSlider value={effort} onChange={onEffort} />
+          <ThinkingSlider value={effort} onChange={onEffort} modelLabel={modelLabel} />
           <div className="mx-2.5 my-2 h-px bg-border/70" />
           <button type="button" onClick={onOpenSettings} className="w-full border-0 bg-transparent rounded-xl px-2.5 py-1.5 outline-none text-left text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground">
             Open Settings › AI
