@@ -2360,3 +2360,7 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 @keyframes home-dots-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes home-drift { 0% { transform: translate(-90px, -20px) scale(0.95); } 50% { transform: translate(40px, 30px) scale(1.08); } 100% { transform: translate(100px, -30px) scale(1); } }
 @media (prefers-reduced-motion: reduce) { .home-ambient::before, .home-ambient::after { animation: none; } }
+
+/* @ mention list: rounded icon tiles and rows, like the rest of the docker. */
+body:has(.shell .workspace) .assistant-docker [role='listbox'] button { border-radius: 12px !important; }
+body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:first-child { border-radius: 9px !important; }
