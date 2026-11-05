@@ -434,8 +434,9 @@ export function HomePrompt({
       )}
     <div
       ref={shellRef}
-      className={`w-full overflow-hidden bg-muted/70 backdrop-blur-[30px] backdrop-saturate-150 transition-[background-color,box-shadow] duration-150 focus-within:bg-secondary/70 ${deck ? "flex flex-col" : ""} ${dragging ? "bg-secondary/80 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg,#111)_28%,transparent)]" : ""}`}
-      style={deck ? { minHeight: 72, borderRadius: 20, ...SQUIRCLE } : { borderRadius: radius }}
+      data-home-composer-front={deck ? "" : undefined}
+      className={`w-full overflow-hidden ${deck ? "flex flex-col" : "bg-muted/70 backdrop-blur-[30px] backdrop-saturate-150 transition-[background-color,box-shadow] duration-150 focus-within:bg-secondary/70"} ${dragging ? "bg-secondary/80 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg,#111)_28%,transparent)]" : ""}`}
+      style={deck ? { minHeight: 96, borderRadius: 24, ...SQUIRCLE } : { borderRadius: radius }}
       onDragOver={(e) => {
         if (!onAttach || !e.dataTransfer.types.includes("Files")) return;
         e.preventDefault();
@@ -494,7 +495,7 @@ export function HomePrompt({
         <div
           ref={overlayRef}
           aria-hidden
-          className={`pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words text-base leading-6 text-foreground ${deck ? "px-[10px]" : "px-4 py-2.5"}`}
+          className={`pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words text-base leading-6 text-foreground ${deck ? "px-4 pb-0.5 pt-3.5" : "px-4 py-2.5"}`}
         >
           {parts.map((part, i) => (
             <span
@@ -523,7 +524,7 @@ export function HomePrompt({
           ref={textareaRef}
           autoFocus
           rows={deck ? 1 : lineCount}
-          style={deck ? { minHeight: 0, padding: "0 10px" } : { minHeight: minTextHeight }}
+          style={deck ? { minHeight: 0, padding: "14px 16px 2px" } : { minHeight: minTextHeight }}
           data-home-prompt=""
           aria-label="Message the AI"
           placeholder="Message…"
@@ -561,7 +562,7 @@ export function HomePrompt({
         )}
       </InputGroup>
       {deck && (
-        <div data-home-composer-toolbar="" className="flex w-full shrink-0 items-center justify-between" style={{ padding: "8px 10px" }}>
+        <div data-home-composer-toolbar="" className="flex w-full shrink-0 items-center justify-between" style={{ padding: "4px 10px 10px" }}>
           {onAttach ? attachButton : <span />}
           <div className="flex items-center">
             {micButton}
