@@ -583,9 +583,11 @@ export function Onboarding() {
                           attachments={attachments}
                           onAttach={(f) => void addFiles(f)}
                           onRemoveAttachment={removeAttachment}
+                        webSearch={webSearch}
+                        onWebSearch={toggleWeb}
                           history={history}
                         />
-                        <HomeComposerExtras webSearch={webSearch} onWebSearch={toggleWeb} />
+                        <HomeComposerExtras />
                         <div className="flex flex-wrap items-center gap-2 px-1">
                           <HomeAiHint />
                         </div>
@@ -611,8 +613,6 @@ export function Onboarding() {
                     <HomeComposerShadow
                       projectName={recent?.[0]?.name ?? null}
                       onOpenProjects={() => setDialog({ kind: 'projects' })}
-                      webSearch={webSearch}
-                      onWebSearch={toggleWeb}
                     />
                     <div className="relative z-10">
                       <HomePrompt
@@ -632,6 +632,8 @@ export function Onboarding() {
                         attachments={attachments}
                         onAttach={(f) => void addFiles(f)}
                         onRemoveAttachment={removeAttachment}
+                        webSearch={webSearch}
+                        onWebSearch={toggleWeb}
                         history={history}
                       />
                     </div>
