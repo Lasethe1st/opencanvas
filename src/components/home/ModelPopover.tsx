@@ -1,5 +1,5 @@
 import * as Popover from '@radix-ui/react-popover';
-import { Brain, CaretDown, Check } from '../../lib/home-icons';
+import { CaretDown, Check } from '../../lib/home-icons';
 import { providerMeta, type AiProviderKind, type AiThinkingEffort } from '../../../shared/ai';
 import { ModelLogo } from './ModelLogo';
 import { EFFORTS, ReasoningEffort } from './ReasoningEffort';
@@ -7,21 +7,16 @@ import { cn } from '@/lib/utils';
 
 export type PickerModel = { id: string; label: string; hint?: string; provider: AiProviderKind };
 
-/** Thinking: title row, then the draggable effort slider. */
+/** The thinking effort slider, on its own. */
 function ThinkingSlider({ value, onChange, modelLabel }: { value: AiThinkingEffort; onChange: (v: AiThinkingEffort) => void; modelLabel: string }) {
-  const level = Math.max(0, EFFORTS.findIndex((e) => e.id === value));
   return (
-    <div className="think px-2.5 pb-1 pt-2.5" data-level={level}>
-      <div className="mb-1 flex items-center gap-2">
-        <span className="think__brain"><Brain className="size-4" /></span>
-        <span className="text-[13px] font-medium text-foreground">Thinking</span>
-      </div>
+    <div className="px-2.5 pb-1 pt-1">
       <ReasoningEffort value={value} onChange={onChange} modelLabel={modelLabel} />
     </div>
   );
 }
 
-/** One popup for model and thinking: slider on top, models grouped by provider below. */
+/** One popup for model and thinking: models grouped by provider, then the thinking slider. */
 export function ModelPopover({
   provider,
   modelLabel,

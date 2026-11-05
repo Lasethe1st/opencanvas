@@ -2349,19 +2349,9 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
   text-align: left;
 }
 
-/* ── Model + thinking popup ─────────────────────────────────────────────────
-   The thinking slider comes alive as it climbs: level 0 is still, level 1 breathes, level 2 shimmers and sparks. */
-.think { --think-ink: var(--fg, #111); }
-.think__brain { display: inline-flex; color: var(--think-ink); transform-origin: 50% 60%; }
-.think[data-level='1'] .think__brain { animation: think-breathe 2.6s ease-in-out infinite; }
-.think[data-level='2'] .think__brain { animation: think-pulse 0.9s ease-in-out infinite; }
+/* ── Model popup ─────────────────────────────────────────────────────────── */
 .model-pop { animation: oc-pop 0.18s var(--ease-out-strong); transform-origin: var(--radix-popover-content-transform-origin); }
-@keyframes think-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
-@keyframes think-pulse { 0%, 100% { transform: scale(1) rotate(0); } 25% { transform: scale(1.18) rotate(-6deg); } 75% { transform: scale(1.18) rotate(6deg); } }
-@keyframes think-shimmer { from { background-position: 200% 0; } to { background-position: 0 0; } }
-@media (prefers-reduced-motion: reduce) {
-  .think__brain, .model-pop { animation: none !important; }
-}
+@media (prefers-reduced-motion: reduce) { .model-pop { animation: none; } }
 
 /* ── Home empty state: a quiet dot field and one slow-drifting glow, so the blank page feels alive, not unfinished. */
 .home-ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
