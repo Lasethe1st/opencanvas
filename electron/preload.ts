@@ -60,6 +60,9 @@ const api: OpenCanvasApi = {
   revealProject: () => invoke('export:revealProject'),
   git: {
     status: () => invoke('git:status'),
+    branchOf: (root) => invoke('git:branchOf', root),
+    branchesOf: (root) => invoke('git:branchesOf', root),
+    switchBranch: (root, name) => invoke('git:switchBranch', root, name),
     init: () => invoke('git:init'),
     setIdentity: (name, email) => invoke('git:setIdentity', name, email),
     setRemote: (url) => invoke('git:setRemote', url),
