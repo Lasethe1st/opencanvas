@@ -101,14 +101,13 @@ export function ModelPopover({
         >
           <ThinkingSlider value={effort} onChange={onEffort} />
           <div className="my-3 h-px bg-border/70" />
-          <div className="mb-1.5 px-0.5 text-[13px] font-medium text-foreground">Model</div>
           <div className="-mx-1.5 flex max-h-[240px] flex-col gap-2 overflow-y-auto px-1.5">
             {models.length === 0 ? (
               <div className="px-1 py-2 text-xs text-muted-foreground">{loading ? 'Loading models…' : 'No models listed — set one in Settings › AI.'}</div>
             ) : (
               providers.map((p) => (
                 <div key={p} className="flex flex-col gap-0.5">
-                  <div className="flex items-center gap-1.5 px-1.5 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <div className="flex items-center gap-1.5 px-1.5 pt-1 text-xs font-medium text-muted-foreground">
                     <ModelLogo provider={p} />
                     {providerMeta(p).product}
                   </div>
