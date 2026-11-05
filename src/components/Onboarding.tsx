@@ -27,7 +27,7 @@ import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
 import { HomeDialog } from './home/HomeDialog';
 import { NewProjectDialog, type StartPath } from './home/NewProjectDialog';
 import { FileViewer, SourcesPanel, useSources, WebFaviconStack, type OpenFile, type Source } from './home/SourcesPanel';
-import { HomePrompt, type MentionOption } from './home/HomePrompt';
+import { HomePrompt, type Attachment, type MentionOption } from './home/HomePrompt';
 import { HomeRightPanel } from './home/HomeRightPanel';
 import { HomeAccount } from './home/HomeAccount';
 import { MemoryList } from './home/HomeMemory';
@@ -113,6 +113,23 @@ export function Onboarding() {
 
   const chatSources = useSources(aiChat);
   const [mentioned, setMentioned] = useState<Source[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const history = useMemo(() => {
+    const seen = new Set<string>();
+    return chats.map((c) => c.text.trim()).filter((t) => t && !seen.has(t) && !!seen.add(t)).slice(0, 30);
+  }, [chats]);
+  const addFiles = useCallback(async (files: File[]) => {
+    const MAX = 200_000;
+    for (const f of files) {
+      if (f.size > MAX) { toast(`${f.name} is over 200 KB`, 'error'); continue; }
+      let text = '';
+      try { text = await f.text(); } catch { /* unreadable */ }
+      // Binary files decode to replacement characters; only plain text and code go to the model for now.
+      if (!text || text.includes('\u0000') || (text.match(/\ufffd/g)?.length ?? 0) > 3) { toast(`${f.name}: only text and code files can be attached for now`, 'error'); continue; }
+      setAttachments((cur) => (cur.length >= 5 || cur.some((x) => x.name === f.name && x.size === f.size) ? cur : [...cur, { id: `${f.name}:${f.size}:${Date.now()}`, name: f.name, size: f.size, text }]));
+    }
+  }, []);
+  const removeAttachment = useCallback((id: string) => setAttachments((cur) => cur.filter((x) => x.id !== id)), []);
   const [skillList, setSkillList] = useState<SkillMeta[]>([]);
   const sources = useMemo(() => {
     const seen = new Set<string>();
@@ -147,6 +164,15 @@ export function Onboarding() {
     seenSources.current = sources.length;
   }, [sources.length]);
 
+  const slashCommands: MentionOption[] = useMemo(
+    () => [
+      { id: 'cmd:new', label: 'New chat', detail: 'Start fresh', kind: 'skill' },
+      { id: 'cmd:search', label: 'Search', detail: 'Find chats and projects', kind: 'skill' },
+      { id: 'cmd:attach', label: 'Attach file', detail: 'Add text or code', kind: 'skill' },
+      { id: 'cmd:settings', label: 'AI settings', detail: 'Models and keys', kind: 'skill' },
+    ],
+    [],
+  );
   const startVoice = useCallback(() => {
     if (busy || !!aiTurnId) return;
     setVoiceMode(true);
@@ -190,7 +216,7 @@ export function Onboarding() {
   }, []);
 
   const sendHome = useCallback(async () => {
-    const text = dockDraft.trim();
+    const text = dockDraft.trim() || (attachments.length ? 'See the attached file' + (attachments.length > 1 ? 's.' : '.') : '');
     if (!text || busy) return;
     // No AI yet: Enter still starts the project from the brief — the key is optional, not a gate.
     if (!aiReady) {
@@ -199,12 +225,15 @@ export function Onboarding() {
     }
     const first = aiChat.length === 0;
     const refs = [...mentioned, ...chatSources].filter((x) => text.includes(x.title)).sort((a, b) => text.indexOf(a.title) - text.indexOf(b.title));
-    const full = refs.length ? `${text}\n\nReferenced:\n${refs.map((x) => `- [${x.kind}] ${x.title} (${x.detail.replace(/\s+/g, ' ').slice(0, 500)})`).join('\n')}` : text;
+    const fileBlock = attachments.length ? `\n\nAttached files:\n${attachments.map((a) => `--- ${a.name} ---\n${a.text}`).join('\n\n')}` : '';
+    const base = refs.length ? `${text}\n\nReferenced:\n${refs.map((x) => `- [${x.kind}] ${x.title} (${x.detail.replace(/\s+/g, ' ').slice(0, 500)})`).join('\n')}` : text;
+    const full = base + fileBlock;
     const used = refs.filter((x) => x.kind === 'skill');
     const skills = (await Promise.all(used.map(async (x) => ({ name: x.title, body: await api.skills.read(x.id.replace(/^skill:/, '')).catch(() => '') })))).filter((k) => k.body);
     const ok = await sendToAi(full, skills.length ? { skills } : undefined);
     // sendToAi only clears the draft when it matches what was sent, and `full` adds the references.
     if (ok && getState().dockDraft.trim() === text) setState({ dockDraft: '' });
+    if (ok) setAttachments([]);
     if (ok && first) {
       setChats((current) => {
         const next = addHomeChat(current, text);
@@ -213,7 +242,7 @@ export function Onboarding() {
       });
     }
     if (ok) focusPrompt();
-  }, [dockDraft, busy, aiReady, aiChat.length, mentioned, chatSources]);
+  }, [dockDraft, busy, aiReady, aiChat.length, mentioned, chatSources, attachments]);
 
   // Keep the composer ready for the next turn — chat should feel continuous, not transactional.
   useEffect(() => {
@@ -248,6 +277,19 @@ export function Onboarding() {
     void api.ai.reset();
     focusPrompt();
   }, []);
+
+  const onCommand = useCallback((id: string) => {
+    if (id === 'new') newChat();
+    else if (id === 'search') setSearchOpen(true);
+    else if (id === 'settings') setState({ settingsOpen: true, settingsTab: 'ai' });
+    else if (id === 'attach') {
+      const el = document.createElement('input');
+      el.type = 'file';
+      el.multiple = true;
+      el.onchange = () => void addFiles(Array.from(el.files ?? []));
+      el.click();
+    }
+  }, [newChat, addFiles]);
   const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform);
 
   const chatMenu = useCallback(
@@ -493,6 +535,12 @@ export function Onboarding() {
                           onMention={onMention}
                           skills={skillOptions}
                           onOpenSkills={openSkills}
+                          commands={slashCommands}
+                          onCommand={onCommand}
+                          attachments={attachments}
+                          onAttach={(f) => void addFiles(f)}
+                          onRemoveAttachment={removeAttachment}
+                          history={history}
                         />
                         <HomeComposerExtras />
                         <div className="flex flex-wrap items-center gap-2 px-1">
@@ -525,6 +573,12 @@ export function Onboarding() {
                     onMention={onMention}
                           skills={skillOptions}
                           onOpenSkills={openSkills}
+                          commands={slashCommands}
+                          onCommand={onCommand}
+                          attachments={attachments}
+                          onAttach={(f) => void addFiles(f)}
+                          onRemoveAttachment={removeAttachment}
+                          history={history}
                   />
                   <HomeComposerExtras />
                   <HomeAiHint className="text-center" />
