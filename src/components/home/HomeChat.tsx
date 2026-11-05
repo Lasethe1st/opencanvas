@@ -2,9 +2,9 @@ import { highlight } from "../../lib/highlight";
 import { Brain, Check, CircleNotch, ShieldWarning, SpeakerHigh, Stop, Wrench, X } from '../../lib/home-icons';
 import { humanizeAiError } from "../../lib/ai-errors";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Copy01Icon, Edit02Icon } from "@hugeicons/core-free-icons";
+import { ArrowDown01Icon, Copy01Icon, Edit02Icon } from "@hugeicons/core-free-icons";
 import { ThumbsDown, ThumbsUp } from '../../lib/home-icons';
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import type { AiChatItem } from "../../../shared/ai";
 import { answerAi, approveAi, openAiSettings } from "../../lib/ai";
 import { useStore } from "../../lib/store";
@@ -61,6 +61,15 @@ function scrollParentOf(el: HTMLElement): HTMLElement | null {
  */
 function useStickToBottom(rootRef: RefObject<HTMLElement | null>, items: AiChatItem[]) {
   const pinned = useRef(true);
+  const [away, setAway] = useState(false);
+  const jump = useCallback(() => {
+    const root = rootRef.current;
+    const scroller = root && (scrollParentOf(root) ?? root);
+    if (!scroller) return;
+    pinned.current = true;
+    setAway(false);
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
+  }, [rootRef]);
 
   // A fresh user message means they just sent — jump back to following the thread.
   useLayoutEffect(() => {
@@ -74,6 +83,7 @@ function useStickToBottom(rootRef: RefObject<HTMLElement | null>, items: AiChatI
     const nearBottom = () => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 64;
     const onScroll = () => {
       pinned.current = nearBottom();
+      setAway(!pinned.current && scroller.scrollHeight - scroller.clientHeight > 240);
     };
     const follow = () => {
       if (!pinned.current) return;
@@ -91,6 +101,7 @@ function useStickToBottom(rootRef: RefObject<HTMLElement | null>, items: AiChatI
       mo.disconnect();
     };
   }, [rootRef]);
+  return { showJump: away, jump };
 }
 
 /** Home conversation thread — grows with content; the parent column scrolls. */
@@ -121,7 +132,8 @@ export function HomeChat({
       (last?.kind === "tool" && last.state === "running")
     );
   const thinkingPhrase = useThinkingPhrase(waitingOnModel);
-  useStickToBottom(rootRef, items);
+  const { showJump, jump } = useStickToBottom(rootRef, items);
+  const stoppedAfter = useStore((s) => s.aiStopped);
 
   return (
     <div ref={rootRef} className="w-full px-1 py-2" aria-label="Conversation">
@@ -150,18 +162,33 @@ export function HomeChat({
                   pending={busy && !waiting && item.kind === "assistant" && item.id === last?.id}
                 />
               );
-              if (!(onEditLast && !busy && item.id === lastUserId)) return body;
+              const canEdit = !!onEditLast && !busy && item.kind === "user";
+              const stopped = stoppedAfter === item.id && !busy;
+              if (!canEdit && !stopped) return body;
+              const isLast = item.id === lastUserId;
               return (
-                <div className={`flex flex-col gap-0.5 ${split ? "items-end" : "items-start"}`}>
+                <div className={`group flex flex-col gap-0.5 ${split ? "items-end" : "items-start"}`}>
                   {body}
-                  <button
-                    type="button"
-                    onClick={() => onEditLast(item.id)}
-                    className="flex items-center gap-1 rounded-[var(--pill)] border-0 bg-transparent px-2 py-1 text-xs text-muted-foreground outline-none hover:bg-foreground/[0.06] hover:text-foreground"
-                  >
-                    <HugeiconsIcon icon={Edit02Icon} size={13} strokeWidth={1.8} aria-hidden />
-                    Edit and resend
-                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => onEditLast(item.id)}
+                      title={isLast ? undefined : "Rewinds the chat to this message"}
+                      className={cn(
+                        "flex items-center gap-1 rounded-[var(--pill)] border-0 bg-transparent px-2 py-1 text-xs text-muted-foreground outline-none transition-opacity hover:bg-foreground/[0.06] hover:text-foreground focus-visible:opacity-100",
+                        !isLast && "opacity-0 group-hover:opacity-100",
+                      )}
+                    >
+                      <HugeiconsIcon icon={Edit02Icon} size={13} strokeWidth={1.8} aria-hidden />
+                      Edit and resend
+                    </button>
+                  )}
+                  {stopped && (
+                    <p className="m-0 flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground" role="status">
+                      <Stop weight="fill" className="size-2.5" aria-hidden />
+                      Stopped
+                    </p>
+                  )}
                 </div>
               );
             })()}
@@ -176,6 +203,18 @@ export function HomeChat({
           </div>
         )}
       </div>
+      {showJump && (
+        <div className="pointer-events-none sticky bottom-2 z-10 flex justify-center">
+          <button
+            type="button"
+            onClick={jump}
+            className="pointer-events-auto flex h-8 items-center gap-1.5 rounded-[var(--pill)] border-0 bg-[var(--composer-front)] px-3 text-xs font-medium text-foreground shadow-[inset_0_0_0_1px_var(--composer-edge),var(--composer-lift)] outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
+          >
+            <HugeiconsIcon icon={ArrowDown01Icon} size={14} strokeWidth={2} aria-hidden />
+            Latest
+          </button>
+        </div>
+      )}
       <p className="sr-only" role="status">
         {waiting ? "The AI is waiting for your answer." : busy ? "The AI is working." : items.length ? "The AI is done." : ""}
       </p>

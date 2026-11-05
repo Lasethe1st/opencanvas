@@ -85,3 +85,33 @@ test('init, identity, remote and commit in a fresh project', { skip: !hasGit && 
   status = await h.gitStatus(root);
   assert.deepEqual(status.files, [{ path: 'src/App.jsx', state: 'modified' }]);
 });
+
+test('branch lookup lists, reports and switches local branches without touching other folders', { skip: !hasGit && 'git not installed' }, async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'oc-branch-'));
+  const plain = fs.mkdtempSync(path.join(os.tmpdir(), 'oc-plain-'));
+  t.after(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(plain, { recursive: true, force: true });
+  });
+  const run = (...args) => execFileSync('git', args, { cwd: root, stdio: 'ignore' });
+  run('init', '-b', 'main');
+  run('config', 'user.email', 'test@example.com');
+  run('config', 'user.name', 'Test');
+  fs.writeFileSync(path.join(root, 'a.txt'), 'one\n');
+  run('add', '.');
+  run('commit', '-m', 'first');
+  run('branch', 'feature/x');
+
+  assert.equal(await h.gitBranchOf(root), 'main');
+  const listed = await h.gitBranchesOf(root);
+  assert.equal(listed.current, 'main');
+  assert.deepEqual([...listed.branches].sort(), ['feature/x', 'main']);
+
+  assert.equal(await h.gitBranchOf(plain), null);
+  assert.deepEqual(await h.gitBranchesOf(plain), { current: null, branches: [] });
+
+  await assert.rejects(() => h.gitSwitchBranch(root, 'nope'), /no branch called nope/);
+  await assert.rejects(() => h.gitSwitchBranch(root, '--detach'), /no branch called/);
+  assert.equal(await h.gitSwitchBranch(root, 'feature/x'), 'feature/x');
+  assert.equal(await h.gitBranchOf(root), 'feature/x');
+});

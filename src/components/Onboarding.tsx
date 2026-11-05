@@ -138,18 +138,34 @@ export function Onboarding() {
   const [webSearch, setWebSearch] = useState<boolean>(() => { try { return localStorage.getItem('oc-web-search') !== 'off'; } catch { return true; } });
   const toggleWeb = useCallback((on: boolean) => { setWebSearch(on); try { localStorage.setItem('oc-web-search', on ? 'on' : 'off'); } catch { /* private mode */ } }, []);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  // Every message you've sent, newest first: this chat, then saved chats (follow-ups included).
   const history = useMemo(() => {
     const seen = new Set<string>();
-    return chats.map((c) => c.text.trim()).filter((t) => t && !seen.has(t) && !!seen.add(t)).slice(0, 30);
-  }, [chats]);
+    const sent = (items: { kind: string; text?: string }[] | undefined) =>
+      [...(items ?? [])].reverse().flatMap((i) => (i.kind === 'user' && i.text ? [typedText(i.text).trim()] : []));
+    const all = [...sent(aiChat), ...chats.flatMap((c) => (c.items ? sent(c.items) : [c.text.trim()]))];
+    return all.filter((t) => t && !seen.has(t) && !!seen.add(t)).slice(0, 50);
+  }, [aiChat, chats]);
   const addFiles = useCallback(async (files: File[]) => {
     const MAX = 200_000;
     for (const f of files) {
+      if (/^image\/(png|jpeg|gif|webp)$/.test(f.type)) {
+        if (f.size > 4_000_000) { toast(`${f.name} is over 4 MB`, 'error'); continue; }
+        const data = await new Promise<string>((resolve) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result).split(',')[1] ?? '');
+          r.onerror = () => resolve('');
+          r.readAsDataURL(f);
+        });
+        if (!data) { toast(`Couldn't read ${f.name}`, 'error'); continue; }
+        setAttachments((cur) => (cur.filter((x) => x.image).length >= 4 || cur.length >= 5 || cur.some((x) => x.name === f.name && x.size === f.size) ? cur : [...cur, { id: `${f.name}:${f.size}:${Date.now()}`, name: f.name, size: f.size, text: '', image: { mimeType: f.type, data } }]));
+        continue;
+      }
       if (f.size > MAX) { toast(`${f.name} is over 200 KB`, 'error'); continue; }
       let text = '';
       try { text = await f.text(); } catch { /* unreadable */ }
       // Binary files decode to replacement characters; only plain text and code go to the model for now.
-      if (!text || text.includes('\u0000') || (text.match(/\ufffd/g)?.length ?? 0) > 3) { toast(`${f.name}: only text and code files can be attached for now`, 'error'); continue; }
+      if (!text || text.includes('\u0000') || (text.match(/\ufffd/g)?.length ?? 0) > 3) { toast(`${f.name}: only images, text and code files can be attached`, 'error'); continue; }
       setAttachments((cur) => (cur.length >= 5 || cur.some((x) => x.name === f.name && x.size === f.size) ? cur : [...cur, { id: `${f.name}:${f.size}:${Date.now()}`, name: f.name, size: f.size, text }]));
     }
   }, []);
@@ -248,7 +264,7 @@ export function Onboarding() {
     stopAi();
     const kept = items.slice(0, idx);
     const turns = kept.flatMap((i) => ((i.kind === 'user' || i.kind === 'assistant') && i.text.trim() ? [{ role: i.kind, text: i.text }] : []));
-    setState({ aiChat: kept, aiTurnId: null, dockDraft: typedText(item.text) });
+    setState({ aiChat: kept, aiTurnId: null, aiStopped: null, dockDraft: typedText(item.text) });
     void api.ai.reset().then(() => api.ai.hydrate(turns));
     if (!kept.length && activeChatId.current) {
       const gone = activeChatId.current;
@@ -268,12 +284,12 @@ export function Onboarding() {
     }
     const first = aiChat.length === 0;
     const refs = [...mentioned, ...chatSources].filter((x) => text.includes(x.title)).sort((a, b) => text.indexOf(a.title) - text.indexOf(b.title));
-    const fileBlock = attachments.length ? `\n\nAttached files:\n${attachments.map((a) => `--- ${a.name} ---\n${a.text}`).join('\n\n')}` : '';
+    const fileBlock = attachments.length ? `\n\nAttached files:\n${attachments.map((a) => `--- ${a.name} ---\n${a.image ? '(image attached)' : a.text}`).join('\n\n')}` : '';
     const refsBlock = refs.length ? `\n\nReferenced:\n${refs.map((x) => `- [${x.kind}] ${x.title} (${x.detail.replace(/\s+/g, ' ').slice(0, 500)})`).join('\n')}` : '';
     const full = text + fileBlock + refsBlock;
     const used = refs.filter((x) => x.kind === 'skill');
     const skills = (await Promise.all(used.map(async (x) => ({ name: x.title, body: await api.skills.read(x.id.replace(/^skill:/, '')).catch(() => '') })))).filter((k) => k.body);
-    const ok = await sendToAi(full, { ...(skills.length ? { skills } : {}), webSearch });
+    const ok = await sendToAi(full, { ...(skills.length ? { skills } : {}), webSearch, ...(attachments.some((a) => a.image) ? { images: attachments.flatMap((a) => (a.image ? [{ name: a.name, ...a.image }] : [])) } : {}) });
     // sendToAi only clears the draft when it matches what was sent, and `full` adds the references.
     if (ok && getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     if (ok) setAttachments([]);
@@ -611,7 +627,8 @@ export function Onboarding() {
                       Once a conversation exists, the block above uses the plain composer. */}
                   <div data-home-composer-deck="" className="w-full">
                     <HomeComposerShadow
-                      projectName={recent?.[0]?.name ?? null}
+                      projects={recent ?? []}
+                      onOpenProject={(root) => void openRecent(root)}
                       onOpenProjects={() => setDialog({ kind: 'projects' })}
                     />
                     <div className="relative z-10">

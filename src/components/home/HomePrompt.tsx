@@ -17,7 +17,10 @@ export interface Attachment {
   id: string;
   name: string;
   size: number;
+  /** File contents for text and code; empty for images. */
   text: string;
+  /** Set for images: base64 payload (no data: prefix) sent with the message, shown as a thumbnail. */
+  image?: { mimeType: string; data: string };
 }
 
 const CMD_PREFIX = "cmd:";
@@ -124,6 +127,7 @@ export function HomePrompt({
   const hasText = !!value.trim() || attachments.length > 0;
   const fileRef = useRef<HTMLInputElement>(null);
   const [listening, setListening] = useState(false);
+  const [focused, setFocused] = useState(false);
   const dictation = useRef<AbortController | null>(null);
   const canDictate = browserSpeechAvailable() || micCaptureAvailable();
   const valueRef = useRef(value);
@@ -380,7 +384,7 @@ export function HomePrompt({
     </InputGroupButton>
   ) : null;
   const micButton =
-    canDictate && !sending ? (
+    canDictate && !sending && (focused || listening) ? (
       <InputGroupButton
         variant="ghost"
         size="icon"
@@ -453,6 +457,10 @@ export function HomePrompt({
     <div
       ref={shellRef}
       data-home-composer-front={deck ? "" : undefined}
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+      }}
       className={`w-full overflow-hidden ${deck ? "flex flex-col" : "bg-muted/70 backdrop-blur-[30px] backdrop-saturate-150 transition-[background-color,box-shadow] duration-150 focus-within:bg-secondary/70"} ${dragging ? "bg-secondary/80 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg,#111)_28%,transparent)]" : ""}`}
       style={deck ? { minHeight: 96, borderRadius: 24, ...SQUIRCLE } : { borderRadius: radius }}
       onDragOver={(e) => {
@@ -474,7 +482,11 @@ export function HomePrompt({
         <ul className="m-0 flex list-none flex-wrap gap-1.5 px-3 pb-0 pt-2.5" aria-label="Attachments">
           {attachments.map((a) => (
             <li key={a.id} className="flex max-w-[220px] items-center gap-1.5 rounded-[var(--pill)] bg-foreground/[0.07] py-1 pe-1 ps-2.5 text-xs">
-              <HugeiconsIcon icon={File01Icon} size={14} strokeWidth={1.8} className="shrink-0 text-muted-foreground" aria-hidden />
+              {a.image ? (
+                <img src={`data:${a.image.mimeType};base64,${a.image.data}`} alt="" className="size-4 shrink-0 rounded-[4px] object-cover" />
+              ) : (
+                <HugeiconsIcon icon={File01Icon} size={14} strokeWidth={1.8} className="shrink-0 text-muted-foreground" aria-hidden />
+              )}
               <span className="min-w-0 truncate font-medium">{a.name}</span>
               <span className="shrink-0 text-muted-foreground">{fmtSize(a.size)}</span>
               <button
