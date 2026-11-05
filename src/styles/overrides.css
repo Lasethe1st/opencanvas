@@ -2353,3 +2353,6 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 .model-pop { animation: oc-pop 0.18s var(--ease-out-strong); transform-origin: var(--radix-popover-content-transform-origin); }
 @media (prefers-reduced-motion: reduce) { .model-pop { animation: none; } }
 
+/* @ mention list: rounded icon tiles and rows, like the rest of the docker. */
+body:has(.shell .workspace) .assistant-docker [role='listbox'] button { border-radius: 12px !important; }
+body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:first-child { border-radius: 9px !important; }

@@ -4,7 +4,7 @@ import { humanizeAiError } from "../../lib/ai-errors";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Copy01Icon, Edit02Icon } from "@hugeicons/core-free-icons";
 import { ThumbsDown, ThumbsUp } from '../../lib/home-icons';
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import type { AiChatItem } from "../../../shared/ai";
 import { answerAi, approveAi, openAiSettings } from "../../lib/ai";
 import { useStore } from "../../lib/store";
@@ -32,6 +32,7 @@ import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { cn } from "@/lib/utils";
 import { speakReply, stopSpeech, useSpeech } from "../../lib/read-aloud";
 import { referencesIn } from "../assistant-shapes";
+import { ChatMarkdown } from "./ChatMarkdown";
 
 const TOOL_LABELS: Record<string, string> = {
   git_commit: "Save a version (commit)",
@@ -43,8 +44,57 @@ const TOOL_LABELS: Record<string, string> = {
 
 const FENCE_RE = /```([\w-]*)\n?([\s\S]*?)```/g;
 
+/** Nearest ancestor set to scroll — home uses the main column, the dock uses its own log. */
+function scrollParentOf(el: HTMLElement): HTMLElement | null {
+  let node: HTMLElement | null = el.parentElement;
+  while (node && node !== document.body) {
+    const { overflowY } = getComputedStyle(node);
+    if (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay") return node;
+    node = node.parentElement;
+  }
+  return null;
+}
+
+/**
+ * Keep the newest reply in view while the model thinks/streams, without fighting the person
+ * if they've scrolled up to read. Instant scrolls — smooth ones cancel each other on every token.
+ */
+function useStickToBottom(rootRef: RefObject<HTMLElement | null>, items: AiChatItem[]) {
+  const pinned = useRef(true);
+
+  // A fresh user message means they just sent — jump back to following the thread.
+  useLayoutEffect(() => {
+    if (items[items.length - 1]?.kind === "user") pinned.current = true;
+  }, [items]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const scroller = scrollParentOf(root) ?? root;
+    const nearBottom = () => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 64;
+    const onScroll = () => {
+      pinned.current = nearBottom();
+    };
+    const follow = () => {
+      if (!pinned.current) return;
+      scroller.scrollTop = scroller.scrollHeight;
+    };
+    follow();
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(follow);
+    ro.observe(root);
+    const mo = new MutationObserver(follow);
+    mo.observe(root, { childList: true, subtree: true, characterData: true });
+    return () => {
+      scroller.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+      mo.disconnect();
+    };
+  }, [rootRef]);
+}
+
 /** Home conversation thread — grows with content; the parent column scrolls. */
-/** `split`: canvas chats put the user's messages on the right and the AI's on the left; the home page keeps everything on the left. */
+/** `split`: user messages sit on the right and the AI's stay on the left (homepage and canvas chats). */
 /** What the person typed, without the references and file contents the home prompt appends. */
 export function typedText(text: string): string {
   return splitReferences(text).body;
@@ -57,7 +107,7 @@ export function HomeChat({
 }: { mentions?: boolean; split?: boolean; /** Home page only: pull the last message back into the input to change and resend. */ onEditLast?: (id: string) => void } = {}) {
   const items = useStore((s) => s.aiChat);
   const turnId = useStore((s) => s.aiTurnId);
-  const endRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const busy = !!turnId;
   const lastUserId = [...items].reverse().find((i) => i.kind === "user")?.id;
   const waiting = items.some((i) => (i.kind === "question" || i.kind === "approval") && i.answer === null);
@@ -71,31 +121,50 @@ export function HomeChat({
       (last?.kind === "tool" && last.state === "running")
     );
   const thinkingPhrase = useThinkingPhrase(waitingOnModel);
-
-  useLayoutEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, [items, waitingOnModel]);
+  useStickToBottom(rootRef, items);
 
   return (
-    <div className="w-full px-1 py-2" aria-label="Conversation">
+    <div ref={rootRef} className="w-full px-1 py-2" aria-label="Conversation">
       <div className="flex w-full flex-col gap-4 pb-4">
         {items.map((item) => (
           <div
             key={item.id}
             data-chat-item={item.id}
-            className={item.kind === "user" ? (split ? "flex justify-end pb-3 ps-10 [&>div]:items-end" : "pb-3") : undefined}
+            className={
+              item.kind === "user"
+                ? split
+                  ? "flex w-full justify-end pb-3 ps-12"
+                  : "pb-3"
+                : split
+                  ? "w-full pe-12"
+                  : undefined
+            }
           >
-            <ChatItem item={item} mentions={mentions} />
-            {onEditLast && !busy && item.id === lastUserId && (
-              <button
-                type="button"
-                onClick={() => onEditLast(item.id)}
-                className="mt-1 flex items-center gap-1 rounded-[var(--pill)] border-0 bg-transparent px-2 py-1 text-xs text-muted-foreground outline-none hover:bg-foreground/[0.06] hover:text-foreground"
-              >
-                <HugeiconsIcon icon={Edit02Icon} size={13} strokeWidth={1.8} aria-hidden />
-                Edit and resend
-              </button>
-            )}
+            {(() => {
+              const body = (
+                <ChatItem
+                  item={item}
+                  mentions={mentions}
+                  align={split ? (item.kind === "user" ? "end" : "start") : "start"}
+                  // Hold while this reply streams; stagger-fade words when the chunk finishes.
+                  pending={busy && !waiting && item.kind === "assistant" && item.id === last?.id}
+                />
+              );
+              if (!(onEditLast && !busy && item.id === lastUserId)) return body;
+              return (
+                <div className={`flex flex-col gap-0.5 ${split ? "items-end" : "items-start"}`}>
+                  {body}
+                  <button
+                    type="button"
+                    onClick={() => onEditLast(item.id)}
+                    className="flex items-center gap-1 rounded-[var(--pill)] border-0 bg-transparent px-2 py-1 text-xs text-muted-foreground outline-none hover:bg-foreground/[0.06] hover:text-foreground"
+                  >
+                    <HugeiconsIcon icon={Edit02Icon} size={13} strokeWidth={1.8} aria-hidden />
+                    Edit and resend
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         ))}
         {waitingOnModel && (
@@ -106,7 +175,6 @@ export function HomeChat({
             <ShimmeringText key={thinkingPhrase} text={withEllipsis(thinkingPhrase)} className="text-[length:var(--chat-font-size-sm)]" startOnView={false} />
           </div>
         )}
-        <div ref={endRef} aria-hidden />
       </div>
       <p className="sr-only" role="status">
         {waiting ? "The AI is waiting for your answer." : busy ? "The AI is working." : items.length ? "The AI is done." : ""}
@@ -168,7 +236,7 @@ function RefPills({ refs }: { refs: { kind: SourceKind; title: string }[] }) {
   );
 }
 
-function UserBubble({ text, mentions = false }: { text: string; mentions?: boolean }) {
+function UserBubble({ text, mentions = false, align = "start" }: { text: string; mentions?: boolean; align?: "start" | "end" }) {
   const { body, refs: homeRefs } = splitReferences(text);
   const canvasRefs = mentions
     ? referencesIn(body).map((r) => ({
@@ -192,8 +260,10 @@ function UserBubble({ text, mentions = false }: { text: string; mentions?: boole
     ro.observe(el);
     return () => ro.disconnect();
   }, [body, refs.length]);
+  // In split (project) chat, keep the bubble under ~80% so it can sit on the right.
+  const shell = align === "end" ? "flex w-fit max-w-[min(100%,80%)] flex-col items-end gap-0.5" : "flex w-fit max-w-full flex-col gap-0.5";
   return (
-    <div className="flex w-fit max-w-full flex-col gap-0.5">
+    <div className={shell}>
       <div
         ref={boxRef}
         style={{ borderRadius: radius, cornerShape: wrapped ? "squircle" : "round" } as React.CSSProperties}
@@ -206,12 +276,22 @@ function UserBubble({ text, mentions = false }: { text: string; mentions?: boole
   );
 }
 
-function ChatItem({ item, mentions }: { item: AiChatItem; mentions: boolean }) {
+function ChatItem({
+  item,
+  mentions,
+  pending = false,
+  align = "start",
+}: {
+  item: AiChatItem;
+  mentions: boolean;
+  pending?: boolean;
+  align?: "start" | "end";
+}) {
   switch (item.kind) {
     case "user":
-      return <UserBubble text={item.text} mentions={mentions} />;
+      return <UserBubble text={item.text} mentions={mentions} align={align} />;
     case "assistant":
-      return <AssistantMessage id={item.id} text={item.text} />;
+      return <AssistantMessage id={item.id} text={item.text} pending={pending} />;
     case "thinking":
       return <ThinkingTrace item={item} />;
     case "error":
@@ -277,14 +357,26 @@ function ErrorMessage({ text }: { text: string }) {
   );
 }
 
-function AssistantMessage({ id, text }: { id: string; text: string }) {
+function AssistantMessage({ id, text, pending = false }: { id: string; text: string; pending?: boolean }) {
+  const phrase = useThinkingPhrase(pending);
+  // Hold a shimmer while tokens stream; when ready, words stagger-fade in.
+  if (pending) {
+    return (
+      <div className="flex items-center gap-2" aria-live="polite" aria-busy="true">
+        <span aria-hidden className="text-foreground">
+          <AgentOrb variant="S2" size={20} style={{ color: "currentColor" }} />
+        </span>
+        <ShimmeringText key={phrase} text={withEllipsis(phrase)} className="text-[length:var(--chat-font-size-sm)]" startOnView={false} />
+      </div>
+    );
+  }
   const parts = splitFenced(text);
   return (
     <div className="flex max-w-full flex-col gap-1.5">
       <div className="flex max-w-full flex-col gap-2 text-[length:var(--chat-font-size)] leading-relaxed text-foreground">
         {parts.map((part, i) =>
           part.type === "code" ? (
-            <CodeBlock key={i} size="sm">
+            <CodeBlock key={i} size="sm" className="motion-safe:animate-[fade-in_0.2s_var(--ease-out-strong,ease-out)]">
               <CodeBlockHeader>
                 <CodeBlockTitle>{part.lang || "Code"}</CodeBlockTitle>
                 <CodeBlockActions>
@@ -296,9 +388,7 @@ function AssistantMessage({ id, text }: { id: string; text: string }) {
               </CodeBlockContent>
             </CodeBlock>
           ) : (
-            <p key={i} className="m-0 whitespace-pre-wrap">
-              {part.text}
-            </p>
+            <ChatMarkdown key={i} text={part.text} />
           ),
         )}
       </div>

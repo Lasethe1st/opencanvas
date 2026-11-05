@@ -1,0 +1,26 @@
+/* One-shot word enter after a held reply — stagger via --i. */
+.word {
+  display: inline;
+  opacity: 0;
+  transform: translateY(3px);
+  filter: blur(2px);
+  animation: soft-word-in 200ms var(--ease-out-strong, cubic-bezier(0.23, 1, 0.32, 1)) both;
+  animation-delay: calc(var(--i, 0) * 36ms);
+}
+
+@keyframes soft-word-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .word {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    animation: none;
+  }
+}

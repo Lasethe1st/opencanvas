@@ -43,10 +43,29 @@ import { useDisplayName } from '../lib/prefs';
 
 type HomeDialogState = { kind: 'new'; path: StartPath | null; brief: string; repo: string } | { kind: 'projects' } | { kind: 'chats' } | { kind: 'memory' };
 
-function greeting(name: string): string {
+/** A pool of openers: some warm, some professional, some a little witty. The name is in every one. */
+const GREETINGS: Array<(name: string, part: string) => string> = [
+  (n, p) => `${p}, ${n}. What are we building?`,
+  (n, p) => `${p}, ${n}.`,
+  (n) => `Welcome back, ${n}.`,
+  (n) => `Ready when you are, ${n}.`,
+  (n) => `What shall we make today, ${n}?`,
+  (n) => `Pixels are waiting, ${n}.`,
+  (n) => `Let's make something good, ${n}.`,
+  (n) => `${n}, the canvas is yours.`,
+  (n) => `Big ideas only, ${n}. Small ones too.`,
+  (n) => `Hello, ${n}. Shall we begin?`,
+  (n) => `${n}, what are we shipping?`,
+  (n) => `Fresh canvas, ${n}. No pressure.`,
+];
+
+/** With no name set there's nothing to put in the line, so it falls back to the plain greeting. */
+function greeting(name: string, pick: number): string {
   const hour = new Date().getHours();
   const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  return `${part}${name.trim() ? `, ${name.trim()}` : ''}. What are we building?`;
+  const who = name.trim();
+  if (!who) return `${part}. What are we building?`;
+  return GREETINGS[pick % GREETINGS.length](who, part);
 }
 
 const focusPrompt = () => requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-home-prompt]')?.focus());
@@ -81,6 +100,8 @@ export function Onboarding() {
   const activeChatId = useRef<string | null>(null);
   const prevTurnId = useRef<string | null>(null);
   const displayName = useDisplayName();
+  // One opener per visit to the home screen, so it doesn't change under the user's eyes.
+  const [greetingPick] = useState(() => Math.floor(Math.random() * GREETINGS.length));
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
   const onboarding = useOnboarding();
@@ -524,7 +545,7 @@ export function Onboarding() {
             {chatActive ? (
               <>
                 <div className="mx-auto w-full max-w-[680px] flex-1 px-8 pt-16">
-                  <HomeChat onEditLast={editLast} />
+                  <HomeChat split onEditLast={editLast} />
                 </div>
                 <div className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-[var(--home-card)] from-[40%] via-[color-mix(in_srgb,var(--home-card)_60%,transparent)] via-[55%] to-transparent to-75% px-8 pb-3 pt-8">
                   <div className="mx-auto flex w-full max-w-[680px] flex-col gap-2">
@@ -574,7 +595,7 @@ export function Onboarding() {
               </>
             ) : (
               <div className="relative z-10 flex w-full max-w-[680px] flex-col items-center">
-                <h1 className="mb-6 font-geist text-balance text-center text-[32px] font-medium leading-[1.1] tracking-[-0.02em]">{greeting(displayName)}</h1>
+                <h1 className="mb-6 font-serif text-balance text-center text-[36px] font-normal leading-[1.15] tracking-[-0.01em]">{greeting(displayName, greetingPick)}</h1>
                 <div className="flex w-full flex-col items-center gap-3">
                   {wantsToBuildSite(dockDraft, aiChat) && (
                     <div className="flex w-full justify-start">
