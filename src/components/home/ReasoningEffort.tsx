@@ -479,7 +479,7 @@ export function ReasoningEffort({
         onPointerCancel={onPointerUp}
         onKeyDown={onKeyDown}
       >
-        <div className={s.fill} style={{ width: fillW }} />
+        <div className={s.fill} style={{ width: fillW, ["--t" as string]: (display / (STOPS.length - 1)).toFixed(3) }} />
         <div
           className={s.thumb}
           style={{

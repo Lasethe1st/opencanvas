@@ -52,8 +52,29 @@
   outline: none;
 }
 .track:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--fg, #111) 30%, transparent); }
-.fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--ss-fill); }
-.root[data-level='2'] .fill { background: linear-gradient(90deg, var(--ss-fill), color-mix(in srgb, var(--fg, #111) 24%, transparent), var(--ss-fill)); background-size: 200% 100%; animation: ss-shimmer 1.6s linear infinite; }
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  /* Green that gets stronger as the level climbs; --t runs 0 → 1 across the stops. */
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, #4ade80 calc(18% + 24% * var(--t, 0)), transparent),
+    color-mix(in srgb, #16a34a calc(34% + 62% * var(--t, 0)), transparent)
+  );
+  transition: filter 200ms ease;
+}
+.root[data-level='2'] .fill { filter: saturate(1.15); }
+.root[data-level='2'] .fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.28) 50%, transparent 100%);
+  background-size: 60% 100%;
+  background-repeat: no-repeat;
+  animation: ss-glint 1.8s ease-in-out infinite;
+}
 .thumb {
   position: absolute;
   top: 50%;
@@ -68,8 +89,8 @@
 .tick[data-on-thumb='true'] { opacity: 0; }
 @keyframes ss-in { from { opacity: 0; transform: translateY(4px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
 @keyframes ss-out { from { opacity: 1; } to { opacity: 0; } }
-@keyframes ss-shimmer { from { background-position: 200% 0; } to { background-position: 0 0; } }
+@keyframes ss-glint { from { background-position: -80% 0; } to { background-position: 180% 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .current, .next, .root[data-level='2'] .fill { animation: none; }
+  .current, .next, .root[data-level='2'] .fill::after { animation: none; }
   .current { display: none; }
 }
