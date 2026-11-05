@@ -13,8 +13,8 @@ import {
 import { HomeComposerExtras } from "./HomeComposerExtras";
 
 /** Peeking strip above the start composer, plus the slice tucked under it. */
-const PEEK = 40;
-const TUCK = 12;
+const PEEK = 32;
+const TUCK = 10;
 const INSET = 24;
 
 const controlClass =
@@ -67,7 +67,7 @@ export function HomeComposerShadow({
         marginInline: INSET,
         marginBottom: -TUCK,
         height: PEEK + TUCK,
-        borderRadius: 22,
+        borderRadius: 20,
         cornerShape: "squircle",
       } as React.CSSProperties}
     >
