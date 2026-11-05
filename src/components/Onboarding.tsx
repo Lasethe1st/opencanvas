@@ -482,7 +482,7 @@ export function Onboarding() {
             {chatActive ? (
               <>
                 <div className="mx-auto w-full max-w-[680px] flex-1 px-8 pt-16">
-                  <HomeChat />
+                  <HomeChat split />
                 </div>
                 <div className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-[var(--home-card)] from-[40%] via-[color-mix(in_srgb,var(--home-card)_60%,transparent)] via-[55%] to-transparent to-75% px-8 pb-3 pt-8">
                   <div className="mx-auto flex w-full max-w-[680px] flex-col gap-2">

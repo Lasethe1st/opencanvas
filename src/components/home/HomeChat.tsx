@@ -94,7 +94,7 @@ function useStickToBottom(rootRef: RefObject<HTMLElement | null>, items: AiChatI
 }
 
 /** Home conversation thread — grows with content; the parent column scrolls. */
-/** `split`: canvas chats put the user's messages on the right and the AI's on the left; the home page keeps everything on the left. */
+/** `split`: user messages sit on the right and the AI's stay on the left (homepage and canvas chats). */
 export function HomeChat({ mentions = false, split = false }: { mentions?: boolean; split?: boolean } = {}) {
   const items = useStore((s) => s.aiChat);
   const turnId = useStore((s) => s.aiTurnId);
