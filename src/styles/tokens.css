@@ -12,6 +12,8 @@
   /* Home layers: the background sits behind the raised chat card. */
   --home-bg: #f5f5f7;
   --home-card: #ffffff;
+  /* Back card tucked behind the home start composer. */
+  --composer-shadow: #f5f5f7;
   /* Source kinds: project, chat, file, web, google. */
   --src-project: #2f6fe4;
   --src-chat: #8a4fd6;
@@ -104,6 +106,8 @@
   --surface-3: #1c1c1c;
   --home-bg: var(--color-black, #000);
   --home-card: var(--code-bg);
+  /* A soft step above the dark surface, matching the light shadow card. */
+  --composer-shadow: #1c1c1e;
   --src-project: #6ea0ff;
   --src-chat: #b88cf2;
   --src-file: #e8a53d;

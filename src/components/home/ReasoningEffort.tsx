@@ -177,10 +177,13 @@ export function ReasoningEffort({
   value,
   onChange,
   modelLabel,
+  onStopChange,
 }: {
   value: AiThinkingEffort;
   onChange: (next: AiThinkingEffort) => void;
   modelLabel: string;
+  /** Current stop while dragging, so a label beside the track can follow the thumb. */
+  onStopChange?: (label: string) => void;
 }) {
   const MODEL = modelLabel;
   const rootRef = useRef<HTMLDivElement>(null);
@@ -329,6 +332,11 @@ export function ReasoningEffort({
       setDisplay(idx);
     }
   }, [value]);
+
+  const stopLabel = STOPS[Math.round(display)] ?? STOPS[0];
+  useEffect(() => {
+    onStopChange?.(stopLabel);
+  }, [stopLabel, onStopChange]);
 
   function emit(index: number) {
     const id = EFFORTS[clamp(Math.round(index), 0, EFFORTS.length - 1)].id;

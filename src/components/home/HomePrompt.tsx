@@ -75,6 +75,8 @@ export function HomePrompt({
   onAttach,
   onRemoveAttachment,
   history = [],
+  minLines = 1,
+  deck = false,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -99,8 +101,18 @@ export function HomePrompt({
   onRemoveAttachment?: (id: string) => void;
   /** Earlier messages, newest first, for the Up arrow to walk back through. */
   history?: string[];
+  /** Lines of text the in-conversation field holds before it grows. */
+  minLines?: number;
+  /**
+   * Home start state. The empty card is 72px with the controls inside it.
+   * The text sits above that row and grows with the card. The shell is a 20px squircle.
+   */
+  deck?: boolean;
 }) {
   const shellRef = useRef<HTMLDivElement>(null);
+  const lineCount = Math.max(1, minLines);
+  /** One line is leading-6 plus the field's vertical padding; extra lines add another leading-6. */
+  const minTextHeight = `calc(${lineCount} * 1.5rem + 1.25rem)`;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [textareaHeight, setTextareaHeight] = useState(44);
   const [radius, setRadius] = useState("var(--r-pill)");
@@ -264,6 +276,7 @@ export function HomePrompt({
   }, []);
 
   useLayoutEffect(() => {
+    if (deck) return;
     const el = shellRef.current;
     if (!el) return;
     const measure = () => setRadius(dynamicPillRadius(el.offsetHeight));
@@ -271,7 +284,7 @@ export function HomePrompt({
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [value, textareaHeight]);
+  }, [deck, value, textareaHeight]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.key === "Backspace" || e.key === "Delete") && !e.nativeEvent.isComposing && removeWholeName(e)) return;
@@ -341,6 +354,41 @@ export function HomePrompt({
     onSubmit();
   };
 
+  /** Inline composer centers a one-line field and pins the controls once it wraps. */
+  const inlineControls = textareaHeight > 44 ? "self-end" : "self-center";
+  const attachButton = (
+    <InputGroupButton variant="ghost" size="icon" className="rounded-[var(--pill)] text-muted-foreground" aria-label="Attach files" onClick={() => fileRef.current?.click()}>
+      <HugeiconsIcon icon={AttachmentIcon} size={18} strokeWidth={1.8} aria-hidden />
+    </InputGroupButton>
+  );
+  const micButton =
+    canDictate && !sending ? (
+      <InputGroupButton
+        variant="ghost"
+        size="icon"
+        className={`me-1 rounded-[var(--pill)] ${listening ? "bg-red-500/15 text-red-600 animate-pulse" : "text-muted-foreground"}`}
+        aria-label={listening ? "Stop dictation" : "Dictate"}
+        aria-pressed={listening}
+        disabled={disabled}
+        onClick={() => void dictate()}
+      >
+        <HugeiconsIcon icon={Mic01Icon} size={18} strokeWidth={1.8} aria-hidden />
+      </InputGroupButton>
+    ) : null;
+  const trailingButton = sending ? (
+    <InputGroupButton variant="default" size="icon" className="rounded-[var(--pill)]" aria-label="Stop" onClick={stopAi}>
+      <Stop weight="fill" className="size-3.5" />
+    </InputGroupButton>
+  ) : hasText ? (
+    <InputGroupButton variant="default" size="icon" className="rounded-[var(--pill)]" aria-label="Send" disabled={disabled} onClick={submit}>
+      <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} aria-hidden />
+    </InputGroupButton>
+  ) : (
+    <InputGroupButton variant="default" size="icon" className="rounded-[var(--pill)]" aria-label="Voice input" disabled={disabled || !onVoice} onClick={onVoice}>
+      <Waveform />
+    </InputGroupButton>
+  );
+
   const takeFiles = useCallback(
     (list: FileList | File[] | null | undefined) => {
       const files = Array.from(list ?? []);
@@ -386,8 +434,8 @@ export function HomePrompt({
       )}
     <div
       ref={shellRef}
-      className={`w-full overflow-hidden bg-muted/70 backdrop-blur-[30px] backdrop-saturate-150 transition-[background-color,box-shadow] duration-150 focus-within:bg-secondary/70 ${dragging ? "bg-secondary/80 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg,#111)_28%,transparent)]" : ""}`}
-      style={{ borderRadius: radius }}
+      className={`w-full overflow-hidden bg-muted/70 backdrop-blur-[30px] backdrop-saturate-150 transition-[background-color,box-shadow] duration-150 focus-within:bg-secondary/70 ${deck ? "flex flex-col" : ""} ${dragging ? "bg-secondary/80 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg,#111)_28%,transparent)]" : ""}`}
+      style={deck ? { minHeight: 72, borderRadius: 20, ...SQUIRCLE } : { borderRadius: radius }}
       onDragOver={(e) => {
         if (!onAttach || !e.dataTransfer.types.includes("Files")) return;
         e.preventDefault();
@@ -422,7 +470,7 @@ export function HomePrompt({
           ))}
         </ul>
       )}
-      <InputGroup className="h-auto border-0 bg-transparent pe-2 py-1 shadow-none has-[[data-slot=input-group-control]:focus-visible]:bg-transparent">
+      <InputGroup className={deck ? "h-auto flex-1 flex-col items-stretch gap-0 border-0 bg-transparent p-0 shadow-none has-[[data-slot=input-group-control]:focus-visible]:bg-transparent" : "h-auto border-0 bg-transparent pe-2 py-1 shadow-none has-[[data-slot=input-group-control]:focus-visible]:bg-transparent"}>
         {onAttach && (
           <>
             <input
@@ -435,18 +483,18 @@ export function HomePrompt({
                 e.target.value = "";
               }}
             />
-            <InputGroupAddon align="inline-start" className={`${textareaHeight <= 44 ? "self-center" : "self-end"} ps-3 pb-0`}>
-              <InputGroupButton variant="ghost" size="icon" className="rounded-[var(--pill)] text-muted-foreground" aria-label="Attach files" onClick={() => fileRef.current?.click()}>
-                <HugeiconsIcon icon={AttachmentIcon} size={18} strokeWidth={1.8} aria-hidden />
-              </InputGroupButton>
-            </InputGroupAddon>
+            {!deck && (
+              <InputGroupAddon align="inline-start" className={`${inlineControls} ps-3 pb-0`}>
+                {attachButton}
+              </InputGroupAddon>
+            )}
           </>
         )}
-        <div className="relative min-w-0 flex-1">
+        <div className={deck ? "relative w-full flex-1" : "relative min-w-0 flex-1"}>
         <div
           ref={overlayRef}
           aria-hidden
-          className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words px-4 py-2.5 text-base leading-6 text-foreground"
+          className={`pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words text-base leading-6 text-foreground ${deck ? "px-[10px]" : "px-4 py-2.5"}`}
         >
           {parts.map((part, i) => (
             <span
@@ -474,11 +522,12 @@ export function HomePrompt({
         <InputGroupTextarea
           ref={textareaRef}
           autoFocus
-          rows={1}
+          rows={deck ? 1 : lineCount}
+          style={deck ? { minHeight: 0, padding: "0 10px" } : { minHeight: minTextHeight }}
           data-home-prompt=""
           aria-label="Message the AI"
           placeholder="Message…"
-          className="field-sizing-content relative max-h-60 text-transparent caret-foreground min-h-11 w-full bg-transparent px-4 py-2.5 leading-6 focus-visible:bg-transparent"
+          className={`field-sizing-content relative max-h-60 text-transparent caret-foreground w-full bg-transparent leading-6 focus-visible:bg-transparent ${deck ? "min-h-0" : "min-h-11 px-4 py-2.5"}`}
           onScroll={(e) => {
             if (overlayRef.current) overlayRef.current.scrollTop = e.currentTarget.scrollTop;
           }}
@@ -504,52 +553,22 @@ export function HomePrompt({
           aria-autocomplete="list"
         />
         </div>
-        <InputGroupAddon
-          align="inline-end"
-          className={`${textareaHeight <= 44 ? "self-center" : "self-end"} pe-0 pb-0 has-[>button]:me-0`}
-        >
-          {canDictate && !sending && (
-            <InputGroupButton
-              variant="ghost"
-              size="icon"
-              className={`me-1 rounded-[var(--pill)] ${listening ? "bg-red-500/15 text-red-600 animate-pulse" : "text-muted-foreground"}`}
-              aria-label={listening ? "Stop dictation" : "Dictate"}
-              aria-pressed={listening}
-              disabled={disabled}
-              onClick={() => void dictate()}
-            >
-              <HugeiconsIcon icon={Mic01Icon} size={18} strokeWidth={1.8} aria-hidden />
-            </InputGroupButton>
-          )}
-          {sending ? (
-            <InputGroupButton variant="default" size="icon" className="rounded-[var(--pill)]" aria-label="Stop" onClick={stopAi}>
-              <Stop weight="fill" className="size-3.5" />
-            </InputGroupButton>
-          ) : hasText ? (
-            <InputGroupButton
-              variant="default"
-              size="icon"
-              className="rounded-[var(--pill)]"
-              aria-label="Send"
-              disabled={disabled}
-              onClick={submit}
-            >
-              <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} aria-hidden />
-            </InputGroupButton>
-          ) : (
-            <InputGroupButton
-              variant="default"
-              size="icon"
-              className="rounded-[var(--pill)]"
-              aria-label="Voice input"
-              disabled={disabled || !onVoice}
-              onClick={onVoice}
-            >
-              <Waveform />
-            </InputGroupButton>
-          )}
-        </InputGroupAddon>
+        {!deck && (
+          <InputGroupAddon align="inline-end" className={`${inlineControls} pe-0 pb-0 has-[>button]:me-0`}>
+            {micButton}
+            {trailingButton}
+          </InputGroupAddon>
+        )}
       </InputGroup>
+      {deck && (
+        <div data-home-composer-toolbar="" className="flex w-full shrink-0 items-center justify-between" style={{ padding: "8px 10px" }}>
+          {onAttach ? attachButton : <span />}
+          <div className="flex items-center">
+            {micButton}
+            {trailingButton}
+          </div>
+        </div>
+      )}
     </div>
     </div>
   );
