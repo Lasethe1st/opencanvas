@@ -1,8 +1,8 @@
 import { getSendKey } from "../../lib/prefs";
 import { FolderOpen, Stop, Waveform } from '../../lib/home-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowUp02Icon } from '@hugeicons/core-free-icons';
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { ArrowUp02Icon, AttachmentIcon, Cancel01Icon, CommandLineIcon, File01Icon } from '@hugeicons/core-free-icons';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { dynamicPillRadius } from "../../lib/pill-radius";
@@ -12,6 +12,18 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
+export interface Attachment {
+  id: string;
+  name: string;
+  size: number;
+  text: string;
+}
+
+const CMD_PREFIX = "cmd:";
+export const isCommand = (o: { id: string }) => o.id.startsWith(CMD_PREFIX);
+
+const fmtSize = (n: number) => (n < 1024 ? `${n} B` : `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB`);
+
 export interface MentionOption {
   id: string;
   label: string;
@@ -56,6 +68,12 @@ export function HomePrompt({
   onMention,
   skills = [],
   onOpenSkills,
+  commands = [],
+  onCommand,
+  attachments = [],
+  onAttach,
+  onRemoveAttachment,
+  history = [],
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -71,12 +89,25 @@ export function HomePrompt({
   skills?: MentionOption[];
   /** Opens the folder skills are kept in. */
   onOpenSkills?: () => void;
+  /** Built-in actions the `/` menu lists above skills. Picking one calls `onCommand` with its id. */
+  commands?: MentionOption[];
+  onCommand?: (id: string) => void;
+  /** Files shown as chips above the input. */
+  attachments?: Attachment[];
+  onAttach?: (files: File[]) => void;
+  onRemoveAttachment?: (id: string) => void;
+  /** Earlier messages, newest first, for the Up arrow to walk back through. */
+  history?: string[];
 }) {
   const shellRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [textareaHeight, setTextareaHeight] = useState(44);
   const [radius, setRadius] = useState("var(--r-pill)");
-  const hasText = !!value.trim();
+  const hasText = !!value.trim() || attachments.length > 0;
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const histAt = useRef(-1);
+  const histDraft = useRef("");
   const listId = useId();
   const [caret, setCaret] = useState(0);
   const [active, setActive] = useState(0);
@@ -89,9 +120,14 @@ export function HomePrompt({
   const triggerStart = trigger ? caret - trigger[3].length - 1 : -1;
   const matches = useMemo(() => {
     if (query === null) return [];
-    if (symbol === "/") return [...skills.filter((m) => m.label.toLowerCase().includes(query)).slice(0, 7), ...(onOpenSkills ? [FOLDER_ROW] : [])];
+    if (symbol === "/")
+      return [
+        ...commands.filter((m) => m.label.toLowerCase().includes(query)),
+        ...skills.filter((m) => m.label.toLowerCase().includes(query)).slice(0, 7),
+        ...(onOpenSkills ? [FOLDER_ROW] : []),
+      ];
     return mentions.filter((m) => m.label.toLowerCase().includes(query)).slice(0, 8);
-  }, [mentions, skills, onOpenSkills, query, symbol]);
+  }, [mentions, skills, commands, onOpenSkills, query, symbol]);
   const open = query !== null && matches.length > 0 && dismissed !== triggerStart && !!onMention;
 
   useEffect(() => setActive(0), [query]);
@@ -164,6 +200,11 @@ export function HomePrompt({
   };
 
   const pick = (option: MentionOption) => {
+    if (isCommand(option)) {
+      onChange(`${value.slice(0, triggerStart)}${value.slice(caret)}`);
+      onCommand?.(option.id.slice(CMD_PREFIX.length));
+      return;
+    }
     if (option.id === SKILLS_FOLDER) {
       const next = `${value.slice(0, triggerStart)}${value.slice(caret)}`;
       onChange(next);
@@ -225,12 +266,51 @@ export function HomePrompt({
         return;
       }
     }
+    // Up/Down walk earlier messages, but only from an empty box or the very start/end, so editing a long draft still moves the caret.
+    if ((e.key === "ArrowUp" || e.key === "ArrowDown") && !e.shiftKey && !e.altKey && !e.metaKey && !e.ctrlKey && history.length) {
+      const el = e.currentTarget;
+      const atStart = el.selectionStart === 0 && el.selectionEnd === 0;
+      const atEnd = el.selectionStart === value.length && el.selectionEnd === value.length;
+      const browsing = histAt.current >= 0;
+      if (e.key === "ArrowUp" && (!value || (browsing && atStart) || (!browsing && atStart))) {
+        if (histAt.current + 1 < history.length) {
+          e.preventDefault();
+          if (!browsing) histDraft.current = value;
+          histAt.current += 1;
+          onChange(history[histAt.current]);
+          requestAnimationFrame(() => el.setSelectionRange(0, 0));
+        }
+        return;
+      }
+      if (e.key === "ArrowDown" && browsing && atEnd) {
+        e.preventDefault();
+        histAt.current -= 1;
+        const next = histAt.current < 0 ? histDraft.current : history[histAt.current];
+        onChange(next);
+        requestAnimationFrame(() => el.setSelectionRange(next.length, next.length));
+        return;
+      }
+    }
     if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
     // "Ctrl+Enter to send" leaves a plain Enter as a new line.
     if (getSendKey() === "mod-enter" && !(e.ctrlKey || e.metaKey)) return;
     e.preventDefault();
-    if (hasText && !disabled && !sending) onSubmit();
+    if (hasText && !disabled && !sending) submit();
   };
+
+  const submit = () => {
+    histAt.current = -1;
+    histDraft.current = "";
+    onSubmit();
+  };
+
+  const takeFiles = useCallback(
+    (list: FileList | File[] | null | undefined) => {
+      const files = Array.from(list ?? []);
+      if (files.length) onAttach?.(files);
+    },
+    [onAttach],
+  );
 
   return (
     <div className="relative w-full">
@@ -254,7 +334,13 @@ export function HomePrompt({
               }}
               className={`flex cursor-pointer items-center gap-2 rounded-[8px] px-2.5 py-1.5 ${i === active ? "bg-accent" : ""}`}
             >
-              {m.id === SKILLS_FOLDER ? <FolderOpen className="size-4 shrink-0 text-muted-foreground" aria-hidden /> : <SourceIcon kind={m.kind} className="size-4" />}
+              {m.id === SKILLS_FOLDER ? (
+                <FolderOpen className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              ) : isCommand(m) ? (
+                <HugeiconsIcon icon={CommandLineIcon} size={16} strokeWidth={1.8} className="shrink-0 text-muted-foreground" aria-hidden />
+              ) : (
+                <SourceIcon kind={m.kind} className="size-4" />
+              )}
               <strong className={`min-w-0 truncate text-sm font-medium ${m.id === SKILLS_FOLDER ? "text-muted-foreground" : ""}`}>{m.label}</strong>
               <span className="ms-auto min-w-0 max-w-[45%] truncate text-xs text-muted-foreground">{m.detail}</span>
             </li>
@@ -263,10 +349,62 @@ export function HomePrompt({
       )}
     <div
       ref={shellRef}
-      className="w-full overflow-hidden bg-muted/70 backdrop-blur-[30px] backdrop-saturate-150 transition-[background-color] duration-150 focus-within:bg-secondary/70"
+      className={`w-full overflow-hidden bg-muted/70 backdrop-blur-[30px] backdrop-saturate-150 transition-[background-color,box-shadow] duration-150 focus-within:bg-secondary/70 ${dragging ? "bg-secondary/80 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg,#111)_28%,transparent)]" : ""}`}
       style={{ borderRadius: radius }}
+      onDragOver={(e) => {
+        if (!onAttach || !e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+      }}
+      onDrop={(e) => {
+        if (!onAttach || !e.dataTransfer.files.length) return;
+        e.preventDefault();
+        setDragging(false);
+        takeFiles(e.dataTransfer.files);
+      }}
     >
+      {attachments.length > 0 && (
+        <ul className="m-0 flex list-none flex-wrap gap-1.5 px-3 pb-0 pt-2.5" aria-label="Attachments">
+          {attachments.map((a) => (
+            <li key={a.id} className="flex max-w-[220px] items-center gap-1.5 rounded-[var(--pill)] bg-foreground/[0.07] py-1 pe-1 ps-2.5 text-xs">
+              <HugeiconsIcon icon={File01Icon} size={14} strokeWidth={1.8} className="shrink-0 text-muted-foreground" aria-hidden />
+              <span className="min-w-0 truncate font-medium">{a.name}</span>
+              <span className="shrink-0 text-muted-foreground">{fmtSize(a.size)}</span>
+              <button
+                type="button"
+                aria-label={`Remove ${a.name}`}
+                onClick={() => onRemoveAttachment?.(a.id)}
+                className="grid size-5 shrink-0 place-items-center rounded-[var(--pill)] border-0 bg-transparent text-muted-foreground outline-none hover:bg-foreground/10 hover:text-foreground"
+              >
+                <HugeiconsIcon icon={Cancel01Icon} size={12} strokeWidth={2} aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <InputGroup className="h-auto border-0 bg-transparent pe-2 py-1 shadow-none has-[[data-slot=input-group-control]:focus-visible]:bg-transparent">
+        {onAttach && (
+          <>
+            <input
+              ref={fileRef}
+              type="file"
+              multiple
+              hidden
+              onChange={(e) => {
+                takeFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <InputGroupAddon align="inline-start" className={`${textareaHeight <= 44 ? "self-center" : "self-end"} ps-3 pb-0`}>
+              <InputGroupButton variant="ghost" size="icon" className="rounded-[var(--pill)] text-muted-foreground" aria-label="Attach files" onClick={() => fileRef.current?.click()}>
+                <HugeiconsIcon icon={AttachmentIcon} size={18} strokeWidth={1.8} aria-hidden />
+              </InputGroupButton>
+            </InputGroupAddon>
+          </>
+        )}
         <div className="relative min-w-0 flex-1">
         <div
           ref={overlayRef}
@@ -314,6 +452,12 @@ export function HomePrompt({
             setCaret(e.target.selectionStart ?? e.target.value.length);
           }}
           onKeyDown={onKeyDown}
+          onPaste={(e) => {
+            if (onAttach && e.clipboardData.files.length) {
+              e.preventDefault();
+              takeFiles(e.clipboardData.files);
+            }
+          }}
           onKeyUp={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
           onClick={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
           role="combobox"
@@ -338,7 +482,7 @@ export function HomePrompt({
               className="rounded-[var(--pill)]"
               aria-label="Send"
               disabled={disabled}
-              onClick={onSubmit}
+              onClick={submit}
             >
               <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} aria-hidden />
             </InputGroupButton>
