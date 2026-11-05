@@ -98,8 +98,6 @@ export function ModelPopover({
           collisionPadding={12}
           className="model-pop z-[120] w-[300px] rounded-3xl border border-[color:var(--line)] bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-md)] outline-none"
         >
-          <ThinkingSlider value={effort} onChange={onEffort} />
-          <div className="mx-2.5 my-2 h-px bg-border/70" />
           <div className="flex max-h-[240px] flex-col gap-1.5 overflow-y-auto">
             {models.length === 0 ? (
               <div className="px-2.5 py-2 text-xs text-muted-foreground">{loading ? 'Loading models…' : 'No models listed — set one in Settings › AI.'}</div>
@@ -131,6 +129,8 @@ export function ModelPopover({
               ))
             )}
           </div>
+          <div className="mx-2.5 my-2 h-px bg-border/70" />
+          <ThinkingSlider value={effort} onChange={onEffort} />
           <div className="mx-2.5 my-2 h-px bg-border/70" />
           <button type="button" onClick={onOpenSettings} className="w-full border-0 bg-transparent rounded-xl px-2.5 py-1.5 outline-none text-left text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground">
             Open Settings › AI
