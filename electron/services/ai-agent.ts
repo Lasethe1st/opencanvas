@@ -224,6 +224,7 @@ function describeTurnContext(ctx: AiTurnContext | undefined): string {
   if (ctx.page) {
     lines.push(`The user is looking at the page "${ctx.page.name}" (${ctx.page.path})${ctx.page.file ? ` — source ${ctx.page.file}` : ''}.`);
   }
+  if (ctx.webSearch === false) lines.push('Web search is turned off for this message: answer from what you know and the project, and say so if something needs a live lookup.');
   if (ctx.frameWidth) lines.push(`Active frame width: ${Math.round(ctx.frameWidth)}px.`);
   if (ctx.selection) lines.push(`Selected element: <${ctx.selection.tag}> "${ctx.selection.name}" (id ${ctx.selection.id}). "This", "it" or "here" most likely means this element.`);
   for (const ref of (ctx.references ?? []).slice(0, 12)) {
@@ -382,7 +383,7 @@ export class AiAgent {
     const tools = (opts.tools ?? deps.tools(turnId, request)).filter((t) => t.name !== 'undo' && t.name !== 'redo');
     const allowRun = opts.allowRunCommand !== false && !!deps.runCommand && !opts.tools;
     // Web browse is for normal chat turns, not focused variant/ephemeral tool sets.
-    const allowWeb = !opts.tools;
+    const allowWeb = !opts.tools && ctx?.webSearch !== false;
     const toolDefs: ToolDef[] = [
       ...tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })),
       ASK_USER,

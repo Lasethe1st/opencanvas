@@ -14,6 +14,8 @@ import { ModelLogo } from "./ModelLogo";
 import { ModelPopover } from "./ModelPopover";
 import { api } from "../../lib/api";
 import { useStore } from "../../lib/store";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Globe02Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -544,7 +546,7 @@ function UsageTaskQueue({ chat }: { chat: AiChatItem[] }) {
 }
 
 /** Model + thinking + context usage under the home composer. */
-export function HomeComposerExtras() {
+export function HomeComposerExtras({ webSearch = true, onWebSearch }: { webSearch?: boolean; onWebSearch?: (on: boolean) => void } = {}) {
   const status = useStore((s) => s.aiStatus);
   const settings = status?.settings;
   const aiChat = useStore((s) => s.aiChat);
@@ -619,6 +621,23 @@ export function HomeComposerExtras() {
         onEffort={(e) => void save({ thinkingEffort: e })}
         onOpenSettings={() => openAiSettings()}
       />
+
+      {onWebSearch && (
+        <button
+          type="button"
+          aria-pressed={webSearch}
+          aria-label="Web search"
+          title={webSearch ? "Web search is on" : "Web search is off"}
+          onClick={() => onWebSearch(!webSearch)}
+          className={cn(
+            "ms-1 flex h-7 items-center gap-1.5 rounded-[var(--pill)] border-0 bg-transparent px-2 text-xs outline-none transition-colors",
+            webSearch ? "bg-foreground/[0.07] text-foreground" : "text-muted-foreground hover:bg-foreground/[0.05]",
+          )}
+        >
+          <HugeiconsIcon icon={Globe02Icon} size={14} strokeWidth={1.8} aria-hidden />
+          Web
+        </button>
+      )}
 
       <ContextUsageRing used={usage.used} limit={usage.limit} className="ms-auto" />
 

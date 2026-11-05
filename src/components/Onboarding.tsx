@@ -113,6 +113,8 @@ export function Onboarding() {
 
   const chatSources = useSources(aiChat);
   const [mentioned, setMentioned] = useState<Source[]>([]);
+  const [webSearch, setWebSearch] = useState<boolean>(() => { try { return localStorage.getItem('oc-web-search') !== 'off'; } catch { return true; } });
+  const toggleWeb = useCallback((on: boolean) => { setWebSearch(on); try { localStorage.setItem('oc-web-search', on ? 'on' : 'off'); } catch { /* private mode */ } }, []);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const history = useMemo(() => {
     const seen = new Set<string>();
@@ -230,7 +232,7 @@ export function Onboarding() {
     const full = base + fileBlock;
     const used = refs.filter((x) => x.kind === 'skill');
     const skills = (await Promise.all(used.map(async (x) => ({ name: x.title, body: await api.skills.read(x.id.replace(/^skill:/, '')).catch(() => '') })))).filter((k) => k.body);
-    const ok = await sendToAi(full, skills.length ? { skills } : undefined);
+    const ok = await sendToAi(full, { ...(skills.length ? { skills } : {}), webSearch });
     // sendToAi only clears the draft when it matches what was sent, and `full` adds the references.
     if (ok && getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     if (ok) setAttachments([]);
@@ -242,7 +244,7 @@ export function Onboarding() {
       });
     }
     if (ok) focusPrompt();
-  }, [dockDraft, busy, aiReady, aiChat.length, mentioned, chatSources, attachments]);
+  }, [dockDraft, busy, aiReady, aiChat.length, mentioned, chatSources, attachments, webSearch]);
 
   // Keep the composer ready for the next turn — chat should feel continuous, not transactional.
   useEffect(() => {
@@ -542,7 +544,7 @@ export function Onboarding() {
                           onRemoveAttachment={removeAttachment}
                           history={history}
                         />
-                        <HomeComposerExtras />
+                        <HomeComposerExtras webSearch={webSearch} onWebSearch={toggleWeb} />
                         <div className="flex flex-wrap items-center gap-2 px-1">
                           <HomeAiHint />
                         </div>
@@ -580,7 +582,7 @@ export function Onboarding() {
                           onRemoveAttachment={removeAttachment}
                           history={history}
                   />
-                  <HomeComposerExtras />
+                  <HomeComposerExtras webSearch={webSearch} onWebSearch={toggleWeb} />
                   <HomeAiHint className="text-center" />
                 </div>
               </div>
