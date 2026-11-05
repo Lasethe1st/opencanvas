@@ -543,8 +543,11 @@ function UsageTaskQueue({ chat }: { chat: AiChatItem[] }) {
   );
 }
 
-/** Model + thinking + context usage under the home composer. */
-export function HomeComposerExtras() {
+/** Model + thinking + context usage under the home composer.
+ *  `shadow` keeps only the picker, for the back card above the empty home composer.
+ *  The context ring stays on the in-conversation bar — it is empty until a chat exists.
+ */
+export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "shadow" } = {}) {
   const status = useStore((s) => s.aiStatus);
   const settings = status?.settings;
   const aiChat = useStore((s) => s.aiChat);
@@ -605,20 +608,30 @@ export function HomeComposerExtras() {
     setAllOpen(false);
   };
 
+  const picker = (
+    <ModelPopover
+      provider={settings.provider}
+      modelLabel={label}
+      modelId={settings.model}
+      effort={effort}
+      models={models}
+      providers={providers.map((g) => g.provider)}
+      loading={loading}
+      onPickModel={pickModel}
+      onEffort={(e) => void save({ thinkingEffort: e })}
+      onOpenSettings={() => openAiSettings()}
+      side={variant === "shadow" ? "bottom" : "top"}
+      align={variant === "shadow" ? "end" : "start"}
+      avoidCollisions={variant !== "shadow"}
+      triggerClassName={variant === "shadow" ? "max-w-[min(280px,46vw)]" : undefined}
+    />
+  );
+
+  if (variant === "shadow") return picker;
+
   return (
     <div className="flex w-full flex-wrap items-center justify-start gap-0 px-1">
-      <ModelPopover
-        provider={settings.provider}
-        modelLabel={label}
-        modelId={settings.model}
-        effort={effort}
-        models={models}
-        providers={providers.map((g) => g.provider)}
-        loading={loading}
-        onPickModel={pickModel}
-        onEffort={(e) => void save({ thinkingEffort: e })}
-        onOpenSettings={() => openAiSettings()}
-      />
+      {picker}
 
       <ContextUsageRing used={usage.used} limit={usage.limit} className="ms-auto" />
 

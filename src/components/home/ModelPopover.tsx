@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { CaretDown, Check } from '../../lib/home-icons';
 import { providerMeta, type AiProviderKind, type AiThinkingEffort } from '../../../shared/ai';
@@ -7,11 +8,17 @@ import { cn } from '@/lib/utils';
 
 export type PickerModel = { id: string; label: string; hint?: string; provider: AiProviderKind };
 
-/** The thinking effort slider, on its own. */
+/** The thinking effort slider, with the current stop named beside the track. */
 function ThinkingSlider({ value, onChange, modelLabel }: { value: AiThinkingEffort; onChange: (v: AiThinkingEffort) => void; modelLabel: string }) {
+  const effortMeta = EFFORTS.find((e) => e.id === value) ?? EFFORTS[1];
+  const [live, setLive] = useState(effortMeta.label);
+  useEffect(() => setLive(effortMeta.label), [effortMeta.label]);
   return (
-    <div className="px-2.5 pb-1 pt-1">
-      <ReasoningEffort value={value} onChange={onChange} modelLabel={modelLabel} />
+    <div className="flex items-end gap-3 px-2.5 pb-1 pt-1">
+      <ReasoningEffort value={value} onChange={onChange} modelLabel={modelLabel} onStopChange={setLive} />
+      <span data-effort-label="" className="flex h-[32px] w-[72px] shrink-0 items-center justify-end whitespace-nowrap text-xs font-medium text-foreground">
+        {live}
+      </span>
     </div>
   );
 }
@@ -28,6 +35,10 @@ export function ModelPopover({
   onPickModel,
   onEffort,
   onOpenSettings,
+  side = 'top',
+  align = 'start',
+  avoidCollisions = true,
+  triggerClassName,
 }: {
   provider: AiProviderKind;
   modelLabel: string;
@@ -39,6 +50,11 @@ export function ModelPopover({
   onPickModel: (m: PickerModel) => void;
   onEffort: (e: AiThinkingEffort) => void;
   onOpenSettings: () => void;
+  /** Up when the picker sits under the field; down once it lives in the shadow above the greeting. */
+  side?: 'top' | 'bottom';
+  align?: 'start' | 'end';
+  avoidCollisions?: boolean;
+  triggerClassName?: string;
 }) {
   const effortMeta = EFFORTS.find((e) => e.id === effort) ?? EFFORTS[1];
   return (
@@ -47,7 +63,10 @@ export function ModelPopover({
         <button
           type="button"
           aria-label={`Model: ${modelLabel}. Thinking: ${effortMeta.label}`}
-          className="flex h-7 max-w-[300px] items-center border-0 bg-transparent outline-none gap-1.5 rounded-[var(--pill)] px-2 text-xs text-muted-foreground transition-colors hover:text-foreground data-[state=open]:text-foreground"
+          className={cn(
+            'flex h-7 max-w-[300px] items-center gap-1.5 rounded-[var(--pill)] border-0 bg-transparent px-2 text-xs text-muted-foreground outline-none transition-colors hover:text-foreground data-[state=open]:text-foreground',
+            triggerClassName,
+          )}
         >
           <ModelLogo provider={provider} />
           <span className="truncate">{modelLabel}</span>
@@ -58,11 +77,12 @@ export function ModelPopover({
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
-          side="top"
-          align="start"
+          side={side}
+          align={align}
           sideOffset={8}
           collisionPadding={12}
-          className="model-pop z-[120] w-[300px] rounded-3xl border border-[color:var(--line)] bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-md)] outline-none"
+          avoidCollisions={avoidCollisions}
+          className="model-pop z-[120] w-max min-w-[300px] max-w-[calc(100vw-24px)] rounded-3xl border border-[color:var(--line)] bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-md)] outline-none"
         >
           <div className="flex max-h-[240px] flex-col gap-1.5 overflow-y-auto">
             {models.length === 0 ? (

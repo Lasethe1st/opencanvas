@@ -23,6 +23,7 @@ import { homeItemActions } from './home/HomeItemMenu';
 import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
+import { HomeComposerShadow } from './home/HomeComposerShadow';
 import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
 import { HomeDialog } from './home/HomeDialog';
 import { NewProjectDialog, type StartPath } from './home/NewProjectDialog';
@@ -583,25 +584,35 @@ export function Onboarding() {
                       </Button>
                     </div>
                   )}
-                  <HomePrompt
-                    value={dockDraft}
-                    onChange={(value) => setState({ dockDraft: value })}
-                    onSubmit={() => void sendHome()}
-                    onVoice={aiReady ? startVoice : undefined}
-                    disabled={busy}
-                    sending={!!aiTurnId}
-                    mentions={mentionOptions}
-                    onMention={onMention}
-                          skills={skillOptions}
-                          onOpenSkills={openSkills}
-                          commands={slashCommands}
-                          onCommand={onCommand}
-                          attachments={attachments}
-                          onAttach={(f) => void addFiles(f)}
-                          onRemoveAttachment={removeAttachment}
-                          history={history}
-                  />
-                  <HomeComposerExtras />
+                  {/* Start state only: a taller writing box with the shadow deck behind it.
+                      Once a conversation exists, the block above uses the plain composer. */}
+                  <div data-home-composer-deck="" className="w-full">
+                    <HomeComposerShadow
+                      projectName={recent?.[0]?.name ?? null}
+                      onOpenProjects={() => setDialog({ kind: 'projects' })}
+                    />
+                    <div className="relative z-10">
+                      <HomePrompt
+                        minLines={3}
+                        value={dockDraft}
+                        onChange={(value) => setState({ dockDraft: value })}
+                        onSubmit={() => void sendHome()}
+                        onVoice={aiReady ? startVoice : undefined}
+                        disabled={busy}
+                        sending={!!aiTurnId}
+                        mentions={mentionOptions}
+                        onMention={onMention}
+                        skills={skillOptions}
+                        onOpenSkills={openSkills}
+                        commands={slashCommands}
+                        onCommand={onCommand}
+                        attachments={attachments}
+                        onAttach={(f) => void addFiles(f)}
+                        onRemoveAttachment={removeAttachment}
+                        history={history}
+                      />
+                    </div>
+                  </div>
                   <HomeAiHint className="text-center" />
                 </div>
               </div>

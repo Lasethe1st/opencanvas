@@ -74,6 +74,7 @@ export function HomePrompt({
   onAttach,
   onRemoveAttachment,
   history = [],
+  minLines = 1,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -98,8 +99,13 @@ export function HomePrompt({
   onRemoveAttachment?: (id: string) => void;
   /** Earlier messages, newest first, for the Up arrow to walk back through. */
   history?: string[];
+  /** Lines of text the field holds before it grows. The home start state uses a short writing box. */
+  minLines?: number;
 }) {
   const shellRef = useRef<HTMLDivElement>(null);
+  const lineCount = Math.max(1, minLines);
+  /** One line is leading-6 plus the field's vertical padding; extra lines add another leading-6. */
+  const minTextHeight = `calc(${lineCount} * 1.5rem + 1.25rem)`;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [textareaHeight, setTextareaHeight] = useState(44);
   const [radius, setRadius] = useState("var(--r-pill)");
@@ -398,7 +404,7 @@ export function HomePrompt({
                 e.target.value = "";
               }}
             />
-            <InputGroupAddon align="inline-start" className={`${textareaHeight <= 44 ? "self-center" : "self-end"} ps-3 pb-0`}>
+            <InputGroupAddon align="inline-start" className={`${lineCount > 1 || textareaHeight > 44 ? "self-end" : "self-center"} ps-3 pb-0`}>
               <InputGroupButton variant="ghost" size="icon" className="rounded-[var(--pill)] text-muted-foreground" aria-label="Attach files" onClick={() => fileRef.current?.click()}>
                 <HugeiconsIcon icon={AttachmentIcon} size={18} strokeWidth={1.8} aria-hidden />
               </InputGroupButton>
@@ -437,7 +443,8 @@ export function HomePrompt({
         <InputGroupTextarea
           ref={textareaRef}
           autoFocus
-          rows={1}
+          rows={lineCount}
+          style={{ minHeight: minTextHeight }}
           data-home-prompt=""
           aria-label="Message the AI"
           placeholder="Message…"
@@ -469,7 +476,7 @@ export function HomePrompt({
         </div>
         <InputGroupAddon
           align="inline-end"
-          className={`${textareaHeight <= 44 ? "self-center" : "self-end"} pe-0 pb-0 has-[>button]:me-0`}
+          className={`${lineCount > 1 || textareaHeight > 44 ? "self-end" : "self-center"} pe-0 pb-0 has-[>button]:me-0`}
         >
           {sending ? (
             <InputGroupButton variant="default" size="icon" className="rounded-[var(--pill)]" aria-label="Stop" onClick={stopAi}>
