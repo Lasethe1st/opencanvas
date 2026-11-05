@@ -2348,3 +2348,7 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
   padding: 14px 8px 4px;
   text-align: left;
 }
+
+/* @ mention list: rounded icon tiles and rows, like the rest of the docker. */
+body:has(.shell .workspace) .assistant-docker [role='listbox'] button { border-radius: 12px !important; }
+body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:first-child { border-radius: 9px !important; }
