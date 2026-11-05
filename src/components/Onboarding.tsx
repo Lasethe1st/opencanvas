@@ -21,7 +21,7 @@ import { startProjectFromBrief } from '../lib/start-project';
 import { getState, setState, toast, useStore } from '../lib/store';
 import { homeItemActions } from './home/HomeItemMenu';
 import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
-import { HomeAiHint, HomeChat } from './home/HomeChat';
+import { HomeAiHint, HomeChat, typedText } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
 import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
 import { HomeDialog } from './home/HomeDialog';
@@ -129,11 +129,13 @@ export function Onboarding() {
 
   const chatTitle = useMemo(() => {
     const first = aiChat.find((i) => i.kind === 'user');
-    return first && first.kind === 'user' && first.text.trim() ? titleFromPrompt(first.text) : 'New chat';
+    return first && first.kind === 'user' && typedText(first.text).trim() ? titleFromPrompt(typedText(first.text)) : 'New chat';
   }, [aiChat]);
 
   const chatSources = useSources(aiChat);
   const [mentioned, setMentioned] = useState<Source[]>([]);
+  const [webSearch, setWebSearch] = useState<boolean>(() => { try { return localStorage.getItem('oc-web-search') !== 'off'; } catch { return true; } });
+  const toggleWeb = useCallback((on: boolean) => { setWebSearch(on); try { localStorage.setItem('oc-web-search', on ? 'on' : 'off'); } catch { /* private mode */ } }, []);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const history = useMemo(() => {
     const seen = new Set<string>();
@@ -236,6 +238,25 @@ export function Onboarding() {
     focusPrompt();
   }, []);
 
+  // Pull the last message back into the input: the chat rolls back to just before it, on screen and in the model's memory.
+  const editLast = useCallback((id: string) => {
+    const items = getState().aiChat;
+    const idx = items.findIndex((i) => i.id === id);
+    const item = items[idx];
+    if (!item || item.kind !== 'user') return;
+    stopAi();
+    const kept = items.slice(0, idx);
+    const turns = kept.flatMap((i) => ((i.kind === 'user' || i.kind === 'assistant') && i.text.trim() ? [{ role: i.kind, text: i.text }] : []));
+    setState({ aiChat: kept, aiTurnId: null, dockDraft: typedText(item.text) });
+    void api.ai.reset().then(() => api.ai.hydrate(turns));
+    if (!kept.length && activeChatId.current) {
+      const gone = activeChatId.current;
+      setChats((cur) => removeHomeChat(cur, gone));
+      activeChatId.current = null;
+    }
+    focusPrompt();
+  }, []);
+
   const sendHome = useCallback(async () => {
     const text = dockDraft.trim() || (attachments.length ? 'See the attached file' + (attachments.length > 1 ? 's.' : '.') : '');
     if (!text || busy) return;
@@ -247,11 +268,11 @@ export function Onboarding() {
     const first = aiChat.length === 0;
     const refs = [...mentioned, ...chatSources].filter((x) => text.includes(x.title)).sort((a, b) => text.indexOf(a.title) - text.indexOf(b.title));
     const fileBlock = attachments.length ? `\n\nAttached files:\n${attachments.map((a) => `--- ${a.name} ---\n${a.text}`).join('\n\n')}` : '';
-    const base = refs.length ? `${text}\n\nReferenced:\n${refs.map((x) => `- [${x.kind}] ${x.title} (${x.detail.replace(/\s+/g, ' ').slice(0, 500)})`).join('\n')}` : text;
-    const full = base + fileBlock;
+    const refsBlock = refs.length ? `\n\nReferenced:\n${refs.map((x) => `- [${x.kind}] ${x.title} (${x.detail.replace(/\s+/g, ' ').slice(0, 500)})`).join('\n')}` : '';
+    const full = text + fileBlock + refsBlock;
     const used = refs.filter((x) => x.kind === 'skill');
     const skills = (await Promise.all(used.map(async (x) => ({ name: x.title, body: await api.skills.read(x.id.replace(/^skill:/, '')).catch(() => '') })))).filter((k) => k.body);
-    const ok = await sendToAi(full, skills.length ? { skills } : undefined);
+    const ok = await sendToAi(full, { ...(skills.length ? { skills } : {}), webSearch });
     // sendToAi only clears the draft when it matches what was sent, and `full` adds the references.
     if (ok && getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     if (ok) setAttachments([]);
@@ -263,7 +284,7 @@ export function Onboarding() {
       });
     }
     if (ok) focusPrompt();
-  }, [dockDraft, busy, aiReady, aiChat.length, mentioned, chatSources, attachments]);
+  }, [dockDraft, busy, aiReady, aiChat.length, mentioned, chatSources, attachments, webSearch]);
 
   // Keep the composer ready for the next turn — chat should feel continuous, not transactional.
   useEffect(() => {
@@ -524,7 +545,7 @@ export function Onboarding() {
             {chatActive ? (
               <>
                 <div className="mx-auto w-full max-w-[680px] flex-1 px-8 pt-16">
-                  <HomeChat split />
+                  <HomeChat split onEditLast={editLast} />
                 </div>
                 <div className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-[var(--home-card)] from-[40%] via-[color-mix(in_srgb,var(--home-card)_60%,transparent)] via-[55%] to-transparent to-75% px-8 pb-3 pt-8">
                   <div className="mx-auto flex w-full max-w-[680px] flex-col gap-2">
@@ -563,7 +584,7 @@ export function Onboarding() {
                           onRemoveAttachment={removeAttachment}
                           history={history}
                         />
-                        <HomeComposerExtras />
+                        <HomeComposerExtras webSearch={webSearch} onWebSearch={toggleWeb} />
                         <div className="flex flex-wrap items-center gap-2 px-1">
                           <HomeAiHint />
                         </div>
@@ -601,7 +622,7 @@ export function Onboarding() {
                           onRemoveAttachment={removeAttachment}
                           history={history}
                   />
-                  <HomeComposerExtras />
+                  <HomeComposerExtras webSearch={webSearch} onWebSearch={toggleWeb} />
                   <HomeAiHint className="text-center" />
                 </div>
               </div>

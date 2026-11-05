@@ -60,6 +60,8 @@ export interface AiTurnContext {
   references?: { kind: 'layer' | 'page'; name: string; id?: string; path?: string }[];
   /** Replies the user chose to remember; shown to the model at the start of every turn. */
   memory?: string[];
+  /** False when the user switched web search off for this message. */
+  webSearch?: boolean;
 }
 
 export interface OpenCanvasApi {
