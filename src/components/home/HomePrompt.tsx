@@ -398,7 +398,7 @@ export function HomePrompt({
                 e.target.value = "";
               }}
             />
-            <InputGroupAddon align="inline-start" className={`${textareaHeight <= 44 ? "self-center" : "self-end"} ps-1.5 pb-0`}>
+            <InputGroupAddon align="inline-start" className={`${textareaHeight <= 44 ? "self-center" : "self-end"} ps-3 pb-0`}>
               <InputGroupButton variant="ghost" size="icon" className="rounded-[var(--pill)] text-muted-foreground" aria-label="Attach files" onClick={() => fileRef.current?.click()}>
                 <HugeiconsIcon icon={PlusSignIcon} size={18} strokeWidth={1.8} aria-hidden />
               </InputGroupButton>
