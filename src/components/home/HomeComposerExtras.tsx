@@ -11,6 +11,7 @@ import {
 } from "../../../shared/ai";
 import { openAiSettings, refreshAiStatus } from "../../lib/ai";
 import { ModelLogo } from "./ModelLogo";
+import { ModelPopover } from "./ModelPopover";
 import { api } from "../../lib/api";
 import { useStore } from "../../lib/store";
 import { Button } from "@/components/ui/button";
@@ -606,93 +607,18 @@ export function HomeComposerExtras() {
 
   return (
     <div className="flex w-full flex-wrap items-center justify-start gap-0 px-1">
-      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 max-w-[220px] gap-1 rounded-[var(--pill)] px-2 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=open]:bg-transparent"
-          >
-            <ModelLogo provider={settings.provider} />
-            <span className="truncate">{label}</span>
-            <CaretDown className="size-3.5 shrink-0 opacity-60" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          side="top"
-          align="start"
-          sideOffset={6}
-          className="min-w-[220px] rounded-3xl border-0 p-1.5 shadow-[var(--shadow-md)]"
-        >
-          {models.length === 0 ? (
-            <div className="px-2.5 py-2 text-xs text-muted-foreground">
-              {loading ? "Loading models…" : "No models listed — set one in Settings › AI."}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-0.5">
-              {providers.map(({ provider, models: list }) => (
-                <DropdownMenuSub key={provider}>
-                  <DropdownMenuSubTrigger className="rounded-xl text-xs">
-                    <ModelLogo provider={provider} />
-                    <span className="min-w-0 flex-1 truncate">{providerMeta(provider).product}</span>
-                    {settings.provider === provider && <Check className="size-3.5 shrink-0 opacity-80" />}
-                    <CaretRight className="size-3.5 shrink-0 opacity-60" />
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="min-w-[260px] rounded-3xl p-1.5">
-                    {list.map((m) => (
-                      <DropdownMenuItem key={m.id} className="flex-col items-stretch gap-0 rounded-xl px-2.5 py-1.5" onSelect={() => pickModel(m)}>
-                        <span className="flex items-center gap-2 text-xs text-foreground">
-                          <span className="min-w-0 flex-1 truncate">{m.label}</span>
-                          {settings.model === m.id && settings.provider === m.provider && <Check className="size-3.5 shrink-0 opacity-80" />}
-                        </span>
-                        {m.hint && <span className="text-[11px] leading-4 text-muted-foreground">{m.hint}</span>}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              ))}
-            </div>
-          )}
-          <DropdownMenuSeparator className="bg-border/60" />
-          <DropdownMenuItem
-            className="rounded-xl px-2.5 py-1.5 text-xs text-muted-foreground focus:text-foreground"
-            onSelect={() => openAiSettings()}
-          >
-            Open Settings › AI
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1 rounded-[var(--pill)] px-2 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=open]:bg-transparent"
-            aria-label={`Thinking effort: ${effortMeta.label}`}
-            title={effortMeta.hint}
-          >
-            <Brain className="size-3.5 shrink-0 opacity-70" />
-            <span>{effortMeta.label}</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          side="top"
-          align="start"
-          sideOffset={6}
-          className="min-w-[180px] rounded-3xl border-0 p-1.5 shadow-[var(--shadow-md)]"
-        >
-          <DropdownMenuRadioGroup value={effort} onValueChange={(id) => void save({ thinkingEffort: id as AiThinkingEffort })}>
-            {EFFORTS.map((e) => (
-              <DropdownMenuRadioItem key={e.id} value={e.id} className="rounded-xl text-xs" title={e.hint}>
-                {e.label}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ModelPopover
+        provider={settings.provider}
+        modelLabel={label}
+        modelId={settings.model}
+        effort={effort}
+        models={models}
+        providers={providers.map((g) => g.provider)}
+        loading={loading}
+        onPickModel={pickModel}
+        onEffort={(e) => void save({ thinkingEffort: e })}
+        onOpenSettings={() => openAiSettings()}
+      />
 
       <ContextUsageRing used={usage.used} limit={usage.limit} className="ms-auto" />
 

@@ -476,7 +476,7 @@ export function Onboarding() {
             className={
               chatActive
                 ? 'relative flex h-full min-w-0 flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
-                : 'flex h-full min-w-0 flex-col items-center justify-center overflow-y-auto px-8 py-16'
+                : 'relative flex h-full min-w-0 flex-col items-center justify-center overflow-y-auto px-8 py-16'
             }
           >
             {chatActive ? (
@@ -525,7 +525,8 @@ export function Onboarding() {
                 </div>
               </>
             ) : (
-              <div className="flex w-full max-w-[680px] flex-col items-center">
+              <div className="relative z-10 flex w-full max-w-[680px] flex-col items-center">
+                <div className="home-ambient" aria-hidden="true" />
                 <h1 className="mb-6 font-serif text-balance text-center text-[36px] font-normal leading-[1.15] tracking-[-0.01em]">{greeting(displayName, greetingPick)}</h1>
                 <div className="flex w-full flex-col items-center gap-3">
                   {wantsToBuildSite(dockDraft, aiChat) && (

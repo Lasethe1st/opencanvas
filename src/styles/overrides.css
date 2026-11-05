@@ -2349,6 +2349,18 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
   text-align: left;
 }
 
+/* ── Model popup ─────────────────────────────────────────────────────────── */
+.model-pop { animation: oc-pop 0.18s var(--ease-out-strong); transform-origin: var(--radix-popover-content-transform-origin); }
+@media (prefers-reduced-motion: reduce) { .model-pop { animation: none; } }
+
+/* ── Home empty state: a quiet dot field and one slow-drifting glow, so the blank page feels alive, not unfinished. */
+.home-ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.home-ambient::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle, color-mix(in srgb, var(--fg, #111) 16%, transparent) 1px, transparent 1.3px); background-size: 24px 24px; -webkit-mask-image: radial-gradient(ellipse 55% 48% at 50% 46%, #000 0%, transparent 78%); mask-image: radial-gradient(ellipse 55% 48% at 50% 46%, #000 0%, transparent 78%); animation: home-dots-in 1.2s var(--ease-out-strong) both; }
+.home-ambient::after { content: ''; position: absolute; left: 50%; top: 46%; width: 620px; height: 620px; margin: -310px 0 0 -310px; border-radius: 999px; background: radial-gradient(closest-side, color-mix(in srgb, var(--fg, #111) 7%, transparent), transparent); animation: home-drift 22s ease-in-out infinite alternate; }
+@keyframes home-dots-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes home-drift { 0% { transform: translate(-90px, -20px) scale(0.95); } 50% { transform: translate(40px, 30px) scale(1.08); } 100% { transform: translate(100px, -30px) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .home-ambient::before, .home-ambient::after { animation: none; } }
+
 /* @ mention list: rounded icon tiles and rows, like the rest of the docker. */
 body:has(.shell .workspace) .assistant-docker [role='listbox'] button { border-radius: 12px !important; }
 body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:first-child { border-radius: 9px !important; }
