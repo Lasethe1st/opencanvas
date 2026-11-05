@@ -2355,7 +2355,7 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 .think__brain { display: inline-flex; color: var(--think-ink); transform-origin: 50% 60%; }
 .think[data-level='1'] .think__brain { animation: think-breathe 2.6s ease-in-out infinite; }
 .think[data-level='2'] .think__brain { animation: think-pulse 0.9s ease-in-out infinite; }
-.think__rail { position: relative; height: 28px; margin: 0 8px; }
+.think__rail { position: relative; height: 28px; margin: 0; }
 .think__track { position: absolute; inset: 11px 0; border-radius: 999px; background: color-mix(in srgb, var(--think-ink) 10%, transparent); overflow: hidden; }
 .think__fill { position: absolute; inset: 0 auto 0 0; width: calc(var(--lvl) * 100%); min-width: 6px; border-radius: 999px; background: var(--think-ink); transition: width 0.32s var(--ease-out-strong); }
 .think[data-level='1'] .think__fill { background: linear-gradient(90deg, var(--think-ink) 0%, color-mix(in srgb, var(--think-ink) 55%, transparent) 50%, var(--think-ink) 100%); background-size: 200% 100%; animation: think-shimmer 3.2s linear infinite; }
@@ -2370,7 +2370,7 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 .think[data-level='2'] .think__spark--b { animation-delay: 0.4s; --sx: -12px; --sy: -12px; }
 .think[data-level='2'] .think__spark--c { animation-delay: 0.8s; --sx: 4px; --sy: 15px; }
 .think__spark { --sx: 13px; --sy: -9px; }
-.think__input { position: absolute; inset: 0; width: calc(100% + 16px); margin: 0 -8px; opacity: 0; cursor: pointer; }
+.think__input { position: absolute; inset: 0; width: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .think__input:focus-visible ~ .think__thumb { box-shadow: 0 0 0 3px color-mix(in srgb, var(--think-ink) 25%, transparent); }
 .model-pop { animation: oc-pop 0.18s var(--ease-out-strong); transform-origin: var(--radix-popover-content-transform-origin); }
 @keyframes think-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }

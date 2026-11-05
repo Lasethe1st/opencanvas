@@ -17,7 +17,7 @@ function ThinkingSlider({ value, onChange }: { value: AiThinkingEffort; onChange
   const level = Math.max(0, EFFORTS.findIndex((e) => e.id === value));
   const meta = EFFORTS[level];
   return (
-    <div className="think" data-level={level}>
+    <div className="think px-2.5 pb-1 pt-2.5" data-level={level}>
       <div className="mb-2 flex items-center gap-2">
         <span className="think__brain"><Brain className="size-4" /></span>
         <span className="text-[13px] font-medium text-foreground">Thinking</span>
@@ -46,7 +46,6 @@ function ThinkingSlider({ value, onChange }: { value: AiThinkingEffort; onChange
           <span key={e.id} className={cn('transition-colors', i === level && 'text-foreground')}>{e.label}</span>
         ))}
       </div>
-      <p className="m-0 mt-2 text-[11px] leading-4 text-muted-foreground">{meta.hint}</p>
     </div>
   );
 }
@@ -97,17 +96,17 @@ export function ModelPopover({
           align="start"
           sideOffset={8}
           collisionPadding={12}
-          className="model-pop z-[120] w-[320px] rounded-3xl border border-[color:var(--line)] bg-popover p-4 text-popover-foreground shadow-[var(--shadow-md)] outline-none"
+          className="model-pop z-[120] w-[300px] rounded-3xl border border-[color:var(--line)] bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-md)] outline-none"
         >
           <ThinkingSlider value={effort} onChange={onEffort} />
-          <div className="my-3 h-px bg-border/70" />
-          <div className="-mx-1.5 flex max-h-[240px] flex-col gap-2 overflow-y-auto px-1.5">
+          <div className="mx-2.5 my-2 h-px bg-border/70" />
+          <div className="flex max-h-[240px] flex-col gap-1.5 overflow-y-auto">
             {models.length === 0 ? (
-              <div className="px-1 py-2 text-xs text-muted-foreground">{loading ? 'Loading models…' : 'No models listed — set one in Settings › AI.'}</div>
+              <div className="px-2.5 py-2 text-xs text-muted-foreground">{loading ? 'Loading models…' : 'No models listed — set one in Settings › AI.'}</div>
             ) : (
               providers.map((p) => (
                 <div key={p} className="flex flex-col gap-0.5">
-                  <div className="flex items-center gap-1.5 px-1.5 pt-1 text-xs font-medium text-muted-foreground">
+                  <div className="flex items-center gap-1.5 px-2.5 pt-1 text-xs font-medium text-muted-foreground">
                     <ModelLogo provider={p} />
                     {providerMeta(p).product}
                   </div>
@@ -118,7 +117,7 @@ export function ModelPopover({
                         key={m.id}
                         type="button"
                         onClick={() => onPickModel(m)}
-                        className={cn('flex w-full items-start gap-2 border-0 bg-transparent outline-none rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-foreground/[0.06]', on && 'bg-foreground/[0.06]')}
+                        className={cn('flex w-full items-start gap-2 border-0 bg-transparent outline-none rounded-xl px-2.5 py-1.5 text-left transition-colors hover:bg-foreground/[0.06]', on && 'bg-foreground/[0.06]')}
                       >
                         <span className="flex min-w-0 flex-1 flex-col">
                           <span className="truncate text-xs text-foreground">{m.label}</span>
@@ -132,8 +131,8 @@ export function ModelPopover({
               ))
             )}
           </div>
-          <div className="my-3 h-px bg-border/70" />
-          <button type="button" onClick={onOpenSettings} className="w-full border-0 bg-transparent rounded-xl px-1.5 py-1 outline-none text-left text-xs text-muted-foreground transition-colors hover:text-foreground">
+          <div className="mx-2.5 my-2 h-px bg-border/70" />
+          <button type="button" onClick={onOpenSettings} className="w-full border-0 bg-transparent rounded-xl px-2.5 py-1.5 outline-none text-left text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground">
             Open Settings › AI
           </button>
         </Popover.Content>
