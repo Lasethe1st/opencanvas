@@ -111,11 +111,91 @@ export function typedText(text: string): string {
   return splitReferences(text).body;
 }
 
+/**
+ * A faint rail of bars beside the thread, one per message you sent. The bar for the part you're reading
+ * is lit; hover shows what the message said, click scrolls to it. Appears once there are three or more.
+ */
+function ChatOutline({ rootRef, items }: { rootRef: RefObject<HTMLElement | null>; items: AiChatItem[] }) {
+  const marks = items.flatMap((i) => (i.kind === "user" ? [{ id: i.id, label: typedText(i.text).replace(/\s+/g, " ").trim() || "(attachment)" }] : []));
+  const [active, setActive] = useState<string | null>(null);
+  const ids = marks.map((m) => m.id).join("|");
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || marks.length < 3) return;
+    const scroller = scrollParentOf(root) ?? root;
+    const update = () => {
+      const line = scroller.getBoundingClientRect().top + 140;
+      let current = marks[0].id;
+      for (const m of marks) {
+        const el = root.querySelector<HTMLElement>(`[data-chat-item="${m.id}"]`);
+        if (el && el.getBoundingClientRect().top <= line) current = m.id;
+      }
+      // At the very bottom the last message is the one in play, even if its top is far above.
+      if (scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 8) current = marks[marks.length - 1].id;
+      setActive(current);
+    };
+    update();
+    scroller.addEventListener("scroll", update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(root);
+    return () => {
+      scroller.removeEventListener("scroll", update);
+      ro.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rootRef, ids]);
+
+  if (marks.length < 3) return null;
+  const go = (id: string) => {
+    const el = rootRef.current?.querySelector<HTMLElement>(`[data-chat-item="${id}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  return (
+    <nav
+      aria-label="Conversation outline"
+      className="pointer-events-none sticky top-[32%] z-10 -mb-px hidden h-0 min-[1100px]:block"
+    >
+      <ul className="pointer-events-auto absolute right-full m-0 me-5 flex max-h-[40vh] list-none flex-col items-start gap-2.5 overflow-visible p-0">
+        {marks.map((m) => {
+          const on = m.id === active;
+          return (
+            <li key={m.id} className="group/bar relative">
+              <button
+                type="button"
+                onClick={() => go(m.id)}
+                aria-label={`Go to: ${m.label}`}
+                aria-current={on ? "true" : undefined}
+                className="flex h-3 w-8 items-center border-0 bg-transparent p-0 outline-none"
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "block h-[3px] rounded-full transition-[width,background-color] duration-150",
+                    on ? "w-6 bg-foreground" : "w-3.5 bg-foreground/25 group-hover/bar:w-5 group-hover/bar:bg-foreground/50",
+                  )}
+                />
+              </button>
+              <span
+                role="presentation"
+                className="pointer-events-none absolute start-full top-1/2 z-20 ms-2 w-max max-w-[240px] -translate-y-1/2 truncate rounded-xl bg-[var(--composer-front)] px-3 py-1.5 text-xs text-foreground opacity-0 shadow-[inset_0_0_0_1px_var(--composer-edge),var(--composer-lift)] transition-opacity duration-100 group-hover/bar:opacity-100 group-has-[:focus-visible]/bar:opacity-100"
+              >
+                {m.label}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
 export function HomeChat({
   mentions = false,
   split = false,
+  outline = false,
   onEditLast,
-}: { mentions?: boolean; split?: boolean; /** Home page only: pull the last message back into the input to change and resend. */ onEditLast?: (id: string) => void } = {}) {
+}: { mentions?: boolean; split?: boolean; /** Home page only: a rail of bars beside the thread, one per message you sent. */ outline?: boolean; /** Home page only: pull the last message back into the input to change and resend. */ onEditLast?: (id: string) => void } = {}) {
   const items = useStore((s) => s.aiChat);
   const turnId = useStore((s) => s.aiTurnId);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -136,7 +216,8 @@ export function HomeChat({
   const stoppedAfter = useStore((s) => s.aiStopped);
 
   return (
-    <div ref={rootRef} className="w-full px-1 py-2" aria-label="Conversation">
+    <div ref={rootRef} className="relative w-full px-1 py-2" aria-label="Conversation">
+      {outline && <ChatOutline rootRef={rootRef} items={items} />}
       <div className="flex w-full flex-col gap-4 pb-4">
         {items.map((item) => (
           <div
