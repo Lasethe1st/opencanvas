@@ -15,7 +15,6 @@ function ThinkingSlider({ value, onChange, modelLabel }: { value: AiThinkingEffo
       <div className="mb-1 flex items-center gap-2">
         <span className="think__brain"><Brain className="size-4" /></span>
         <span className="text-[13px] font-medium text-foreground">Thinking</span>
-        <span className="ms-auto text-xs font-medium text-foreground">{EFFORTS[level].label}</span>
       </div>
       <ReasoningEffort value={value} onChange={onChange} modelLabel={modelLabel} />
     </div>
