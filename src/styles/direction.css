@@ -1441,14 +1441,14 @@
 }
 
 .ai-msg--user {
-  align-self: flex-end;
-  max-width: 85%;
+  max-width: min(100%, 85%);
   padding: 6px 10px;
   border-radius: var(--r-lg);
   background: var(--surface-3);
 }
 
 .ai-msg--assistant {
+  max-width: min(100%, 92%);
   color: var(--fg);
 }
 

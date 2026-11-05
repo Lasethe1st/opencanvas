@@ -5,13 +5,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useThinkingPhrase, withEllipsis } from "@/lib/thinking-phrases";
 import { cn } from "@/lib/utils";
 
-// Geometry — keep in sync with the CSS module.
-const SENT_H = 40; // 2 lines × 20px
-const GAP = 4;
 const MAX_H = 180;
 const FADE = 16;
 
-/** Split streamed reasoning into short display lines. */
+/** Split streamed reasoning into short display lines (for the expanded view). */
 function splitReasoning(text: string): string[] {
   const clean = text.replace(/\r\n/g, "\n").trim();
   if (!clean) return [];
@@ -25,14 +22,13 @@ function splitReasoning(text: string): string[] {
 export interface ThinkingReasoningProps {
   /** Full reasoning text (grows while the model thinks). */
   text: string;
-  /** When true, folds into the “Thought for Ns” summary. */
+  /** When true, folds into the “Thought for Ns” summary with a caret. */
   done?: boolean;
   className?: string;
 }
 
 /**
- * aicss Thinking + Reasoning — shimmering “Thinking…” expands to the
- * agent’s reasoning, then folds into a “Thought for Ns” summary.
+ * One-line status while the model thinks; after it’s done, a caret reveals the full reasoning.
  */
 export function ThinkingReasoning({ text, done = false, className }: ThinkingReasoningProps) {
   const startedAt = useRef(Date.now());
@@ -43,6 +39,7 @@ export function ThinkingReasoning({ text, done = false, className }: ThinkingRea
   const viewportRef = useRef<HTMLDivElement>(null);
   const sentences = useMemo(() => splitReasoning(text), [text]);
   const thinkingPhrase = useThinkingPhrase(!done);
+  const canExpand = done && sentences.length > 0;
 
   useEffect(() => {
     if (done) {
@@ -58,23 +55,14 @@ export function ThinkingReasoning({ text, done = false, className }: ThinkingRea
     return () => clearInterval(id);
   }, [done]);
 
-  // Keep the stream pinned to the latest line while thinking.
-  useEffect(() => {
-    if (done || !viewportRef.current) return;
-    viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
-  }, [sentences.length, done]);
+  // Only expand after thinking is done and the person opens the caret — never stream the full dump live.
+  const expanded = canExpand && open;
+  const capped = sentences.length > 4;
+  const viewH = expanded ? (capped ? MAX_H : Math.min(MAX_H, sentences.length * 44)) : 0;
 
-  const expanded = done ? open : true;
-  const count = sentences.length;
-  const contentH = count > 0 ? count * SENT_H + (count - 1) * GAP : 0;
-  const capped = contentH > MAX_H;
-  const viewH = expanded ? (capped ? MAX_H : contentH) : 0;
-  const scrollable = done && open;
-  const translate = scrollable ? 0 : capped && !done ? MAX_H - FADE - contentH : 0;
-
-  const showTop = scrollable ? fade.top : capped && !done;
-  const showBottom = scrollable ? fade.bottom : capped && !done;
-  const mask = capped
+  const showTop = expanded && fade.top;
+  const showBottom = expanded && fade.bottom;
+  const mask = expanded && capped
     ? `linear-gradient(to bottom, transparent 0, #000 ${showTop ? FADE : 0}px, #000 calc(100% - ${showBottom ? FADE : 0}px), transparent 100%)`
     : "none";
 
@@ -88,6 +76,7 @@ export function ThinkingReasoning({ text, done = false, className }: ThinkingRea
   };
 
   const toggle = () => {
+    if (!canExpand) return;
     const next = !open;
     if (next) {
       setFade({ top: false, bottom: true });
@@ -96,7 +85,9 @@ export function ThinkingReasoning({ text, done = false, className }: ThinkingRea
     setOpen(next);
   };
 
-  const summary = restored.current ? "Thoughts" : (
+  const summary = restored.current ? (
+    "Thoughts"
+  ) : (
     <>
       <span className={styles.trVerb}>Thought</span> for {elapsed}s
     </>
@@ -106,17 +97,17 @@ export function ThinkingReasoning({ text, done = false, className }: ThinkingRea
     <div className={cn(styles.tr, className)} data-done={done ? "" : undefined}>
       <button
         type="button"
-        className={styles.trHeader + (done ? " " + styles.isClickable : "")}
+        className={styles.trHeader + (canExpand ? " " + styles.isClickable : "")}
         aria-expanded={expanded}
         aria-label={done ? "Toggle thought" : thinkingPhrase}
-        onClick={done ? toggle : undefined}
+        onClick={canExpand ? toggle : undefined}
       >
         {done ? (
           <span className={styles.trLabel}>{summary}</span>
         ) : (
           <span className={styles.trLabel + " " + styles.trShimmer}>{withEllipsis(thinkingPhrase)}</span>
         )}
-        {done && (
+        {canExpand && (
           <svg className={styles.trChevron} viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
             <path
               d="m4.5 15.75 7.5-7.5 7.5 7.5"
@@ -134,11 +125,11 @@ export function ThinkingReasoning({ text, done = false, className }: ThinkingRea
         <div className={styles.trInner}>
           <div
             ref={viewportRef}
-            className={styles.trViewport + (scrollable ? " " + styles.isScroll : "")}
+            className={styles.trViewport + (expanded ? " " + styles.isScroll : "")}
             style={{ height: `${viewH}px`, WebkitMaskImage: mask, maskImage: mask }}
-            onScroll={scrollable ? onScroll : undefined}
+            onScroll={expanded ? onScroll : undefined}
           >
-            <div className={styles.trStream} style={{ transform: `translateY(${translate}px)` }}>
+            <div className={styles.trStream}>
               {sentences.map((line, i) => (
                 <p key={`${i}:${line.slice(0, 24)}`} className={styles.trSentence}>
                   {line}
