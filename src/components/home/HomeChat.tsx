@@ -118,12 +118,22 @@ export function typedText(text: string): string {
 function ChatOutline({ rootRef, items }: { rootRef: RefObject<HTMLElement | null>; items: AiChatItem[] }) {
   const marks = items.flatMap((i) => (i.kind === "user" ? [{ id: i.id, label: typedText(i.text).replace(/\s+/g, " ").trim() || "(attachment)" }] : []));
   const [active, setActive] = useState<string | null>(null);
+  // Pinned to the far left of the scrolling area, not beside the text column.
+  const [edge, setEdge] = useState<{ left: number; top: number } | null>(null);
   const ids = marks.map((m) => m.id).join("|");
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root || marks.length < 3) return;
     const scroller = scrollParentOf(root) ?? root;
+    const place = () => {
+      const r = scroller.getBoundingClientRect();
+      setEdge({ left: r.left + 20, top: r.top + r.height * 0.32 });
+    };
+    place();
+    window.addEventListener("resize", place);
+    const sro = new ResizeObserver(place);
+    sro.observe(scroller);
     const update = () => {
       const line = scroller.getBoundingClientRect().top + 140;
       let current = marks[0].id;
@@ -141,12 +151,14 @@ function ChatOutline({ rootRef, items }: { rootRef: RefObject<HTMLElement | null
     ro.observe(root);
     return () => {
       scroller.removeEventListener("scroll", update);
+      window.removeEventListener("resize", place);
       ro.disconnect();
+      sro.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rootRef, ids]);
 
-  if (marks.length < 3) return null;
+  if (marks.length < 3 || !edge) return null;
   const go = (id: string) => {
     const el = rootRef.current?.querySelector<HTMLElement>(`[data-chat-item="${id}"]`);
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -154,9 +166,10 @@ function ChatOutline({ rootRef, items }: { rootRef: RefObject<HTMLElement | null
   return (
     <nav
       aria-label="Conversation outline"
-      className="pointer-events-none sticky top-[32%] z-10 -mb-px hidden h-0 min-[1100px]:block"
+      className="pointer-events-none fixed z-10 hidden min-[1100px]:block"
+      style={{ left: edge.left, top: edge.top }}
     >
-      <ul className="pointer-events-auto absolute right-full m-0 me-5 flex max-h-[40vh] list-none flex-col items-start gap-2.5 overflow-visible p-0">
+      <ul className="pointer-events-auto m-0 flex max-h-[40vh] list-none flex-col items-start gap-2.5 overflow-visible p-0">
         {marks.map((m) => {
           const on = m.id === active;
           return (
