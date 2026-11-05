@@ -18,6 +18,7 @@ import {
   ungroupSelected,
 } from './actions';
 import { fitAll, fitSelection, layoutRedo, layoutUndo, zoomBy, zoomToLevel } from './canvas';
+import { getExperienceLevel } from './experience';
 import { editSelectedText, INLINE_TAGS } from './inline-edit';
 import { getState, setState } from './store';
 
@@ -140,7 +141,7 @@ export function handleShortcut(key: string, meta: boolean, shift: boolean, alt =
   }
   if (meta && !alt && lower === 'e') {
     if (shift) setState({ exportOpen: true });
-    else setState({ mode: visual ? 'code' : 'visual' });
+    else if (getExperienceLevel() === 'veteran') setState({ mode: visual ? 'code' : 'visual' });
     return true;
   }
   if (!visual) return false;

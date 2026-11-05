@@ -2142,6 +2142,16 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 .frame-chrome.is-ai .frame-chrome__outline::before { content: ''; position: absolute; inset: -1px; padding: 1.5px; background: conic-gradient(from var(--oc-a), transparent 0 60%, color-mix(in srgb, var(--fg) 70%, transparent) 95%, transparent); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: ai-orbit 2.6s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .ai-weave, .ai-weave__stage i, .frame-chrome.is-ai .frame-chrome__outline::before { animation: none; } }
 
+/* Left panel › AI tab: the conversation fills the panel; the tab already says "AI", so drop the dock title. */
+.left-ai { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+.left-ai .ai-chat { display: flex; flex: 1; min-height: 0; flex-direction: column; gap: 8px; padding: 4px 0 0; }
+.left-ai .dock-head { justify-content: flex-end; padding: 0 2px; }
+.left-ai .dock-head__title { display: none; }
+.left-ai .ai-chat__model { margin-right: auto; max-width: 150px; }
+.left-ai .ai-log { flex: 1; min-height: 0; max-height: none; margin: 0 -4px; padding: 4px; }
+/* The panel uses the dock's own input bar, just sized to the panel. */
+.left-ai .canvas-shapeshift { flex: none; width: 100%; margin-bottom: 4px; }
+
 /* Corner circles (panel toggles, home, account, rulers, measure): each is its own frosted circle. */
 .calm-circle { border: 1px solid var(--frost-border); background: var(--frost-bg); box-shadow: var(--shadow-md); -webkit-backdrop-filter: var(--frost-filter); backdrop-filter: var(--frost-filter); transition: transform 0.16s var(--ease-out-strong), background-color 0.15s ease, color 0.15s ease; }
 .calm-circle:hover { background: var(--frost-bg); }
@@ -2310,6 +2320,33 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
   text-align: center;
   font-size: 13px;
   color: var(--fg-3);
+}
+
+.canvas-search__skeleton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 8px;
+}
+.canvas-search__skeleton span {
+  height: 10px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+  animation: canvas-search-pulse 1.2s ease-in-out infinite;
+}
+.canvas-search__skeleton span:first-child {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  corner-shape: squircle;
+}
+@keyframes canvas-search-pulse {
+  50% { opacity: 0.5; }
+}
+.canvas-search__list > .canvas-search__empty {
+  padding: 14px 8px 4px;
+  text-align: left;
 }
 
 /* @ mention list: rounded icon tiles and rows, like the rest of the docker. */

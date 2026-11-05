@@ -1,5 +1,7 @@
 import { getSendKey } from "../../lib/prefs";
-import { ArrowUp, FolderOpen, Stop, Waveform } from '../../lib/home-icons';
+import { FolderOpen, Stop, Waveform } from '../../lib/home-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { ArrowUp02Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
@@ -338,7 +340,7 @@ export function HomePrompt({
               disabled={disabled}
               onClick={onSubmit}
             >
-              <ArrowUp />
+              <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} aria-hidden />
             </InputGroupButton>
           ) : (
             <InputGroupButton

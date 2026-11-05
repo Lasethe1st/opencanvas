@@ -32,6 +32,7 @@ import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { cn } from "@/lib/utils";
 import { speakReply, stopSpeech, useSpeech } from "../../lib/read-aloud";
 import { referencesIn } from "../assistant-shapes";
+import { ChatMarkdown } from "./ChatMarkdown";
 
 const TOOL_LABELS: Record<string, string> = {
   git_commit: "Save a version (commit)",
@@ -270,9 +271,7 @@ function AssistantMessage({ id, text }: { id: string; text: string }) {
               </CodeBlockContent>
             </CodeBlock>
           ) : (
-            <p key={i} className="m-0 whitespace-pre-wrap">
-              {part.text}
-            </p>
+            <ChatMarkdown key={i} text={part.text} />
           ),
         )}
       </div>
@@ -306,7 +305,7 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
   const speakErr = mine && speech.phase === "idle" ? speech.error : "";
   const rate = (v: Vote) => setVote(id, v);
   return (
-    <div className="flex items-center gap-0.5 -ms-2" role="group" aria-label="Reply actions">
+    <div className="flex w-fit items-start gap-0 -ms-1" role="group" aria-label="Reply actions">
       <Button variant="ghost" className={btn} aria-label={copied ? "Copied" : "Copy reply"} title={copied ? "Copied" : "Copy"} onClick={() => void copy()}>
         {copied ? <Check /> : <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} />}
       </Button>
@@ -467,12 +466,12 @@ function ApprovalCard({ item }: { item: Extract<AiChatItem, { kind: "approval" }
 
 export function HomeAiHint({ className }: { className?: string }) {
   const status = useStore((s) => s.aiStatus);
-  if (status?.ready || !status?.reason) return null;
+  if (status?.ready) return null;
   return (
     <p className={cn("text-xs text-muted-foreground", className)}>
-      {status.reason}{" "}
+      You can start a project now — connect AI later when you want it to build with you.{" "}
       <button type="button" className="underline underline-offset-2 hover:text-foreground" onClick={openAiSettings}>
-        Open Settings
+        Connect AI
       </button>
     </p>
   );

@@ -22,20 +22,28 @@ const LAYOUT: Record<Kind, { left: PillId[]; right: PillId[] }> = {
   button: { left: ['edit', 'fill'], right: ['label-color', 'corners'] },
 };
 const META: Record<PillId, { label: string; icon: IconSvgElement }> = {
-  edit: { label: 'Edit', icon: Edit02Icon },
-  font: { label: 'Font', icon: TextFontIcon },
-  size: { label: 'Size', icon: TextIcon },
+  edit: { label: 'Edit words', icon: Edit02Icon },
+  font: { label: 'Typeface', icon: TextFontIcon },
+  size: { label: 'Text size', icon: TextIcon },
   color: { label: 'Colour', icon: TextColorIcon },
   align: { label: 'Align', icon: TextAlignLeft01Icon },
-  padding: { label: 'Spacing', icon: AlignHorizontalSpaceAroundIcon },
-  margin: { label: 'Margin', icon: ArtboardIcon },
+  padding: { label: 'Spacing inside', icon: AlignHorizontalSpaceAroundIcon },
+  margin: { label: 'Spacing outside', icon: ArtboardIcon },
   'box-size': { label: 'Size', icon: Resize01Icon },
-  fill: { label: 'Fill', icon: PaintBucketIcon },
-  corners: { label: 'Corners', icon: SquareRoundCornerIcon },
-  replace: { label: 'Replace', icon: ImageUploadIcon },
-  fit: { label: 'Fit', icon: FitToScreenIcon },
-  'label-color': { label: 'Text', icon: TextColorIcon },
+  fill: { label: 'Fill colour', icon: PaintBucketIcon },
+  corners: { label: 'Round corners', icon: SquareRoundCornerIcon },
+  replace: { label: 'Replace image', icon: ImageUploadIcon },
+  fit: { label: 'How it fills', icon: FitToScreenIcon },
+  'label-color': { label: 'Text colour', icon: TextColorIcon },
 };
+
+/** Plain words for image-fit choices — beginners never see object-fit enum names. */
+const FIT_OPTIONS = [
+  { value: 'cover', label: 'Fill the frame' },
+  { value: 'contain', label: 'Fit inside' },
+  { value: 'fill', label: 'Stretch' },
+  { value: 'none', label: 'As is' },
+] as const;
 
 /* ───────── Values ───────── */
 
@@ -190,7 +198,7 @@ const FONT_W = 220;
 const fontKey = (v: string) => v.split(',')[0].replace(/['"]/g, '').trim().toLowerCase();
 
 function FontPill({ family, icon }: { family: string | undefined; icon: IconSvgElement }) {
-  const name = family?.split(',')[0].replace(/['"]/g, '').trim() || 'Font';
+  const name = family?.split(',')[0].replace(/['"]/g, '').trim() || 'Typeface';
   const current = FONTS.find(([, v]) => fontKey(v) === name.toLowerCase())?.[1] ?? '';
   const btn = useRef<HTMLButtonElement>(null);
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
@@ -216,7 +224,7 @@ function FontPill({ family, icon }: { family: string | undefined; icon: IconSvgE
   };
   return (
     <>
-      <button ref={btn} type="button" className="dockpill__main" aria-haspopup="listbox" aria-expanded={phase} title={`Font: ${name}`} onClick={() => (phase ? close() : open())}>
+      <button ref={btn} type="button" className="dockpill__main" aria-haspopup="listbox" aria-expanded={phase} title={`Typeface: ${name}`} onClick={() => (phase ? close() : open())}>
         <PillIcon icon={icon} />
         <span className="dockpill__label dockpill__value">{name}</span>
         <HugeiconsIcon icon={ArrowDown01Icon} size={14} strokeWidth={1.8} className="dockpill__caret" />
@@ -295,13 +303,13 @@ function PillBody({ id, sel }: { id: PillId; sel: Selection }) {
     case 'font':
       return <FontPill family={c['font-family']} icon={meta.icon} />;
     case 'size':
-      return <Scrub label="Font size" icon={meta.icon} value={px(c['font-size'], 16)} min={6} onChange={(n) => void setStyle('font-size', `${n}px`)} />;
+      return <Scrub label="Text size" icon={meta.icon} value={px(c['font-size'], 16)} min={6} onChange={(n) => void setStyle('font-size', `${n}px`)} />;
     case 'padding':
       return <Scrub label="Spacing inside" icon={meta.icon} value={px(c['padding-top'])} step={4} onChange={(n) => void setStyle('padding', `${n}px`)} />;
     case 'margin':
       return <Scrub label="Spacing outside" icon={meta.icon} value={px(c['margin-top'])} step={4} onChange={(n) => void setStyle('margin', `${n}px`)} />;
     case 'corners':
-      return <Scrub label="Corner radius" icon={meta.icon} value={px(c['border-radius'])} step={2} onChange={(n) => void setStyle('border-radius', `${n}px`)} />;
+      return <Scrub label="Round corners" icon={meta.icon} value={px(c['border-radius'])} step={2} onChange={(n) => void setStyle('border-radius', `${n}px`)} />;
     case 'box-size':
       return (
         <span className="dockpill__pair">
@@ -326,11 +334,11 @@ function PillBody({ id, sel }: { id: PillId; sel: Selection }) {
     }
     case 'fit':
       return (
-        <label className="dockpill__main dockpill__select" title="Image fit">
+        <label className="dockpill__main dockpill__select" title="How the image fills its frame">
           <PillIcon icon={meta.icon} />
-          <select aria-label="Image fit" value={c['object-fit'] || 'fill'} onChange={(e) => void setStyle('object-fit', e.target.value)} onKeyDown={(e) => e.key === 'Escape' && e.currentTarget.blur()}>
-            {['cover', 'contain', 'fill', 'none'].map((v) => (
-              <option key={v} value={v}>{v}</option>
+          <select aria-label="How it fills" value={c['object-fit'] || 'fill'} onChange={(e) => void setStyle('object-fit', e.target.value)} onKeyDown={(e) => e.key === 'Escape' && e.currentTarget.blur()}>
+            {FIT_OPTIONS.map(({ value, label }) => (
+              <option key={value} value={value}>{label}</option>
             ))}
           </select>
         </label>

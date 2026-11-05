@@ -119,8 +119,12 @@ Visual edits are stored as plain CSS in \`src/open-canvas.css\`, keyed by
 }
 
 const BLANK: Record<string, string> = {
+  // Open/close tags so insert_jsx / insert_element can place children inside the page root.
   'src/App.jsx': `export default function App() {
-  return <main data-oc-name="Page" />;
+  return (
+    <main data-oc-name="Page">
+    </main>
+  );
 }
 `,
   'src/index.css': `${BASE_CSS}

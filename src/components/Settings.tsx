@@ -13,6 +13,7 @@ import { getOrbColors, ORB_COLOR_PRESETS, setOrbColorPreset, useOrbColorPreset }
 import { setThemePreference, useTheme } from '../lib/theme';
 import { setCalm, useCalm } from '../lib/calm';
 import { setShowMarkers, useShowMarkers } from '../lib/comments';
+import { setExperienceLevel, useExperienceLevel, type ExperienceLevel } from '../lib/experience';
 import { setAutosave, setDisplayName, setQuickPills, setReduceMotion, setSendKey, useAutosave, useDisplayName, useQuickPills, useReduceMotion, useSendKey } from '../lib/prefs';
 import { setRulers, useRulers } from '../lib/rulers';
 import { Button, InputShell, Notice } from '../ui/primitives.jsx';
@@ -45,6 +46,9 @@ const TABS: { id: SettingsTab; label: string; icon: typeof Sun; lead: string | n
 export function SettingsPage() {
   const open = useStore((s) => s.settingsOpen);
   const tab = useStore((s) => s.settingsTab);
+  const level = useExperienceLevel();
+  const tabs = TABS.filter((t) => t.id !== 'mcp' || level === 'veteran');
+  const activeTab = tab === 'mcp' && level !== 'veteran' ? 'general' : tab;
   const setTab = (id: SettingsTab) => setState({ settingsTab: id });
   const close = () => setState({ settingsOpen: false });
   const dialog = useRef<HTMLElement>(null);
@@ -64,8 +68,12 @@ export function SettingsPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
+  useEffect(() => {
+    if (tab === 'mcp' && level !== 'veteran') setState({ settingsTab: 'general' });
+  }, [tab, level]);
+
   if (!open) return null;
-  const current = TABS.find((t) => t.id === tab)!;
+  const current = tabs.find((t) => t.id === activeTab) ?? tabs[0]!;
   // Portaled to <body>: the workspace restyles its direct children, which pushed this page off to the side.
   return createPortal(
     <TooltipProvider>
@@ -73,8 +81,8 @@ export function SettingsPage() {
         <section ref={dialog} className="settings-page" role="dialog" aria-modal="true" aria-label="Settings">
           <nav className="settings-page__nav" role="tablist" aria-label="Settings sections" aria-orientation="vertical">
             <h1 className="settings-page__title">Settings</h1>
-            {TABS.map(({ id, label, icon: Icon }) => (
-              <button key={id} role="tab" aria-selected={tab === id} className={`settings-page__tab${tab === id ? ' is-active' : ''}`} onClick={() => setTab(id)}>
+            {tabs.map(({ id, label, icon: Icon }) => (
+              <button key={id} role="tab" aria-selected={activeTab === id} className={`settings-page__tab${activeTab === id ? ' is-active' : ''}`} onClick={() => setTab(id)}>
                 <Icon size={16} />
                 {label}
               </button>
@@ -95,11 +103,11 @@ export function SettingsPage() {
               </button>
             </header>
             <div className="settings-page__inner">
-              {tab === 'general' ? (
+              {activeTab === 'general' ? (
                 <GeneralSettings />
-              ) : tab === 'appearance' ? (
+              ) : activeTab === 'appearance' ? (
                 <AppearanceSettings />
-              ) : tab === 'ai' ? (
+              ) : activeTab === 'ai' ? (
                 <AiSettingsPanel />
               ) : (
                 <McpSettings />
@@ -113,9 +121,16 @@ export function SettingsPage() {
   );
 }
 
+const LEVELS: { id: ExperienceLevel; label: string }[] = [
+  { id: 'beginner', label: 'Beginner' },
+  { id: 'intermediate', label: 'Intermediate' },
+  { id: 'veteran', label: 'Veteran' },
+];
+
 function GeneralSettings() {
   const fontSize = useChatFontSize();
   const sendKey = useSendKey();
+  const level = useExperienceLevel();
   const calm = useCalm();
   const markers = useShowMarkers();
   const name = useDisplayName();
@@ -159,14 +174,46 @@ function GeneralSettings() {
       </SettingsGroup>
 
       <SettingsGroup title="Canvas">
+        <SettingRow
+          label="Experience"
+          hint={
+            level === 'beginner'
+              ? 'Chat and quick edits only — layers, inspector and code stay hidden.'
+              : level === 'intermediate'
+                ? 'Adds layers, pages and the property inspector.'
+                : 'Full editor: code, terminal, tools and MCP.'
+          }
+        >
+          <div className="theme-toggle" role="radiogroup" aria-label="Experience level">
+            {LEVELS.map(({ id, label }) => (
+              <button key={id} type="button" role="radio" aria-checked={level === id} className={`theme-toggle__btn sx-text-btn${level === id ? ' is-active' : ''}`} onClick={() => setExperienceLevel(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </SettingRow>
         <SettingRow label="Calm canvas" hint="Just your site and the dock on a plain background. Panels open from the corner pills.">
-          <Switch label="Calm canvas" checked={calm} onChange={setCalm} />
+          <Switch
+            label="Calm canvas"
+            checked={level === 'beginner' ? true : calm}
+            onChange={(on) => {
+              if (level === 'beginner' && !on) return;
+              setCalm(on);
+            }}
+          />
         </SettingRow>
         <SettingRow label="Comment markers" hint="Show the small numbered markers on elements that have comments.">
           <Switch label="Comment markers" checked={markers} onChange={setShowMarkers} />
         </SettingRow>
         <SettingRow label="Quick edit pills" hint="The Edit, Font and Colour pills that appear beside the dock when you select an element.">
-          <Switch label="Quick edit pills" checked={pills} onChange={setQuickPills} />
+          <Switch
+            label="Quick edit pills"
+            checked={level === 'beginner' ? true : pills}
+            onChange={(on) => {
+              if (level === 'beginner' && !on) return;
+              setQuickPills(on);
+            }}
+          />
         </SettingRow>
         <SettingRow label="Rulers" hint="Show rulers along the edges of the canvas.">
           <Switch label="Rulers" checked={rulers} onChange={setRulers} />

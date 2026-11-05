@@ -56,15 +56,15 @@ export function ViewportSwitch({ value, onChange, width }) {
   );
 }
 
-/** Relationships (canvas) · Interact (click the page) · Code */
-export function ModeSwitch({ value, onChange }) {
+/** Relationships (canvas) · Interact (click the page) · Code (veteran) */
+export function ModeSwitch({ value, onChange, showCode = true }) {
   return (
     <Segmented
       label="Editor mode"
       options={[
         { id: 'visual', label: 'Relationships', icon: <Waypoints size={15} strokeWidth={1.75} /> },
         { id: 'interact', label: 'Interact', icon: <MousePointer2 size={15} strokeWidth={1.75} /> },
-        { id: 'code', label: 'Code', icon: <Code2 size={15} strokeWidth={1.75} /> },
+        ...(showCode ? [{ id: 'code', label: 'Code', icon: <Code2 size={15} strokeWidth={1.75} /> }] : []),
       ]}
       value={value}
       onChange={onChange}

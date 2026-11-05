@@ -456,6 +456,8 @@ const GROUPS: Group[] = [
   { id: 'other', label: 'Chats & skills', kinds: ['chat', 'skill'] },
 ];
 const SEARCH_AT = 6;
+/** Each group shows this many rows until asked for the rest, so a long chat doesn't make an endless list. */
+const GROUP_LIMIT = 5;
 
 const ACTION = 'inline-flex no-underline size-6 items-center justify-center rounded-[6px] text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:bg-background focus-visible:text-foreground';
 
@@ -589,7 +591,7 @@ export function SourcesPanel({ sources, file, onFile }: { sources: Source[]; fil
                 key={c.id}
                 type="button"
                 aria-pressed={chip === c.id}
-                className={cn('h-6 rounded-[8px] px-2 text-[11px] transition-colors', chip === c.id ? 'bg-foreground text-background' : 'bg-accent text-muted-foreground hover:text-foreground')}
+                className={cn('h-6 rounded-[var(--pill)] px-2.5 text-[11px] transition-colors', chip === c.id ? 'bg-foreground text-background' : 'bg-accent text-muted-foreground hover:text-foreground')}
                 onClick={() => setChip(c.id)}
               >
                 {c.label} <span className="tabular-nums opacity-70">{c.total}</span>
@@ -601,6 +603,7 @@ export function SourcesPanel({ sources, file, onFile }: { sources: Source[]; fil
       {shown.length === 0 && <p className="m-0 px-3 py-4 text-xs text-muted-foreground">Nothing matches “{query.trim()}”.</p>}
       {shown.map((g) => {
         const isCollapsed = collapsed.has(g.id) && !q;
+        const showAll = expanded.has(`more:${g.id}`);
         return (
           <section key={g.id} aria-label={g.label}>
             <button
@@ -613,7 +616,20 @@ export function SourcesPanel({ sources, file, onFile }: { sources: Source[]; fil
               <span>{g.label}</span>
               <span className="tabular-nums opacity-70">{g.items.length}</span>
             </button>
-            {!isCollapsed && <ul className="m-0 flex list-none flex-col gap-0.5 p-0">{g.items.map(row)}</ul>}
+            {!isCollapsed && (
+              <>
+                <ul className="m-0 flex list-none flex-col gap-0.5 p-0">{(showAll || q ? g.items : g.items.slice(0, GROUP_LIMIT)).map(row)}</ul>
+                {!q && g.items.length > GROUP_LIMIT && (
+                  <button
+                    type="button"
+                    className="mt-0.5 flex h-6 w-full items-center rounded-[6px] px-2 ps-8 text-start text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                    onClick={() => toggle(setExpanded, `more:${g.id}`)}
+                  >
+                    {showAll ? 'Show less' : `Show ${g.items.length - GROUP_LIMIT} more`}
+                  </button>
+                )}
+              </>
+            )}
           </section>
         );
       })}
