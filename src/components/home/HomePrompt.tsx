@@ -207,16 +207,49 @@ export function HomePrompt({
     return out;
   }, [parts]);
 
+  /* A colour code gets a swatch in front of it. The textarea and its overlay must stay the same width, so both carry
+     one em-space ("pad") before each code: the overlay draws the swatch in that gap, and the textarea shows blank.
+     The value the app sees never contains the pads, so these map cursor positions between the two. */
+  const PAD = "\u2003";
+  const pads = useMemo(() => {
+    const out: number[] = [];
+    let at = 0;
+    for (const part of parts) {
+      if (part.className) out.push(at);
+      at += part.text.length;
+    }
+    return out;
+  }, [parts]);
+  const displayValue = useMemo(() => parts.map((p) => (p.className ? PAD + p.text : p.text)).join(""), [parts]);
+  const toDisplay = (i: number) => i + pads.filter((p) => p < i).length;
+  const toReal = (d: number) => d - pads.filter((p, k) => p + k < d).length;
+  const realSel = (el: HTMLTextAreaElement): [number, number] => [toReal(el.selectionStart), toReal(el.selectionEnd)];
+  const selRef = useRef({ a: 0, b: 0 });
+  const setSel = (a: number, b = a) => {
+    selRef.current = { a, b };
+    const el = textareaRef.current;
+    if (el) el.setSelectionRange(toDisplay(a), toDisplay(b));
+  };
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el || document.activeElement !== el) return;
+    const da = toDisplay(selRef.current.a);
+    const db = toDisplay(selRef.current.b);
+    if (el.selectionStart !== da || el.selectionEnd !== db) el.setSelectionRange(da, db);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayValue]);
+
   const removeWholeName = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget;
-    if (el.selectionStart !== el.selectionEnd) return false;
-    const at = el.selectionStart;
+    const [selA, selB] = realSel(el);
+    if (selA !== selB) return false;
+    const at = selA;
     const hit = ranges.find((r) => (e.key === "Backspace" ? at > r.start && at <= r.end : at >= r.start && at < r.end));
     if (!hit) return false;
     e.preventDefault();
     onChange(value.slice(0, hit.start) + value.slice(hit.end));
     requestAnimationFrame(() => {
-      textareaRef.current?.setSelectionRange(hit.start, hit.start);
+      setSel(hit.start);
       setCaret(hit.start);
     });
     return true;
@@ -243,7 +276,7 @@ export function HomePrompt({
       const el = textareaRef.current;
       if (!el) return;
       el.focus();
-      el.setSelectionRange(pos, pos);
+      setSel(pos);
       setCaret(pos);
     });
   };
@@ -293,8 +326,9 @@ export function HomePrompt({
     // Up/Down walk earlier messages, but only from an empty box or the very start/end, so editing a long draft still moves the caret.
     if ((e.key === "ArrowUp" || e.key === "ArrowDown") && !e.shiftKey && !e.altKey && !e.metaKey && !e.ctrlKey && history.length) {
       const el = e.currentTarget;
-      const atStart = el.selectionStart === 0 && el.selectionEnd === 0;
-      const atEnd = el.selectionStart === value.length && el.selectionEnd === value.length;
+      const [selA, selB] = realSel(el);
+      const atStart = selA === 0 && selB === 0;
+      const atEnd = selA === value.length && selB === value.length;
       const browsing = histAt.current >= 0;
       if (e.key === "ArrowUp" && (!value || (browsing && atStart) || (!browsing && atStart))) {
         if (histAt.current + 1 < history.length) {
@@ -302,7 +336,7 @@ export function HomePrompt({
           if (!browsing) histDraft.current = value;
           histAt.current += 1;
           onChange(history[histAt.current]);
-          requestAnimationFrame(() => el.setSelectionRange(0, 0));
+          requestAnimationFrame(() => setSel(0));
         }
         return;
       }
@@ -311,7 +345,7 @@ export function HomePrompt({
         histAt.current -= 1;
         const next = histAt.current < 0 ? histDraft.current : history[histAt.current];
         onChange(next);
-        requestAnimationFrame(() => el.setSelectionRange(next.length, next.length));
+        requestAnimationFrame(() => setSel(next.length));
         return;
       }
     }
@@ -515,7 +549,7 @@ export function HomePrompt({
                   : part.style
               }
             >
-              {part.text}
+              {part.className ? PAD + part.text : part.text}
             </span>
           ))}
           {value.endsWith("\n") ? "\u200b" : null}
@@ -532,11 +566,19 @@ export function HomePrompt({
           onScroll={(e) => {
             if (overlayRef.current) overlayRef.current.scrollTop = e.currentTarget.scrollTop;
           }}
-          value={value}
+          value={displayValue}
           disabled={disabled && !sending}
           onChange={(e) => {
-            onChange(e.target.value);
-            setCaret(e.target.selectionStart ?? e.target.value.length);
+            const raw = e.target.value;
+            const pos = e.target.selectionStart ?? raw.length;
+            const realPos = pos - (raw.slice(0, pos).split(PAD).length - 1);
+            selRef.current = { a: realPos, b: realPos };
+            onChange(raw.split(PAD).join(""));
+            setCaret(realPos);
+          }}
+          onSelect={(e) => {
+            const [a, b] = realSel(e.currentTarget);
+            selRef.current = { a, b };
           }}
           onKeyDown={onKeyDown}
           onPaste={(e) => {
@@ -545,8 +587,8 @@ export function HomePrompt({
               takeFiles(e.clipboardData.files);
             }
           }}
-          onKeyUp={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
-          onClick={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
+          onKeyUp={(e) => setCaret(realSel(e.currentTarget)[0])}
+          onClick={(e) => setCaret(realSel(e.currentTarget)[0])}
           role="combobox"
           aria-expanded={open}
           aria-controls={open ? listId : undefined}

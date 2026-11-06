@@ -2380,13 +2380,12 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 }
 
 /* Colour codes: the text stays as typed; the colour is a small rounded square. In the input the square is
-   raised at the end of the code without taking space (the overlay must stay the same width as the textarea).
-   In a sent message it sits in front of the code. A checkerboard behind it shows transparency. */
+   in front of the code. In the input it sits in an em-space the textarea also carries (see HomePrompt), so the overlay
+   stays the same width as the text you type; in a sent message it is an ordinary inline square. A checkerboard behind it shows transparency. */
 .code-swatch { --sw-bg: linear-gradient(var(--sw), var(--sw)), repeating-conic-gradient(#c9c9cf 0 25%, #fff 0 50%) 0 0 / 6px 6px; position: relative; }
-.code-swatch::after, .code-swatch--inline::before {
+.code-swatch::before {
   content: ""; width: 0.8em; height: 0.8em; border-radius: 0.22em; corner-shape: squircle;
   background: var(--sw-bg); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 18%, transparent);
+  position: absolute; left: 0.1em; top: 0.35em;
 }
-.code-swatch::after { position: absolute; top: -0.32em; right: -0.2em; width: 0.62em; height: 0.62em; border-radius: 0.18em; }
-.code-swatch--inline::after { display: none; }
-.code-swatch--inline::before { display: inline-block; margin-right: 0.35em; vertical-align: -0.08em; }
+.code-swatch--inline::before { position: static; display: inline-block; margin-right: 0.35em; vertical-align: -0.08em; }
