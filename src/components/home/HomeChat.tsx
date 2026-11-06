@@ -6,6 +6,7 @@ import { ArrowDown01Icon, Copy01Icon, Edit02Icon } from "@hugeicons/core-free-ic
 import { ThumbsDown, ThumbsUp } from '../../lib/home-icons';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import type { AiChatItem } from "../../../shared/ai";
+import { browseBurstTool, groupConsecutiveWebBrowses, isWebBrowseTool } from "../../../shared/web-browse-trace";
 import { answerAi, approveAi, openAiSettings } from "../../lib/ai";
 import { useStore } from "../../lib/store";
 import { Button } from "@/components/ui/button";
@@ -257,62 +258,65 @@ export function HomeChat({
     <div ref={rootRef} className="relative w-full px-1 py-2" aria-label="Conversation">
       {outline && <ChatOutline rootRef={rootRef} items={items} fallbackAt={outlineFallbackAt} />}
       <div className="flex w-full flex-col gap-4 pb-4">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            data-chat-item={item.id}
-            className={
-              item.kind === "user"
-                ? split
-                  ? "flex w-full justify-end pb-3 ps-12"
-                  : "pb-3"
-                : split
-                  ? "w-full pe-12"
-                  : undefined
-            }
-          >
-            {(() => {
-              const body = (
-                <ChatItem
-                  item={item}
-                  mentions={mentions}
-                  align={split ? (item.kind === "user" ? "end" : "start") : "start"}
-                  // Hold while this reply streams; stagger-fade words when the chunk finishes.
-                  pending={busy && !waiting && item.kind === "assistant" && item.id === last?.id}
-                />
-              );
-              const canEdit = !!onEditLast && !busy && item.kind === "user";
-              const stopped = stoppedAfter === item.id && !busy;
-              if (!canEdit && !stopped) return body;
-              const isLast = item.id === lastUserId;
-              return (
-                <div className={`group flex flex-col gap-0.5 ${split ? "items-end" : "items-start"}`}>
-                  {body}
-                  {canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => onEditLast(item.id)}
-                      title={isLast ? undefined : "Rewinds the chat to this message"}
-                      className={cn(
-                        "flex items-center gap-1 rounded-[var(--pill)] border-0 bg-transparent px-2 py-1 text-xs text-muted-foreground outline-none transition-opacity hover:bg-foreground/[0.06] hover:text-foreground focus-visible:opacity-100",
-                        !isLast && "opacity-0 group-hover:opacity-100",
-                      )}
-                    >
-                      <HugeiconsIcon icon={Edit02Icon} size={13} strokeWidth={1.8} aria-hidden />
-                      Edit and resend
-                    </button>
-                  )}
-                  {stopped && (
-                    <p className="m-0 flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground" role="status">
-                      <Stop weight="fill" className="size-2.5" aria-hidden />
-                      Stopped
-                    </p>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-        ))}
+        {groupConsecutiveWebBrowses(items).map((entry) => {
+          const item = entry.kind === "browse" ? browseBurstTool(entry.items) : entry.item;
+          const rowId = entry.kind === "browse" ? entry.id : item.id;
+          const stoppedHere =
+            !!stoppedAfter && !busy && (entry.kind === "browse" ? entry.items.some((tool) => tool.id === stoppedAfter) : stoppedAfter === item.id);
+          return (
+            <div
+              key={rowId}
+              data-chat-item={rowId}
+              className={cn(
+                "relative",
+                item.kind === "user" ? (split ? "flex w-full justify-end pb-3 ps-12" : "pb-3") : split ? "w-full pe-12" : undefined,
+              )}
+            >
+              {entry.kind === "browse" &&
+                entry.items.slice(1).map((tool) => <span key={tool.id} data-chat-item={tool.id} className="absolute size-0 overflow-hidden" />)}
+              {(() => {
+                const body = (
+                  <ChatItem
+                    item={item}
+                    mentions={mentions}
+                    align={split ? (item.kind === "user" ? "end" : "start") : "start"}
+                    // Hold while this reply streams; stagger-fade words when the chunk finishes.
+                    pending={busy && !waiting && item.kind === "assistant" && item.id === last?.id}
+                  />
+                );
+                const canEdit = !!onEditLast && !busy && item.kind === "user";
+                const stopped = stoppedHere;
+                if (!canEdit && !stopped) return body;
+                const isLast = item.id === lastUserId;
+                return (
+                  <div className={`group flex flex-col gap-0.5 ${split ? "items-end" : "items-start"}`}>
+                    {body}
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => onEditLast(item.id)}
+                        title={isLast ? undefined : "Rewinds the chat to this message"}
+                        className={cn(
+                          "flex items-center gap-1 rounded-[var(--pill)] border-0 bg-transparent px-2 py-1 text-xs text-muted-foreground outline-none transition-opacity hover:bg-foreground/[0.06] hover:text-foreground focus-visible:opacity-100",
+                          !isLast && "opacity-0 group-hover:opacity-100",
+                        )}
+                      >
+                        <HugeiconsIcon icon={Edit02Icon} size={13} strokeWidth={1.8} aria-hidden />
+                        Edit and resend
+                      </button>
+                    )}
+                    {stopped && (
+                      <p className="m-0 flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground" role="status">
+                        <Stop weight="fill" className="size-2.5" aria-hidden />
+                        Stopped
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          );
+        })}
         {waitingOnModel && (
           <div className="flex items-center gap-2" aria-live="polite">
             <span aria-hidden className="text-foreground">
@@ -468,11 +472,9 @@ function ThinkingTrace({ item }: { item: Extract<AiChatItem, { kind: "thinking" 
   return <ThinkingReasoning text={item.text} done={item.done} />;
 }
 
-const WEB_BROWSE_TOOLS = new Set(["web_search", "fetch_url"]);
-
 function toolTraceTitle(item: Extract<AiChatItem, { kind: "tool" }>): string {
   // Web tools: never list queries or URLs in the thread — just "Browsing" / "Browsed".
-  if (WEB_BROWSE_TOOLS.has(item.tool)) {
+  if (isWebBrowseTool(item)) {
     if (item.state === "running") return "Browsing…";
     if (item.state === "failed") return item.summary.startsWith("Failed") ? item.summary : `Failed: ${item.summary}`;
     return "Browsed";
