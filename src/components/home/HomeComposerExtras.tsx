@@ -14,6 +14,8 @@ import { ModelLogo } from "./ModelLogo";
 import { ModelPopover } from "./ModelPopover";
 import { api } from "../../lib/api";
 import { useStore } from "../../lib/store";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Globe02Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -544,10 +546,17 @@ function UsageTaskQueue({ chat }: { chat: AiChatItem[] }) {
 }
 
 /** Model + thinking + context usage under the home composer.
- *  `shadow` keeps only the picker, for the back card above the empty home composer.
- *  The context ring stays on the in-conversation bar — it is empty until a chat exists.
+ *  `shadow` is the cluster for the back card above the composer: Web pill, context ring, picker.
  */
-export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "shadow" } = {}) {
+export function HomeComposerExtras({
+  variant = "bar",
+  webSearch = true,
+  onWebSearch,
+}: {
+  variant?: "bar" | "shadow";
+  webSearch?: boolean;
+  onWebSearch?: (on: boolean) => void;
+} = {}) {
   const status = useStore((s) => s.aiStatus);
   const settings = status?.settings;
   const aiChat = useStore((s) => s.aiChat);
@@ -627,11 +636,38 @@ export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "sha
     />
   );
 
-  if (variant === "shadow") return picker;
+  const webPill = onWebSearch && (
+    <button
+      type="button"
+      aria-pressed={webSearch}
+      aria-label="Web search"
+      title={webSearch ? "Web search is on" : "Web search is off"}
+      onClick={() => onWebSearch(!webSearch)}
+      className={cn(
+        "flex h-7 items-center gap-1.5 rounded-[var(--pill)] border-0 bg-transparent px-2 text-xs outline-none transition-colors",
+        webSearch ? "bg-foreground/[0.07] text-foreground" : "text-muted-foreground hover:bg-foreground/[0.05]",
+      )}
+    >
+      <HugeiconsIcon icon={Globe02Icon} size={14} strokeWidth={1.8} aria-hidden />
+      Web
+    </button>
+  );
+
+  if (variant === "shadow")
+    return (
+      <>
+        {webPill}
+        <ContextUsageRing used={usage.used} limit={usage.limit} />
+        {picker}
+        {allOpen && <AllModelsDialog models={models} selectedId={settings.model} onPick={pickModel} onClose={() => setAllOpen(false)} />}
+      </>
+    );
 
   return (
     <div className="flex w-full flex-wrap items-center justify-start gap-0 px-1">
       {picker}
+
+      {webPill && <span className="ms-1">{webPill}</span>}
 
       <ContextUsageRing used={usage.used} limit={usage.limit} className="ms-auto" />
 

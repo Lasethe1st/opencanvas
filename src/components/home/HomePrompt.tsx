@@ -1,9 +1,10 @@
 import { getSendKey } from "../../lib/prefs";
 import { FolderOpen, Stop, Waveform } from '../../lib/home-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowUp02Icon, AttachmentIcon, Cancel01Icon, CommandLineIcon, File01Icon } from '@hugeicons/core-free-icons';
+import { ArrowUp02Icon, AttachmentIcon, Cancel01Icon, CommandLineIcon, File01Icon, Mic01Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
+import { browserSpeechAvailable, listenOnceBrowser, listenWithProvider, micCaptureAvailable } from "../../lib/voice";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { dynamicPillRadius } from "../../lib/pill-radius";
 import {
@@ -117,6 +118,32 @@ export function HomePrompt({
   const [radius, setRadius] = useState("var(--r-pill)");
   const hasText = !!value.trim() || attachments.length > 0;
   const fileRef = useRef<HTMLInputElement>(null);
+  const [listening, setListening] = useState(false);
+  const dictation = useRef<AbortController | null>(null);
+  const canDictate = browserSpeechAvailable() || micCaptureAvailable();
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const stopDictation = useCallback(() => dictation.current?.abort(), []);
+  useEffect(() => () => dictation.current?.abort(), []);
+  const dictate = useCallback(async () => {
+    if (dictation.current) return stopDictation();
+    const ac = new AbortController();
+    dictation.current = ac;
+    setListening(true);
+    try {
+      const heard = (await (browserSpeechAvailable() ? listenOnceBrowser({ signal: ac.signal }) : listenWithProvider(ac.signal))).trim();
+      if (heard && !ac.signal.aborted) {
+        const cur = valueRef.current;
+        onChange(cur && !/\s$/.test(cur) ? `${cur} ${heard}` : cur + heard);
+        textareaRef.current?.focus();
+      }
+    } catch {
+      /* stopped, denied or nothing heard: leave the text as it was */
+    } finally {
+      dictation.current = null;
+      setListening(false);
+    }
+  }, [onChange, stopDictation]);
   const [dragging, setDragging] = useState(false);
   const histAt = useRef(-1);
   const histDraft = useRef("");
@@ -304,6 +331,16 @@ export function HomePrompt({
         return;
       }
     }
+    if (e.key === "Escape" && listening) {
+      e.preventDefault();
+      stopDictation();
+      return;
+    }
+    if (e.key === "Escape" && sending) {
+      e.preventDefault();
+      stopAi();
+      return;
+    }
     if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
     // "Ctrl+Enter to send" leaves a plain Enter as a new line.
     if (getSendKey() === "mod-enter" && !(e.ctrlKey || e.metaKey)) return;
@@ -324,6 +361,20 @@ export function HomePrompt({
       <HugeiconsIcon icon={AttachmentIcon} size={18} strokeWidth={1.8} aria-hidden />
     </InputGroupButton>
   );
+  const micButton =
+    canDictate && !sending ? (
+      <InputGroupButton
+        variant="ghost"
+        size="icon"
+        className={`me-1 rounded-[var(--pill)] ${listening ? "bg-red-500/15 text-red-600 animate-pulse" : "text-muted-foreground"}`}
+        aria-label={listening ? "Stop dictation" : "Dictate"}
+        aria-pressed={listening}
+        disabled={disabled}
+        onClick={() => void dictate()}
+      >
+        <HugeiconsIcon icon={Mic01Icon} size={18} strokeWidth={1.8} aria-hidden />
+      </InputGroupButton>
+    ) : null;
   const trailingButton = sending ? (
     <InputGroupButton variant="default" size="icon" className="rounded-[var(--pill)]" aria-label="Stop" onClick={stopAi}>
       <Stop weight="fill" className="size-3.5" />
@@ -504,6 +555,7 @@ export function HomePrompt({
         </div>
         {!deck && (
           <InputGroupAddon align="inline-end" className={`${inlineControls} pe-0 pb-0 has-[>button]:me-0`}>
+            {micButton}
             {trailingButton}
           </InputGroupAddon>
         )}
@@ -511,7 +563,10 @@ export function HomePrompt({
       {deck && (
         <div data-home-composer-toolbar="" className="flex w-full shrink-0 items-center justify-between" style={{ padding: "8px 10px" }}>
           {onAttach ? attachButton : <span />}
-          {trailingButton}
+          <div className="flex items-center">
+            {micButton}
+            {trailingButton}
+          </div>
         </div>
       )}
     </div>

@@ -33,10 +33,14 @@ function branchLabel(status: GitStatus | null | undefined): string {
 export function HomeComposerShadow({
   projectName,
   onOpenProjects,
+  webSearch,
+  onWebSearch,
 }: {
   /** Name to show when no project is open — the most recent folder, when there is one. */
   projectName?: string | null;
   onOpenProjects: () => void;
+  webSearch?: boolean;
+  onWebSearch?: (on: boolean) => void;
 }) {
   const openProject = useStore((s) => s.project?.name ?? null);
   const [status, setStatus] = useState<GitStatus | null | undefined>(undefined);
@@ -105,8 +109,8 @@ export function HomeComposerShadow({
           <span className="truncate">{folder}</span>
         </button>
 
-        <div className="ms-auto flex shrink-0 items-center">
-          <HomeComposerExtras variant="shadow" />
+        <div className="ms-auto flex shrink-0 items-center gap-0.5">
+          <HomeComposerExtras variant="shadow" webSearch={webSearch} onWebSearch={onWebSearch} />
         </div>
       </div>
     </div>

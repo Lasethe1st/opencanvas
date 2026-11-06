@@ -2,7 +2,7 @@ import { highlight } from "../../lib/highlight";
 import { Brain, Check, CircleNotch, ShieldWarning, SpeakerHigh, Stop, Wrench, X } from '../../lib/home-icons';
 import { humanizeAiError } from "../../lib/ai-errors";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Copy01Icon } from "@hugeicons/core-free-icons";
+import { Copy01Icon, Edit02Icon } from "@hugeicons/core-free-icons";
 import { ThumbsDown, ThumbsUp } from '../../lib/home-icons';
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import type { AiChatItem } from "../../../shared/ai";
@@ -95,11 +95,21 @@ function useStickToBottom(rootRef: RefObject<HTMLElement | null>, items: AiChatI
 
 /** Home conversation thread — grows with content; the parent column scrolls. */
 /** `split`: user messages sit on the right and the AI's stay on the left (homepage and canvas chats). */
-export function HomeChat({ mentions = false, split = false }: { mentions?: boolean; split?: boolean } = {}) {
+/** What the person typed, without the references and file contents the home prompt appends. */
+export function typedText(text: string): string {
+  return splitReferences(text).body;
+}
+
+export function HomeChat({
+  mentions = false,
+  split = false,
+  onEditLast,
+}: { mentions?: boolean; split?: boolean; /** Home page only: pull the last message back into the input to change and resend. */ onEditLast?: (id: string) => void } = {}) {
   const items = useStore((s) => s.aiChat);
   const turnId = useStore((s) => s.aiTurnId);
   const rootRef = useRef<HTMLDivElement>(null);
   const busy = !!turnId;
+  const lastUserId = [...items].reverse().find((i) => i.kind === "user")?.id;
   const waiting = items.some((i) => (i.kind === "question" || i.kind === "approval") && i.answer === null);
   const last = items[items.length - 1];
   const waitingOnModel =
@@ -130,13 +140,31 @@ export function HomeChat({ mentions = false, split = false }: { mentions?: boole
                   : undefined
             }
           >
-            <ChatItem
-              item={item}
-              mentions={mentions}
-              align={split ? (item.kind === "user" ? "end" : "start") : "start"}
-              // Hold while this reply streams; stagger-fade words when the chunk finishes.
-              pending={busy && !waiting && item.kind === "assistant" && item.id === last?.id}
-            />
+            {(() => {
+              const body = (
+                <ChatItem
+                  item={item}
+                  mentions={mentions}
+                  align={split ? (item.kind === "user" ? "end" : "start") : "start"}
+                  // Hold while this reply streams; stagger-fade words when the chunk finishes.
+                  pending={busy && !waiting && item.kind === "assistant" && item.id === last?.id}
+                />
+              );
+              if (!(onEditLast && !busy && item.id === lastUserId)) return body;
+              return (
+                <div className={`flex flex-col gap-0.5 ${split ? "items-end" : "items-start"}`}>
+                  {body}
+                  <button
+                    type="button"
+                    onClick={() => onEditLast(item.id)}
+                    className="flex items-center gap-1 rounded-[var(--pill)] border-0 bg-transparent px-2 py-1 text-xs text-muted-foreground outline-none hover:bg-foreground/[0.06] hover:text-foreground"
+                  >
+                    <HugeiconsIcon icon={Edit02Icon} size={13} strokeWidth={1.8} aria-hidden />
+                    Edit and resend
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         ))}
         {waitingOnModel && (
@@ -159,15 +187,21 @@ const REF_RE = /\n\nReferenced:\n([\s\S]*)$/;
 const REF_LINE = /^- \[(project|chat|file|web|google|skill)\] (.+?) \((.*)\)$/;
 
 /** Splits the references the home prompt appends from what the user actually typed. */
-function splitReferences(text: string): { body: string; refs: { kind: SourceKind; title: string }[] } {
+const FILES_RE = /\n\nAttached files:\n([\s\S]*?)(?=\n\nReferenced:\n|$)/;
+
+function splitReferences(raw: string): { body: string; refs: { kind: SourceKind; title: string }[] } {
+  // Attached files travel as `--- name ---` blocks; the bubble shows each as a pill, not its contents.
+  const fm = FILES_RE.exec(raw);
+  const files = fm ? [...fm[1].matchAll(/^--- (.+) ---$/gm)].map((x) => ({ kind: "file" as SourceKind, title: x[1] })) : [];
+  const text = fm ? raw.slice(0, fm.index) + raw.slice(fm.index + fm[0].length) : raw;
   const m = REF_RE.exec(text);
-  if (!m) return { body: text, refs: [] };
+  if (!m) return { body: text, refs: files };
   const refs = m[1]
     .split("\n")
     .map((line) => REF_LINE.exec(line))
     .filter((x): x is RegExpExecArray => !!x)
     .map((x) => ({ kind: x[1] as SourceKind, title: x[2] }));
-  return { body: text.slice(0, m.index), refs };
+  return { body: text.slice(0, m.index), refs: [...files, ...refs] };
 }
 
 /** One line is a full pill; as the text wraps the corners ease down to 18px, always as smooth squircle corners. */
