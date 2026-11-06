@@ -13,7 +13,8 @@ const pillClass =
  * One running-work pill above the home composer.
  * A single project shows its name and the activity orb. Several show "N running".
  * Click opens an upward frosted list of in-flight work only.
- * When nothing is running, the idle project chip stays if a canvas project is open.
+ * When nothing is running, an open canvas project can still show its name.
+ * The empty start deck does not mount this, so that name is not repeated above the shadow card.
  */
 export function HomeStatusPills({
   className,

@@ -96,6 +96,7 @@ export function Onboarding() {
   const aiTurnId = useStore((s) => s.aiTurnId);
   const aiReady = useStore((s) => !!s.aiStatus?.ready);
   const dockDraft = useStore((s) => s.dockDraft);
+  const runningCount = useStore((s) => s.runningJobs.length);
   const [recent, setRecent] = useState<RecentProject[] | null>(null);
   const [location, setLocation] = useState('');
   const [chats, setChats] = useState<HomeChatRecord[]>(loadHomeChats);
@@ -641,8 +642,9 @@ export function Onboarding() {
                   )}
                   {/* Start state only: a taller writing box with the shadow deck behind it.
                       The running-work pill sits above that stack, not between the two cards.
-                      Once a conversation exists, the block above uses the plain composer. */}
-                  {!voiceMode && (
+                      While nothing is running it stays hidden, so it does not repeat the folder
+                      already shown on the shadow card. */}
+                  {!voiceMode && runningCount > 0 && (
                     <HomeStatusPills
                       className="w-full min-w-0 px-1"
                       onOpenProjects={() => setDialog({ kind: 'projects' })}
