@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/trace";
 import { ThinkingReasoning } from "@/components/ui/thinking-reasoning";
 import { getVote, isRemembered, setVote, subscribeMemory, toggleRemember, type Vote } from "../../lib/ai-memory";
-import { measurementStyle, splitMeasurements } from "../../lib/measure-units";
+import { highlightCode, highlightStyle } from "../../lib/code-highlights";
 import { useThinkingPhrase, withEllipsis } from "../../lib/thinking-phrases";
 import { AgentOrb } from "@/components/ui/agent-orb";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
@@ -424,7 +424,7 @@ function UserBubble({ text, mentions = false, align = "start" }: { text: string;
         style={{ borderRadius: radius, cornerShape: wrapped ? "squircle" : "round" } as React.CSSProperties}
         className="w-fit max-w-full bg-muted px-4 py-3 motion-safe:transition-[border-radius] motion-safe:duration-150"
       >
-        <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{splitMeasurements(body).map((part, i) => (part.unit ? <span key={i} style={measurementStyle(part.unit)}>{part.text}</span> : part.text))}</p>
+        <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{highlightCode(body).map((part, i) => (part.kind ? <span key={i} style={highlightStyle(part)}>{part.text}</span> : part.text))}</p>
       </div>
       <RefPills refs={refs} />
     </div>
