@@ -1711,6 +1711,14 @@ kbd, .kbd,
   color: var(--muted); font-size: 12px; line-height: 16px;
 }
 .assistant-docker__context-name { min-width: 0; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
+:root { --code-tok-fg: 60%; --code-tok-tint: 12%; }
+[data-theme='dark'] { --code-tok-fg: 100%; --code-tok-tint: 18%; }
+.assistant-docker__context[data-kind] { --kind: var(--layer-struct); color: color-mix(in oklab, var(--kind) var(--code-tok-fg, 60%), black); background: color-mix(in oklab, var(--kind) var(--code-tok-tint, 12%), transparent); }
+.assistant-docker__context[data-kind='text'] { --kind: var(--layer-text); }
+.assistant-docker__context[data-kind='media'] { --kind: var(--layer-media); }
+.assistant-docker__context[data-kind='action'] { --kind: var(--layer-action); }
+.assistant-docker__context[data-kind='form'] { --kind: var(--layer-form); }
+.assistant-docker__context[data-kind] code { color: inherit; }
 .assistant-docker__context code { font-family: var(--font-mono, monospace); font-size: 11px; color: var(--fg); }
 .assistant-docker__context button { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; color: inherit; cursor: pointer; }
 .assistant-docker__context button:hover { background: color-mix(in srgb, var(--fg) 10%, transparent); color: var(--fg); }
@@ -1936,7 +1944,11 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .dockpill__picker { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 .dockpill :focus-visible { outline: none; }
 @media (prefers-reduced-motion: reduce) { .dockpill, .dockpill.is-leaving { animation: none; } }
-.dockpill__unit { margin: 0 0 0 -4px; color: var(--muted); font-size: 11px; }
+.dockpill__unit { margin: 0 0 0 -4px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+/* Open state: the pill whose popover is showing keeps its hover tint. */
+.dockpill__main[aria-expanded='true'], .dockpill__main[data-state='open'] { background: color-mix(in srgb, var(--fg) 10%, transparent); }
+/* Dark: the pills sat almost on the canvas, so the edge is a step brighter and the shadow lighter. */
+[data-theme='dark'] .dockpill, [data-theme='dark'] .dockrow .assistant-docker [data-slot='shapeshift-shell'] { border-color: color-mix(in srgb, var(--fg) 16%, transparent); box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.25); }
 .dockpill__main:active { transform: scale(0.97); }
 
 /* Canvas rulers: top and left strips in canvas units, toggled from the ruler pill. */
