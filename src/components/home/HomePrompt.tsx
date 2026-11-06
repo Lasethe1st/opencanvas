@@ -1,7 +1,7 @@
 import { getSendKey } from "../../lib/prefs";
 import { FolderOpen, Stop, Waveform } from '../../lib/home-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowUp02Icon, AttachmentIcon, Cancel01Icon, CommandLineIcon, File01Icon, Mic01Icon } from '@hugeicons/core-free-icons';
+import { ArrowUp02Icon, AttachmentIcon, Cancel01Icon, CommandLineIcon, File01Icon, Globe02Icon, Mic01Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
 import { browserSpeechAvailable, listenOnceBrowser, listenWithProvider, micCaptureAvailable } from "../../lib/voice";
@@ -75,6 +75,8 @@ export function HomePrompt({
   onAttach,
   onRemoveAttachment,
   history = [],
+  webSearch = true,
+  onWebSearch,
   minLines = 1,
   deck = false,
 }: {
@@ -101,6 +103,9 @@ export function HomePrompt({
   onRemoveAttachment?: (id: string) => void;
   /** Earlier messages, newest first, for the Up arrow to walk back through. */
   history?: string[];
+  /** Icon toggle beside the attach button: whether the AI may search the web for this message. */
+  webSearch?: boolean;
+  onWebSearch?: (on: boolean) => void;
   /** Lines of text the in-conversation field holds before it grows. */
   minLines?: number;
   /**
@@ -361,6 +366,19 @@ export function HomePrompt({
       <HugeiconsIcon icon={AttachmentIcon} size={18} strokeWidth={1.8} aria-hidden />
     </InputGroupButton>
   );
+  const webButton = onWebSearch ? (
+    <InputGroupButton
+      variant="ghost"
+      size="icon"
+      className={`rounded-[var(--pill)] ${webSearch ? "bg-foreground/[0.08] text-foreground" : "text-muted-foreground"}`}
+      aria-label="Web search"
+      aria-pressed={webSearch}
+      title={webSearch ? "Web search is on" : "Web search is off"}
+      onClick={() => onWebSearch(!webSearch)}
+    >
+      <HugeiconsIcon icon={Globe02Icon} size={18} strokeWidth={1.8} aria-hidden />
+    </InputGroupButton>
+  ) : null;
   const micButton =
     canDictate && !sending ? (
       <InputGroupButton
@@ -434,8 +452,9 @@ export function HomePrompt({
       )}
     <div
       ref={shellRef}
-      className={`w-full overflow-hidden bg-muted/70 backdrop-blur-[30px] backdrop-saturate-150 transition-[background-color,box-shadow] duration-150 focus-within:bg-secondary/70 ${deck ? "flex flex-col" : ""} ${dragging ? "bg-secondary/80 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg,#111)_28%,transparent)]" : ""}`}
-      style={deck ? { minHeight: 72, borderRadius: 20, ...SQUIRCLE } : { borderRadius: radius }}
+      data-home-composer-front={deck ? "" : undefined}
+      className={`w-full overflow-hidden ${deck ? "flex flex-col" : "bg-muted/70 backdrop-blur-[30px] backdrop-saturate-150 transition-[background-color,box-shadow] duration-150 focus-within:bg-secondary/70"} ${dragging ? "bg-secondary/80 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg,#111)_28%,transparent)]" : ""}`}
+      style={deck ? { minHeight: 96, borderRadius: 24, ...SQUIRCLE } : { borderRadius: radius }}
       onDragOver={(e) => {
         if (!onAttach || !e.dataTransfer.types.includes("Files")) return;
         e.preventDefault();
@@ -485,7 +504,10 @@ export function HomePrompt({
             />
             {!deck && (
               <InputGroupAddon align="inline-start" className={`${inlineControls} ps-3 pb-0`}>
-                {attachButton}
+                <div className="flex items-center gap-0.5">
+                  {attachButton}
+                  {webButton}
+                </div>
               </InputGroupAddon>
             )}
           </>
@@ -494,7 +516,7 @@ export function HomePrompt({
         <div
           ref={overlayRef}
           aria-hidden
-          className={`pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words text-base leading-6 text-foreground ${deck ? "px-[10px]" : "px-4 py-2.5"}`}
+          className={`pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words text-base leading-6 text-foreground ${deck ? "px-4 pb-0.5 pt-3.5" : "px-4 py-2.5"}`}
         >
           {parts.map((part, i) => (
             <span
@@ -523,7 +545,7 @@ export function HomePrompt({
           ref={textareaRef}
           autoFocus
           rows={deck ? 1 : lineCount}
-          style={deck ? { minHeight: 0, padding: "0 10px" } : { minHeight: minTextHeight }}
+          style={deck ? { minHeight: 0, padding: "14px 16px 2px" } : { minHeight: minTextHeight }}
           data-home-prompt=""
           aria-label="Message the AI"
           placeholder="Message…"
@@ -561,8 +583,11 @@ export function HomePrompt({
         )}
       </InputGroup>
       {deck && (
-        <div data-home-composer-toolbar="" className="flex w-full shrink-0 items-center justify-between" style={{ padding: "8px 10px" }}>
-          {onAttach ? attachButton : <span />}
+        <div data-home-composer-toolbar="" className="flex w-full shrink-0 items-center justify-between" style={{ padding: "4px 10px 10px" }}>
+          <div className="flex items-center gap-0.5">
+            {onAttach ? attachButton : null}
+            {webButton}
+          </div>
           <div className="flex items-center">
             {micButton}
             {trailingButton}

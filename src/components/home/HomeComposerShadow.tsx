@@ -13,8 +13,8 @@ import {
 import { HomeComposerExtras } from "./HomeComposerExtras";
 
 /** Peeking strip above the start composer, plus the slice tucked under it. */
-const PEEK = 36;
-const TUCK = 8;
+const PEEK = 32;
+const TUCK = 10;
 const INSET = 24;
 
 const controlClass =
@@ -33,14 +33,10 @@ function branchLabel(status: GitStatus | null | undefined): string {
 export function HomeComposerShadow({
   projectName,
   onOpenProjects,
-  webSearch,
-  onWebSearch,
 }: {
   /** Name to show when no project is open — the most recent folder, when there is one. */
   projectName?: string | null;
   onOpenProjects: () => void;
-  webSearch?: boolean;
-  onWebSearch?: (on: boolean) => void;
 }) {
   const openProject = useStore((s) => s.project?.name ?? null);
   const [status, setStatus] = useState<GitStatus | null | undefined>(undefined);
@@ -110,7 +106,7 @@ export function HomeComposerShadow({
         </button>
 
         <div className="ms-auto flex shrink-0 items-center gap-0.5">
-          <HomeComposerExtras variant="shadow" webSearch={webSearch} onWebSearch={onWebSearch} />
+          <HomeComposerExtras variant="shadow" />
         </div>
       </div>
     </div>
