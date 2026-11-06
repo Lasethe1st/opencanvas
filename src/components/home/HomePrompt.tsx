@@ -4,7 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowUp02Icon, AttachmentIcon, Cancel01Icon, CommandLineIcon, File01Icon, Globe02Icon, Mic01Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
-import { highlightCode, highlightStyle } from "../../lib/code-highlights";
+import { highlightClass, highlightCode, highlightStyle } from "../../lib/code-highlights";
 import { browserSpeechAvailable, listenOnceBrowser, listenWithProvider, micCaptureAvailable } from "../../lib/voice";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { dynamicPillRadius } from "../../lib/pill-radius";
@@ -185,13 +185,13 @@ export function HomePrompt({
       if (last < value.length) named.push({ text: value.slice(last) });
     }
     // CSS typed in plain text gets a box of its own: measurements, class names, element types, colour codes.
-    const out: { text: string; kind?: SourceKind; style?: React.CSSProperties }[] = [];
+    const out: { text: string; kind?: SourceKind; style?: React.CSSProperties; className?: string }[] = [];
     for (const part of named) {
       if (part.kind) {
         out.push(part);
         continue;
       }
-      out.push(...highlightCode(part.text).map((h) => ({ text: h.text, style: highlightStyle(h) })));
+      out.push(...highlightCode(part.text).map((h) => ({ text: h.text, style: highlightStyle(h), className: highlightClass(h) })));
     }
     return out;
   }, [picked, value]);
@@ -508,6 +508,7 @@ export function HomePrompt({
           {parts.map((part, i) => (
             <span
               key={i}
+              className={part.className}
               style={
                 part.kind
                   ? { color: SOURCE_META[part.kind].color }

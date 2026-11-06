@@ -52,19 +52,15 @@ export function highlightStyle(part: HighlightPart): CSSProperties | undefined {
     case "element":
       return tagBox(tagColor(part.text));
     case "color":
-      if (!part.swatch) return undefined;
-      return {
-        backgroundColor: part.swatch.css,
-        color: part.swatch.faint ? "var(--fg)" : part.swatch.darkText ? "#111" : "#fff",
-        boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--fg) 14%, transparent)",
-        borderRadius: 6,
-        padding: "0 2px",
-        margin: "0 -2px",
-        cornerShape: "squircle",
-      } as CSSProperties;
+      return part.swatch ? ({ "--sw": part.swatch.css } as CSSProperties) : undefined;
     default:
       return undefined;
   }
+}
+
+/** Colour codes keep their text; the colour shows as a small rounded square (see .code-swatch in overrides.css). */
+export function highlightClass(part: HighlightPart, inline = false): string | undefined {
+  return part.kind === "color" && part.swatch ? (inline ? "code-swatch code-swatch--inline" : "code-swatch") : undefined;
 }
 
 export { highlightCode };
