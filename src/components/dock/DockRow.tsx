@@ -303,7 +303,7 @@ function PillBody({ id, sel }: { id: PillId; sel: Selection }) {
     case 'font':
       return <FontPill family={c['font-family']} icon={meta.icon} />;
     case 'size':
-      return <Scrub label="Text size" icon={meta.icon} value={px(c['font-size'], 16)} min={6} onChange={(n) => void setStyle('font-size', `${n}px`)} />;
+      return <Scrub label="Text size" icon={meta.icon} value={Math.round(px(c['font-size'], 16))} min={6} onChange={(n) => void setStyle('font-size', `${n}px`)} />;
     case 'padding':
       return <Scrub label="Spacing inside" icon={meta.icon} value={px(c['padding-top'])} step={4} onChange={(n) => void setStyle('padding', `${n}px`)} />;
     case 'margin':
