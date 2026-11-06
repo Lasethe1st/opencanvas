@@ -2016,6 +2016,8 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 
 /* Class-name chip in the Ask AI header, in the layers panel's kind colours. Radius is the panel's
    16px minus the 10px inset, with the same superellipse curve. Light mode darkens the text for contrast. */
+:root { --code-tok-fg: 60%; --code-tok-tint: 12%; }
+[data-theme='dark'] { --code-tok-fg: 100%; --code-tok-tint: 18%; }
 .ask-tag {
   --kind: var(--layer-struct);
   display: inline-flex;
