@@ -1,4 +1,5 @@
 import { X } from '../lib/hugeicons';
+import { layerKind } from '../lib/layer-icons';
 import { useQuickPills } from '../lib/prefs';
 import { AnimatePresence, motion } from 'motion/react';
 import { createPortal } from 'react-dom';
@@ -71,7 +72,7 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
 
   // The selected element rides inside the field as an inline chip, so nothing floats above the dock.
   const contextChip = selection ? (
-        <span className="assistant-docker__context" title={`The AI knows ${selection.name} is selected`}>
+        <span className="assistant-docker__context" data-kind={layerKind(selection.tag)} title={`The AI knows ${selection.name} is selected`}>
           <code>{`.${/\s\.(\S+)$/.exec(selection.name)?.[1] ?? selection.tag}`}</code>
           <button type="button" aria-label="Deselect" onClick={() => selectElement(null)}>
             <X size={11} />
@@ -111,7 +112,7 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
         width={420}
         lead={contextChip}
         trailing={panel ? undefined : (
-          <button type="button" aria-label="Voice input" title={ready ? 'Talk to the AI' : 'Set up AI in Settings to talk'} disabled={!ready || voice} onClick={startVoice} className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground outline-none transition-[opacity,scale] duration-150 hover:opacity-90 active:scale-95 disabled:cursor-default disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" aria-label="Voice input" title={ready ? 'Talk to the AI' : 'Set up AI in Settings to talk'} disabled={!ready || voice} onClick={startVoice} className={`flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full outline-none transition-[opacity,scale,background-color,color] duration-150 active:scale-95 disabled:cursor-default disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-ring ${voice ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-foreground/10 hover:text-foreground'}`}>
             <Waveform className="size-4" />
           </button>
         )}
