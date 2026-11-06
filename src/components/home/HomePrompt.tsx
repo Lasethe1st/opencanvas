@@ -5,6 +5,7 @@ import { ArrowUp02Icon, AttachmentIcon, Cancel01Icon, CommandLineIcon, File01Ico
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
 import { highlightClass, highlightCode, highlightStyle } from "../../lib/code-highlights";
+import { pickColor } from "../../lib/color-picker";
 import { browserSpeechAvailable, listenOnceBrowser, listenWithProvider, micCaptureAvailable } from "../../lib/voice";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { dynamicPillRadius } from "../../lib/pill-radius";
@@ -207,37 +208,127 @@ export function HomePrompt({
     return out;
   }, [parts]);
 
-  /* A colour code gets a swatch in front of it. The textarea and its overlay must stay the same width, so both carry
-     one em-space ("pad") before each code: the overlay draws the swatch in that gap, and the textarea shows blank.
-     The value the app sees never contains the pads, so these map cursor positions between the two. */
+  /* Colour codes show as a swatch. The textarea (what you type in) and the overlay (what you see) must stay the same
+     width, so both are fed the same "display" text: a code you're not touching collapses to one em-space that the overlay
+     fills with the swatch, and a code you are touching expands to an em-space plus the code, so you can edit it. The value
+     the app sees is always the real text; these segments map cursor positions and edits between the two. */
   const PAD = "\u2003";
-  const pads = useMemo(() => {
-    const out: number[] = [];
-    let at = 0;
+  const [selState, setSelState] = useState({ a: 0, b: 0, focus: false });
+  type Seg = { part: (typeof parts)[number]; s: number; e: number; d: number; dlen: number; mode: "plain" | "open" | "closed" };
+  const segs = useMemo(() => {
+    const out: Seg[] = [];
+    let real = 0;
+    let disp = 0;
     for (const part of parts) {
-      if (part.className) out.push(at);
-      at += part.text.length;
+      const len = part.text.length;
+      let mode: Seg["mode"] = "plain";
+      if (part.className) mode = selState.focus && selState.a <= real + len && selState.b >= real ? "open" : "closed";
+      const dlen = mode === "plain" ? len : mode === "open" ? 1 + len : 1;
+      out.push({ part, s: real, e: real + len, d: disp, dlen, mode });
+      real += len;
+      disp += dlen;
     }
     return out;
-  }, [parts]);
-  const displayValue = useMemo(() => parts.map((p) => (p.className ? PAD + p.text : p.text)).join(""), [parts]);
-  const toDisplay = (i: number) => i + pads.filter((p) => p < i).length;
-  const toReal = (d: number) => d - pads.filter((p, k) => p + k < d).length;
+  }, [parts, selState]);
+  const displayValue = useMemo(() => segs.map((g) => (g.mode === "plain" ? g.part.text : g.mode === "open" ? PAD + g.part.text : PAD)).join(""), [segs]);
+  const displayRef = useRef(displayValue);
+  displayRef.current = displayValue;
+  const toDisplay = (r: number, side: "start" | "end" = "start") => {
+    for (const g of segs) {
+      if (r > g.e) continue;
+      if (g.mode === "plain") return g.d + (r - g.s);
+      if (g.mode === "open") return r <= g.s ? g.d : g.d + 1 + (r - g.s);
+      return r <= g.s ? g.d : r >= g.e ? g.d + 1 : side === "end" ? g.d + 1 : g.d;
+    }
+    return displayValue.length;
+  };
+  const toReal = (p: number) => {
+    for (const g of segs) {
+      if (p > g.d + g.dlen) continue;
+      if (g.mode === "plain") return g.s + (p - g.d);
+      if (g.mode === "open") return p <= g.d + 1 ? g.s : g.s + (p - g.d - 1);
+      return p <= g.d ? g.s : g.e;
+    }
+    return valueRef.current.length;
+  };
   const realSel = (el: HTMLTextAreaElement): [number, number] => [toReal(el.selectionStart), toReal(el.selectionEnd)];
   const selRef = useRef({ a: 0, b: 0 });
+  const syncSel = (el: HTMLTextAreaElement) => {
+    const [a, b] = realSel(el);
+    selRef.current = { a, b };
+    setSelState((cur) => (cur.a === a && cur.b === b && cur.focus ? cur : { a, b, focus: true }));
+  };
   const setSel = (a: number, b = a) => {
     selRef.current = { a, b };
+    setSelState((cur) => ({ a, b, focus: cur.focus }));
     const el = textareaRef.current;
-    if (el) el.setSelectionRange(toDisplay(a), toDisplay(b));
+    if (el) el.setSelectionRange(toDisplay(a), toDisplay(b, "end"));
   };
   useLayoutEffect(() => {
     const el = textareaRef.current;
     if (!el || document.activeElement !== el) return;
     const da = toDisplay(selRef.current.a);
-    const db = toDisplay(selRef.current.b);
+    const db = toDisplay(selRef.current.b, "end");
     if (el.selectionStart !== da || el.selectionEnd !== db) el.setSelectionRange(da, db);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayValue]);
+
+  /** What you typed into the display text, as an edit of the real text. */
+  const applyDisplayEdit = (raw: string, inputType: string | undefined) => {
+    const old = displayRef.current;
+    let p = 0;
+    while (p < old.length && p < raw.length && old[p] === raw[p]) p++;
+    let q = 0;
+    while (q < old.length - p && q < raw.length - p && old[old.length - 1 - q] === raw[raw.length - 1 - q]) q++;
+    const removedText = old.slice(p, old.length - q);
+    const inserted = raw.slice(p, raw.length - q).split(PAD).join("");
+    let rs = toReal(p);
+    let re = toReal(old.length - q);
+    // Backspace or Delete on just the gap beside a swatch removes the character next to it instead.
+    if (rs === re && !inserted && removedText === PAD) {
+      if (inputType === "deleteContentForward") re = Math.min(valueRef.current.length, re + 1);
+      else rs = Math.max(0, rs - 1);
+    }
+    const cur = valueRef.current;
+    const next = cur.slice(0, rs) + inserted + cur.slice(re);
+    const caretAt = rs + inserted.length;
+    selRef.current = { a: caretAt, b: caretAt };
+    setSelState({ a: caretAt, b: caretAt, focus: true });
+    onChange(next);
+    setCaret(caretAt);
+  };
+
+  /** The swatch under the pointer, if any: its range in the real text and where it sits on screen. */
+  const swatchAt = (x: number, y: number) => {
+    const root = overlayRef.current;
+    if (!root) return null;
+    for (const el of root.querySelectorAll<HTMLElement>("[data-swatch]")) {
+      const r = el.getClientRects()[0];
+      if (!r) continue;
+      const fs = parseFloat(getComputedStyle(el).fontSize) || 16;
+      if (x >= r.left && x <= r.left + fs && y >= r.top - 2 && y <= r.bottom + 2) {
+        const [s, e] = (el.dataset.swatch ?? "").split(":").map(Number);
+        return { s, e, rect: { left: r.left + 0.1 * fs, top: r.top + 0.35 * fs, width: 0.8 * fs, height: 0.8 * fs } };
+      }
+    }
+    return null;
+  };
+  const openSwatch = (hit: NonNullable<ReturnType<typeof swatchAt>>) => {
+    let cur = valueRef.current.slice(hit.s, hit.e);
+    pickColor(hit.rect, cur, {
+      onInput: (next) => {
+        const v = valueRef.current;
+        if (v.slice(hit.s, hit.s + cur.length) !== cur) return;
+        const delta = next.length - cur.length;
+        const end = hit.s + cur.length;
+        const shift = (n: number) => (n >= end ? n + delta : n);
+        selRef.current = { a: shift(selRef.current.a), b: shift(selRef.current.b) };
+        onChange(v.slice(0, hit.s) + next + v.slice(end));
+        cur = next;
+        hit.e = hit.s + next.length;
+      },
+    });
+  };
 
   const removeWholeName = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget;
@@ -539,19 +630,21 @@ export function HomePrompt({
           aria-hidden
           className={`pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words text-base leading-6 text-foreground ${deck ? "px-4 pb-0.5 pt-3.5" : "px-4 py-2.5"}`}
         >
-          {parts.map((part, i) => (
-            <span
-              key={i}
-              className={part.className}
-              style={
-                part.kind
-                  ? { color: SOURCE_META[part.kind].color }
-                  : part.style
-              }
-            >
-              {part.className ? PAD + part.text : part.text}
-            </span>
-          ))}
+          {segs.map((g, i) => {
+            const part = g.part;
+            if (g.mode !== "plain") {
+              return (
+                <span key={i} data-swatch={`${g.s}:${g.e}`} className={`${part.className}${g.mode === "closed" ? " code-swatch--closed" : ""}`} style={part.style}>
+                  {g.mode === "open" ? PAD + part.text : PAD}
+                </span>
+              );
+            }
+            return (
+              <span key={i} style={part.kind ? { color: SOURCE_META[part.kind].color } : part.style}>
+                {part.text}
+              </span>
+            );
+          })}
           {value.endsWith("\n") ? "\u200b" : null}
         </div>
         <InputGroupTextarea
@@ -568,17 +661,18 @@ export function HomePrompt({
           }}
           value={displayValue}
           disabled={disabled && !sending}
-          onChange={(e) => {
-            const raw = e.target.value;
-            const pos = e.target.selectionStart ?? raw.length;
-            const realPos = pos - (raw.slice(0, pos).split(PAD).length - 1);
-            selRef.current = { a: realPos, b: realPos };
-            onChange(raw.split(PAD).join(""));
-            setCaret(realPos);
+          onChange={(e) => applyDisplayEdit(e.target.value, (e.nativeEvent as InputEvent).inputType)}
+          onSelect={(e) => syncSel(e.currentTarget)}
+          onFocus={(e) => syncSel(e.currentTarget)}
+          onBlur={() => setSelState((cur) => (cur.focus ? { ...cur, focus: false } : cur))}
+          onMouseDown={(e) => {
+            const hit = swatchAt(e.clientX, e.clientY);
+            if (!hit) return;
+            e.preventDefault();
+            openSwatch(hit);
           }}
-          onSelect={(e) => {
-            const [a, b] = realSel(e.currentTarget);
-            selRef.current = { a, b };
+          onMouseMove={(e) => {
+            e.currentTarget.style.cursor = swatchAt(e.clientX, e.clientY) ? "pointer" : "";
           }}
           onKeyDown={onKeyDown}
           onPaste={(e) => {

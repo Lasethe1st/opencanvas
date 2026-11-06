@@ -149,3 +149,23 @@ export const approveAi = (id: string, allow: boolean) => void api.ai.approve(id,
 export function openAiSettings() {
   setState({ settingsOpen: true, settingsTab: 'ai' });
 }
+
+/** Changes some of a message you sent, in place: `from` at `offset` becomes `to` (a colour picked in the bubble, say).
+ *  Nothing is resent. `syncAiMemory` carries the new wording to the model's memory once you're done. */
+export function editChatMessage(id: string, offset: number, from: string, to: string) {
+  const items = getState().aiChat;
+  const at = items.findIndex((i) => i.id === id && i.kind === 'user');
+  const item = items[at];
+  if (!item || item.kind !== 'user' || item.text.slice(offset, offset + from.length) !== from) return false;
+  const next = [...items];
+  next[at] = { ...item, text: item.text.slice(0, offset) + to + item.text.slice(offset + from.length) };
+  setState({ aiChat: next });
+  return true;
+}
+
+/** Rebuilds the model's memory from the conversation on screen, unless a reply is being written. */
+export function syncAiMemory() {
+  if (getState().aiTurnId) return;
+  const turns = getState().aiChat.flatMap((i) => ((i.kind === 'user' || i.kind === 'assistant') && i.text.trim() ? [{ role: i.kind, text: i.text }] : []));
+  void api.ai.reset().then(() => api.ai.hydrate(turns));
+}

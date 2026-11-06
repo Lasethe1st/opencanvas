@@ -61,4 +61,4 @@ export * from '../shared/terminal';
 export { commandShell, defaultShell, stripAnsi, TerminalError, TerminalManager, terminalEnv } from './services/terminal';
 export { killTree, runCommand } from './services/processes';
 
-export { highlightCode } from '../shared/code-highlights';
+export { highlightCode, colorToHex, recolor } from '../shared/code-highlights';

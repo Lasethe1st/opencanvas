@@ -26,7 +26,9 @@ import {
 } from "@/components/ui/trace";
 import { ThinkingReasoning } from "@/components/ui/thinking-reasoning";
 import { getVote, isRemembered, setVote, subscribeMemory, toggleRemember, type Vote } from "../../lib/ai-memory";
-import { highlightClass, highlightCode, highlightStyle } from "../../lib/code-highlights";
+import { highlightCode, highlightStyle } from "../../lib/code-highlights";
+import { pickColor } from "../../lib/color-picker";
+import { editChatMessage, syncAiMemory } from "../../lib/ai";
 import { useThinkingPhrase, withEllipsis } from "../../lib/thinking-phrases";
 import { AgentOrb } from "@/components/ui/agent-orb";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
@@ -391,7 +393,7 @@ function RefPills({ refs }: { refs: { kind: SourceKind; title: string }[] }) {
   );
 }
 
-function UserBubble({ text, mentions = false, align = "start" }: { text: string; mentions?: boolean; align?: "start" | "end" }) {
+function UserBubble({ id, text, mentions = false, align = "start" }: { id: string; text: string; mentions?: boolean; align?: "start" | "end" }) {
   const { body, refs: homeRefs } = splitReferences(text);
   const canvasRefs = mentions
     ? referencesIn(body).map((r) => ({
@@ -424,7 +426,39 @@ function UserBubble({ text, mentions = false, align = "start" }: { text: string;
         style={{ borderRadius: radius, cornerShape: wrapped ? "squircle" : "round" } as React.CSSProperties}
         className="w-fit max-w-full bg-muted px-4 py-3 motion-safe:transition-[border-radius] motion-safe:duration-150"
       >
-        <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{highlightCode(body).map((part, i) => (part.kind ? <span key={i} className={highlightClass(part, true)} style={highlightStyle(part)}>{part.text}</span> : part.text))}</p>
+        <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{(() => {
+          let at = 0;
+          return highlightCode(body).map((part, i) => {
+            const offset = at;
+            at += part.text.length;
+            if (part.kind === "color" && part.swatch) {
+              const code = part.text;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  className="code-swatch-btn"
+                  style={highlightStyle(part)}
+                  title={`${code} · change colour`}
+                  aria-label={`Colour ${code}, change`}
+                  onClick={(e) => {
+                    // The code is edited in place, so the message keeps what it said everywhere else.
+                    let cur = code;
+                    pickColor(e.currentTarget.getBoundingClientRect(), code, {
+                      onInput: (next) => {
+                        if (editChatMessage(id, offset, cur, next)) cur = next;
+                      },
+                      onDone: () => syncAiMemory(),
+                    });
+                  }}
+                >
+                  <span className="code-swatch-btn__text">{code}</span>
+                </button>
+              );
+            }
+            return part.kind ? <span key={i} style={highlightStyle(part)}>{part.text}</span> : part.text;
+          });
+        })()}</p>
       </div>
       <RefPills refs={refs} />
     </div>
@@ -444,7 +478,7 @@ function ChatItem({
 }) {
   switch (item.kind) {
     case "user":
-      return <UserBubble text={item.text} mentions={mentions} align={align} />;
+      return <UserBubble id={item.id} text={item.text} mentions={mentions} align={align} />;
     case "assistant":
       return <AssistantMessage id={item.id} text={item.text} pending={pending} />;
     case "thinking":

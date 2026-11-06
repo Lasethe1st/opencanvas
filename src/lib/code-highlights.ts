@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { highlightCode, type HighlightPart, type UnitFamily } from "../../shared/code-highlights";
+import { colorToHex, highlightCode, recolor, type HighlightPart, type UnitFamily } from "../../shared/code-highlights";
 
 const UNIT_COLORS: Record<UnitFamily, string> = {
   absolute: "var(--src-project)",
@@ -63,4 +63,4 @@ export function highlightClass(part: HighlightPart, inline = false): string | un
   return part.kind === "color" && part.swatch ? (inline ? "code-swatch code-swatch--inline" : "code-swatch") : undefined;
 }
 
-export { highlightCode };
+export { colorToHex, highlightCode, recolor };

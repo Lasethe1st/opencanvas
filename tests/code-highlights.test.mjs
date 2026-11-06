@@ -51,3 +51,18 @@ test('measurements keep their families', () => {
   assert.equal(fam('100vh'), 'viewport');
   assert.equal(fam('300ms'), 'other');
 });
+
+test('recolor keeps the format, case, separators and alpha', () => {
+  const { recolor, colorToHex } = h;
+  assert.equal(recolor('#1a2b3c', '#ff0000'), '#ff0000');
+  assert.equal(recolor('#ABC', '#00ff00'), '#00FF00');
+  assert.equal(recolor('#12345680', '#0000ff'), '#0000ff80');
+  assert.equal(recolor('rgb(1, 2, 3)', '#ff8000'), 'rgb(255, 128, 0)');
+  assert.equal(recolor('rgb(1 2 3 / 50%)', '#ff8000'), 'rgb(255 128 0 / 50%)');
+  assert.equal(recolor('rgba(1, 2, 3, 0.4)', '#000000'), 'rgba(0, 0, 0, 0.4)');
+  assert.equal(recolor('hsl(210 80% 55%)', '#ff0000'), 'hsl(0 100% 50%)');
+  assert.equal(recolor('hsl(210, 80%, 55%)', '#0000ff'), 'hsl(240, 100%, 50%)');
+  assert.equal(colorToHex('rgb(255, 128, 0)'), '#ff8000');
+  assert.equal(colorToHex('hsl(0 100% 50%)'), '#ff0000');
+  assert.equal(colorToHex('red'), null);
+});

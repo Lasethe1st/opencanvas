@@ -111,3 +111,49 @@ export function highlightCode(text: string): HighlightPart[] {
   if (last < text.length) out.push({ text: text.slice(last) });
   return out;
 }
+
+const hex2 = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+
+/** `#rrggbb` for any colour text this file understands (alpha dropped), or null. */
+export function colorToHex(css: string): string | null {
+  const c = parseColor(css.trim());
+  return c ? `#${hex2(c.r)}${hex2(c.g)}${hex2(c.b)}` : null;
+}
+
+function toHsl(r: number, g: number, b: number): [number, number, number] {
+  const x = r / 255;
+  const y = g / 255;
+  const z = b / 255;
+  const max = Math.max(x, y, z);
+  const min = Math.min(x, y, z);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, Math.round(l * 100)];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const h = max === x ? (y - z) / d + (y < z ? 6 : 0) : max === y ? (z - x) / d + 2 : (x - y) / d + 4;
+  return [Math.round(h * 60) % 360, Math.round(s * 100), Math.round(l * 100)];
+}
+
+/** The same colour text with a new colour: hex stays hex, rgb() stays rgb() and hsl() stays hsl(), keeping the
+ *  function name, separators, case and any alpha. `hex` is `#rrggbb`, as a colour picker gives it. */
+export function recolor(css: string, hex: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  const old = parseColor(css.trim());
+  if (!m || !old) return css;
+  const r = parseInt(m[1].slice(0, 2), 16);
+  const g = parseInt(m[1].slice(2, 4), 16);
+  const b = parseInt(m[1].slice(4, 6), 16);
+  if (css.startsWith('#')) {
+    const digits = css.length - 1;
+    const upper = /[A-F]/.test(css) && !/[a-f]/.test(css);
+    const out = `#${hex2(r)}${hex2(g)}${hex2(b)}${digits === 4 || digits === 8 ? hex2(old.a * 255) : ''}`;
+    return upper ? out.toUpperCase() : out;
+  }
+  const fn = /^([a-z]+)\(([^)]*)\)$/i.exec(css.trim());
+  if (!fn) return css;
+  const comma = fn[2].includes(',');
+  const alpha = comma ? fn[2].split(',')[3]?.trim() : fn[2].split('/')[1]?.trim();
+  const channels = /^rgb/i.test(fn[1]) ? [`${r}`, `${g}`, `${b}`] : (() => { const [h, s, l] = toHsl(r, g, b); return [`${h}`, `${s}%`, `${l}%`]; })();
+  const tail = alpha ? (comma ? `, ${alpha}` : ` / ${alpha}`) : '';
+  return `${fn[1]}(${channels.join(comma ? ', ' : ' ')}${tail})`;
+}

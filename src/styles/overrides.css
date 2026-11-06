@@ -2388,4 +2388,17 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
   background: var(--sw-bg); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 18%, transparent);
   position: absolute; left: 0.1em; top: 0.35em;
 }
+.code-swatch--closed { cursor: pointer; }
 .code-swatch--inline::before { position: static; display: inline-block; margin-right: 0.35em; vertical-align: -0.08em; }
+
+/* A colour code in a sent message: just the square. The code stays in the markup (visually hidden) so copying keeps it. */
+.code-swatch-btn {
+  display: inline-block; width: 0.8em; height: 0.8em; margin: 0 0.12em; padding: 0; border: 0; border-radius: 0.22em; corner-shape: squircle;
+  vertical-align: -0.08em; cursor: pointer; overflow: hidden;
+  background: linear-gradient(var(--sw), var(--sw)), repeating-conic-gradient(#c9c9cf 0 25%, #fff 0 50%) 0 0 / 6px 6px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 18%, transparent);
+  transition: transform 0.12s var(--ease-out-strong, ease);
+}
+.code-swatch-btn:hover { transform: scale(1.18); }
+.code-swatch-btn:focus-visible { outline: 2px solid var(--ring, currentColor); outline-offset: 2px; }
+.code-swatch-btn__text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
