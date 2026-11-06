@@ -343,7 +343,7 @@ export class AiAgent {
     const turnId = randomUUID();
     this.turnId = turnId;
     this.abort = new AbortController();
-    this.deps.emit({ turnId, type: 'start', request: text });
+    this.deps.emit({ turnId, type: 'start', request: text, at: Date.now() });
     void this.run(turnId, text, opts.ctx, this.abort.signal, opts);
     return turnId;
   }

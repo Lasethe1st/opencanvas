@@ -519,3 +519,10 @@ test('reduceAiChat streams reasoning into a thinking item that closes when the r
   assert.equal(chat[1].done, true);
   assert.equal(chat[2].text, 'Because it fits.');
 });
+
+test('reduceAiChat keeps the send time on the user message only when the event carries one', () => {
+  const stamped = h.reduceAiChat([], { turnId: 't', type: 'start', request: 'Hi', at: 1_700_000_000_000 });
+  assert.deepEqual(stamped, [{ kind: 'user', id: 't:user', text: 'Hi', at: 1_700_000_000_000 }]);
+  const plain = h.reduceAiChat([], { turnId: 't', type: 'start', request: 'Hi' });
+  assert.deepEqual(plain, [{ kind: 'user', id: 't:user', text: 'Hi' }]);
+});
