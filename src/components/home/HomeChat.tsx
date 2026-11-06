@@ -189,7 +189,7 @@ function ChatOutline({ rootRef, items, fallbackAt }: { rootRef: RefObject<HTMLEl
       className="pointer-events-none fixed z-10 hidden min-[1100px]:block"
       style={{ left: edge.left, top: edge.top }}
     >
-      <ul className="pointer-events-auto m-0 flex max-h-[40vh] list-none flex-col items-start gap-2.5 overflow-visible p-0">
+      <ul className="pointer-events-auto m-0 flex max-h-[40vh] list-none flex-col items-start gap-2 overflow-visible p-0">
         {marks.map((m) => {
           const on = m.id === active;
           return (
@@ -199,13 +199,16 @@ function ChatOutline({ rootRef, items, fallbackAt }: { rootRef: RefObject<HTMLEl
                 onClick={() => go(m.id)}
                 aria-label={`Go to: ${m.label}`}
                 aria-current={on ? "true" : undefined}
-                className="flex h-3 w-8 items-center border-0 bg-transparent p-0 outline-none"
+                className={cn(
+                  "flex h-fit items-center border-0 bg-transparent p-0 outline-none transition-[width] duration-150",
+                  on ? "w-[1rem]" : "w-[0.5rem] group-hover/bar:w-[0.75rem]",
+                )}
               >
                 <span
                   aria-hidden
                   className={cn(
-                    "block h-[3px] rounded-full transition-[width,background-color] duration-150",
-                    on ? "w-6 bg-foreground" : "w-3.5 bg-foreground/25 group-hover/bar:w-5 group-hover/bar:bg-foreground/50",
+                    "block h-[3px] w-full rounded-full transition-[background-color] duration-150",
+                    on ? "bg-foreground" : "bg-foreground/25 group-hover/bar:bg-foreground/50",
                   )}
                 />
               </button>
