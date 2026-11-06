@@ -121,3 +121,10 @@
   --radius-pill: var(--pill);
 
 }
+
+/* Inter Display: same family as body, optical size at the Display end of the opsz axis. */
+@utility font-display {
+  font-family: var(--display-font);
+  font-optical-sizing: auto;
+  font-variation-settings: "opsz" 32;
+}

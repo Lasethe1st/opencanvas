@@ -29,22 +29,24 @@ interface Branches {
 /**
  * Back card of the home chat start composer.
  * Narrower than the field, one control row peeking above it, and a few pixels tucked underneath.
- * Branch, the project folder, and the model picker live here. Both chips open a menu.
+ * Branch, project context, and the model picker live here. The project chip picks context only — it does not open a project.
  */
 export function HomeComposerShadow({
   projects,
-  onOpenProject,
   onOpenProjects,
 }: {
   /** Recent projects, newest first. The first is shown when no project is open. */
   projects: RecentProject[];
-  onOpenProject: (root: string) => void;
   /** Opens the full projects dialog. */
   onOpenProjects: () => void;
 }) {
   const open = useStore((s) => s.project ?? null);
-  const shown = (open ? projects.find((p) => p.root === open.root) : null) ?? projects[0] ?? null;
-  const folder = open?.name ?? shown?.name ?? "No project";
+  const fallback = (open ? projects.find((p) => p.root === open.root) : null) ?? projects[0] ?? null;
+  const [contextRoot, setContextRoot] = useState<string | null>(null);
+  const shown =
+    (contextRoot ? projects.find((p) => p.root === contextRoot) : null) ??
+    fallback;
+  const folder = shown?.name ?? open?.name ?? "No project";
   const root = shown?.root ?? null;
   const [info, setInfo] = useState<Branches | null | undefined>(undefined);
 
@@ -78,7 +80,7 @@ export function HomeComposerShadow({
   return (
     <div
       data-home-composer-shadow=""
-      className="relative z-0 overflow-hidden bg-[var(--composer-shadow)]"
+      className="relative z-0 overflow-hidden bg-[var(--surface-3)]"
       style={{
         marginInline: INSET,
         marginBottom: -TUCK,
@@ -105,7 +107,7 @@ export function HomeComposerShadow({
               ))
             ) : (
               <DropdownMenuItem className="rounded-xl text-xs" onSelect={onOpenProjects}>
-                {root ? "Not a git repository" : "Open a project to use a branch"}
+                {root ? "Not a git repository" : "Pick a project for context"}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -113,21 +115,21 @@ export function HomeComposerShadow({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" data-home-project="" className={controlClass} aria-label={`Project folder, ${folder}`} title={folder}>
+            <button type="button" data-home-project="" className={controlClass} aria-label={`Project context, ${folder}`} title={folder}>
               <FolderOpen className="size-3.5 shrink-0" aria-hidden />
               <span className="truncate">{folder}</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="bottom" align="start" sideOffset={8} avoidCollisions={false} className="z-[120] min-w-[220px] max-w-[320px] rounded-2xl p-1">
             {projects.slice(0, 6).map((p) => (
-              <DropdownMenuItem key={p.root} className="rounded-xl text-xs" title={p.root} onSelect={() => onOpenProject(p.root)}>
+              <DropdownMenuItem key={p.root} className="rounded-xl text-xs" title={p.root} onSelect={() => setContextRoot(p.root)}>
                 <Check className={`size-3.5 ${p.root === shown?.root ? "" : "opacity-0"}`} />
                 <span className="min-w-0 flex-1 truncate">{p.name}</span>
               </DropdownMenuItem>
             ))}
             {projects.length > 0 && <DropdownMenuSeparator />}
             <DropdownMenuItem className="rounded-xl text-xs" onSelect={onOpenProjects}>
-              Open another folder…
+              Browse folders…
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

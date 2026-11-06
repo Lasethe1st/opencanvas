@@ -349,7 +349,7 @@ export function HomePrompt({
     <InputGroupButton
       variant="ghost"
       size="icon"
-      className={`rounded-[var(--pill)] ${webSearch ? "bg-foreground/[0.08] text-foreground" : "text-muted-foreground"}`}
+      className={`rounded-[var(--pill)] ${webSearch ? "bg-[#007AFF] text-white hover:bg-[#007AFF]/90 hover:text-white" : "text-muted-foreground"}`}
       aria-label="Web search"
       aria-pressed={webSearch}
       title={webSearch ? "Web search is on" : "Web search is off"}

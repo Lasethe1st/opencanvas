@@ -143,6 +143,11 @@ function usageTone(pct: number): { fill: string; ring: string; label: string } {
   return { fill: "#22c55e", ring: "text-[#22c55e]", label: "Healthy" };
 }
 
+const RING = 16;
+const RING_STROKE = 2;
+const RING_R = (RING - RING_STROKE) / 2;
+const RING_C = 2 * Math.PI * RING_R;
+
 function UsagePillMeter({
   filled,
   geom,
@@ -204,8 +209,7 @@ function ContextUsageRing({ used, limit, className }: { used: number; limit: num
           <button
             type="button"
             className={cn(
-              "inline-flex h-6 shrink-0 items-center justify-center rounded-[var(--pill)] px-2 text-[11px] font-medium tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              pct > 0 ? tone.ring : "text-muted-foreground hover:text-foreground",
+              "inline-flex size-6 shrink-0 items-center justify-center rounded-[var(--pill)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               className,
             )}
             aria-label={title}
@@ -213,7 +217,28 @@ function ContextUsageRing({ used, limit, className }: { used: number; limit: num
             aria-expanded={detailOpen}
             onClick={openDetail}
           >
-            {Math.max(1, Math.round(pct * 100))}%
+            <svg width={RING} height={RING} viewBox={`0 0 ${RING} ${RING}`} className="-rotate-90" aria-hidden>
+              <circle
+                cx={RING / 2}
+                cy={RING / 2}
+                r={RING_R}
+                fill="none"
+                stroke="currentColor"
+                strokeOpacity={0.18}
+                strokeWidth={RING_STROKE}
+              />
+              <circle
+                cx={RING / 2}
+                cy={RING / 2}
+                r={RING_R}
+                fill="none"
+                stroke={tone.fill}
+                strokeWidth={RING_STROKE}
+                strokeLinecap="round"
+                strokeDasharray={RING_C}
+                strokeDashoffset={RING_C * (1 - Math.max(pct, 0.02))}
+              />
+            </svg>
           </button>
         </TooltipTrigger>
         <TooltipContent
@@ -624,7 +649,7 @@ export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "sha
       side={variant === "shadow" ? "bottom" : "top"}
       align={variant === "shadow" ? "end" : "start"}
       avoidCollisions={variant !== "shadow"}
-      triggerClassName={variant === "shadow" ? "max-w-[min(280px,46vw)]" : undefined}
+      logoOnly={variant === "shadow"}
     />
   );
 

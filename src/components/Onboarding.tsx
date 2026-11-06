@@ -614,7 +614,7 @@ export function Onboarding() {
               </>
             ) : (
               <div className="relative z-10 flex w-full max-w-[680px] flex-col items-center">
-                <h1 className="mb-6 font-serif text-balance text-center text-[36px] font-normal leading-[1.15] tracking-[-0.01em]">{greeting(displayName, greetingPick)}</h1>
+                <h1 className="mb-6 font-display text-balance text-center text-[36px] font-normal leading-[1.15] tracking-[-0.01em]">{greeting(displayName, greetingPick)}</h1>
                 <div className="flex w-full flex-col items-center gap-3">
                   {wantsToBuildSite(dockDraft, aiChat) && (
                     <div className="flex w-full justify-start">
@@ -628,7 +628,6 @@ export function Onboarding() {
                   <div data-home-composer-deck="" className="w-full">
                     <HomeComposerShadow
                       projects={recent ?? []}
-                      onOpenProject={(root) => void openRecent(root)}
                       onOpenProjects={() => setDialog({ kind: 'projects' })}
                     />
                     <div className="relative z-10">

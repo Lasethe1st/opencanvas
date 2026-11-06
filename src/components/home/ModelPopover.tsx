@@ -39,6 +39,7 @@ export function ModelPopover({
   align = 'start',
   avoidCollisions = true,
   triggerClassName,
+  logoOnly = false,
 }: {
   provider: AiProviderKind;
   modelLabel: string;
@@ -55,6 +56,8 @@ export function ModelPopover({
   align?: 'start' | 'end';
   avoidCollisions?: boolean;
   triggerClassName?: string;
+  /** Shadow strip: logo only; label stays in aria-label. */
+  logoOnly?: boolean;
 }) {
   const effortMeta = EFFORTS.find((e) => e.id === effort) ?? EFFORTS[1];
   return (
@@ -63,16 +66,22 @@ export function ModelPopover({
         <button
           type="button"
           aria-label={`Model: ${modelLabel}. Thinking: ${effortMeta.label}`}
+          title={`${modelLabel} · ${effortMeta.label}`}
           className={cn(
-            'flex h-7 max-w-[300px] items-center gap-1.5 rounded-[var(--pill)] border-0 bg-transparent px-2 text-xs text-muted-foreground outline-none transition-colors hover:text-foreground data-[state=open]:text-foreground',
+            'flex h-7 items-center gap-1.5 rounded-[var(--pill)] border-0 bg-transparent text-xs text-muted-foreground outline-none transition-colors hover:text-foreground data-[state=open]:text-foreground',
+            logoOnly ? 'size-7 justify-center px-0' : 'max-w-[300px] px-2',
             triggerClassName,
           )}
         >
           <ModelLogo provider={provider} />
-          <span className="truncate">{modelLabel}</span>
-          <span className="opacity-40">·</span>
-          <span className="shrink-0">{effortMeta.label}</span>
-          <CaretDown className="size-3.5 shrink-0 opacity-60" />
+          {!logoOnly && (
+            <>
+              <span className="truncate">{modelLabel}</span>
+              <span className="opacity-40">·</span>
+              <span className="shrink-0">{effortMeta.label}</span>
+              <CaretDown className="size-3.5 shrink-0 opacity-60" />
+            </>
+          )}
         </button>
       </Popover.Trigger>
       <Popover.Portal>

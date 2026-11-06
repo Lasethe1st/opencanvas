@@ -3,6 +3,8 @@
 :root,
 [data-theme='light'] {
   --font: 'Inter Variable', 'Inter', 'Segoe UI Variable Text', system-ui, -apple-system, sans-serif;
+  /* Inter Display optical size — used by Tailwind font-display. */
+  --display-font: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
   --mono: 'Geist Mono Variable', 'Geist Mono', 'Cascadia Code', ui-monospace, Consolas, monospace;
 
   --bg: #f0f0f1;
