@@ -19,6 +19,29 @@ const tint = (color: string): CSSProperties =>
     cornerShape: "squircle",
   }) as CSSProperties;
 
+/** Tags take the canvas Ask AI chip's kind colours (--layer-*), so a tag looks the same on the home page and the canvas. */
+const TAG_KIND: Record<string, string> = {
+  text: "h1 h2 h3 h4 h5 h6 span figcaption blockquote",
+  media: "img svg iframe",
+  form: "textarea fieldset",
+};
+function tagColor(text: string): string {
+  const name = text.replace(/[<>/]/g, "").toLowerCase();
+  const kind = Object.keys(TAG_KIND).find((k) => TAG_KIND[k].split(" ").includes(name)) ?? "struct";
+  return `var(--layer-${kind})`;
+}
+
+/** Same recipe as the canvas .ask-tag chip: a soft tint, with the text darkened in light mode (vars set in overrides.css). */
+const tagBox = (color: string): CSSProperties =>
+  ({
+    color: `color-mix(in oklab, ${color} var(--code-tok-fg), black)`,
+    backgroundColor: `color-mix(in oklab, ${color} var(--code-tok-tint), transparent)`,
+    borderRadius: 6,
+    padding: "0 2px",
+    margin: "0 -2px",
+    cornerShape: "superellipse(2)",
+  }) as CSSProperties;
+
 /** The box around a highlighted run, shared by the input and the sent message so they can't drift apart. */
 export function highlightStyle(part: HighlightPart): CSSProperties | undefined {
   switch (part.kind) {
@@ -27,7 +50,7 @@ export function highlightStyle(part: HighlightPart): CSSProperties | undefined {
     case "class":
       return tint("var(--src-skill)");
     case "element":
-      return tint("var(--src-chat)");
+      return tagBox(tagColor(part.text));
     case "color":
       if (!part.swatch) return undefined;
       return {
