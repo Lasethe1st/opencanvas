@@ -78,7 +78,7 @@ export async function refreshAiStatus() {
   }
 }
 
-function turnContext(extra?: Pick<AiTurnContext, 'skills' | 'references' | 'webSearch'>): AiTurnContext {
+function turnContext(extra?: Pick<AiTurnContext, 'skills' | 'references' | 'webSearch' | 'images'>): AiTurnContext {
   const s = getState();
   const page = activePage();
   return {
@@ -89,11 +89,12 @@ function turnContext(extra?: Pick<AiTurnContext, 'skills' | 'references' | 'webS
     skills: extra?.skills,
     references: extra?.references,
     webSearch: extra?.webSearch,
+    images: extra?.images,
   };
 }
 
 /** Sends the request to the in-app AI. Queues while a turn is already running. */
-export async function sendToAi(request: string, extra?: Pick<AiTurnContext, 'skills' | 'references' | 'webSearch'>): Promise<boolean> {
+export async function sendToAi(request: string, extra?: Pick<AiTurnContext, 'skills' | 'references' | 'webSearch' | 'images'>): Promise<boolean> {
   const text = request.trim();
   if (!text) return false;
 
@@ -109,6 +110,7 @@ export async function sendToAi(request: string, extra?: Pick<AiTurnContext, 'ski
 
   sendLock = true;
   try {
+    if (getState().aiStopped) setState({ aiStopped: null });
     await api.ai.send(text, turnContext(extra));
     if (getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     if (followUp) void import('./onboarding').then((m) => m.completeOnboardingTask('ask-more'));
@@ -127,6 +129,7 @@ export async function sendToAi(request: string, extra?: Pick<AiTurnContext, 'ski
 }
 
 export const stopAi = () => {
+  if (getState().aiTurnId) setState({ aiStopped: getState().aiChat.at(-1)?.id ?? null });
   pendingRequests.length = 0;
   sendLock = false;
   void api.ai.cancel();
@@ -137,7 +140,7 @@ export async function newAiChat() {
   sendLock = false;
   if (getState().aiTurnId) await api.ai.cancel();
   await api.ai.reset();
-  setState({ aiChat: [], aiTurnId: null, agentGraph: EMPTY_AGENT_GRAPH, selectedAgentNodeId: null });
+  setState({ aiChat: [], aiTurnId: null, aiStopped: null, agentGraph: EMPTY_AGENT_GRAPH, selectedAgentNodeId: null });
 }
 
 export const answerAi = (id: string, answer: string) => void api.ai.answer(id, answer);

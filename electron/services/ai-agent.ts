@@ -392,7 +392,11 @@ export class AiAgent {
     ];
     const effort = deps.settings().thinkingEffort ?? 'medium';
     const system = opts.system ?? `${APP_RULES}\n\n${modeRules(effort)}\n\n${deps.projectContext()}`;
-    const turn: ChatMessage[] = [{ role: 'user', content: [{ type: 'text', text: describeTurnContext(ctx) + request }] }];
+    const pics = (ctx?.images ?? [])
+      .filter((i) => i && /^image\/(png|jpeg|gif|webp)$/.test(i.mimeType) && typeof i.data === 'string' && i.data.length < 7_000_000)
+      .slice(0, 4)
+      .map((i): ChatPart => ({ type: 'image', mimeType: i.mimeType, data: i.data }));
+    const turn: ChatMessage[] = [{ role: 'user', content: [{ type: 'text', text: describeTurnContext(ctx) + request }, ...pics] }];
     const epoch = this.epoch;
     let stopped = false;
     try {
