@@ -188,7 +188,7 @@ export interface AiApproval {
 type AiEventBase = { turnId: string; projectRoot?: string };
 
 export type AiEvent =
-  | (AiEventBase & { type: 'start'; request: string })
+  | (AiEventBase & { type: 'start'; request: string; /** When the message was sent (ms since epoch). */ at?: number })
   | (AiEventBase & { type: 'text'; delta: string })
   | (AiEventBase & { type: 'reasoning'; delta: string })
   | (AiEventBase & { type: 'step'; stepId: string; index: number; label?: string })
@@ -202,7 +202,7 @@ export type AiEvent =
 
 /** The editor's view of a conversation. */
 export type AiChatItem =
-  | { kind: 'user'; id: string; text: string }
+  | { kind: 'user'; id: string; text: string; /** When it was sent (ms since epoch); absent on chats saved before this was recorded. */ at?: number }
   | { kind: 'assistant'; id: string; text: string }
   | { kind: 'thinking'; id: string; text: string; done: boolean }
   | { kind: 'tool'; id: string; tool: string; summary: string; state: 'running' | 'done' | 'failed'; elementId?: string | null }
