@@ -4,6 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowUp02Icon, AttachmentIcon, Cancel01Icon, CommandLineIcon, File01Icon, Globe02Icon, Mic01Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
+import { measurementStyle, splitMeasurements } from "../../lib/measure-units";
 import { browserSpeechAvailable, listenOnceBrowser, listenWithProvider, micCaptureAvailable } from "../../lib/voice";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { dynamicPillRadius } from "../../lib/pill-radius";
@@ -35,27 +36,8 @@ export interface MentionOption {
   kind: SourceKind;
 }
 
-/** A number followed by a CSS unit, standing on its own (not inside a word, a hex colour or an identifier). */
-const UNIT_RE = /(?<![\w.#-])(-?\d*\.?\d+)(px|rem|em|%|vh|vw|vmin|vmax|svh|dvh|lvh|pt|pc|cm|mm|in|ch|ex|lh|fr|deg|rad|turn|ms|s)(?![\w%])/g;
-
 /** `corner-shape` isn't in the CSS typings yet; browsers without it fall back to a plain rounded corner. */
 const SQUIRCLE = { cornerShape: "squircle" } as React.CSSProperties;
-
-const UNIT_COLORS = {
-  absolute: "var(--src-project)",
-  font: "var(--src-web)",
-  percent: "var(--src-file)",
-  viewport: "var(--src-chat)",
-  other: "var(--src-google)",
-} as const;
-
-function unitFamily(unit: string): keyof typeof UNIT_COLORS {
-  if (["px", "pt", "pc", "cm", "mm", "in"].includes(unit)) return "absolute";
-  if (["rem", "em", "ch", "ex", "lh"].includes(unit)) return "font";
-  if (unit === "%") return "percent";
-  if (["vh", "vw", "vmin", "vmax", "svh", "dvh", "lvh"].includes(unit)) return "viewport";
-  return "other";
-}
 
 const SKILLS_FOLDER = "__skills-folder";
 const FOLDER_ROW: MentionOption = { id: SKILLS_FOLDER, label: "Open skills folder", detail: "", kind: "skill" };
@@ -209,14 +191,7 @@ export function HomePrompt({
         out.push(part);
         continue;
       }
-      let last = 0;
-      for (const m of part.text.matchAll(UNIT_RE)) {
-        const start = m.index ?? 0;
-        if (start > last) out.push({ text: part.text.slice(last, start) });
-        out.push({ text: m[0], unit: UNIT_COLORS[unitFamily(m[2])] });
-        last = start + m[0].length;
-      }
-      if (last < part.text.length) out.push({ text: part.text.slice(last) });
+      out.push(...splitMeasurements(part.text));
     }
     return out;
   }, [picked, value]);
@@ -537,14 +512,7 @@ export function HomePrompt({
                 part.kind
                   ? { color: SOURCE_META[part.kind].color }
                   : part.unit
-                    ? {
-                        color: part.unit,
-                        backgroundColor: `color-mix(in srgb, ${part.unit} 16%, transparent)`,
-                        borderRadius: 6,
-                        padding: "0 2px",
-                        margin: "0 -2px",
-                        ...SQUIRCLE,
-                      }
+                    ? measurementStyle(part.unit)
                     : undefined
               }
             >
