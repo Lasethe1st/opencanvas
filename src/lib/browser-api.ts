@@ -700,7 +700,7 @@ function mockAi(): OpenCanvasApi['ai'] {
   const run = async (turnId: string, request: string) => {
     busy = true;
     stop = false;
-    emit({ turnId, type: 'start', request });
+    emit({ turnId, type: 'start', request, at: Date.now() });
     try {
       const thoughts = [
         'Looking at what they asked for… ',

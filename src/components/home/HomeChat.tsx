@@ -118,8 +118,24 @@ export function typedText(text: string): string {
  * A faint rail of bars beside the thread, one per message you sent. The bar for the part you're reading
  * is lit; hover shows what the message said, click scrolls to it. Appears once there are three or more.
  */
-function ChatOutline({ rootRef, items }: { rootRef: RefObject<HTMLElement | null>; items: AiChatItem[] }) {
-  const marks = items.flatMap((i) => (i.kind === "user" ? [{ id: i.id, label: typedText(i.text).replace(/\s+/g, " ").trim() || "(attachment)" }] : []));
+/** "Today, 22:03", "Yesterday, 22:03", "Nov 5, 22:03" (with the year when it isn't this one). */
+export function sentLabel(at: number, now = new Date()): string {
+  const d = new Date(at);
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(now) - day(d)) / 86_400_000);
+  if (diff === 0) return `Today, ${time}`;
+  if (diff === 1) return `Yesterday, ${time}`;
+  const date = d.toLocaleDateString([], { month: "short", day: "numeric", ...(d.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }) });
+  return `${date}, ${time}`;
+}
+
+function ChatOutline({ rootRef, items, fallbackAt }: { rootRef: RefObject<HTMLElement | null>; items: AiChatItem[]; fallbackAt?: number }) {
+  const marks = items.flatMap((i) =>
+    i.kind === "user"
+      ? [{ id: i.id, label: typedText(i.text).replace(/\s+/g, " ").trim() || "(attachment)", when: i.at ?? fallbackAt }]
+      : [],
+  );
   const [active, setActive] = useState<string | null>(null);
   // Pinned to the far left of the scrolling area, not beside the text column.
   const [edge, setEdge] = useState<{ left: number; top: number } | null>(null);
@@ -194,9 +210,10 @@ function ChatOutline({ rootRef, items }: { rootRef: RefObject<HTMLElement | null
               </button>
               <span
                 role="presentation"
-                className="pointer-events-none absolute start-full top-1/2 z-20 ms-2 w-max max-w-[240px] -translate-y-1/2 truncate rounded-xl bg-[var(--composer-front)] px-3 py-1.5 text-xs text-foreground opacity-0 shadow-[inset_0_0_0_1px_var(--composer-edge),var(--composer-lift)] transition-opacity duration-100 group-hover/bar:opacity-100 group-has-[:focus-visible]/bar:opacity-100"
+                className="pointer-events-none absolute start-full top-1/2 z-20 ms-2 w-max max-w-[240px] -translate-y-1/2 rounded-xl bg-[var(--composer-front)] px-3 py-1.5 text-xs text-foreground opacity-0 shadow-[inset_0_0_0_1px_var(--composer-edge),var(--composer-lift)] transition-opacity duration-100 group-hover/bar:opacity-100 group-has-[:focus-visible]/bar:opacity-100"
               >
-                {m.label}
+                <span className="block truncate">{m.label}</span>
+                {m.when != null && <span className="mt-0.5 block text-[11px] text-muted-foreground">{sentLabel(m.when)}</span>}
               </span>
             </li>
           );
@@ -210,8 +227,9 @@ export function HomeChat({
   mentions = false,
   split = false,
   outline = false,
+  outlineFallbackAt,
   onEditLast,
-}: { mentions?: boolean; split?: boolean; /** Home page only: a rail of bars beside the thread, one per message you sent. */ outline?: boolean; /** Home page only: pull the last message back into the input to change and resend. */ onEditLast?: (id: string) => void } = {}) {
+}: { mentions?: boolean; split?: boolean; /** Home page only: a rail of bars beside the thread, one per message you sent. */ outline?: boolean; /** Date shown for messages saved before dates were recorded: when the chat began. */ outlineFallbackAt?: number; /** Home page only: pull the last message back into the input to change and resend. */ onEditLast?: (id: string) => void } = {}) {
   const items = useStore((s) => s.aiChat);
   const turnId = useStore((s) => s.aiTurnId);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -233,7 +251,7 @@ export function HomeChat({
 
   return (
     <div ref={rootRef} className="relative w-full px-1 py-2" aria-label="Conversation">
-      {outline && <ChatOutline rootRef={rootRef} items={items} />}
+      {outline && <ChatOutline rootRef={rootRef} items={items} fallbackAt={outlineFallbackAt} />}
       <div className="flex w-full flex-col gap-4 pb-4">
         {items.map((item) => (
           <div
