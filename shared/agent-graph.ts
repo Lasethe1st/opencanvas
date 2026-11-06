@@ -184,7 +184,7 @@ export function reduceAgentGraph(prev: AgentGraph, event: AiEvent): AgentGraph {
         callId: event.callId,
         tool: event.tool,
         startedAt: event.startedAt ?? Date.now(),
-        filePath: fileFromSummary(event.summary),
+        filePath: event.path ?? fileFromSummary(event.summary),
       });
       g.activeNodeId = id;
       return g;
@@ -200,7 +200,7 @@ export function reduceAgentGraph(prev: AgentGraph, event: AiEvent): AgentGraph {
         label: event.summary || cur.label,
         endedAt: event.endedAt ?? Date.now(),
         detail: event.ok ? undefined : event.summary,
-        filePath: fileFromSummary(event.summary) ?? cur.filePath,
+        filePath: event.path ?? fileFromSummary(event.summary) ?? cur.filePath,
         elementId: event.elementId ?? cur.elementId ?? null,
       };
       g.activeNodeId = event.callId;

@@ -64,6 +64,11 @@ export interface AiTurnContext {
   images?: { name: string; mimeType: string; data: string }[];
   /** False when the user switched web search off for this message. */
   webSearch?: boolean;
+  /**
+   * Project folder the home composer is aimed at. Tools edit this folder when the canvas
+   * is not open, so a homepage chat can change files without leaving home.
+   */
+  projectRoot?: string;
 }
 
 export interface OpenCanvasApi {

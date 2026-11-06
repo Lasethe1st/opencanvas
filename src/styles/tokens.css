@@ -274,5 +274,5 @@ button {
 :root[data-theme="dark"], [data-theme='dark'] { --layer-text:#a58cf5; --layer-media:#f0a860; --layer-action:#7aa2ff; --layer-form:#4fd1e0; --layer-struct:#9aa1b0; }
 
 /* Red for destructive actions (Delete). Separate from --danger, which is monochrome on purpose. */
-:root { --destructive: #dc2626; }
-:root[data-theme="dark"], [data-theme='dark'] { --destructive: #f87171; }
+:root { --destructive: #dc2626; --diff-add: #16a34a; }
+:root[data-theme="dark"], [data-theme='dark'] { --destructive: #f87171; --diff-add: #4ade80; }

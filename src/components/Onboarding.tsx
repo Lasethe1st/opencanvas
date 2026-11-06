@@ -35,6 +35,7 @@ import { MemoryList } from './home/HomeMemory';
 import { HomeOnboardingTasks, useOnboarding, type OnboardingTask } from './home/HomeOnboardingTasks';
 import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
 import { HomeStatusPills } from './home/HomeStatusPills';
+import type { RunningJob } from '../lib/running-work';
 import { SearchOverlay } from './home/SearchOverlay';
 import { VoiceOrbSession } from './home/VoiceOrbSession';
 import { Button } from '@/components/ui/button';
@@ -248,12 +249,23 @@ export function Onboarding() {
   const pickChat = useCallback((chat: HomeChatRecord) => {
     activeChatId.current = chat.id;
     stopAi();
-    setState({ dockDraft: '', aiChat: itemsForHomeChat(chat), aiTurnId: null });
+    setState({ homeActiveChatId: chat.id, dockDraft: '', aiChat: itemsForHomeChat(chat), aiTurnId: null });
     void api.ai.hydrate(historyTurnsForHomeChat(chat));
     setDialog(null);
     setSearchOpen(false);
     focusPrompt();
   }, []);
+
+  const openRunning = useCallback((job: RunningJob) => {
+    if (job.place === 'canvas') {
+      if (job.projectRoot) void openRecent(job.projectRoot);
+      return;
+    }
+    const chat = job.chatId ? chats.find((item) => item.id === job.chatId) ?? null : null;
+    if (!chat) return;
+    if (activeChatId.current === chat.id) return;
+    pickChat(chat);
+  }, [chats, pickChat]);
 
   // Pull the last message back into the input: the chat rolls back to just before it, on screen and in the model's memory.
   const editLast = useCallback((id: string) => {
@@ -283,22 +295,28 @@ export function Onboarding() {
       return;
     }
     const first = aiChat.length === 0;
+    const chatId = activeChatId.current ?? (first ? `${Date.now()}` : null);
+    if (chatId) {
+      activeChatId.current = chatId;
+      setState({ homeActiveChatId: chatId });
+    }
+    const projectRoot = getState().homeProjectRoot;
     const refs = [...mentioned, ...chatSources].filter((x) => text.includes(x.title)).sort((a, b) => text.indexOf(a.title) - text.indexOf(b.title));
     const fileBlock = attachments.length ? `\n\nAttached files:\n${attachments.map((a) => `--- ${a.name} ---\n${a.image ? '(image attached)' : a.text}`).join('\n\n')}` : '';
     const refsBlock = refs.length ? `\n\nReferenced:\n${refs.map((x) => `- [${x.kind}] ${x.title} (${x.detail.replace(/\s+/g, ' ').slice(0, 500)})`).join('\n')}` : '';
     const full = text + fileBlock + refsBlock;
     const used = refs.filter((x) => x.kind === 'skill');
     const skills = (await Promise.all(used.map(async (x) => ({ name: x.title, body: await api.skills.read(x.id.replace(/^skill:/, '')).catch(() => '') })))).filter((k) => k.body);
-    const ok = await sendToAi(full, { ...(skills.length ? { skills } : {}), webSearch, ...(attachments.some((a) => a.image) ? { images: attachments.flatMap((a) => (a.image ? [{ name: a.name, ...a.image }] : [])) } : {}) });
+    const ok = await sendToAi(full, { ...(skills.length ? { skills } : {}), webSearch, ...(projectRoot ? { projectRoot } : {}), ...(attachments.some((a) => a.image) ? { images: attachments.flatMap((a) => (a.image ? [{ name: a.name, ...a.image }] : [])) } : {}) });
     // sendToAi only clears the draft when it matches what was sent, and `full` adds the references.
     if (ok && getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     if (ok) setAttachments([]);
-    if (ok && first) {
-      setChats((current) => {
-        const next = addHomeChat(current, text);
-        activeChatId.current = next[0]?.id ?? null;
-        return next;
-      });
+    if (ok && first && chatId) {
+      setChats((current) => addHomeChat(current, text, undefined, chatId));
+    }
+    if (!ok && first) {
+      activeChatId.current = null;
+      setState({ homeActiveChatId: null });
     }
     if (ok) focusPrompt();
   }, [dockDraft, busy, aiReady, aiChat.length, mentioned, chatSources, attachments, webSearch]);
@@ -332,7 +350,7 @@ export function Onboarding() {
     activeChatId.current = null;
     setDialog(null);
     stopAi();
-    setState({ dockDraft: '', aiChat: [], aiTurnId: null });
+    setState({ homeActiveChatId: null, dockDraft: '', aiChat: [], aiTurnId: null });
     void api.ai.reset();
     focusPrompt();
   }, []);
@@ -567,6 +585,7 @@ export function Onboarding() {
                       <HomeStatusPills
                         className="min-w-0 px-1"
                         onOpenProjects={() => setDialog({ kind: 'projects' })}
+                        onOpenRunning={openRunning}
                       />
                     )}
                     {voiceMode ? (
@@ -621,7 +640,15 @@ export function Onboarding() {
                     </div>
                   )}
                   {/* Start state only: a taller writing box with the shadow deck behind it.
+                      The running-work pill sits above that stack, not between the two cards.
                       Once a conversation exists, the block above uses the plain composer. */}
+                  {!voiceMode && (
+                    <HomeStatusPills
+                      className="w-full min-w-0 px-1"
+                      onOpenProjects={() => setDialog({ kind: 'projects' })}
+                      onOpenRunning={openRunning}
+                    />
+                  )}
                   <div data-home-composer-deck="" className="w-full">
                     <HomeComposerShadow
                       projects={recent ?? []}

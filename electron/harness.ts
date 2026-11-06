@@ -49,6 +49,8 @@ export { ADAPTERS, adapterFor } from './adapters';
 export { nextEntry } from './adapters/next';
 export { addClientEntry, transformForNext, withOpenCanvas } from './next-config';
 export * from '../shared/ai';
+export * from '../shared/change-line';
+export * from '../shared/running-work';
 export * from '../shared/history';
 export * from '../shared/ai-chat';
 export { SaveeClient, SaveeError, pkcePair, resourceMetadataUrl, toBoard, toResult } from './services/savee';
