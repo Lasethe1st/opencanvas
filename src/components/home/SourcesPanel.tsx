@@ -322,7 +322,7 @@ export function sourcesFromChat(chat: AiChatItem[]): Source[] {
       if (path && !/^an? file$/.test(path)) out.set(`file:${path}`, { id: `file:${path}`, kind: 'file', title: path.split(/[\\/]/).pop() ?? path, detail: `${FILE_TOOLS[item.tool]} · ${path}`, citedIn: item.id });
     }
     if (item.kind === 'tool' && item.state !== 'failed' && WEB_TOOLS.has(item.tool)) {
-      // fetch_url summary: "Fetched Title · https://…"
+      // Legacy tool summaries listed URLs; current ones are just "Browsed". Prefer cited links in replies.
       const fetched = /^Fetched\s+(.+?)\s+·\s+(https?:\/\/\S+)/i.exec(item.summary);
       if (fetched) addWebSource(out, fetched[2], fetched[1], item.id);
       for (const raw of item.summary.match(URL_RE) ?? []) addWebSource(out, raw, undefined, item.id);

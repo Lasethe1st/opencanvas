@@ -304,6 +304,7 @@ const PAST: Array<[RegExp, string]> = [
   [/^Taking\b/, 'Took'],
   [/^Searching\b/, 'Searched'],
   [/^Opening\b/, 'Opened'],
+  [/^Browsing\b/, 'Browsed'],
   [/^Running\b/, 'Ran'],
   [/^Asking\b/, 'Asked'],
 ];

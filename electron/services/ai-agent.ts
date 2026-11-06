@@ -160,9 +160,8 @@ export function describeCall(name: string, args: Record<string, any>, tools: Mcp
     case 'run_command':
       return `Running ${String(args.command ?? 'a command').slice(0, 60)}`;
     case 'web_search':
-      return `Searching the web for “${String(args.query ?? '').slice(0, 48)}”`;
     case 'fetch_url':
-      return `Opening ${String(args.url ?? 'a page').slice(0, 64)}`;
+      return 'Browsing';
     case 'propose_variant':
       return `Proposing variant “${String(args.label ?? 'Variant').slice(0, 40)}”`;
     case 'propose_token_change':

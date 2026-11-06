@@ -468,18 +468,27 @@ function ThinkingTrace({ item }: { item: Extract<AiChatItem, { kind: "thinking" 
   return <ThinkingReasoning text={item.text} done={item.done} />;
 }
 
+const WEB_BROWSE_TOOLS = new Set(["web_search", "fetch_url"]);
+
+function toolTraceTitle(item: Extract<AiChatItem, { kind: "tool" }>): string {
+  // Web tools: never list queries or URLs in the thread — just "Browsing" / "Browsed".
+  if (WEB_BROWSE_TOOLS.has(item.tool)) {
+    if (item.state === "running") return "Browsing…";
+    if (item.state === "failed") return item.summary.startsWith("Failed") ? item.summary : `Failed: ${item.summary}`;
+    return "Browsed";
+  }
+  if (item.state === "running") {
+    return item.summary.endsWith("…") || /ing\b/i.test(item.summary) ? item.summary : `${item.summary}…`;
+  }
+  if (item.state === "failed") {
+    return item.summary.startsWith("Failed") ? item.summary : `Failed: ${item.summary}`;
+  }
+  return item.summary;
+}
+
 function ToolTrace({ item }: { item: Extract<AiChatItem, { kind: "tool" }> }) {
   const status = item.state === "running" ? "running" : item.state === "failed" ? "error" : undefined;
-  const title =
-    item.state === "running"
-      ? item.summary.endsWith("…") || /ing\b/i.test(item.summary)
-        ? item.summary
-        : `${item.summary}…`
-      : item.state === "failed"
-        ? item.summary.startsWith("Failed")
-          ? item.summary
-          : `Failed: ${item.summary}`
-        : item.summary;
+  const title = toolTraceTitle(item);
 
   return (
     <Trace>

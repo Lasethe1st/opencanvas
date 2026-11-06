@@ -204,7 +204,15 @@ function ChatItem({ item, pending = false }: { item: AiChatItem; pending?: boole
           {humanizeAiError(item.text)}
         </div>
       );
-    case 'tool':
+    case 'tool': {
+      const web = item.tool === 'web_search' || item.tool === 'fetch_url';
+      const summary = web
+        ? item.state === 'running'
+          ? 'Browsing…'
+          : item.state === 'failed'
+            ? item.summary
+            : 'Browsed'
+        : item.summary;
       return (
         <div className={cx('ai-tool', `is-${item.state}`)}>
           {item.state === 'running' ? (
@@ -216,7 +224,7 @@ function ChatItem({ item, pending = false }: { item: AiChatItem; pending?: boole
           ) : (
             <X size={13} aria-label="Failed" />
           )}
-          <span className="ai-tool__summary">{item.summary}</span>
+          <span className="ai-tool__summary">{summary}</span>
           {item.state === 'done' && item.elementId && (
             <button type="button" className="ai-tool__show" onClick={() => selectElement(item.elementId!)} title="Select this element on the canvas">
               <Crosshair size={12} aria-hidden />
@@ -225,6 +233,7 @@ function ChatItem({ item, pending = false }: { item: AiChatItem; pending?: boole
           )}
         </div>
       );
+    }
     case 'question':
       return <QuestionCard item={item} />;
     case 'approval':
