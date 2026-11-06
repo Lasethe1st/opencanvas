@@ -1,5 +1,5 @@
 import { getSendKey } from "../../lib/prefs";
-import { FolderOpen, Stop, Waveform } from '../../lib/home-icons';
+import { FolderOpen, Waveform } from '../../lib/home-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowUp02Icon, AttachmentIcon, Cancel01Icon, CommandLineIcon, File01Icon, Globe02Icon, Mic01Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
@@ -374,7 +374,9 @@ export function HomePrompt({
     ) : null;
   const trailingButton = sending ? (
     <InputGroupButton variant="default" size="icon" className="rounded-[var(--pill)]" aria-label="Stop" onClick={stopAi}>
-      <Stop weight="fill" className="size-3.5" />
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="size-[18px]" fill="currentColor" aria-hidden>
+        <rect x="6" y="6" width="12" height="12" rx="2.5" ry="2.5" />
+      </svg>
     </InputGroupButton>
   ) : hasText ? (
     <InputGroupButton variant="default" size="icon" className="rounded-[var(--pill)]" aria-label="Send" disabled={disabled} onClick={submit}>
