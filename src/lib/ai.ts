@@ -11,9 +11,12 @@ import { activePage } from './pages';
 import { activeFrame, getState, setState, toast } from './store';
 import { getAsk } from './ask-box';
 import { clearAiTarget, markAiTarget } from './ai-working';
+import { reduceRunningJobs } from './running-work';
+
+type SendExtra = Pick<AiTurnContext, 'skills' | 'references' | 'webSearch' | 'images' | 'projectRoot'>;
 
 /** Follow-ups while a turn is running — drained when the current turn finishes. */
-const pendingRequests: string[] = [];
+const pendingRequests: { text: string; extra?: SendExtra }[] = [];
 /** Blocks overlapping send() calls before aiTurnId is set from the start event. */
 let sendLock = false;
 
@@ -23,7 +26,16 @@ function isBusyMessage(err: unknown): boolean {
 
 function drainQueue() {
   const next = pendingRequests.shift();
-  if (next) void sendToAi(next);
+  if (next) void sendToAi(next.text, next.extra);
+}
+
+function runningContext(s: ReturnType<typeof getState>) {
+  return {
+    project: s.project ? { root: s.project.root, name: s.project.name } : null,
+    homeProjectRoot: s.homeProjectRoot,
+    homeProjectName: s.homeProjectName,
+    homeActiveChatId: s.homeActiveChatId,
+  };
 }
 
 export function handleAiEvent(event: AiEvent) {
@@ -31,6 +43,7 @@ export function handleAiEvent(event: AiEvent) {
   const frameId = s.activeFrameId;
   const inProject = !!s.project;
   if (event.projectRoot && s.project && event.projectRoot !== s.project.root) return;
+  const runningJobs = reduceRunningJobs(s.runningJobs, event, runningContext(s));
   if (event.type === 'start') {
     markAiTarget();
     setState({
@@ -38,6 +51,7 @@ export function handleAiEvent(event: AiEvent) {
       aiChat: reduceAiChat(s.aiChat, event),
       agentGraph: reduceAgentGraph(s.agentGraph, event),
       selectedAgentNodeId: event.turnId,
+      runningJobs,
       ...(inProject ? { build: reduceBuild(s.build, event, { frameId }) } : {}),
     });
     return;
@@ -50,6 +64,7 @@ export function handleAiEvent(event: AiEvent) {
   setState({
     aiChat: reduceAiChat(s.aiChat, event),
     agentGraph,
+    runningJobs,
     ...(s.followAgentNode && agentGraph.activeNodeId ? { selectedAgentNodeId: agentGraph.activeNodeId } : {}),
     ...(inProject ? { build } : {}),
     ...(done ? { aiTurnId: null } : {}),
@@ -78,7 +93,7 @@ export async function refreshAiStatus() {
   }
 }
 
-function turnContext(extra?: Pick<AiTurnContext, 'skills' | 'references' | 'webSearch' | 'images'>): AiTurnContext {
+function turnContext(extra?: SendExtra): AiTurnContext {
   const s = getState();
   const page = activePage();
   return {
@@ -90,11 +105,12 @@ function turnContext(extra?: Pick<AiTurnContext, 'skills' | 'references' | 'webS
     references: extra?.references,
     webSearch: extra?.webSearch,
     images: extra?.images,
+    ...(extra?.projectRoot ? { projectRoot: extra.projectRoot } : {}),
   };
 }
 
 /** Sends the request to the in-app AI. Queues while a turn is already running. */
-export async function sendToAi(request: string, extra?: Pick<AiTurnContext, 'skills' | 'references' | 'webSearch' | 'images'>): Promise<boolean> {
+export async function sendToAi(request: string, extra?: SendExtra): Promise<boolean> {
   const text = request.trim();
   if (!text) return false;
 
@@ -102,7 +118,7 @@ export async function sendToAi(request: string, extra?: Pick<AiTurnContext, 'ski
   const followUp = !!getState().project && getState().aiChat.length > 0;
 
   if (getState().aiTurnId || sendLock) {
-    pendingRequests.push(text);
+    pendingRequests.push({ text, extra });
     if (getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     if (followUp) void import('./onboarding').then((m) => m.completeOnboardingTask('ask-more'));
     return true;
@@ -118,7 +134,7 @@ export async function sendToAi(request: string, extra?: Pick<AiTurnContext, 'ski
   } catch (err) {
     sendLock = false;
     if (isBusyMessage(err)) {
-      pendingRequests.push(text);
+      pendingRequests.push({ text, extra });
       if (getState().dockDraft.trim() === text) setState({ dockDraft: '' });
       return true;
     }

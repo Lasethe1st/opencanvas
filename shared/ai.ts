@@ -192,8 +192,8 @@ export type AiEvent =
   | (AiEventBase & { type: 'text'; delta: string })
   | (AiEventBase & { type: 'reasoning'; delta: string })
   | (AiEventBase & { type: 'step'; stepId: string; index: number; label?: string })
-  | (AiEventBase & { type: 'tool-start'; callId: string; tool: string; summary: string; parentId?: string; startedAt?: number })
-  | (AiEventBase & { type: 'tool-end'; callId: string; ok: boolean; summary: string; elementId?: string | null; endedAt?: number })
+  | (AiEventBase & { type: 'tool-start'; callId: string; tool: string; summary: string; parentId?: string; startedAt?: number; /** Display target: basename, `CSS`, or `file`. */ file?: string; /** Project-relative path for the activity graph. Not shown in chat. */ path?: string })
+  | (AiEventBase & { type: 'tool-end'; callId: string; ok: boolean; summary: string; elementId?: string | null; endedAt?: number; file?: string; path?: string; /** Lines added. Omitted when unknown. Zero is hidden in the thread. */ added?: number; /** Lines removed. Omitted when unknown. Zero is hidden in the thread. */ removed?: number })
   | (AiEventBase & { type: 'question'; question: AiQuestion })
   | (AiEventBase & { type: 'approval'; approval: AiApproval })
   | (AiEventBase & { type: 'resolved'; id: string; answer: string })
@@ -205,7 +205,7 @@ export type AiChatItem =
   | { kind: 'user'; id: string; text: string; /** When it was sent (ms since epoch); absent on chats saved before this was recorded. */ at?: number }
   | { kind: 'assistant'; id: string; text: string }
   | { kind: 'thinking'; id: string; text: string; done: boolean }
-  | { kind: 'tool'; id: string; tool: string; summary: string; state: 'running' | 'done' | 'failed'; elementId?: string | null }
+  | { kind: 'tool'; id: string; tool: string; summary: string; state: 'running' | 'done' | 'failed'; elementId?: string | null; /** Basename, `CSS`, or `file`. Never a directory. */ file?: string | null; added?: number; removed?: number }
   | { kind: 'question'; id: string; question: AiQuestion; answer: string | null }
   | { kind: 'approval'; id: string; approval: AiApproval; answer: string | null }
   | { kind: 'error'; id: string; text: string };

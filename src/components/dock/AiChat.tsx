@@ -13,6 +13,8 @@ import { ThinkingReasoning } from '@/components/ui/thinking-reasoning';
 import { humanizeAiError } from '../../lib/ai-errors';
 import { useThinkingPhrase, withEllipsis } from '../../lib/thinking-phrases';
 import { SoftRevealText } from '../home/SoftRevealText';
+import { DiffCounts } from '../DiffCounts';
+import { changePresentation } from '../../../shared/change-line';
 import { Button, IconButton, cx } from '../../ui/primitives.jsx';
 
 export async function showAgentActivity() {
@@ -204,14 +206,19 @@ function ChatItem({ item, pending = false }: { item: AiChatItem; pending?: boole
         </div>
       );
     case 'tool': {
+      const change = changePresentation(item);
       const web = isWebBrowseTool(item);
-      const summary = web
-        ? item.state === 'running'
-          ? 'Browsing…'
-          : item.state === 'failed'
-            ? item.summary
-            : 'Browsed'
-        : item.summary;
+      const summary = change
+        ? item.state === 'failed'
+          ? change.failed
+          : change.title
+        : web
+          ? item.state === 'running'
+            ? 'Browsing…'
+            : item.state === 'failed'
+              ? item.summary
+              : 'Browsed'
+          : item.summary;
       return (
         <div className={cx('ai-tool', `is-${item.state}`)}>
           {item.state === 'running' ? (
@@ -223,7 +230,10 @@ function ChatItem({ item, pending = false }: { item: AiChatItem; pending?: boole
           ) : (
             <X size={13} aria-label="Failed" />
           )}
-          <span className="ai-tool__summary">{summary}</span>
+          <span className="ai-tool__summary">
+            {summary}
+            {change && item.state === 'done' && <DiffCounts added={item.added} removed={item.removed} />}
+          </span>
           {item.state === 'done' && item.elementId && (
             <button type="button" className="ai-tool__show" onClick={() => selectElement(item.elementId!)} title="Select this element on the canvas">
               <Crosshair size={12} aria-hidden />

@@ -35,6 +35,8 @@ import { cn } from "@/lib/utils";
 import { speakReply, stopSpeech, useSpeech } from "../../lib/read-aloud";
 import { referencesIn } from "../assistant-shapes";
 import { ChatMarkdown } from "./ChatMarkdown";
+import { DiffCounts } from "../DiffCounts";
+import { changePresentation } from "../../../shared/change-line";
 
 const TOOL_LABELS: Record<string, string> = {
   git_commit: "Save a version (commit)",
@@ -473,6 +475,8 @@ function ThinkingTrace({ item }: { item: Extract<AiChatItem, { kind: "thinking" 
 }
 
 function toolTraceTitle(item: Extract<AiChatItem, { kind: "tool" }>): string {
+  const change = changePresentation(item);
+  if (change) return item.state === "failed" ? change.failed : change.title;
   // Web tools: never list queries or URLs in the thread — just "Browsing" / "Browsed".
   if (isWebBrowseTool(item)) {
     if (item.state === "running") return "Browsing…";
@@ -491,6 +495,7 @@ function toolTraceTitle(item: Extract<AiChatItem, { kind: "tool" }>): string {
 function ToolTrace({ item }: { item: Extract<AiChatItem, { kind: "tool" }> }) {
   const status = item.state === "running" ? "running" : item.state === "failed" ? "error" : undefined;
   const title = toolTraceTitle(item);
+  const counts = item.state === "done" && changePresentation(item) ? <DiffCounts added={item.added} removed={item.removed} /> : null;
 
   return (
     <Trace>
@@ -507,7 +512,10 @@ function ToolTrace({ item }: { item: Extract<AiChatItem, { kind: "tool" }> }) {
             <TraceIcon>
               {item.state === "done" ? <Check /> : item.state === "failed" ? <X /> : <Wrench />}
             </TraceIcon>
-            <TraceTitle>{title}</TraceTitle>
+            <TraceTitle>
+              {title}
+              {counts}
+            </TraceTitle>
           </>
         )}
       </TraceLine>

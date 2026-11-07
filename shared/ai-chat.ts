@@ -29,11 +29,23 @@ export function reduceAiChat(items: AiChatItem[], event: AiEvent): AiChatItem[] 
       return items;
     case 'tool-start': {
       const closed = items.map((item): AiChatItem => (item.kind === 'thinking' && item.id.startsWith(`${turnId}:`) && !item.done ? { ...item, done: true } : item));
-      return [...closed, { kind: 'tool', id: `${turnId}:${event.callId}`, tool: event.tool, summary: event.summary, state: 'running' }];
+      return [...closed, { kind: 'tool', id: `${turnId}:${event.callId}`, tool: event.tool, summary: event.summary, state: 'running', ...(event.file ? { file: event.file } : {}) }];
     }
     case 'tool-end': {
       const id = `${turnId}:${event.callId}`;
-      return items.map((item) => (item.kind === 'tool' && item.id === id ? { ...item, state: event.ok ? 'done' : 'failed', summary: event.summary, elementId: event.elementId ?? null } : item));
+      return items.map((item) =>
+        item.kind === 'tool' && item.id === id
+          ? {
+              ...item,
+              state: event.ok ? 'done' : 'failed',
+              summary: event.summary,
+              elementId: event.elementId ?? null,
+              ...(event.file ? { file: event.file } : {}),
+              ...(typeof event.added === 'number' ? { added: event.added } : {}),
+              ...(typeof event.removed === 'number' ? { removed: event.removed } : {}),
+            }
+          : item,
+      );
     }
     case 'question':
       return [...items, { kind: 'question', id: event.question.id, question: event.question, answer: null }];

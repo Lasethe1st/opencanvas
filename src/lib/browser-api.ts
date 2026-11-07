@@ -1,4 +1,5 @@
 import { providerMeta, type AiEvent, type AiProviderKind, type AiSettings, type AiStatus } from '../../shared/ai';
+import { lineDelta } from '../../shared/change-line';
 import type { OpenCanvasApi } from '../../shared/api';
 import type { VoiceChatMessage } from '../../shared/voice';
 import type { VariantRecord } from '../../shared/variants';
@@ -697,11 +698,50 @@ function mockAi(): OpenCanvasApi['ai'] {
       pending = { id: question.question.id, turnId, resolve };
       emit(question);
     });
-  const run = async (turnId: string, request: string) => {
+  const sampleEdit = () => {
+    const keep = 'const keep = true;\n';
+    const removed = Array.from({ length: 25 }, (_, i) => `const removed_${i} = ${i};`).join('\n');
+    const added = Array.from({ length: 90 }, (_, i) => `const added_${i} = ${i};`).join('\n');
+    const before = `${keep}${removed}\n`;
+    const after = `${keep}${added}\n`;
+    return { after, ...lineDelta(before, after) };
+  };
+  const runSelectedEdit = async (turnId: string, projectRoot: string | null) => {
+    // Preview stand-in for a desktop edit of the folder already on the composer.
+    // The sample row is labeled App.tsx with a real +90 −25 line delta. The desktop agent uses the file’s own basename.
+    const diff = sampleEdit();
+    FILES['src/App.tsx'] = diff.after;
+    const tag = projectRoot ? { projectRoot } : {};
+    await stream(turnId, 'Updating the selected project. ');
+    if (stop) return;
+    emit({ turnId, type: 'tool-start', callId: 'edit', tool: 'write_file', summary: 'Editing App.tsx', file: 'App.tsx', path: 'src/App.tsx', ...tag });
+    await wait(8000);
+    if (stop) return;
+    emit({ turnId, type: 'tool-end', callId: 'edit', ok: true, summary: 'Edited App.tsx', file: 'App.tsx', path: 'src/App.tsx', added: diff.added, removed: diff.removed, ...tag });
+    await wait(5000);
+    if (stop) return;
+    emit({ turnId, type: 'tool-start', callId: 'style', tool: 'set_styles', summary: 'Restyling CSS', file: 'CSS', ...tag });
+    await wait(6000);
+    if (stop) return;
+    emit({ turnId, type: 'tool-end', callId: 'style', ok: true, summary: 'Restyled CSS', file: 'CSS', ...tag });
+    await wait(2500);
+    if (stop) return;
+    emit({ turnId, type: 'tool-start', callId: 'debug', tool: 'run_audit', summary: 'Debugging api.ts', file: 'api.ts', ...tag });
+    await wait(6000);
+    if (stop) return;
+    emit({ turnId, type: 'tool-end', callId: 'debug', ok: true, summary: 'Debugged api.ts', file: 'api.ts', ...tag });
+    await stream(turnId, 'Done. The selected project was updated here.');
+  };
+  const run = async (turnId: string, request: string, projectRoot?: string) => {
     busy = true;
     stop = false;
-    emit({ turnId, type: 'start', request, at: Date.now() });
+    const root = projectRoot ?? null;
+    emit({ turnId, type: 'start', request, at: Date.now(), ...(root ? { projectRoot: root } : {}) });
     try {
+      if (root && /\b(edit|restyle|style|debug|fix|change|update|css|file)\b/i.test(request)) {
+        await runSelectedEdit(turnId, root);
+        return;
+      }
       const thoughts = [
         'Looking at what they asked for… ',
         'I should turn this into a short brief, then sketch the first page. ',
@@ -761,11 +801,11 @@ function mockAi(): OpenCanvasApi['ai'] {
       if (!status().ready) throw new Error(status().reason ?? 'Not ready.');
       return 'OK (browser preview sample)';
     },
-    send: async (request) => {
+    send: async (request, context) => {
       // Editor queues follow-ups; never reject with a “still working” toast.
       if (busy) return `t${Date.now().toString(36)}`;
       const turnId = `t${Date.now().toString(36)}`;
-      void run(turnId, request);
+      void run(turnId, request, context?.projectRoot);
       return turnId;
     },
     answer: async (id, answer) => {

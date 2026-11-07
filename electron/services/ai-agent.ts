@@ -6,6 +6,7 @@ import type { McpContent, McpTool } from './mcp';
 import { redact } from './ai-keys';
 import { AiProviderError, streamChat, type ChatMessage, type ChatPart, type Fetcher, type ToolCall, type ToolDef, type ToolResult } from './ai-providers';
 import { fetchUrl, WebBrowseError, webSearch } from './web-browse';
+import { describeChange, splitDiff } from '../../shared/change-line';
 
 export const MAX_STEPS = 30;
 const MAX_TOOL_TEXT = 24_000;
@@ -133,20 +134,9 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 /** Short present-tense description of a tool call for the activity list. */
 export function describeCall(name: string, args: Record<string, any>, tools: McpTool[]): string {
-  const count = Array.isArray(args.ids) ? args.ids.length : 1;
+  const change = describeChange(name, args, false);
+  if (change) return change.title;
   switch (name) {
-    case 'set_styles':
-      return `Styling ${plural(count, 'element')}${args.breakpoint && args.breakpoint !== 'base' ? ` (${args.breakpoint})` : ''}`;
-    case 'insert_jsx':
-      return 'Inserting new elements';
-    case 'insert_element':
-      return `Inserting ${args.kind ?? 'an element'}`;
-    case 'set_text':
-      return 'Changing text';
-    case 'remove_elements':
-      return `Removing ${plural(count, 'element')}`;
-    case 'write_file':
-      return `Writing ${args.path ?? 'a file'}`;
     case 'read_file':
       return `Reading ${args.path ?? 'a file'}`;
     case 'screenshot':
@@ -165,7 +155,7 @@ export function describeCall(name: string, args: Record<string, any>, tools: Mcp
     case 'propose_variant':
       return `Proposing variant “${String(args.label ?? 'Variant').slice(0, 40)}”`;
     case 'propose_token_change':
-      return args.apply ? `Updating token ${String(args.token_id ?? '').slice(0, 40)}` : `Previewing token ${String(args.token_id ?? '').slice(0, 40)}`;
+      return `Previewing token ${String(args.token_id ?? '').slice(0, 40)}`;
     case 'get_design_system':
       return 'Reading the design system';
     case 'design_system_impact':
@@ -501,11 +491,35 @@ export class AiAgent {
     }
 
     const startedAt = Date.now();
-    deps.emit({ turnId, type: 'tool-start', callId: call.id, tool: call.name, summary: describeCall(call.name, call.args, tools), startedAt });
+    const started = describeChange(call.name, call.args, false);
+    deps.emit({
+      turnId,
+      type: 'tool-start',
+      callId: call.id,
+      tool: call.name,
+      summary: started?.title ?? describeCall(call.name, call.args, tools),
+      ...(started ? { file: started.label, ...(started.path ? { path: started.path } : {}) } : {}),
+      startedAt,
+    });
     try {
       const content = await tool.run(call.args);
-      deps.emit({ turnId, type: 'tool-end', callId: call.id, ok: true, summary: describeCall(call.name, call.args, tools), elementId: elementIdOf(call.args, content), endedAt: Date.now() });
-      return { callId: call.id, name: call.name, content: toParts(content), isError: false };
+      const split = splitDiff(content);
+      const finished = describeChange(call.name, call.args, true);
+      const diff = split.diff;
+      const showCounts = !!diff && (diff.added > 0 || diff.removed > 0);
+      deps.emit({
+        turnId,
+        type: 'tool-end',
+        callId: call.id,
+        ok: true,
+        summary: finished?.title ?? describeCall(call.name, call.args, tools),
+        elementId: elementIdOf(call.args, split.content),
+        ...(finished ? { file: finished.label } : {}),
+        ...((finished?.path ?? diff?.path) ? { path: finished?.path ?? diff?.path } : {}),
+        ...(showCounts ? { added: diff!.added, removed: diff!.removed } : {}),
+        endedAt: Date.now(),
+      });
+      return { callId: call.id, name: call.name, content: toParts(split.content), isError: false };
     } catch (err) {
       const message = redact((err as Error)?.message ?? String(err), deps.secrets());
       deps.emit({ turnId, type: 'tool-end', callId: call.id, ok: false, summary: message, endedAt: Date.now() });
