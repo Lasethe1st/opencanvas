@@ -34,12 +34,20 @@ export function DeleteProjectDialog({
     <HomeDialog
       title="Delete project"
       onClose={onClose}
+      narrow
       footer={
         <>
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
-          <Button type="button" variant="destructive" disabled={!ready} onClick={() => void submit()}>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={!ready}
+            onClick={() => void submit()}
+            className="bg-[var(--destructive)] text-white hover:bg-[var(--destructive)] hover:brightness-95 disabled:opacity-45"
+            style={{ backgroundColor: 'var(--destructive)' }}
+          >
             {busy ? 'Deleting…' : 'Delete from disk'}
           </Button>
         </>
