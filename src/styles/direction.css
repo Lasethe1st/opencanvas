@@ -1483,6 +1483,16 @@
   white-space: nowrap;
 }
 
+.diff-counts {
+  display: inline-flex;
+  gap: 0.35em;
+  margin-inline-start: 0.4em;
+  font-variant-numeric: tabular-nums;
+}
+
+.diff-counts__add { color: var(--diff-add, #16a34a); }
+.diff-counts__del { color: var(--destructive, #dc2626); }
+
 .ai-tool__show {
   display: inline-flex;
   flex: none;

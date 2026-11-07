@@ -240,16 +240,18 @@ export function HomeEllipsisMenu({
                   <span className="sr-only">{label}</span>
                   <HugeiconsIcon icon={EllipsisIcon} strokeWidth={2} aria-hidden />
                 </Menu.Trigger>
-                <Menu.Content className="flex flex-col gap-0.5 p-1 pt-1.5">
+                {/* The menu measures its height as it opens, while still button-sized. A fixed width keeps the labels from wrapping then, so the height fits the items. */}
+                <Menu.Content className="flex w-[168px] flex-col gap-0.5 whitespace-nowrap p-1 pt-1.5">
                   {actions.map((action) => (
                     <Menu.Item
                       key={action.id}
                       className={cn(
                         'flex w-full cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors duration-150 hover:bg-accent [&_svg]:size-4 [&_svg]:shrink-0',
                         action.destructive
-                          ? 'text-destructive [&_svg]:text-destructive'
+                          ? 'bloom-destructive text-destructive [&_svg]:text-destructive'
                           : 'text-foreground [&_svg]:text-muted-foreground',
                       )}
+                      style={action.destructive ? { color: 'var(--destructive)' } : undefined}
                       onSelect={action.onSelect}
                     >
                       {action.icon}

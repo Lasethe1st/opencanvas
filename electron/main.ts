@@ -30,6 +30,7 @@ import { buildProjectZip, runInstructions } from './services/exporter';
 import { runBuildCheck, validateExport } from './services/export-validate';
 import { googleFonts } from './services/fonts';
 import { projectFavicon } from './services/favicon';
+import { deleteProjectFolder, isGitRepo } from './services/project-actions';
 import { goLiveOnVercel } from './services/vercel';
 import { createGithubRepo, gitBranchesOf, gitBranchOf, gitClone, gitCommit, gitInit, gitPull, gitPush, gitSetIdentity, gitSetRemote, gitStatus, gitSwitchBranch, remoteWebUrl } from './services/git';
 import { cancelInstall, installDependencies, PreviewManager } from './services/preview';
@@ -307,59 +308,74 @@ async function capturePreview(width: number, fullPage: boolean, pagePath = '/'):
   }
 }
 
-/** Tool context; with a turn, every change is stamped so the editor groups the turn into one undo step. */
-const createToolContext = (turn?: { id: string; label: string }): McpContext => ({
-  project: () => project,
-  pages: () => (project ? pagesState(project) : null),
-  referenceImage: (rel) => referenceImage(requireProject(), rel),
-  edit: (command, label) => {
-    const result = applyEdit(requireProject(), command);
-    if (result.ok) recordForUndo({ label: turn?.label ?? label, changes: result.changes, selectId: result.selectId, turnId: turn?.id });
-    return result;
-  },
-  inspect: (id) => inspectElement(requireProject(), id),
-  writeFile: (rel, content, label) => {
-    const abs = safeResolve(requireProject().root, rel);
-    const before = fs.existsSync(abs) ? fs.readFileSync(abs, 'utf8') : null;
-    fs.mkdirSync(path.dirname(abs), { recursive: true });
-    fs.writeFileSync(abs, content, 'utf8');
-    const change: FileChange = { path: rel, before, after: content };
-    if (before !== content) recordForUndo({ label: turn?.label ?? label, changes: [change], turnId: turn?.id });
-    return change;
-  },
-  importFiles: (sources, dir) => {
-    const result = importFiles(requireProject().root, sources, dir);
-    if (result.undoable) recordForUndo({ label: turn?.label ?? 'Import files (agent)', changes: result.changes, turnId: turn?.id });
-    return result;
-  },
-  screenshot: capturePreview,
-  renderer: rendererRequest,
-  git: {
-    status: () => gitStatus(requireProject().root),
-    init: () => gitInit(requireProject().root),
-    commit: (message) => gitCommit(requireProject().root, message),
-    setRemote: (url) => gitSetRemote(requireProject().root, url),
-    createRepo: (name, isPrivate) => createGithubRepo(requireProject().root, name, isPrivate, (url, init) => net.fetch(url, init)),
-    push: () => gitPush(requireProject().root),
-    goLive: () => goLiveOnVercel(requireProject().root, (url, init) => net.fetch(url, init)),
-  },
-  variants: {
-    propose: (args) => {
-      const record = proposeVariant(requireProject(), args);
-      pushVariantsChanged();
-      return record;
+/**
+ * Tool context; with a turn, every change is stamped so the editor groups the turn into one undo step.
+ * `override` edits that folder without activating it, so a homepage chat can change the composer’s
+ * project while the canvas stays closed.
+ */
+const createToolContext = (turn?: { id: string; label: string }, override?: ProjectInfo | null): McpContext => {
+  const current = (): ProjectInfo | null => override || project;
+  const need = (): ProjectInfo => {
+    const info = current();
+    if (!info) throw new ProjectError('No project is open.');
+    return info;
+  };
+  return {
+    project: current,
+    pages: () => {
+      const info = current();
+      return info ? pagesState(info) : null;
     },
-    list: () => listVariants(requireProject().root),
-    apply: (id) => {
-      const { result, record } = applyVariant(requireProject(), id);
-      if (result.ok) {
-        recordForUndo({ label: `Apply variant: ${record.label || 'Variant'}`, changes: result.changes, selectId: result.selectId, turnId: turn?.id });
-      }
-      pushVariantsChanged();
-      return { ok: result.ok, error: result.error, selectId: result.selectId };
+    referenceImage: (rel) => referenceImage(need(), rel),
+    edit: (command, label) => {
+      const result = applyEdit(need(), command);
+      if (result.ok) recordForUndo({ label: turn?.label ?? label, changes: result.changes, selectId: result.selectId, turnId: turn?.id });
+      return result;
     },
-  },
-});
+    inspect: (id) => inspectElement(need(), id),
+    writeFile: (rel, content, label) => {
+      const abs = safeResolve(need().root, rel);
+      const before = fs.existsSync(abs) ? fs.readFileSync(abs, 'utf8') : null;
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      fs.writeFileSync(abs, content, 'utf8');
+      const change: FileChange = { path: rel, before, after: content };
+      if (before !== content) recordForUndo({ label: turn?.label ?? label, changes: [change], turnId: turn?.id });
+      return change;
+    },
+    importFiles: (sources, dir) => {
+      const result = importFiles(need().root, sources, dir);
+      if (result.undoable) recordForUndo({ label: turn?.label ?? 'Import files (agent)', changes: result.changes, turnId: turn?.id });
+      return result;
+    },
+    screenshot: capturePreview,
+    renderer: rendererRequest,
+    git: {
+      status: () => gitStatus(need().root),
+      init: () => gitInit(need().root),
+      commit: (message) => gitCommit(need().root, message),
+      setRemote: (url) => gitSetRemote(need().root, url),
+      createRepo: (name, isPrivate) => createGithubRepo(need().root, name, isPrivate, (url, init) => net.fetch(url, init)),
+      push: () => gitPush(need().root),
+      goLive: () => goLiveOnVercel(need().root, (url, init) => net.fetch(url, init)),
+    },
+    variants: {
+      propose: (args) => {
+        const record = proposeVariant(need(), args);
+        if (!override) pushVariantsChanged();
+        return record;
+      },
+      list: () => listVariants(need().root),
+      apply: (id) => {
+        const { result, record } = applyVariant(need(), id);
+        if (result.ok) {
+          recordForUndo({ label: `Apply variant: ${record.label || 'Variant'}`, changes: result.changes, selectId: result.selectId, turnId: turn?.id });
+        }
+        if (!override) pushVariantsChanged();
+        return { ok: result.ok, error: result.error, selectId: result.selectId };
+      },
+    },
+  };
+};
 
 function variantFocusedContext(elementId: string): string {
   const info = requireProject();
@@ -471,6 +487,8 @@ const aiSettingsFile = () => path.join(app.getPath('userData'), 'ai-settings.jso
 let secretStore: SecretStore;
 let aiSettings: AiSettings;
 let agent: AiAgent;
+/** Folder a homepage turn edits when the canvas project is not open. Snapshotted into that turn's tools. */
+let homeBound: ProjectInfo | null = null;
 
 const safeCipher: Cipher = {
   available: () => safeStorage.isEncryptionAvailable(),
@@ -513,16 +531,17 @@ const PAGE_SOURCE_CAP = 14_000;
 
 /** Attach the page the user is looking at so Q&A works without opening the code editor. */
 function currentPageSourceForAi(ctx?: AiTurnContext): string {
-  if (!project) return '';
-  const state = pagesState(project);
+  const info = project ?? homeBound;
+  if (!info) return '';
+  const state = pagesState(info);
   const fromCtx = ctx?.page?.file?.replace(/\\/g, '/').replace(/^\.?\//, '');
   const match = fromCtx
     ? state.pages.find((p) => p.file?.replace(/\\/g, '/') === fromCtx)
     : state.pages.find((p) => p.path === (ctx?.page?.path ?? '/')) ?? state.pages.find((p) => p.path === '/') ?? state.pages[0];
-  const rel = (fromCtx || match?.file || (project.framework.startsWith('vite') ? 'src/App.jsx' : null))?.replace(/\\/g, '/');
+  const rel = (fromCtx || match?.file || (info.framework.startsWith('vite') ? 'src/App.jsx' : null))?.replace(/\\/g, '/');
   if (!rel) return '';
   try {
-    const abs = safeResolve(project.root, rel);
+    const abs = safeResolve(info.root, rel);
     if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) return '';
     let body = fs.readFileSync(abs, 'utf8');
     if (body.length > PAGE_SOURCE_CAP) body = `${body.slice(0, PAGE_SOURCE_CAP)}\n…(truncated)`;
@@ -540,16 +559,19 @@ function currentPageSourceForAi(ctx?: AiTurnContext): string {
 }
 
 function projectContextForAi(): string {
-  if (!project) return 'No project is open right now. Chat normally; only suggest opening or creating a project if they need canvas or file edits.';
-  const state = pagesState(project);
-  const ds = designSystemStatus(project);
+  const info = project ?? homeBound;
+  if (!info) return 'No project is open right now. Chat normally; only suggest opening or creating a project if they need canvas or file edits.';
+  const onHome = !project && !!homeBound;
+  const state = pagesState(info);
+  const ds = designSystemStatus(info);
   return [
-    `# Open project: ${project.name}`,
-    `Framework: ${project.framework}. Styles file: ${project.stylesFile}. ${project.editable ? '' : 'The project is read-only in OpenCanvas.'}`,
+    onHome ? `# Selected project: ${info.name}` : `# Open project: ${info.name}`,
+    `Framework: ${info.framework}. Styles file: ${info.stylesFile}. ${info.editable ? '' : 'The project is read-only in OpenCanvas.'}`,
     `Pages (${state.routing}): ${state.pages.map((p) => `${p.name} ${p.path}${p.file ? ` → ${p.file}` : ''}`).join('; ')}`,
     'Files are on disk. Use list_files / read_file / get_outline anytime — the code editor does not need those files open.',
+    onHome ? 'The user is on the home page with this project selected. Apply file and canvas edits to these files now. Do not ask them to open the canvas or a file in the editor.' : '',
     '',
-    buildDesignContext(state.config.direction, { projectName: project.name, pages: state.pages }),
+    buildDesignContext(state.config.direction, { projectName: info.name, pages: state.pages }),
     '',
     // Short pointer only — full token dump makes the model stiff; tools return detail on demand.
     ds.document.tokens.length
@@ -568,10 +590,12 @@ function initAi() {
     settings: () => aiSettings,
     key: aiKey,
     secrets: () => secretStore.secrets(),
-    tools: (turnId, request) => createMcpTools(createToolContext({ id: turnId, label: `AI: ${request.length > 40 ? `${request.slice(0, 40)}…` : request}` })),
+    tools: (turnId, request) => createMcpTools(createToolContext({ id: turnId, label: `AI: ${request.length > 40 ? `${request.slice(0, 40)}…` : request}` }, homeBound)),
     projectContext: projectContextForAi,
     emit: (event) => {
-      const tagged = project ? { ...event, projectRoot: project.root } : event;
+      const info = homeBound ?? project;
+      const tagged = info ? { ...event, projectRoot: info.root } : event;
+      if (event.type === 'done' || event.type === 'error') homeBound = null;
       win?.webContents.send('ai:event', tagged);
       if ((event.type === 'done' || event.type === 'error') && activeVariantSetId && project) {
         const setId = activeVariantSetId;
@@ -580,12 +604,12 @@ function initAi() {
         pushVariantsChanged();
       }
     },
-    commandCwd: () => requireProject().root,
+    commandCwd: () => (homeBound ?? requireProject()).root,
     runCommand: ptyUnavailable
       ? undefined
       : (command, { longRunning, signal }) =>
           terminals.runCommand({
-            cwd: requireProject().root,
+            cwd: (homeBound ?? requireProject()).root,
             command,
             signal,
             longRunning,
@@ -676,9 +700,48 @@ function handle<A extends unknown[], R>(channel: string, fn: (...args: A) => R |
 function registerIpc() {
   handle('templates:list', () => TEMPLATES);
   handle('projects:recent', () =>
-    readRecent().map((p) => ({ ...p, icon: projectFavicon(p.root), bytes: projectBytes(p.root) })),
+    readRecent().map((p) => ({ ...p, icon: projectFavicon(p.root), bytes: projectBytes(p.root), git: isGitRepo(p.root) })),
   );
   handle('projects:defaultLocation', () => projectsDir());
+
+  // Actions from the home list: only for projects in the recent list.
+  const recentProject = (root: string) => {
+    if (!readRecent().some((p) => p.root === root)) throw new ProjectError('That project is not in your recent list.');
+    return root;
+  };
+  handle('projectActions:update', (root: string) => gitPull(recentProject(root)));
+  handle('projectActions:zip', async (root: string) => {
+    const info = detectProject(recentProject(root));
+    const save = await dialog.showSaveDialog(win!, {
+      title: 'Zip project',
+      defaultPath: path.join(app.getPath('downloads'), `${path.basename(info.root)}.zip`),
+      filters: [{ name: 'ZIP archive', extensions: ['zip'] }],
+    });
+    if (save.canceled || !save.filePath) return null;
+    const zip = await buildProjectZip(info);
+    fs.writeFileSync(save.filePath, zip.buffer);
+    shell.showItemInFolder(save.filePath);
+    return { path: save.filePath, fileCount: zip.files.length };
+  });
+  handle('projectActions:preview', async (root: string) => {
+    const info = detectProject(recentProject(root));
+    preview.start(info);
+    const deadline = Date.now() + 90_000;
+    for (;;) {
+      const status = preview.getStatus();
+      if (status.state === 'running') return void (await shell.openExternal(status.url));
+      if (status.state === 'error') throw new ProjectError(`The preview could not start: ${status.error}`);
+      if (Date.now() > deadline) throw new ProjectError('The preview is taking too long to start.');
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  });
+  handle('projectActions:remove', (root: string, typedName: string) => {
+    recentProject(root);
+    if (project && path.resolve(project.root) === path.resolve(root)) throw new ProjectError('Close the project before deleting it.');
+    deleteProjectFolder(root, typedName, [projectsDir()]);
+    const list = readRecent().filter((p) => p.root !== root);
+    fs.writeFileSync(recentFile(), JSON.stringify(list, null, 2));
+  });
   // Browsing is limited to projects in the recent list, never outside the project folder, and never into build or dependency folders.
   const projectPath = (root: string, rel: string) => {
     if (!readRecent().some((p) => p.root === root)) throw new Error('That project is not in your recent list.');
@@ -1016,8 +1079,19 @@ function registerIpc() {
   handle('ai:send', (request: string, context?: AiTurnContext) => {
     const reason = aiNotReadyReason(aiSettings, secretStore.has(aiKeyName(aiSettings.provider)));
     if (reason) throw new Error(reason);
-    // Home chat may send before a project exists; tools that need a project refuse at call time.
+    // Home chat may name a project folder without opening the canvas. Tools then edit that folder in place.
     const ctx = context && typeof context === 'object' ? context : undefined;
+    if (!agent.busy) {
+      homeBound = null;
+      const root = !project && typeof ctx?.projectRoot === 'string' ? ctx.projectRoot : '';
+      if (root && readRecent().some((p) => p.root === root)) {
+        try {
+          homeBound = detectProject(root);
+        } catch {
+          homeBound = null;
+        }
+      }
+    }
     // Attach the current page from disk so answers don't depend on the code editor having it open.
     return agent.send(`${String(request ?? '')}${currentPageSourceForAi(ctx)}`, ctx);
   });

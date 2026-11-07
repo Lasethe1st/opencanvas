@@ -317,6 +317,8 @@ export interface RecentProject {
   icon?: string | null;
   /** Approximate on-disk size in bytes (excludes node_modules, .git, dist). */
   bytes?: number;
+  /** The folder is a git repository, so it can be updated with a pull. */
+  git?: boolean;
 }
 
 export type GoLiveResult =

@@ -49,6 +49,8 @@ export { ADAPTERS, adapterFor } from './adapters';
 export { nextEntry } from './adapters/next';
 export { addClientEntry, transformForNext, withOpenCanvas } from './next-config';
 export * from '../shared/ai';
+export * from '../shared/change-line';
+export * from '../shared/running-work';
 export * from '../shared/history';
 export * from '../shared/ai-chat';
 export * from '../shared/web-browse-trace';
@@ -61,5 +63,7 @@ export { generateTemplate, TEMPLATES } from './templates';
 export * from '../shared/terminal';
 export { commandShell, defaultShell, stripAnsi, TerminalError, TerminalManager, terminalEnv } from './services/terminal';
 export { killTree, runCommand } from './services/processes';
+export { deleteProjectFolder, isGitRepo } from './services/project-actions';
+
 
 export { highlightCode } from '../shared/code-highlights';

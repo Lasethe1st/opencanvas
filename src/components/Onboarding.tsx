@@ -1,6 +1,6 @@
 import { ChatCircle, FolderSimple, History, Lightning } from '../lib/home-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { LayoutAlignLeftIcon, LayoutAlignRightIcon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
+import { Bug01Icon, Delete02Icon, FolderZipIcon, LayoutAlignLeftIcon, LayoutAlignRightIcon, LinkSquare02Icon, Refresh01Icon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
 import { Library } from '../lib/home-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentProject, SkillMeta } from '../../shared/types';
@@ -19,7 +19,10 @@ import {
 } from '../lib/home-chats';
 import { startProjectFromBrief } from '../lib/start-project';
 import { getState, setState, toast, useStore } from '../lib/store';
-import { homeItemActions } from './home/HomeItemMenu';
+import { homeItemActions, type HomeMenuAction } from './home/HomeItemMenu';
+import { HomeActionPills } from './home/HomeActionPills';
+import { HomeRecentProjects } from './home/HomeRecentProjects';
+import { DeleteProjectDialog } from './home/DeleteProjectDialog';
 import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat, typedText } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
@@ -35,6 +38,7 @@ import { MemoryList } from './home/HomeMemory';
 import { HomeOnboardingTasks, useOnboarding, type OnboardingTask } from './home/HomeOnboardingTasks';
 import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
 import { HomeStatusPills } from './home/HomeStatusPills';
+import type { RunningJob } from '../lib/running-work';
 import { SearchOverlay } from './home/SearchOverlay';
 import { VoiceOrbSession } from './home/VoiceOrbSession';
 import { Button } from '@/components/ui/button';
@@ -95,6 +99,7 @@ export function Onboarding() {
   const aiTurnId = useStore((s) => s.aiTurnId);
   const aiReady = useStore((s) => !!s.aiStatus?.ready);
   const dockDraft = useStore((s) => s.dockDraft);
+  const runningCount = useStore((s) => s.runningJobs.length);
   const [recent, setRecent] = useState<RecentProject[] | null>(null);
   const [location, setLocation] = useState('');
   const [chats, setChats] = useState<HomeChatRecord[]>(loadHomeChats);
@@ -107,6 +112,7 @@ export function Onboarding() {
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
   const onboarding = useOnboarding();
   const [dialog, setDialog] = useState<HomeDialogState | null>(null);
+  const [deleting, setDeleting] = useState<RecentProject | null>(null);
   const [newMinimized, setNewMinimized] = useState(false);
   const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
   const [chipHost, setChipHost] = useState<HTMLDivElement | null>(null);
@@ -248,12 +254,23 @@ export function Onboarding() {
   const pickChat = useCallback((chat: HomeChatRecord) => {
     activeChatId.current = chat.id;
     stopAi();
-    setState({ dockDraft: '', aiChat: itemsForHomeChat(chat), aiTurnId: null });
+    setState({ homeActiveChatId: chat.id, dockDraft: '', aiChat: itemsForHomeChat(chat), aiTurnId: null });
     void api.ai.hydrate(historyTurnsForHomeChat(chat));
     setDialog(null);
     setSearchOpen(false);
     focusPrompt();
   }, []);
+
+  const openRunning = useCallback((job: RunningJob) => {
+    if (job.place === 'canvas') {
+      if (job.projectRoot) void openRecent(job.projectRoot);
+      return;
+    }
+    const chat = job.chatId ? chats.find((item) => item.id === job.chatId) ?? null : null;
+    if (!chat) return;
+    if (activeChatId.current === chat.id) return;
+    pickChat(chat);
+  }, [chats, pickChat]);
 
   // Pull the last message back into the input: the chat rolls back to just before it, on screen and in the model's memory.
   const editLast = useCallback((id: string) => {
@@ -283,22 +300,28 @@ export function Onboarding() {
       return;
     }
     const first = aiChat.length === 0;
+    const chatId = activeChatId.current ?? (first ? `${Date.now()}` : null);
+    if (chatId) {
+      activeChatId.current = chatId;
+      setState({ homeActiveChatId: chatId });
+    }
+    const projectRoot = getState().homeProjectRoot;
     const refs = [...mentioned, ...chatSources].filter((x) => text.includes(x.title)).sort((a, b) => text.indexOf(a.title) - text.indexOf(b.title));
     const fileBlock = attachments.length ? `\n\nAttached files:\n${attachments.map((a) => `--- ${a.name} ---\n${a.image ? '(image attached)' : a.text}`).join('\n\n')}` : '';
     const refsBlock = refs.length ? `\n\nReferenced:\n${refs.map((x) => `- [${x.kind}] ${x.title} (${x.detail.replace(/\s+/g, ' ').slice(0, 500)})`).join('\n')}` : '';
     const full = text + fileBlock + refsBlock;
     const used = refs.filter((x) => x.kind === 'skill');
     const skills = (await Promise.all(used.map(async (x) => ({ name: x.title, body: await api.skills.read(x.id.replace(/^skill:/, '')).catch(() => '') })))).filter((k) => k.body);
-    const ok = await sendToAi(full, { ...(skills.length ? { skills } : {}), webSearch, ...(attachments.some((a) => a.image) ? { images: attachments.flatMap((a) => (a.image ? [{ name: a.name, ...a.image }] : [])) } : {}) });
+    const ok = await sendToAi(full, { ...(skills.length ? { skills } : {}), webSearch, ...(projectRoot ? { projectRoot } : {}), ...(attachments.some((a) => a.image) ? { images: attachments.flatMap((a) => (a.image ? [{ name: a.name, ...a.image }] : [])) } : {}) });
     // sendToAi only clears the draft when it matches what was sent, and `full` adds the references.
     if (ok && getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     if (ok) setAttachments([]);
-    if (ok && first) {
-      setChats((current) => {
-        const next = addHomeChat(current, text);
-        activeChatId.current = next[0]?.id ?? null;
-        return next;
-      });
+    if (ok && first && chatId) {
+      setChats((current) => addHomeChat(current, text, undefined, chatId));
+    }
+    if (!ok && first) {
+      activeChatId.current = null;
+      setState({ homeActiveChatId: null });
     }
     if (ok) focusPrompt();
   }, [dockDraft, busy, aiReady, aiChat.length, mentioned, chatSources, attachments, webSearch]);
@@ -332,7 +355,7 @@ export function Onboarding() {
     activeChatId.current = null;
     setDialog(null);
     stopAi();
-    setState({ dockDraft: '', aiChat: [], aiTurnId: null });
+    setState({ homeActiveChatId: null, dockDraft: '', aiChat: [], aiTurnId: null });
     void api.ai.reset();
     focusPrompt();
   }, []);
@@ -376,6 +399,57 @@ export function Onboarding() {
           focusPrompt();
         },
       }),
+    [],
+  );
+
+  /** The actions in a recent project's menu on the start screen. */
+  const recentActions = useCallback(
+    (project: RecentProject): HomeMenuAction[] => {
+      const icon = (i: IconSvgElement) => <HugeiconsIcon icon={i} strokeWidth={2} />;
+      const fail = (e: unknown) => toast(e instanceof Error ? e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : 'Something went wrong.', 'error');
+      const actions: HomeMenuAction[] = [];
+      if (project.git) {
+        actions.push({
+          id: 'update',
+          label: 'Update',
+          icon: icon(Refresh01Icon),
+          onSelect: () => {
+            toast(`Updating ${project.name}…`);
+            api.projectActions.update(project.root).then(() => toast(`${project.name} is up to date`, 'success'), fail);
+          },
+        });
+      }
+      actions.push(
+        {
+          id: 'debug',
+          label: 'Debug',
+          icon: icon(Bug01Icon),
+          onSelect: () => {
+            setState({ dockDraft: `Help me debug the ${project.name} project: ` });
+            focusPrompt();
+          },
+        },
+        {
+          id: 'share',
+          label: 'Share as zip',
+          icon: icon(FolderZipIcon),
+          onSelect: () => {
+            api.projectActions.zip(project.root).then((r) => r && toast(`Zipped ${r.fileCount} files`, 'success'), fail);
+          },
+        },
+        {
+          id: 'preview',
+          label: 'Preview',
+          icon: icon(LinkSquare02Icon),
+          onSelect: () => {
+            toast('Starting the preview…');
+            api.projectActions.preview(project.root).catch(fail);
+          },
+        },
+        { id: 'delete', label: 'Delete', destructive: true, icon: icon(Delete02Icon), onSelect: () => setDeleting(project) },
+      );
+      return actions;
+    },
     [],
   );
 
@@ -567,6 +641,7 @@ export function Onboarding() {
                       <HomeStatusPills
                         className="min-w-0 px-1"
                         onOpenProjects={() => setDialog({ kind: 'projects' })}
+                        onOpenRunning={openRunning}
                       />
                     )}
                     {voiceMode ? (
@@ -622,7 +697,15 @@ export function Onboarding() {
                   )}
                   {/* Start state only: one taller card. Typing, voice and send on top; attach, web and the model along
                       the bottom-left, and the branch, project and context ring along the bottom-right.
+                      The running-work pill sits above it and stays hidden while nothing is running.
                       Once a conversation exists, the block above uses the plain composer. */}
+                  {!voiceMode && runningCount > 0 && (
+                    <HomeStatusPills
+                      className="w-full min-w-0 px-1"
+                      onOpenProjects={() => setDialog({ kind: 'projects' })}
+                      onOpenRunning={openRunning}
+                    />
+                  )}
                   <div data-home-composer-deck="" className="w-full">
                     <HomePrompt
                       deck
@@ -648,6 +731,19 @@ export function Onboarding() {
                       footerEnd={<HomeComposerContext projects={recent ?? []} onOpenProjects={() => setDialog({ kind: 'projects' })} />}
                     />
                   </div>
+                  <HomeActionPills
+                    disabled={busy}
+                    onPick={(starter) => {
+                      setState({ dockDraft: starter });
+                      focusPrompt();
+                    }}
+                  />
+                  <HomeRecentProjects
+                    recent={recent}
+                    onOpen={(p) => void openRecent(p.root)}
+                    actionsFor={recentActions}
+                    onViewAll={() => setDialog({ kind: 'projects' })}
+                  />
                   <HomeAiHint className="text-center" />
                 </div>
               </div>
@@ -684,6 +780,18 @@ export function Onboarding() {
             onClose={closeDialog}
             onMinimize={() => setNewMinimized(true)}
             onRestore={() => setNewMinimized(false)}
+          />
+        )}
+        {deleting && (
+          <DeleteProjectDialog
+            project={deleting}
+            onClose={() => setDeleting(null)}
+            onDelete={async (typedName) => {
+              await api.projectActions.remove(deleting.root, typedName);
+              setRecent((current) => (current ? current.filter((p) => p.root !== deleting.root) : current));
+              setDeleting(null);
+              toast(`Deleted ${deleting.name}`, 'success');
+            }}
           />
         )}
         {dialog?.kind === 'projects' && (

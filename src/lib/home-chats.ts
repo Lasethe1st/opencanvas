@@ -59,11 +59,11 @@ export function loadHomeChats(): HomeChat[] {
 }
 
 /** Newest first. Starting the same request again moves it to the top instead of repeating it. */
-export function addHomeChat(chats: HomeChat[], text: string, items?: AiChatItem[]): HomeChat[] {
+export function addHomeChat(chats: HomeChat[], text: string, items?: AiChatItem[], id?: string): HomeChat[] {
   const clean = text.trim();
   if (!clean) return chats;
   const entry: HomeChat = {
-    id: `${Date.now()}`,
+    id: id || `${Date.now()}`,
     text: clean,
     at: Date.now(),
     ...(items?.length ? { items } : {}),

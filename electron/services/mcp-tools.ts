@@ -23,6 +23,7 @@ import { McpToolError, type McpContent, type McpTool } from './mcp';
 import { designSystemStatus, proposeTokenChange, tokenImpact } from './design-system';
 import { remoteWebUrl } from './git';
 import { isEditablePath, listTree, safeResolve } from './project';
+import { diffOfChanges, withDiff } from '../../shared/change-line';
 
 /** What the tools need from the running app. */
 export interface McpContext {
@@ -169,7 +170,8 @@ function editResult(ctx: McpContext, result: EditResult, summary: string): McpCo
   if (touched.length) lines.push(`Files: ${touched.join(', ')}`);
   const outlines = touched.filter((f) => SOURCE_RE.test(f)).map((f) => outlineFile(project.root, f));
   if (outlines.length) lines.push('', 'Updated outline (use these ids from now on):', ...outlines);
-  return [text(lines.join('\n'))];
+  const diff = diffOfChanges(result.changes);
+  return [text(diff ? withDiff(lines.join('\n'), diff) : lines.join('\n'))];
 }
 
 function describeGit(s: GitStatus): string {
@@ -434,7 +436,8 @@ export function createMcpTools(ctx: McpContext): McpTool[] {
         const change = ctx.writeFile(rel, args.content, `Write ${path.basename(rel)}`);
         const lines = [`${change.before === null ? 'Created' : 'Updated'} ${rel}.`];
         if (SOURCE_RE.test(rel)) lines.push('', outlineFile(project.root, rel));
-        return [text(lines.join('\n'))];
+        const diff = diffOfChanges([change]);
+        return [text(diff ? withDiff(lines.join('\n'), diff) : lines.join('\n'))];
       },
     },
     {

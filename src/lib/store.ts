@@ -3,6 +3,7 @@ import { breakpointFor, type Camera, type FrameLayout, type Guide } from '../../
 import { IDLE_BUILD, type BuildState } from '../../shared/build-stages';
 import type { VariantRecord } from '../../shared/variants';
 import type { AiChatItem, AiStatus } from '../../shared/ai';
+import type { RunningJob } from './running-work';
 import { EMPTY_AGENT_GRAPH, type AgentGraph } from '../../shared/agent-graph';
 import type { PageConfig, ProjectPagesState } from '../../shared/project-config';
 import type { TerminalSession } from '../../shared/terminal';
@@ -150,6 +151,15 @@ interface State {
   aiChat: AiChatItem[];
   /** The AI turn that is running, if any. */
   aiTurnId: string | null;
+  /** Projects with a turn in flight. The home composer shows one pill for this list. */
+  runningJobs: RunningJob[];
+  /** Explicit folder picked on the home composer. Null follows the newest recent project. */
+  homeContextRoot: string | null;
+  /** Folder the home composer is aimed at right now (the chip the person sees). */
+  homeProjectRoot: string | null;
+  homeProjectName: string | null;
+  /** Home conversation on screen, so a running-work row can jump back to it. */
+  homeActiveChatId: string | null;
   /** Id of the last chat item when the person stopped a reply; the home chat shows a 'Stopped' note after it. */
   aiStopped: string | null;
   /** Temporary variant proposals (never saved to canvas.json). */
@@ -244,6 +254,11 @@ export const initialState: State = {
   aiStatus: null,
   aiChat: [],
   aiTurnId: null,
+  runningJobs: [],
+  homeContextRoot: null,
+  homeProjectRoot: null,
+  homeProjectName: null,
+  homeActiveChatId: null,
   aiStopped: null,
   variants: [],
   variantHighlightId: null,
@@ -287,6 +302,10 @@ export const useStore = create<State>(() => initialState);
 
 export const setState = useStore.setState;
 export const getState = useStore.getState;
+
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  (window as unknown as { __oc?: { getState: typeof getState; setState: typeof setState } }).__oc = { getState, setState };
+}
 
 useStore.subscribe((s, prev) => {
   if (s.leftTab !== prev.leftTab) {

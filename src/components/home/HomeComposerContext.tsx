@@ -3,7 +3,7 @@ import type { RecentProject } from "../../../shared/types";
 import { Check, FolderOpen } from "../../lib/home-icons";
 import { GitBranch } from "../../lib/hugeicons";
 import { api } from "../../lib/api";
-import { toast, useStore } from "../../lib/store";
+import { getState, setState, toast, useStore } from "../../lib/store";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,11 +35,18 @@ export function HomeComposerContext({
   onOpenProjects: () => void;
 }) {
   const open = useStore((s) => s.project ?? null);
+  const contextRoot = useStore((s) => s.homeContextRoot);
   const fallback = (open ? projects.find((p) => p.root === open.root) : null) ?? projects[0] ?? null;
-  const [contextRoot, setContextRoot] = useState<string | null>(null);
   const shown =
     (contextRoot ? projects.find((p) => p.root === contextRoot) : null) ??
     fallback;
+  useEffect(() => {
+    const root = shown?.root ?? null;
+    const name = shown?.name ?? null;
+    const cur = getState();
+    if (cur.homeProjectRoot === root && cur.homeProjectName === name) return;
+    setState({ homeProjectRoot: root, homeProjectName: name });
+  }, [shown?.root, shown?.name]);
   const folder = shown?.name ?? open?.name ?? "No project";
   const root = shown?.root ?? null;
   const [info, setInfo] = useState<Branches | null | undefined>(undefined);
@@ -105,7 +112,7 @@ export function HomeComposerContext({
           </DropdownMenuTrigger>
           <DropdownMenuContent side="bottom" align="end" sideOffset={8} className="z-[120] min-w-[220px] max-w-[320px] rounded-2xl p-1">
             {projects.slice(0, 6).map((p) => (
-              <DropdownMenuItem key={p.root} className="rounded-xl text-xs" title={p.root} onSelect={() => setContextRoot(p.root)}>
+              <DropdownMenuItem key={p.root} className="rounded-xl text-xs" title={p.root} onSelect={() => setState({ homeContextRoot: p.root })}>
                 <Check className={`size-3.5 ${p.root === shown?.root ? "" : "opacity-0"}`} />
                 <span className="min-w-0 flex-1 truncate">{p.name}</span>
               </DropdownMenuItem>

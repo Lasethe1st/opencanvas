@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
+import { stripDiffMarker } from '../../shared/change-line';
 
 /**
  * A minimal Model Context Protocol server (Streamable HTTP transport, JSON responses only).
@@ -207,7 +208,7 @@ export class McpServer {
         const tool = this.options.tools.find((t) => t.name === params.name);
         if (!tool) throw Object.assign(new Error(`Unknown tool: ${params.name}`), { code: -32602 });
         try {
-          const content = await tool.run(params.arguments ?? {});
+          const content = stripDiffMarker(await tool.run(params.arguments ?? {}));
           this.options.onCall?.(tool.name, true);
           return { content };
         } catch (err) {

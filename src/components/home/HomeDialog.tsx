@@ -16,6 +16,7 @@ export function HomeDialog({
   progress,
   footer,
   wide,
+  narrow,
   children,
 }: {
   title: string;
@@ -28,6 +29,7 @@ export function HomeDialog({
   progress?: { value: number; max: number };
   footer?: ReactNode;
   wide?: boolean;
+  narrow?: boolean;
   children: ReactNode;
 }) {
   const card = useRef<HTMLDivElement>(null);
@@ -92,7 +94,7 @@ export function HomeDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         onKeyDown={onKeyDown}
-        className={`flex max-h-[min(640px,calc(100dvh-2rem))] w-full flex-col gap-6 overflow-hidden rounded-[15px] border border-foreground/[0.08] bg-[color-mix(in_srgb,var(--home-card)_80%,transparent)] text-foreground shadow-[var(--shadow-md)] backdrop-blur-[20px] backdrop-saturate-150 motion-safe:animate-[home-dialog-in_0.18s_cubic-bezier(0.2,0,0,1)] ${wide ? 'max-w-[600px]' : 'max-w-[450px]'}`}
+        className={`flex max-h-[min(640px,calc(100dvh-2rem))] w-full flex-col gap-6 overflow-hidden rounded-[15px] border border-foreground/[0.08] bg-[color-mix(in_srgb,var(--home-card)_80%,transparent)] text-foreground shadow-[var(--shadow-md)] backdrop-blur-[20px] backdrop-saturate-150 motion-safe:animate-[home-dialog-in_0.18s_cubic-bezier(0.2,0,0,1)] ${wide ? 'max-w-[600px]' : narrow ? 'max-w-[380px]' : 'max-w-[450px]'}`}
         style={{ WebkitBackdropFilter: 'blur(20px) saturate(1.5)' }}
       >
         <div className="flex shrink-0 flex-col gap-4 p-3">

@@ -64,12 +64,28 @@ export interface AiTurnContext {
   images?: { name: string; mimeType: string; data: string }[];
   /** False when the user switched web search off for this message. */
   webSearch?: boolean;
+  /**
+   * Project folder the home composer is aimed at. Tools edit this folder when the canvas
+   * is not open, so a homepage chat can change files without leaving home.
+   */
+  projectRoot?: string;
 }
 
 export interface OpenCanvasApi {
   templates(): Promise<TemplateMeta[]>;
   recentProjects(): Promise<RecentProject[]>;
   defaultLocation(): Promise<string>;
+  /** Actions on a project in the recent list, without opening it. */
+  projectActions: {
+    /** `git pull` for a connected repository. */
+    update(root: string): Promise<void>;
+    /** Asks where to save, then writes the project as a .zip. Null when the dialog is cancelled. */
+    zip(root: string): Promise<{ path: string; fileCount: number } | null>;
+    /** Starts the project's preview and opens it in the system browser. */
+    preview(root: string): Promise<void>;
+    /** Deletes the folder from disk after `typedName` matches its name, and drops it from the recent list. */
+    remove(root: string, typedName: string): Promise<void>;
+  };
   /** Browse a recent project's files without opening it. `rel` uses forward slashes; '' is the project root. */
   projectFiles: {
     list(root: string, rel: string): Promise<DirEntry[]>;
