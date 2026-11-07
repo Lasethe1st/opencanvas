@@ -406,6 +406,7 @@ export function HomePrompt({
 
   return (
     <div className="relative w-full">
+      {deck && listening && <ListeningWave />}
       {open && (
         <ul
           id={listId}
@@ -509,9 +510,8 @@ export function HomePrompt({
             )}
           </>
         )}
-        <div className={`relative min-w-0 flex-1 ${deck && listening ? "min-h-[88px]" : ""}`}>
-        {deck && listening && <ListeningWave />}
-        <div className={deck && listening ? "invisible" : undefined}>
+        <div className="relative min-w-0 flex-1">
+        <div>
         <div
           ref={overlayRef}
           aria-hidden

@@ -6,7 +6,7 @@ const DOT = 6;
 const MAX = 40;
 
 /**
- * Shown in place of the text box while dictating: a row of dots that grow into vertical pills as you speak.
+ * Shown above the composer while dictating: a row of dots that grow into vertical pills as you speak.
  * The row scrolls, so the newest sound enters on the right and older sound drifts left.
  * Bars are updated straight on the DOM, so a 60fps meter never re-renders React.
  */
@@ -53,9 +53,8 @@ export function ListeningWave({ label = "Listening…", demo = false }: { label?
   }, [demo]);
 
   return (
-    <div data-listening="" role="status" aria-live="polite" className="absolute inset-0 flex flex-col justify-between px-4 pb-1 pt-3.5">
-      <p className="m-0 text-base leading-6 text-muted-foreground">{label}</p>
-      <div className="flex h-11 items-center justify-center gap-[5px]" aria-hidden>
+    <div data-listening="" role="status" aria-live="polite" className="mb-3 flex w-full flex-col items-center gap-1.5">
+      <div className="flex h-10 items-center justify-center gap-[5px]" aria-hidden>
         {Array.from({ length: BARS }, (_, i) => (
           <span
             key={i}
@@ -67,6 +66,7 @@ export function ListeningWave({ label = "Listening…", demo = false }: { label?
           />
         ))}
       </div>
+      <p className="m-0 text-xs text-muted-foreground">{label}</p>
     </div>
   );
 }
