@@ -240,7 +240,9 @@ export function HomeChat({
   const items = useStore((s) => s.aiChat);
   const turnId = useStore((s) => s.aiTurnId);
   const rootRef = useRef<HTMLDivElement>(null);
-  const busy = !!turnId;
+  const collab = useStore((s) => s.collab);
+  // A guest has no turn of its own: the host's AI working counts as busy for the thread.
+  const busy = !!turnId || collab.working;
   const lastUserId = [...items].reverse().find((i) => i.kind === "user")?.id;
   const waiting = items.some((i) => (i.kind === "question" || i.kind === "approval") && i.answer === null);
   const last = items[items.length - 1];
@@ -286,13 +288,27 @@ export function HomeChat({
                     pending={busy && !waiting && item.kind === "assistant" && item.id === last?.id}
                   />
                 );
-                const canEdit = !!onEditLast && !busy && item.kind === "user";
+                const mine = item.kind !== "user" || !item.sender || item.sender.id === collab.you?.id;
+                // Editing rewinds the host's chat, so only the host (or a private chat) may do it, and only on their own messages.
+                const canEdit = !!onEditLast && !busy && item.kind === "user" && mine && collab.status !== "guest";
                 const stopped = stoppedHere;
-                if (!canEdit && !stopped) return body;
+                const labelled =
+                  item.kind === "user" && item.sender && collab.status !== "off" ? (
+                    <div className={`flex min-w-0 flex-col gap-1 ${split ? "items-end" : "items-start"}`}>
+                      <span className="inline-flex items-center gap-1.5 px-1 text-[11px] font-medium text-muted-foreground" data-sender={item.sender.id}>
+                        <span aria-hidden className="size-2 rounded-full" style={{ background: item.sender.color }} />
+                        {item.sender.id === collab.you?.id ? "You" : item.sender.name}
+                      </span>
+                      {body}
+                    </div>
+                  ) : (
+                    body
+                  );
+                if (!canEdit && !stopped) return labelled;
                 const isLast = item.id === lastUserId;
                 return (
                   <div className={`group flex flex-col gap-0.5 ${split ? "items-end" : "items-start"}`}>
-                    {body}
+                    {labelled}
                     {canEdit && (
                       <button
                         type="button"
