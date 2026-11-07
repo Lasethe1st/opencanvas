@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { getSendKey } from "../../lib/prefs";
 import { FolderOpen, Waveform } from '../../lib/home-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -64,6 +65,8 @@ export function HomePrompt({
   onWebSearch,
   minLines = 1,
   deck = false,
+  footerStart,
+  footerEnd,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -98,6 +101,10 @@ export function HomePrompt({
    * The text sits above that row and grows with the card. The shell is a 20px squircle.
    */
   deck?: boolean;
+  /** Deck only: more controls in the bottom row, after the attach and web buttons. */
+  footerStart?: ReactNode;
+  /** Deck only: controls at the right end of the bottom row. */
+  footerEnd?: ReactNode;
 }) {
   const shellRef = useRef<HTMLDivElement>(null);
   const lineCount = Math.max(1, minLines);
@@ -439,7 +446,7 @@ export function HomePrompt({
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
       }}
       className={`w-full overflow-hidden ${deck ? "flex flex-col" : "bg-muted/70 backdrop-blur-[30px] backdrop-saturate-150 transition-[background-color,box-shadow] duration-150 focus-within:bg-secondary/70"} ${dragging ? "bg-secondary/80 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg,#111)_28%,transparent)]" : ""}`}
-      style={deck ? { minHeight: 96, borderRadius: 24, ...SQUIRCLE } : { borderRadius: radius }}
+      style={deck ? { minHeight: 104, borderRadius: 24, ...SQUIRCLE } : { borderRadius: radius }}
       onDragOver={(e) => {
         if (!onAttach || !e.dataTransfer.types.includes("Files")) return;
         e.preventDefault();
@@ -478,7 +485,7 @@ export function HomePrompt({
           ))}
         </ul>
       )}
-      <InputGroup className={deck ? "h-auto flex-1 flex-col items-stretch gap-0 border-0 bg-transparent p-0 shadow-none has-[[data-slot=input-group-control]:focus-visible]:bg-transparent" : "h-auto border-0 bg-transparent pe-2 py-1 shadow-none has-[[data-slot=input-group-control]:focus-visible]:bg-transparent"}>
+      <InputGroup className={deck ? "h-auto flex-1 items-start gap-0 border-0 bg-transparent p-0 shadow-none has-[[data-slot=input-group-control]:focus-visible]:bg-transparent" : "h-auto border-0 bg-transparent pe-2 py-1 shadow-none has-[[data-slot=input-group-control]:focus-visible]:bg-transparent"}>
         {onAttach && (
           <>
             <input
@@ -501,7 +508,7 @@ export function HomePrompt({
             )}
           </>
         )}
-        <div className={deck ? "relative w-full flex-1" : "relative min-w-0 flex-1"}>
+        <div className="relative min-w-0 flex-1">
         <div
           ref={overlayRef}
           aria-hidden
@@ -555,23 +562,19 @@ export function HomePrompt({
           aria-autocomplete="list"
         />
         </div>
-        {!deck && (
-          <InputGroupAddon align="inline-end" className={`${inlineControls} pe-0 pb-0 has-[>button]:me-0`}>
-            {micButton}
-            {trailingButton}
-          </InputGroupAddon>
-        )}
+        <InputGroupAddon align="inline-end" className={deck ? "self-start pe-2.5 pb-0 pt-2.5 has-[>button]:me-0" : `${inlineControls} pe-0 pb-0 has-[>button]:me-0`}>
+          {micButton}
+          {trailingButton}
+        </InputGroupAddon>
       </InputGroup>
       {deck && (
-        <div data-home-composer-toolbar="" className="flex w-full shrink-0 items-center justify-between" style={{ padding: "4px 10px 10px" }}>
-          <div className="flex items-center gap-0.5">
+        <div data-home-composer-toolbar="" className="flex w-full min-w-0 shrink-0 items-center justify-between gap-2" style={{ padding: "0 10px 10px" }}>
+          <div className="flex min-w-0 items-center gap-0.5">
             {onAttach ? attachButton : null}
             {webButton}
+            {footerStart}
           </div>
-          <div className="flex items-center">
-            {micButton}
-            {trailingButton}
-          </div>
+          <div className="flex min-w-0 items-center">{footerEnd}</div>
         </div>
       )}
     </div>

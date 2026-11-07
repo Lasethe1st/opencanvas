@@ -11,12 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { HomeComposerExtras } from "./HomeComposerExtras";
-
-/** Peeking strip above the start composer, plus the slice tucked under it. */
-const PEEK = 32;
-const TUCK = 10;
-const INSET = 24;
+import { HomeContextRing } from "./HomeComposerExtras";
 
 const controlClass =
   "flex h-7 min-w-0 max-w-[11rem] items-center gap-1.5 rounded-[var(--pill)] border-0 bg-transparent px-2 text-xs text-muted-foreground outline-none transition-colors hover:text-foreground data-[state=open]:text-foreground";
@@ -27,11 +22,10 @@ interface Branches {
 }
 
 /**
- * Back card of the home chat start composer.
- * Narrower than the field, one control row peeking above it, and a few pixels tucked underneath.
- * Branch, project context, and the model picker live here. The project chip picks context only — it does not open a project.
+ * The right side of the start composer's bottom row: git branch, project context, and the context-usage ring.
+ * The project chip picks context only — it does not open a project.
  */
-export function HomeComposerShadow({
+export function HomeComposerContext({
   projects,
   onOpenProjects,
 }: {
@@ -78,26 +72,15 @@ export function HomeComposerShadow({
   const branchText = info === undefined ? "Git" : (info?.current ?? (isRepo ? "detached" : "No branch"));
 
   return (
-    <div
-      data-home-composer-shadow=""
-      className="relative z-0 overflow-hidden bg-[var(--surface-3)]"
-      style={{
-        marginInline: INSET,
-        marginBottom: -TUCK,
-        height: PEEK + TUCK,
-        borderRadius: 20,
-        cornerShape: "squircle",
-      } as React.CSSProperties}
-    >
-      <div className="flex min-w-0 items-center gap-0.5 px-1.5" style={{ height: PEEK }}>
+    <div className="flex min-w-0 items-center gap-0.5">
         <DropdownMenu onOpenChange={(o) => o && load()}>
           <DropdownMenuTrigger asChild>
             <button type="button" data-home-branch="" className={controlClass} aria-label={`Git branch, ${branchText}`} title={branchText}>
-              <GitBranch size={14} className="shrink-0" />
+              <GitBranch size={14} className="shrink-0 text-[var(--layer-form)]" />
               <span className="truncate">{branchText}</span>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="bottom" align="start" sideOffset={8} avoidCollisions={false} className="z-[120] max-h-[280px] min-w-[220px] overflow-y-auto rounded-2xl p-1">
+          <DropdownMenuContent side="bottom" align="end" sideOffset={8} className="z-[120] max-h-[280px] min-w-[220px] overflow-y-auto rounded-2xl p-1">
             {isRepo ? (
               info!.branches.map((b) => (
                 <DropdownMenuItem key={b} className="rounded-xl text-xs" onSelect={() => void switchTo(b)}>
@@ -116,11 +99,11 @@ export function HomeComposerShadow({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button type="button" data-home-project="" className={controlClass} aria-label={`Project context, ${folder}`} title={folder}>
-              <FolderOpen className="size-3.5 shrink-0" aria-hidden />
+              <FolderOpen className="size-3.5 shrink-0 text-[var(--layer-media)]" aria-hidden />
               <span className="truncate">{folder}</span>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="bottom" align="start" sideOffset={8} avoidCollisions={false} className="z-[120] min-w-[220px] max-w-[320px] rounded-2xl p-1">
+          <DropdownMenuContent side="bottom" align="end" sideOffset={8} className="z-[120] min-w-[220px] max-w-[320px] rounded-2xl p-1">
             {projects.slice(0, 6).map((p) => (
               <DropdownMenuItem key={p.root} className="rounded-xl text-xs" title={p.root} onSelect={() => setContextRoot(p.root)}>
                 <Check className={`size-3.5 ${p.root === shown?.root ? "" : "opacity-0"}`} />
@@ -134,10 +117,7 @@ export function HomeComposerShadow({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="ms-auto flex shrink-0 items-center gap-0.5">
-          <HomeComposerExtras variant="shadow" />
-        </div>
-      </div>
+        <HomeContextRing className="ms-1" />
     </div>
   );
 }

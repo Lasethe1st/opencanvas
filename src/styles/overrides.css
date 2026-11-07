@@ -2371,7 +2371,7 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 body:has(.shell .workspace) .assistant-docker [role='listbox'] button { border-radius: 12px !important; }
 body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:first-child { border-radius: 9px !important; }
 
-/* Start-state composer: a lifted card in front of the context card. */
+/* Start-state composer: one lifted card. */
 [data-home-composer-front] {
   background: var(--surface-2);
   box-shadow: inset 0 0 0 1px var(--composer-edge), var(--composer-lift);
@@ -2383,9 +2383,6 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 [data-home-composer-front] [data-home-prompt]::placeholder {
   color: var(--fg-3);
   opacity: 0.9;
-}
-[data-home-composer-shadow] {
-  box-shadow: inset 0 0 0 1px var(--composer-edge);
 }
 @media (prefers-reduced-motion: reduce) {
   [data-home-composer-front] { transition: none; }

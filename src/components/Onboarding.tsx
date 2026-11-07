@@ -23,7 +23,7 @@ import { homeItemActions } from './home/HomeItemMenu';
 import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat, typedText } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
-import { HomeComposerShadow } from './home/HomeComposerShadow';
+import { HomeComposerContext } from './home/HomeComposerContext';
 import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
 import { HomeDialog } from './home/HomeDialog';
 import { NewProjectDialog, type StartPath } from './home/NewProjectDialog';
@@ -620,36 +620,33 @@ export function Onboarding() {
                       </Button>
                     </div>
                   )}
-                  {/* Start state only: a taller writing box with the shadow deck behind it.
+                  {/* Start state only: one taller card. Typing, voice and send on top; attach, web and the model along
+                      the bottom-left, and the branch, project and context ring along the bottom-right.
                       Once a conversation exists, the block above uses the plain composer. */}
                   <div data-home-composer-deck="" className="w-full">
-                    <HomeComposerShadow
-                      projects={recent ?? []}
-                      onOpenProjects={() => setDialog({ kind: 'projects' })}
+                    <HomePrompt
+                      deck
+                      value={dockDraft}
+                      onChange={(value) => setState({ dockDraft: value })}
+                      onSubmit={() => void sendHome()}
+                      onVoice={aiReady ? startVoice : undefined}
+                      disabled={busy}
+                      sending={!!aiTurnId}
+                      mentions={mentionOptions}
+                      onMention={onMention}
+                      skills={skillOptions}
+                      onOpenSkills={openSkills}
+                      commands={slashCommands}
+                      onCommand={onCommand}
+                      attachments={attachments}
+                      onAttach={(f) => void addFiles(f)}
+                      onRemoveAttachment={removeAttachment}
+                      webSearch={webSearch}
+                      onWebSearch={toggleWeb}
+                      history={history}
+                      footerStart={<HomeComposerExtras variant="composer" />}
+                      footerEnd={<HomeComposerContext projects={recent ?? []} onOpenProjects={() => setDialog({ kind: 'projects' })} />}
                     />
-                    <div className="relative z-10">
-                      <HomePrompt
-                        deck
-                        value={dockDraft}
-                        onChange={(value) => setState({ dockDraft: value })}
-                        onSubmit={() => void sendHome()}
-                        onVoice={aiReady ? startVoice : undefined}
-                        disabled={busy}
-                        sending={!!aiTurnId}
-                        mentions={mentionOptions}
-                        onMention={onMention}
-                        skills={skillOptions}
-                        onOpenSkills={openSkills}
-                        commands={slashCommands}
-                        onCommand={onCommand}
-                        attachments={attachments}
-                        onAttach={(f) => void addFiles(f)}
-                        onRemoveAttachment={removeAttachment}
-                        webSearch={webSearch}
-                        onWebSearch={toggleWeb}
-                        history={history}
-                      />
-                    </div>
                   </div>
                   <HomeAiHint className="text-center" />
                 </div>
