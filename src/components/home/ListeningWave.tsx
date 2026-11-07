@@ -10,7 +10,7 @@ const MAX = 40;
  * The row scrolls, so the newest sound enters on the right and older sound drifts left.
  * Bars are updated straight on the DOM, so a 60fps meter never re-renders React.
  */
-export function ListeningWave({ label = "Listening…", demo = false }: { label?: string; demo?: boolean }) {
+export function ListeningWave({ label = "Listening", demo = false }: { label?: string; demo?: boolean }) {
   const bars = useRef<(HTMLSpanElement | null)[]>([]);
   const history = useRef<number[]>(Array(BARS).fill(0));
   const smooth = useRef(0);
@@ -53,7 +53,8 @@ export function ListeningWave({ label = "Listening…", demo = false }: { label?
   }, [demo]);
 
   return (
-    <div data-listening="" role="status" aria-live="polite" className="mb-3 flex w-full flex-col items-center gap-1.5">
+    <div data-listening="" role="status" aria-live="polite" className="mb-3 flex h-16 w-full items-center justify-center overflow-hidden rounded-[24px] bg-muted/70 shadow-[inset_0_0_0_1px_var(--composer-edge)] [corner-shape:squircle]">
+      <span className="sr-only">{label}</span>
       <div className="flex h-10 items-center justify-center gap-[5px]" aria-hidden>
         {Array.from({ length: BARS }, (_, i) => (
           <span
@@ -66,7 +67,6 @@ export function ListeningWave({ label = "Listening…", demo = false }: { label?
           />
         ))}
       </div>
-      <p className="m-0 text-xs text-muted-foreground">{label}</p>
     </div>
   );
 }

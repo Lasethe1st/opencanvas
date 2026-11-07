@@ -50,6 +50,7 @@ export function HomePrompt({
   onChange,
   onSubmit,
   onVoice,
+  onListeningChange,
   disabled,
   sending,
   mentions = [],
@@ -74,6 +75,8 @@ export function HomePrompt({
   onSubmit: () => void;
   /** Empty-state control — opens the voice orb session. */
   onVoice?: () => void;
+  /** Tells the page when dictation starts or stops, so it can clear the greeting. */
+  onListeningChange?: (listening: boolean) => void;
   disabled?: boolean;
   sending?: boolean;
   /** Things `@` can reference. */
@@ -119,6 +122,10 @@ export function HomePrompt({
   const [listening, setListening] = useState(false);
   const [focused, setFocused] = useState(false);
   const dictation = useRef<AbortController | null>(null);
+  useEffect(() => {
+    onListeningChange?.(listening);
+    return () => onListeningChange?.(false);
+  }, [listening, onListeningChange]);
   const canDictate = browserSpeechAvailable() || micCaptureAvailable();
   const valueRef = useRef(value);
   valueRef.current = value;
@@ -406,7 +413,7 @@ export function HomePrompt({
 
   return (
     <div className="relative w-full">
-      {deck && listening && <ListeningWave />}
+      {listening && <ListeningWave />}
       {open && (
         <ul
           id={listId}

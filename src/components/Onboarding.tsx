@@ -111,6 +111,7 @@ export function Onboarding() {
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
   const onboarding = useOnboarding();
   const [dialog, setDialog] = useState<HomeDialogState | null>(null);
+  const [dictating, setDictating] = useState(false);
   const [deleting, setDeleting] = useState<RecentProject | null>(null);
   const [newMinimized, setNewMinimized] = useState(false);
   const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
@@ -673,6 +674,7 @@ export function Onboarding() {
                         webSearch={webSearch}
                         onWebSearch={toggleWeb}
                           history={history}
+                          onListeningChange={setDictating}
                         />
                         <HomeComposerExtras />
                         <div className="flex flex-wrap items-center gap-2 px-1">
@@ -685,7 +687,7 @@ export function Onboarding() {
               </>
             ) : (
               <div className="relative z-10 flex w-full max-w-[680px] flex-col items-center">
-                <h1 className="mb-6 font-display text-balance text-center text-[36px] font-normal leading-[1.15] tracking-[-0.01em]">{greeting(displayName, greetingPick)}</h1>
+                {!dictating && <h1 className="mb-6 font-display text-balance text-center text-[36px] font-normal leading-[1.15] tracking-[-0.01em]">{greeting(displayName, greetingPick)}</h1>}
                 <div className="flex w-full flex-col items-center gap-3">
                   {wantsToBuildSite(dockDraft, aiChat) && (
                     <div className="flex w-full justify-start">
@@ -726,6 +728,7 @@ export function Onboarding() {
                       webSearch={webSearch}
                       onWebSearch={toggleWeb}
                       history={history}
+                          onListeningChange={setDictating}
                       footerStart={<HomeComposerExtras variant="composer" />}
                       footerEnd={<HomeComposerContext projects={recent ?? []} onOpenProjects={() => setDialog({ kind: 'projects' })} />}
                     />
