@@ -29,23 +29,23 @@ function formatBytes(bytes?: number) {
   return `${n < 10 && i > 0 ? n.toFixed(1) : Math.round(n)} ${units[i]}`;
 }
 
-/** Every project icon is shown in one colour (the theme's project blue), so a list of mixed favicons reads as a set.
- *  The favicon keeps its own light and dark shapes: it is greyscaled and multiplied over the tint, so its shape survives in one colour. */
+/** Every project icon is shown in one colour (#e8e8e8 in light, #1d1d1f in dark), so a list of mixed favicons reads as a set.
+ *  The favicon keeps its own light and dark shapes: it is greyscaled and blended over the tile, so its shape survives in one colour. */
 export function ProjectThumb({ icon, name, className = 'size-10' }: { icon?: string | null; name: string; className?: string }) {
   const shell = cn(
     className,
-    'relative isolate shrink-0 overflow-hidden rounded-[28%] bg-[var(--src-project)] [corner-shape:squircle]',
+    'relative isolate shrink-0 overflow-hidden rounded-[28%] bg-[#e8e8e8] dark:bg-[#1d1d1f] [[data-theme=dark]_&]:bg-[#1d1d1f] [corner-shape:squircle]',
   );
   if (icon) {
     return (
       <span className={shell}>
-        <img src={icon} alt="" draggable={false} className="size-full object-cover mix-blend-multiply [filter:grayscale(1)_contrast(0.6)_brightness(1.45)]" />
+        <img src={icon} alt="" draggable={false} className="size-full object-cover mix-blend-multiply [[data-theme=dark]_&]:mix-blend-screen [filter:grayscale(1)_contrast(0.7)_brightness(1.2)]" />
       </span>
     );
   }
   return (
     <span
-      className={cn(shell, 'flex items-center justify-center font-medium text-white/95', className === 'size-10' ? 'text-sm' : 'text-[10px]')}
+      className={cn(shell, 'flex items-center justify-center font-medium text-foreground/70', className === 'size-10' ? 'text-sm' : 'text-[10px]')}
       aria-hidden
     >
       {(name.trim()[0] ?? '?').toUpperCase()}
