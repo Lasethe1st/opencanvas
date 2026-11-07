@@ -1,8 +1,8 @@
 import { highlight } from "../../lib/highlight";
-import { Brain, Check, CircleNotch, ShieldWarning, SpeakerHigh, Stop, Wrench, X } from '../../lib/home-icons';
+import { Check, CircleNotch, ShieldWarning, SpeakerHigh, Stop, Wrench, X } from '../../lib/home-icons';
 import { humanizeAiError } from "../../lib/ai-errors";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowDown01Icon, Copy01Icon, Edit02Icon } from "@hugeicons/core-free-icons";
+import { ArrowDown01Icon, BookmarkAdd02Icon, BookmarkCheck02Icon, Copy01Icon, Edit02Icon } from "@hugeicons/core-free-icons";
 import { ThumbsDown, ThumbsUp } from '../../lib/home-icons';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import type { AiChatItem } from "../../../shared/ai";
@@ -627,7 +627,7 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
         title={remembered ? "Remembered — click to forget" : "Remember this"}
         onClick={() => toggleRemember(id, text)}
       >
-        <Brain />
+        <HugeiconsIcon icon={remembered ? BookmarkCheck02Icon : BookmarkAdd02Icon} strokeWidth={2} />
       </Button>
     </div>
   );
