@@ -348,7 +348,7 @@ export function HomePrompt({
   /** Inline composer centers a one-line field and pins the controls once it wraps. */
   const inlineControls = textareaHeight > 44 ? "self-end" : "self-center";
   const attachButton = (
-    <InputGroupButton variant="ghost" size="icon" className="rounded-[var(--pill)] text-muted-foreground" aria-label="Attach files" onClick={() => fileRef.current?.click()}>
+    <InputGroupButton variant="ghost" size="icon" className="rounded-[var(--pill)] bg-foreground/[0.07] hover:bg-foreground/[0.12] text-muted-foreground" aria-label="Attach files" onClick={() => fileRef.current?.click()}>
       <HugeiconsIcon icon={AttachmentIcon} size={18} strokeWidth={1.8} aria-hidden />
     </InputGroupButton>
   );
@@ -356,7 +356,7 @@ export function HomePrompt({
     <InputGroupButton
       variant="ghost"
       size="icon"
-      className={`rounded-[var(--pill)] ${webSearch ? "bg-[#007AFF] text-white hover:bg-[#007AFF]/90 hover:text-white" : "text-muted-foreground"}`}
+      className={`rounded-[var(--pill)] ${webSearch ? "bg-[#007AFF] text-white hover:bg-[#007AFF]/90 hover:text-white" : "bg-foreground/[0.07] hover:bg-foreground/[0.12] text-muted-foreground"}`}
       aria-label="Web search"
       aria-pressed={webSearch}
       title={webSearch ? "Web search is on" : "Web search is off"}
