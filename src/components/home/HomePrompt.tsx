@@ -413,7 +413,7 @@ export function HomePrompt({
 
   return (
     <div className="relative w-full">
-      {listening && <ListeningWave />}
+      {listening && <ListeningWave height={deck ? 64 : shellRef.current?.offsetHeight || 52} radius={deck ? 24 : radius} />}
       {open && (
         <ul
           id={listId}

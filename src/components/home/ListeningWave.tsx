@@ -1,27 +1,56 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMicLevel } from "../../lib/mic-level";
 
-const BARS = 36;
 const DOT = 6;
-const MAX = 40;
+const GAP = 5;
 
 /**
  * Shown above the composer while dictating: a row of dots that grow into vertical pills as you speak.
  * The row scrolls, so the newest sound enters on the right and older sound drifts left.
  * Bars are updated straight on the DOM, so a 60fps meter never re-renders React.
  */
-export function ListeningWave({ label = "Listening", demo = false }: { label?: string; demo?: boolean }) {
+export function ListeningWave({
+  label = "Listening",
+  demo = false,
+  height = 64,
+  radius = 24,
+}: {
+  label?: string;
+  demo?: boolean;
+  /** Box height in px: the start screen uses 64, a chat matches its composer. */
+  height?: number;
+  radius?: number | string;
+}) {
+  const box = useRef<HTMLDivElement>(null);
+  const [count, setCount] = useState(40);
+  const max = Math.max(DOT + 4, height - 20);
   const bars = useRef<(HTMLSpanElement | null)[]>([]);
-  const history = useRef<number[]>(Array(BARS).fill(0));
+  const history = useRef<number[]>(Array(40).fill(0));
   const smooth = useRef(0);
   const last = useRef(0);
   const reduced = useRef(typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+  // As many bars as fit the box's whole width; a resize keeps the newest sound on the right.
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const fit = () => {
+      const n = Math.max(8, Math.floor((el.clientWidth - 32 + GAP) / (DOT + GAP)));
+      const h = history.current;
+      history.current = n > h.length ? [...Array(n - h.length).fill(0), ...h] : h.slice(h.length - n);
+      setCount(n);
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const paint = () => {
     history.current.forEach((v, i) => {
       const el = bars.current[i];
       if (!el) return;
-      const h = DOT + v * (MAX - DOT);
+      const h = DOT + v * (max - DOT);
       el.style.height = `${h}px`;
       el.style.opacity = String(0.35 + Math.min(1, v * 1.4) * 0.65);
     });
@@ -53,10 +82,17 @@ export function ListeningWave({ label = "Listening", demo = false }: { label?: s
   }, [demo]);
 
   return (
-    <div data-listening="" role="status" aria-live="polite" className="mb-3 flex h-16 w-full items-center justify-center overflow-hidden rounded-[24px] bg-muted/70 shadow-[inset_0_0_0_1px_var(--composer-edge)] [corner-shape:squircle]">
+    <div
+      ref={box}
+      data-listening=""
+      role="status"
+      aria-live="polite"
+      className="mb-3 flex w-full items-center justify-center overflow-hidden bg-muted/70 shadow-[inset_0_0_0_1px_var(--composer-edge)] [corner-shape:squircle]"
+      style={{ height, borderRadius: radius }}
+    >
       <span className="sr-only">{label}</span>
-      <div className="flex h-10 items-center justify-center gap-[5px]" aria-hidden>
-        {Array.from({ length: BARS }, (_, i) => (
+      <div className="flex items-center justify-center" style={{ gap: GAP }} aria-hidden>
+        {Array.from({ length: count }, (_, i) => (
           <span
             key={i}
             ref={(el) => {
