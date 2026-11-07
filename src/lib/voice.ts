@@ -349,6 +349,21 @@ async function preferredBrowserVoiceURI(): Promise<string | null> {
   }
 }
 
+/** The cloud-voice clip currently playing, so it can be paused and resumed. Browser speech is paused through speechSynthesis. */
+let activeAudio: HTMLAudioElement | null = null;
+
+/** Pause whatever reply is being spoken, keeping its place. */
+export function pauseSpokenAudio() {
+  if (activeAudio) activeAudio.pause();
+  else if (typeof speechSynthesis !== 'undefined') speechSynthesis.pause();
+}
+
+/** Carry on from where `pauseSpokenAudio` stopped. */
+export function resumeSpokenAudio() {
+  if (activeAudio) void activeAudio.play().catch(() => undefined);
+  else if (typeof speechSynthesis !== 'undefined') speechSynthesis.resume();
+}
+
 async function playAudioBase64(mime: string, base64: string, signal?: AbortSignal): Promise<void> {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -356,6 +371,7 @@ async function playAudioBase64(mime: string, base64: string, signal?: AbortSigna
   const blob = new Blob([bytes], { type: mime });
   const url = URL.createObjectURL(blob);
   const audio = new Audio(url);
+  activeAudio = audio;
   try {
     await new Promise<void>((resolve, reject) => {
       const onAbort = () => {
@@ -374,6 +390,7 @@ async function playAudioBase64(mime: string, base64: string, signal?: AbortSigna
       void audio.play().catch(reject);
     });
   } finally {
+    if (activeAudio === audio) activeAudio = null;
     URL.revokeObjectURL(url);
   }
 }

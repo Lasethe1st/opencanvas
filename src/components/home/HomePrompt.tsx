@@ -1,3 +1,4 @@
+import { ListeningWave } from "./ListeningWave";
 import type { ReactNode } from "react";
 import { getSendKey } from "../../lib/prefs";
 import { FolderOpen, Waveform } from '../../lib/home-icons';
@@ -49,6 +50,7 @@ export function HomePrompt({
   onChange,
   onSubmit,
   onVoice,
+  onListeningChange,
   disabled,
   sending,
   mentions = [],
@@ -73,6 +75,8 @@ export function HomePrompt({
   onSubmit: () => void;
   /** Empty-state control — opens the voice orb session. */
   onVoice?: () => void;
+  /** Tells the page when dictation starts or stops, so it can clear the greeting. */
+  onListeningChange?: (listening: boolean) => void;
   disabled?: boolean;
   sending?: boolean;
   /** Things `@` can reference. */
@@ -118,6 +122,10 @@ export function HomePrompt({
   const [listening, setListening] = useState(false);
   const [focused, setFocused] = useState(false);
   const dictation = useRef<AbortController | null>(null);
+  useEffect(() => {
+    onListeningChange?.(listening);
+    return () => onListeningChange?.(false);
+  }, [listening, onListeningChange]);
   const canDictate = browserSpeechAvailable() || micCaptureAvailable();
   const valueRef = useRef(value);
   valueRef.current = value;
@@ -348,7 +356,7 @@ export function HomePrompt({
   /** Inline composer centers a one-line field and pins the controls once it wraps. */
   const inlineControls = textareaHeight > 44 ? "self-end" : "self-center";
   const attachButton = (
-    <InputGroupButton variant="ghost" size="icon" className="rounded-[var(--pill)] text-muted-foreground" aria-label="Attach files" onClick={() => fileRef.current?.click()}>
+    <InputGroupButton variant="ghost" size="icon" className="rounded-[var(--pill)] bg-foreground/[0.07] hover:bg-foreground/[0.12] text-muted-foreground" aria-label="Attach files" onClick={() => fileRef.current?.click()}>
       <HugeiconsIcon icon={AttachmentIcon} size={18} strokeWidth={1.8} aria-hidden />
     </InputGroupButton>
   );
@@ -356,7 +364,7 @@ export function HomePrompt({
     <InputGroupButton
       variant="ghost"
       size="icon"
-      className={`rounded-[var(--pill)] ${webSearch ? "bg-[#007AFF] text-white hover:bg-[#007AFF]/90 hover:text-white" : "text-muted-foreground"}`}
+      className={`rounded-[var(--pill)] ${webSearch ? "bg-[#007AFF] text-white hover:bg-[#007AFF]/90 hover:text-white" : "bg-foreground/[0.07] hover:bg-foreground/[0.12] text-muted-foreground"}`}
       aria-label="Web search"
       aria-pressed={webSearch}
       title={webSearch ? "Web search is on" : "Web search is off"}
@@ -370,7 +378,7 @@ export function HomePrompt({
       <InputGroupButton
         variant="ghost"
         size="icon"
-        className={`me-1 rounded-[var(--pill)] ${listening ? "bg-red-500/15 text-red-600 animate-pulse" : "text-muted-foreground"}`}
+        className={`me-1 rounded-[var(--pill)] ${listening ? "bg-red-500/15 text-red-600 dark:text-red-400 [[data-theme=dark]_&]:text-red-400 animate-pulse" : "text-muted-foreground"}`}
         aria-label={listening ? "Stop dictation" : "Dictate"}
         aria-pressed={listening}
         disabled={disabled}
@@ -405,6 +413,7 @@ export function HomePrompt({
 
   return (
     <div className="relative w-full">
+      {listening && <ListeningWave height={deck ? 64 : shellRef.current?.offsetHeight || 52} radius={deck ? 24 : radius} />}
       {open && (
         <ul
           id={listId}
@@ -509,6 +518,7 @@ export function HomePrompt({
           </>
         )}
         <div className="relative min-w-0 flex-1">
+        <div>
         <div
           ref={overlayRef}
           aria-hidden
@@ -561,6 +571,7 @@ export function HomePrompt({
           aria-activedescendant={open ? `${listId}-${active}` : undefined}
           aria-autocomplete="list"
         />
+        </div>
         </div>
         <InputGroupAddon align="inline-end" className={deck ? "self-start pe-2.5 pb-0 pt-2.5 has-[>button]:me-0" : `${inlineControls} pe-0 pb-0 has-[>button]:me-0`}>
           {micButton}

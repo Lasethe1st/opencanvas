@@ -21,7 +21,6 @@ import { startProjectFromBrief } from '../lib/start-project';
 import { getState, setState, toast, useStore } from '../lib/store';
 import { homeItemActions, type HomeMenuAction } from './home/HomeItemMenu';
 import { HomeActionPills } from './home/HomeActionPills';
-import { HomeRecentProjects } from './home/HomeRecentProjects';
 import { DeleteProjectDialog } from './home/DeleteProjectDialog';
 import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat, typedText } from './home/HomeChat';
@@ -36,6 +35,7 @@ import { HomeRightPanel } from './home/HomeRightPanel';
 import { HomeAccount, HomePlan } from './home/HomeAccount';
 import { MemoryList } from './home/HomeMemory';
 import { HomeOnboardingTasks, useOnboarding, type OnboardingTask } from './home/HomeOnboardingTasks';
+import { HomeTopBlur } from './home/HomeTopBlur';
 import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
 import { HomeStatusPills } from './home/HomeStatusPills';
 import type { RunningJob } from '../lib/running-work';
@@ -112,6 +112,7 @@ export function Onboarding() {
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
   const onboarding = useOnboarding();
   const [dialog, setDialog] = useState<HomeDialogState | null>(null);
+  const [dictating, setDictating] = useState(false);
   const [deleting, setDeleting] = useState<RecentProject | null>(null);
   const [newMinimized, setNewMinimized] = useState(false);
   const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
@@ -674,6 +675,7 @@ export function Onboarding() {
                         webSearch={webSearch}
                         onWebSearch={toggleWeb}
                           history={history}
+                          onListeningChange={setDictating}
                         />
                         <HomeComposerExtras />
                         <div className="flex flex-wrap items-center gap-2 px-1">
@@ -686,7 +688,7 @@ export function Onboarding() {
               </>
             ) : (
               <div className="relative z-10 flex w-full max-w-[680px] flex-col items-center">
-                <h1 className="mb-6 font-display text-balance text-center text-[36px] font-normal leading-[1.15] tracking-[-0.01em]">{greeting(displayName, greetingPick)}</h1>
+                {!dictating && <h1 className="mb-6 font-display text-balance text-center text-[36px] font-normal leading-[1.15] tracking-[-0.01em]">{greeting(displayName, greetingPick)}</h1>}
                 <div className="flex w-full flex-col items-center gap-3">
                   {wantsToBuildSite(dockDraft, aiChat) && (
                     <div className="flex w-full justify-start">
@@ -727,6 +729,7 @@ export function Onboarding() {
                       webSearch={webSearch}
                       onWebSearch={toggleWeb}
                       history={history}
+                          onListeningChange={setDictating}
                       footerStart={<HomeComposerExtras variant="composer" />}
                       footerEnd={<HomeComposerContext projects={recent ?? []} onOpenProjects={() => setDialog({ kind: 'projects' })} />}
                     />
@@ -738,17 +741,12 @@ export function Onboarding() {
                       focusPrompt();
                     }}
                   />
-                  <HomeRecentProjects
-                    recent={recent}
-                    onOpen={(p) => void openRecent(p.root)}
-                    actionsFor={recentActions}
-                    onViewAll={() => setDialog({ kind: 'projects' })}
-                  />
                   <HomeAiHint className="text-center" />
                 </div>
               </div>
             )}
           </main>
+          <HomeTopBlur />
           </div>
           <HomeRightPanel open={sourcesOpen} title="Sources" contentKey={`sources-${sources.length}`} file={openFile ? <FileViewer file={openFile} onClose={() => setOpenFile(null)} /> : undefined}>
             <SourcesPanel sources={sources} file={openFile} onFile={setOpenFile} />

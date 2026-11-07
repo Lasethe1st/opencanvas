@@ -14,7 +14,7 @@ import {
 import { HomeContextRing } from "./HomeComposerExtras";
 
 const controlClass =
-  "flex h-7 min-w-0 max-w-[11rem] items-center gap-1.5 rounded-[var(--pill)] border-0 bg-transparent px-2 text-xs text-muted-foreground outline-none transition-colors hover:text-foreground data-[state=open]:text-foreground";
+  "flex size-8 shrink-0 items-center justify-center rounded-[var(--pill)] border-0 bg-foreground/[0.07] text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.12] hover:text-foreground data-[state=open]:text-foreground";
 
 interface Branches {
   current: string | null;
@@ -79,12 +79,11 @@ export function HomeComposerContext({
   const branchText = info === undefined ? "Git" : (info?.current ?? (isRepo ? "detached" : "No branch"));
 
   return (
-    <div className="flex min-w-0 items-center gap-0.5">
+    <div className="flex min-w-0 items-center gap-1.5">
         <DropdownMenu onOpenChange={(o) => o && load()}>
           <DropdownMenuTrigger asChild>
-            <button type="button" data-home-branch="" className={controlClass} aria-label={`Git branch, ${branchText}`} title={branchText}>
+            <button type="button" data-home-branch="" className={controlClass} aria-label={`Git branch, ${branchText}`} title={`Branch: ${branchText}`}>
               <GitBranch size={14} className="shrink-0 text-[var(--layer-form)]" />
-              <span className="truncate">{branchText}</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="bottom" align="end" sideOffset={8} className="z-[120] max-h-[280px] min-w-[220px] overflow-y-auto rounded-2xl p-1">
@@ -105,9 +104,8 @@ export function HomeComposerContext({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" data-home-project="" className={controlClass} aria-label={`Project context, ${folder}`} title={folder}>
+            <button type="button" data-home-project="" className={controlClass} aria-label={`Project context, ${folder}`} title={`Project: ${folder}`}>
               <FolderOpen className="size-3.5 shrink-0 text-[var(--layer-media)]" aria-hidden />
-              <span className="truncate">{folder}</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="bottom" align="end" sideOffset={8} className="z-[120] min-w-[220px] max-w-[320px] rounded-2xl p-1">
@@ -124,7 +122,7 @@ export function HomeComposerContext({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <HomeContextRing className="ms-1" />
+        <HomeContextRing className="ms-0.5" />
     </div>
   );
 }

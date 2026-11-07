@@ -2,7 +2,7 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { api } from './api';
 import { getState, useStore } from './store';
-import { speakResult } from './voice';
+import { pauseSpokenAudio, resumeSpokenAudio, speakResult } from './voice';
 import type { VoiceSpeakResult } from '../../shared/voice';
 
 const KEY = 'oc.readAloud';
@@ -34,7 +34,7 @@ export function useReadAloud(): boolean {
   return useSyncExternalStore(subscribe, getReadAloud, () => false);
 }
 
-export type SpeechPhase = { id: string | null; phase: 'idle' | 'loading' | 'speaking'; error: string };
+export type SpeechPhase = { id: string | null; phase: 'idle' | 'loading' | 'speaking' | 'paused'; error: string };
 let current: SpeechPhase = { id: null, phase: 'idle', error: '' };
 let abort: AbortController | null = null;
 const set = (next: SpeechPhase) => {
@@ -72,6 +72,20 @@ export function chunkForSpeech(text: string, max = 420): string[] {
   }
   if (buf.trim()) out.push(buf.trim());
   return out;
+}
+
+/** Pause the reply being read, keeping its place. */
+export function pauseSpeech() {
+  if (current.phase !== 'speaking') return;
+  pauseSpokenAudio();
+  set({ ...current, phase: 'paused' });
+}
+
+/** Carry on reading from where it was paused. */
+export function resumeSpeech() {
+  if (current.phase !== 'paused') return;
+  resumeSpokenAudio();
+  set({ ...current, phase: 'speaking' });
 }
 
 export function stopSpeech() {
