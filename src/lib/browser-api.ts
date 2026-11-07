@@ -700,7 +700,7 @@ function mockAi(): OpenCanvasApi['ai'] {
   const run = async (turnId: string, request: string) => {
     busy = true;
     stop = false;
-    emit({ turnId, type: 'start', request });
+    emit({ turnId, type: 'start', request, at: Date.now() });
     try {
       const thoughts = [
         'Looking at what they asked for… ',
@@ -993,6 +993,9 @@ export function createBrowserApi(): OpenCanvasApi {
     revealProject: async () => undefined,
     git: {
       status: async () => GIT,
+      branchOf: async () => 'main',
+      branchesOf: async () => ({ current: 'main', branches: ['main', 'design/composer-polish', 'fix/slider-focus'] }),
+      switchBranch: async (_root, name) => name,
       init: async () => undefined,
       setIdentity: async () => undefined,
       setRemote: async (url) => url,

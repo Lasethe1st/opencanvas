@@ -24,7 +24,7 @@ import { HomeActionPills } from './home/HomeActionPills';
 import { HomeRecentProjects } from './home/HomeRecentProjects';
 import { DeleteProjectDialog } from './home/DeleteProjectDialog';
 import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
-import { HomeAiHint, HomeChat } from './home/HomeChat';
+import { HomeAiHint, HomeChat, typedText } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
 import { HomeComposerShadow } from './home/HomeComposerShadow';
 import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
@@ -33,7 +33,7 @@ import { NewProjectDialog, type StartPath } from './home/NewProjectDialog';
 import { FileViewer, SourcesPanel, useSources, WebFaviconStack, type OpenFile, type Source } from './home/SourcesPanel';
 import { HomePrompt, type Attachment, type MentionOption } from './home/HomePrompt';
 import { HomeRightPanel } from './home/HomeRightPanel';
-import { HomeAccount } from './home/HomeAccount';
+import { HomeAccount, HomePlan } from './home/HomeAccount';
 import { MemoryList } from './home/HomeMemory';
 import { HomeOnboardingTasks, useOnboarding, type OnboardingTask } from './home/HomeOnboardingTasks';
 import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
@@ -134,24 +134,42 @@ export function Onboarding() {
 
   const chatTitle = useMemo(() => {
     const first = aiChat.find((i) => i.kind === 'user');
-    return first && first.kind === 'user' && first.text.trim() ? titleFromPrompt(first.text) : 'New chat';
+    return first && first.kind === 'user' && typedText(first.text).trim() ? titleFromPrompt(typedText(first.text)) : 'New chat';
   }, [aiChat]);
 
   const chatSources = useSources(aiChat);
   const [mentioned, setMentioned] = useState<Source[]>([]);
+  const [webSearch, setWebSearch] = useState<boolean>(() => { try { return localStorage.getItem('oc-web-search') !== 'off'; } catch { return true; } });
+  const toggleWeb = useCallback((on: boolean) => { setWebSearch(on); try { localStorage.setItem('oc-web-search', on ? 'on' : 'off'); } catch { /* private mode */ } }, []);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  // Every message you've sent, newest first: this chat, then saved chats (follow-ups included).
   const history = useMemo(() => {
     const seen = new Set<string>();
-    return chats.map((c) => c.text.trim()).filter((t) => t && !seen.has(t) && !!seen.add(t)).slice(0, 30);
-  }, [chats]);
+    const sent = (items: { kind: string; text?: string }[] | undefined) =>
+      [...(items ?? [])].reverse().flatMap((i) => (i.kind === 'user' && i.text ? [typedText(i.text).trim()] : []));
+    const all = [...sent(aiChat), ...chats.flatMap((c) => (c.items ? sent(c.items) : [c.text.trim()]))];
+    return all.filter((t) => t && !seen.has(t) && !!seen.add(t)).slice(0, 50);
+  }, [aiChat, chats]);
   const addFiles = useCallback(async (files: File[]) => {
     const MAX = 200_000;
     for (const f of files) {
+      if (/^image\/(png|jpeg|gif|webp)$/.test(f.type)) {
+        if (f.size > 4_000_000) { toast(`${f.name} is over 4 MB`, 'error'); continue; }
+        const data = await new Promise<string>((resolve) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result).split(',')[1] ?? '');
+          r.onerror = () => resolve('');
+          r.readAsDataURL(f);
+        });
+        if (!data) { toast(`Couldn't read ${f.name}`, 'error'); continue; }
+        setAttachments((cur) => (cur.filter((x) => x.image).length >= 4 || cur.length >= 5 || cur.some((x) => x.name === f.name && x.size === f.size) ? cur : [...cur, { id: `${f.name}:${f.size}:${Date.now()}`, name: f.name, size: f.size, text: '', image: { mimeType: f.type, data } }]));
+        continue;
+      }
       if (f.size > MAX) { toast(`${f.name} is over 200 KB`, 'error'); continue; }
       let text = '';
       try { text = await f.text(); } catch { /* unreadable */ }
       // Binary files decode to replacement characters; only plain text and code go to the model for now.
-      if (!text || text.includes('\u0000') || (text.match(/\ufffd/g)?.length ?? 0) > 3) { toast(`${f.name}: only text and code files can be attached for now`, 'error'); continue; }
+      if (!text || text.includes('\u0000') || (text.match(/\ufffd/g)?.length ?? 0) > 3) { toast(`${f.name}: only images, text and code files can be attached`, 'error'); continue; }
       setAttachments((cur) => (cur.length >= 5 || cur.some((x) => x.name === f.name && x.size === f.size) ? cur : [...cur, { id: `${f.name}:${f.size}:${Date.now()}`, name: f.name, size: f.size, text }]));
     }
   }, []);
@@ -241,6 +259,25 @@ export function Onboarding() {
     focusPrompt();
   }, []);
 
+  // Pull the last message back into the input: the chat rolls back to just before it, on screen and in the model's memory.
+  const editLast = useCallback((id: string) => {
+    const items = getState().aiChat;
+    const idx = items.findIndex((i) => i.id === id);
+    const item = items[idx];
+    if (!item || item.kind !== 'user') return;
+    stopAi();
+    const kept = items.slice(0, idx);
+    const turns = kept.flatMap((i) => ((i.kind === 'user' || i.kind === 'assistant') && i.text.trim() ? [{ role: i.kind, text: i.text }] : []));
+    setState({ aiChat: kept, aiTurnId: null, aiStopped: null, dockDraft: typedText(item.text) });
+    void api.ai.reset().then(() => api.ai.hydrate(turns));
+    if (!kept.length && activeChatId.current) {
+      const gone = activeChatId.current;
+      setChats((cur) => removeHomeChat(cur, gone));
+      activeChatId.current = null;
+    }
+    focusPrompt();
+  }, []);
+
   const sendHome = useCallback(async () => {
     const text = dockDraft.trim() || (attachments.length ? 'See the attached file' + (attachments.length > 1 ? 's.' : '.') : '');
     if (!text || busy) return;
@@ -251,12 +288,12 @@ export function Onboarding() {
     }
     const first = aiChat.length === 0;
     const refs = [...mentioned, ...chatSources].filter((x) => text.includes(x.title)).sort((a, b) => text.indexOf(a.title) - text.indexOf(b.title));
-    const fileBlock = attachments.length ? `\n\nAttached files:\n${attachments.map((a) => `--- ${a.name} ---\n${a.text}`).join('\n\n')}` : '';
-    const base = refs.length ? `${text}\n\nReferenced:\n${refs.map((x) => `- [${x.kind}] ${x.title} (${x.detail.replace(/\s+/g, ' ').slice(0, 500)})`).join('\n')}` : text;
-    const full = base + fileBlock;
+    const fileBlock = attachments.length ? `\n\nAttached files:\n${attachments.map((a) => `--- ${a.name} ---\n${a.image ? '(image attached)' : a.text}`).join('\n\n')}` : '';
+    const refsBlock = refs.length ? `\n\nReferenced:\n${refs.map((x) => `- [${x.kind}] ${x.title} (${x.detail.replace(/\s+/g, ' ').slice(0, 500)})`).join('\n')}` : '';
+    const full = text + fileBlock + refsBlock;
     const used = refs.filter((x) => x.kind === 'skill');
     const skills = (await Promise.all(used.map(async (x) => ({ name: x.title, body: await api.skills.read(x.id.replace(/^skill:/, '')).catch(() => '') })))).filter((k) => k.body);
-    const ok = await sendToAi(full, skills.length ? { skills } : undefined);
+    const ok = await sendToAi(full, { ...(skills.length ? { skills } : {}), webSearch, ...(attachments.some((a) => a.image) ? { images: attachments.flatMap((a) => (a.image ? [{ name: a.name, ...a.image }] : [])) } : {}) });
     // sendToAi only clears the draft when it matches what was sent, and `full` adds the references.
     if (ok && getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     if (ok) setAttachments([]);
@@ -268,7 +305,7 @@ export function Onboarding() {
       });
     }
     if (ok) focusPrompt();
-  }, [dockDraft, busy, aiReady, aiChat.length, mentioned, chatSources, attachments]);
+  }, [dockDraft, busy, aiReady, aiChat.length, mentioned, chatSources, attachments, webSearch]);
 
   // Keep the composer ready for the next turn — chat should feel continuous, not transactional.
   useEffect(() => {
@@ -526,17 +563,14 @@ export function Onboarding() {
             actions={actions}
             library={library}
             sections={sections}
-            footer={
-              <>
-                {!onboarding.dismissed && <HomeOnboardingTasks tasks={tasks} onDismiss={onboarding.dismiss} onAutoDone={onboarding.complete} />}
-                <HomeAccount onSettings={() => setState({ settingsOpen: true })} />
-              </>
-            }
+            headerEnd={<HomePlan />}
+            footer={!onboarding.dismissed ? <HomeOnboardingTasks tasks={tasks} onDismiss={onboarding.dismiss} onAutoDone={onboarding.complete} /> : null}
           />
-          <div ref={setCardEl} className={cn('relative min-w-0 flex-1 overflow-hidden border bg-[var(--home-card)] motion-safe:transition-[margin,border-radius,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', navOpen || sourcesOpen ? 'm-2 rounded-[10px] border-foreground/[0.08]' : 'm-0 rounded-none border-transparent')}>
+          <div ref={setCardEl} className={cn('@container/card relative min-w-0 flex-1 overflow-hidden border bg-[var(--home-card)] motion-safe:transition-[margin,border-radius,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', navOpen || sourcesOpen ? 'm-2 rounded-[10px] border-foreground/[0.08]' : 'm-0 rounded-none border-transparent')}>
           <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[var(--r-pill)] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
             <HugeiconsIcon icon={navOpen ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
           </Button>
+          <HomeAccount onSettings={() => setState({ settingsOpen: true })} />
           <div className="absolute start-14 top-3 z-20 flex max-w-[calc(100%-9rem)] items-center gap-2">
             <span title={chatTitle} className="inline-flex h-9 max-w-[240px] min-w-0 items-center overflow-hidden rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground">
               <span className="truncate">{chatTitle}</span>
@@ -580,7 +614,7 @@ export function Onboarding() {
             {chatActive ? (
               <>
                 <div className="mx-auto w-full max-w-[680px] flex-1 px-8 pt-16">
-                  <HomeChat split />
+                  <HomeChat split outline outlineFallbackAt={chats.find((c) => c.id === activeChatId.current)?.at} onEditLast={editLast} />
                 </div>
                 <div className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-[var(--home-card)] from-[40%] via-[color-mix(in_srgb,var(--home-card)_60%,transparent)] via-[55%] to-transparent to-75% px-8 pb-3 pt-8">
                   <div className="mx-auto flex w-full max-w-[680px] flex-col gap-2">
@@ -617,6 +651,8 @@ export function Onboarding() {
                           attachments={attachments}
                           onAttach={(f) => void addFiles(f)}
                           onRemoveAttachment={removeAttachment}
+                        webSearch={webSearch}
+                        onWebSearch={toggleWeb}
                           history={history}
                         />
                         <HomeComposerExtras />
@@ -630,7 +666,7 @@ export function Onboarding() {
               </>
             ) : (
               <div className="relative z-10 flex w-full max-w-[680px] flex-col items-center">
-                <h1 className="mb-6 font-serif text-balance text-center text-[36px] font-normal leading-[1.15] tracking-[-0.01em]">{greeting(displayName, greetingPick)}</h1>
+                <h1 className="mb-6 font-display text-balance text-center text-[36px] font-normal leading-[1.15] tracking-[-0.01em]">{greeting(displayName, greetingPick)}</h1>
                 <div className="flex w-full flex-col items-center gap-3">
                   {wantsToBuildSite(dockDraft, aiChat) && (
                     <div className="flex w-full justify-start">
@@ -643,7 +679,7 @@ export function Onboarding() {
                       Once a conversation exists, the block above uses the plain composer. */}
                   <div data-home-composer-deck="" className="w-full">
                     <HomeComposerShadow
-                      projectName={recent?.[0]?.name ?? null}
+                      projects={recent ?? []}
                       onOpenProjects={() => setDialog({ kind: 'projects' })}
                     />
                     <div className="relative z-10">
@@ -664,6 +700,8 @@ export function Onboarding() {
                         attachments={attachments}
                         onAttach={(f) => void addFiles(f)}
                         onRemoveAttachment={removeAttachment}
+                        webSearch={webSearch}
+                        onWebSearch={toggleWeb}
                         history={history}
                       />
                     </div>

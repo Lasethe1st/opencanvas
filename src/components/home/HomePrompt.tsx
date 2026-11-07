@@ -1,9 +1,11 @@
 import { getSendKey } from "../../lib/prefs";
-import { FolderOpen, Stop, Waveform } from '../../lib/home-icons';
+import { FolderOpen, Waveform } from '../../lib/home-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowUp02Icon, AttachmentIcon, Cancel01Icon, CommandLineIcon, File01Icon } from '@hugeicons/core-free-icons';
+import { ArrowUp02Icon, AttachmentIcon, Cancel01Icon, CommandLineIcon, File01Icon, Globe02Icon, Mic01Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
+import { highlightCode, highlightStyle } from "../../lib/code-highlights";
+import { browserSpeechAvailable, listenOnceBrowser, listenWithProvider, micCaptureAvailable } from "../../lib/voice";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { dynamicPillRadius } from "../../lib/pill-radius";
 import {
@@ -16,7 +18,10 @@ export interface Attachment {
   id: string;
   name: string;
   size: number;
+  /** File contents for text and code; empty for images. */
   text: string;
+  /** Set for images: base64 payload (no data: prefix) sent with the message, shown as a thumbnail. */
+  image?: { mimeType: string; data: string };
 }
 
 const CMD_PREFIX = "cmd:";
@@ -31,27 +36,8 @@ export interface MentionOption {
   kind: SourceKind;
 }
 
-/** A number followed by a CSS unit, standing on its own (not inside a word, a hex colour or an identifier). */
-const UNIT_RE = /(?<![\w.#-])(-?\d*\.?\d+)(px|rem|em|%|vh|vw|vmin|vmax|svh|dvh|lvh|pt|pc|cm|mm|in|ch|ex|lh|fr|deg|rad|turn|ms|s)(?![\w%])/g;
-
 /** `corner-shape` isn't in the CSS typings yet; browsers without it fall back to a plain rounded corner. */
 const SQUIRCLE = { cornerShape: "squircle" } as React.CSSProperties;
-
-const UNIT_COLORS = {
-  absolute: "var(--src-project)",
-  font: "var(--src-web)",
-  percent: "var(--src-file)",
-  viewport: "var(--src-chat)",
-  other: "var(--src-google)",
-} as const;
-
-function unitFamily(unit: string): keyof typeof UNIT_COLORS {
-  if (["px", "pt", "pc", "cm", "mm", "in"].includes(unit)) return "absolute";
-  if (["rem", "em", "ch", "ex", "lh"].includes(unit)) return "font";
-  if (unit === "%") return "percent";
-  if (["vh", "vw", "vmin", "vmax", "svh", "dvh", "lvh"].includes(unit)) return "viewport";
-  return "other";
-}
 
 const SKILLS_FOLDER = "__skills-folder";
 const FOLDER_ROW: MentionOption = { id: SKILLS_FOLDER, label: "Open skills folder", detail: "", kind: "skill" };
@@ -74,6 +60,8 @@ export function HomePrompt({
   onAttach,
   onRemoveAttachment,
   history = [],
+  webSearch = true,
+  onWebSearch,
   minLines = 1,
   deck = false,
 }: {
@@ -100,6 +88,9 @@ export function HomePrompt({
   onRemoveAttachment?: (id: string) => void;
   /** Earlier messages, newest first, for the Up arrow to walk back through. */
   history?: string[];
+  /** Icon toggle beside the attach button: whether the AI may search the web for this message. */
+  webSearch?: boolean;
+  onWebSearch?: (on: boolean) => void;
   /** Lines of text the in-conversation field holds before it grows. */
   minLines?: number;
   /**
@@ -117,6 +108,33 @@ export function HomePrompt({
   const [radius, setRadius] = useState("var(--r-pill)");
   const hasText = !!value.trim() || attachments.length > 0;
   const fileRef = useRef<HTMLInputElement>(null);
+  const [listening, setListening] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const dictation = useRef<AbortController | null>(null);
+  const canDictate = browserSpeechAvailable() || micCaptureAvailable();
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const stopDictation = useCallback(() => dictation.current?.abort(), []);
+  useEffect(() => () => dictation.current?.abort(), []);
+  const dictate = useCallback(async () => {
+    if (dictation.current) return stopDictation();
+    const ac = new AbortController();
+    dictation.current = ac;
+    setListening(true);
+    try {
+      const heard = (await (browserSpeechAvailable() ? listenOnceBrowser({ signal: ac.signal }) : listenWithProvider(ac.signal))).trim();
+      if (heard && !ac.signal.aborted) {
+        const cur = valueRef.current;
+        onChange(cur && !/\s$/.test(cur) ? `${cur} ${heard}` : cur + heard);
+        textareaRef.current?.focus();
+      }
+    } catch {
+      /* stopped, denied or nothing heard: leave the text as it was */
+    } finally {
+      dictation.current = null;
+      setListening(false);
+    }
+  }, [onChange, stopDictation]);
   const [dragging, setDragging] = useState(false);
   const histAt = useRef(-1);
   const histDraft = useRef("");
@@ -166,21 +184,14 @@ export function HomePrompt({
       }
       if (last < value.length) named.push({ text: value.slice(last) });
     }
-    // CSS measurements typed in plain text (16px, 1.5rem, 50%) get a tinted box of their own.
-    const out: { text: string; kind?: SourceKind; unit?: string }[] = [];
+    // CSS typed in plain text gets a box of its own: measurements, class names, element types, colour codes.
+    const out: { text: string; kind?: SourceKind; style?: React.CSSProperties }[] = [];
     for (const part of named) {
       if (part.kind) {
         out.push(part);
         continue;
       }
-      let last = 0;
-      for (const m of part.text.matchAll(UNIT_RE)) {
-        const start = m.index ?? 0;
-        if (start > last) out.push({ text: part.text.slice(last, start) });
-        out.push({ text: m[0], unit: UNIT_COLORS[unitFamily(m[2])] });
-        last = start + m[0].length;
-      }
-      if (last < part.text.length) out.push({ text: part.text.slice(last) });
+      out.push(...highlightCode(part.text).map((h) => ({ text: h.text, style: highlightStyle(h) })));
     }
     return out;
   }, [picked, value]);
@@ -304,6 +315,16 @@ export function HomePrompt({
         return;
       }
     }
+    if (e.key === "Escape" && listening) {
+      e.preventDefault();
+      stopDictation();
+      return;
+    }
+    if (e.key === "Escape" && sending) {
+      e.preventDefault();
+      stopAi();
+      return;
+    }
     if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
     // "Ctrl+Enter to send" leaves a plain Enter as a new line.
     if (getSendKey() === "mod-enter" && !(e.ctrlKey || e.metaKey)) return;
@@ -324,9 +345,38 @@ export function HomePrompt({
       <HugeiconsIcon icon={AttachmentIcon} size={18} strokeWidth={1.8} aria-hidden />
     </InputGroupButton>
   );
+  const webButton = onWebSearch ? (
+    <InputGroupButton
+      variant="ghost"
+      size="icon"
+      className={`rounded-[var(--pill)] ${webSearch ? "bg-[#007AFF] text-white hover:bg-[#007AFF]/90 hover:text-white" : "text-muted-foreground"}`}
+      aria-label="Web search"
+      aria-pressed={webSearch}
+      title={webSearch ? "Web search is on" : "Web search is off"}
+      onClick={() => onWebSearch(!webSearch)}
+    >
+      <HugeiconsIcon icon={Globe02Icon} size={18} strokeWidth={1.8} aria-hidden />
+    </InputGroupButton>
+  ) : null;
+  const micButton =
+    canDictate && !sending && (focused || listening) ? (
+      <InputGroupButton
+        variant="ghost"
+        size="icon"
+        className={`me-1 rounded-[var(--pill)] ${listening ? "bg-red-500/15 text-red-600 animate-pulse" : "text-muted-foreground"}`}
+        aria-label={listening ? "Stop dictation" : "Dictate"}
+        aria-pressed={listening}
+        disabled={disabled}
+        onClick={() => void dictate()}
+      >
+        <HugeiconsIcon icon={Mic01Icon} size={18} strokeWidth={1.8} aria-hidden />
+      </InputGroupButton>
+    ) : null;
   const trailingButton = sending ? (
     <InputGroupButton variant="default" size="icon" className="rounded-[var(--pill)]" aria-label="Stop" onClick={stopAi}>
-      <Stop weight="fill" className="size-3.5" />
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="size-[18px]" fill="currentColor" aria-hidden>
+        <rect x="6" y="6" width="12" height="12" rx="2.5" ry="2.5" />
+      </svg>
     </InputGroupButton>
   ) : hasText ? (
     <InputGroupButton variant="default" size="icon" className="rounded-[var(--pill)]" aria-label="Send" disabled={disabled} onClick={submit}>
@@ -383,8 +433,13 @@ export function HomePrompt({
       )}
     <div
       ref={shellRef}
-      className={`w-full overflow-hidden bg-muted/70 backdrop-blur-[30px] backdrop-saturate-150 transition-[background-color,box-shadow] duration-150 focus-within:bg-secondary/70 ${deck ? "flex flex-col" : ""} ${dragging ? "bg-secondary/80 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg,#111)_28%,transparent)]" : ""}`}
-      style={deck ? { minHeight: 72, borderRadius: 20, ...SQUIRCLE } : { borderRadius: radius }}
+      data-home-composer-front={deck ? "" : undefined}
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+      }}
+      className={`w-full overflow-hidden ${deck ? "flex flex-col" : "bg-muted/70 backdrop-blur-[30px] backdrop-saturate-150 transition-[background-color,box-shadow] duration-150 focus-within:bg-secondary/70"} ${dragging ? "bg-secondary/80 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--fg,#111)_28%,transparent)]" : ""}`}
+      style={deck ? { minHeight: 96, borderRadius: 24, ...SQUIRCLE } : { borderRadius: radius }}
       onDragOver={(e) => {
         if (!onAttach || !e.dataTransfer.types.includes("Files")) return;
         e.preventDefault();
@@ -404,7 +459,11 @@ export function HomePrompt({
         <ul className="m-0 flex list-none flex-wrap gap-1.5 px-3 pb-0 pt-2.5" aria-label="Attachments">
           {attachments.map((a) => (
             <li key={a.id} className="flex max-w-[220px] items-center gap-1.5 rounded-[var(--pill)] bg-foreground/[0.07] py-1 pe-1 ps-2.5 text-xs">
-              <HugeiconsIcon icon={File01Icon} size={14} strokeWidth={1.8} className="shrink-0 text-muted-foreground" aria-hidden />
+              {a.image ? (
+                <img src={`data:${a.image.mimeType};base64,${a.image.data}`} alt="" className="size-4 shrink-0 rounded-[4px] object-cover" />
+              ) : (
+                <HugeiconsIcon icon={File01Icon} size={14} strokeWidth={1.8} className="shrink-0 text-muted-foreground" aria-hidden />
+              )}
               <span className="min-w-0 truncate font-medium">{a.name}</span>
               <span className="shrink-0 text-muted-foreground">{fmtSize(a.size)}</span>
               <button
@@ -434,7 +493,10 @@ export function HomePrompt({
             />
             {!deck && (
               <InputGroupAddon align="inline-start" className={`${inlineControls} ps-3 pb-0`}>
-                {attachButton}
+                <div className="flex items-center gap-0.5">
+                  {attachButton}
+                  {webButton}
+                </div>
               </InputGroupAddon>
             )}
           </>
@@ -443,7 +505,7 @@ export function HomePrompt({
         <div
           ref={overlayRef}
           aria-hidden
-          className={`pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words text-base leading-6 text-foreground ${deck ? "px-[10px]" : "px-4 py-2.5"}`}
+          className={`pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words text-base leading-6 text-foreground ${deck ? "px-4 pb-0.5 pt-3.5" : "px-4 py-2.5"}`}
         >
           {parts.map((part, i) => (
             <span
@@ -451,16 +513,7 @@ export function HomePrompt({
               style={
                 part.kind
                   ? { color: SOURCE_META[part.kind].color }
-                  : part.unit
-                    ? {
-                        color: part.unit,
-                        backgroundColor: `color-mix(in srgb, ${part.unit} 16%, transparent)`,
-                        borderRadius: 6,
-                        padding: "0 2px",
-                        margin: "0 -2px",
-                        ...SQUIRCLE,
-                      }
-                    : undefined
+                  : part.style
               }
             >
               {part.text}
@@ -472,7 +525,7 @@ export function HomePrompt({
           ref={textareaRef}
           autoFocus
           rows={deck ? 1 : lineCount}
-          style={deck ? { minHeight: 0, padding: "0 10px" } : { minHeight: minTextHeight }}
+          style={deck ? { minHeight: 0, padding: "14px 16px 2px" } : { minHeight: minTextHeight }}
           data-home-prompt=""
           aria-label="Message the AI"
           placeholder="Message…"
@@ -504,14 +557,21 @@ export function HomePrompt({
         </div>
         {!deck && (
           <InputGroupAddon align="inline-end" className={`${inlineControls} pe-0 pb-0 has-[>button]:me-0`}>
+            {micButton}
             {trailingButton}
           </InputGroupAddon>
         )}
       </InputGroup>
       {deck && (
-        <div data-home-composer-toolbar="" className="flex w-full shrink-0 items-center justify-between" style={{ padding: "8px 10px" }}>
-          {onAttach ? attachButton : <span />}
-          {trailingButton}
+        <div data-home-composer-toolbar="" className="flex w-full shrink-0 items-center justify-between" style={{ padding: "4px 10px 10px" }}>
+          <div className="flex items-center gap-0.5">
+            {onAttach ? attachButton : null}
+            {webButton}
+          </div>
+          <div className="flex items-center">
+            {micButton}
+            {trailingButton}
+          </div>
         </div>
       )}
     </div>

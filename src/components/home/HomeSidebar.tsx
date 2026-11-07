@@ -49,6 +49,7 @@ export function HomeSidebar({
   library,
   sections,
   footer,
+  headerEnd,
 }: {
   label: string;
   open: boolean;
@@ -56,6 +57,8 @@ export function HomeSidebar({
   library: NavRow[];
   sections: NavSection[];
   footer: ReactNode;
+  /** Top right of the pane, level with the logo. */
+  headerEnd?: ReactNode;
 }) {
   const regionId = useId();
   const side = document.dir === 'rtl' ? 'left' : 'right';
@@ -79,10 +82,11 @@ export function HomeSidebar({
       style={{ width: open ? HOME_NAV_WIDTH : 0 }}
     >
       <div className="flex h-full flex-col" style={{ width: HOME_NAV_WIDTH }}>
-        <div className="flex h-14 shrink-0 items-center ps-4">
+        <div className="flex h-14 shrink-0 items-center justify-between ps-4 pe-4">
           <span className="flex h-9 shrink-0 items-center text-foreground">
             <LogoMark size={12} />
           </span>
+          {headerEnd}
         </div>
 
         <nav id={regionId} aria-label={label} className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto overflow-x-hidden overscroll-contain px-2 pb-3 pt-1">

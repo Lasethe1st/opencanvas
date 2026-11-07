@@ -160,9 +160,8 @@ export function describeCall(name: string, args: Record<string, any>, tools: Mcp
     case 'run_command':
       return `Running ${String(args.command ?? 'a command').slice(0, 60)}`;
     case 'web_search':
-      return `Searching the web for “${String(args.query ?? '').slice(0, 48)}”`;
     case 'fetch_url':
-      return `Opening ${String(args.url ?? 'a page').slice(0, 64)}`;
+      return 'Browsing';
     case 'propose_variant':
       return `Proposing variant “${String(args.label ?? 'Variant').slice(0, 40)}”`;
     case 'propose_token_change':
@@ -224,6 +223,7 @@ function describeTurnContext(ctx: AiTurnContext | undefined): string {
   if (ctx.page) {
     lines.push(`The user is looking at the page "${ctx.page.name}" (${ctx.page.path})${ctx.page.file ? ` — source ${ctx.page.file}` : ''}.`);
   }
+  if (ctx.webSearch === false) lines.push('Web search is turned off for this message: answer from what you know and the project, and say so if something needs a live lookup.');
   if (ctx.frameWidth) lines.push(`Active frame width: ${Math.round(ctx.frameWidth)}px.`);
   if (ctx.selection) lines.push(`Selected element: <${ctx.selection.tag}> "${ctx.selection.name}" (id ${ctx.selection.id}). "This", "it" or "here" most likely means this element.`);
   for (const ref of (ctx.references ?? []).slice(0, 12)) {
@@ -342,7 +342,7 @@ export class AiAgent {
     const turnId = randomUUID();
     this.turnId = turnId;
     this.abort = new AbortController();
-    this.deps.emit({ turnId, type: 'start', request: text });
+    this.deps.emit({ turnId, type: 'start', request: text, at: Date.now() });
     void this.run(turnId, text, opts.ctx, this.abort.signal, opts);
     return turnId;
   }
@@ -382,7 +382,7 @@ export class AiAgent {
     const tools = (opts.tools ?? deps.tools(turnId, request)).filter((t) => t.name !== 'undo' && t.name !== 'redo');
     const allowRun = opts.allowRunCommand !== false && !!deps.runCommand && !opts.tools;
     // Web browse is for normal chat turns, not focused variant/ephemeral tool sets.
-    const allowWeb = !opts.tools;
+    const allowWeb = !opts.tools && ctx?.webSearch !== false;
     const toolDefs: ToolDef[] = [
       ...tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })),
       ASK_USER,
@@ -391,7 +391,11 @@ export class AiAgent {
     ];
     const effort = deps.settings().thinkingEffort ?? 'medium';
     const system = opts.system ?? `${APP_RULES}\n\n${modeRules(effort)}\n\n${deps.projectContext()}`;
-    const turn: ChatMessage[] = [{ role: 'user', content: [{ type: 'text', text: describeTurnContext(ctx) + request }] }];
+    const pics = (ctx?.images ?? [])
+      .filter((i) => i && /^image\/(png|jpeg|gif|webp)$/.test(i.mimeType) && typeof i.data === 'string' && i.data.length < 7_000_000)
+      .slice(0, 4)
+      .map((i): ChatPart => ({ type: 'image', mimeType: i.mimeType, data: i.data }));
+    const turn: ChatMessage[] = [{ role: 'user', content: [{ type: 'text', text: describeTurnContext(ctx) + request }, ...pics] }];
     const epoch = this.epoch;
     let stopped = false;
     try {

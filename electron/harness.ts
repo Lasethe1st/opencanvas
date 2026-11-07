@@ -38,7 +38,7 @@ export { readWorkspace, writeWorkspace } from './services/workspace';
 export { createVariantTools, VARIANT_TOOL_NAMES } from './services/mcp-tools';
 export { faviconHrefs, projectFavicon } from './services/favicon';
 export { extractJson, githubSlug, goLiveOnVercel, publicAlias, vercelImportUrl } from './services/vercel';
-export { friendlyError, git, gitClone, gitCommit, gitInit, gitPush, gitSetIdentity, gitSetRemote, gitStatus, normalizeRemote, parseStatus, remoteWebUrl, repoName } from './services/git';
+export { friendlyError, git, gitBranchOf, gitBranchesOf, gitClone, gitCommit, gitInit, gitPush, gitSetIdentity, gitSetRemote, gitStatus, gitSwitchBranch, normalizeRemote, parseStatus, remoteWebUrl, repoName } from './services/git';
 export { buildProjectZip, runInstructions } from './services/exporter';
 export { BUILD_CHECK_TIMEOUT, envExampleFor, importsOf, packageOf, runBuildCheck, validateExport } from './services/export-validate';
 export { McpServer, readMcpSettings, writeMcpSettings, newToken } from './services/mcp';
@@ -51,6 +51,7 @@ export { addClientEntry, transformForNext, withOpenCanvas } from './next-config'
 export * from '../shared/ai';
 export * from '../shared/history';
 export * from '../shared/ai-chat';
+export * from '../shared/web-browse-trace';
 export { SaveeClient, SaveeError, pkcePair, resourceMetadataUrl, toBoard, toResult } from './services/savee';
 export { connectProvider, disconnectProvider, providerBoards, saveeProvider, setProviders } from './services/inspiration';
 export { aiKeyName, aiNotReadyReason, normalizeAiSettings, readAiSettings, redact, SecretStore, writeAiSettings } from './services/ai-keys';
@@ -61,3 +62,6 @@ export * from '../shared/terminal';
 export { commandShell, defaultShell, stripAnsi, TerminalError, TerminalManager, terminalEnv } from './services/terminal';
 export { killTree, runCommand } from './services/processes';
 export { deleteProjectFolder, isGitRepo } from './services/project-actions';
+
+
+export { highlightCode } from '../shared/code-highlights';

@@ -114,13 +114,14 @@ export async function webSearch(query: string, fetcher: Fetcher): Promise<{ hits
     return {
       hits: [],
       report: `No web results for “${q}”. Try a simpler query, or fetch a specific URL with fetch_url.`,
-      summary: `Searched “${q.slice(0, 40)}” · no results`,
+      summary: 'Browsed',
     };
   }
 
   const lines = hits.map((h, i) => `${i + 1}. ${h.title}\n   ${h.url}${h.snippet ? `\n   ${h.snippet}` : ''}`);
   const report = `Web search for “${q}” (${hits.length} result${hits.length === 1 ? '' : 's'}):\n\n${lines.join('\n\n')}\n\nCite these URLs when you use them. Prefer fetch_url on a result before quoting long passages.`;
-  const summary = `Searched “${q.slice(0, 40)}${q.length > 40 ? '…' : ''}” · ${hits.map((h) => h.url).join(' · ')}`;
+  // Chat UI stays generic; URLs live in the model report and in cited replies.
+  const summary = 'Browsed';
   return { hits, report, summary };
 }
 
@@ -132,6 +133,6 @@ export async function fetchUrl(rawUrl: string, fetcher: Fetcher): Promise<{ titl
   const body = htmlToText(html).slice(0, MAX_TEXT);
   if (!body) throw new WebBrowseError(`No readable text on ${finalUrl}.`);
   const report = `Fetched “${title}”\nURL: ${finalUrl}\n\n${body}${body.length >= MAX_TEXT ? '\n\n…(truncated)' : ''}`;
-  const summary = `Fetched ${title} · ${finalUrl}`;
+  const summary = 'Browsed';
   return { title, url: finalUrl, report, summary };
 }

@@ -150,6 +150,8 @@ interface State {
   aiChat: AiChatItem[];
   /** The AI turn that is running, if any. */
   aiTurnId: string | null;
+  /** Id of the last chat item when the person stopped a reply; the home chat shows a 'Stopped' note after it. */
+  aiStopped: string | null;
   /** Temporary variant proposals (never saved to canvas.json). */
   variants: VariantRecord[];
   /** Hovered variant card → highlight its canvas frame. */
@@ -242,6 +244,7 @@ export const initialState: State = {
   aiStatus: null,
   aiChat: [],
   aiTurnId: null,
+  aiStopped: null,
   variants: [],
   variantHighlightId: null,
   build: IDLE_BUILD,

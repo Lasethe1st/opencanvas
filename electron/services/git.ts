@@ -102,6 +102,37 @@ async function configValue(root: string, key: string) {
   return r.code === 0 ? r.stdout.trim() : '';
 }
 
+/** The checked-out branch of a folder, or null when it isn't a repository (or git is missing). Read-only. */
+export async function gitBranchOf(root: string): Promise<string | null> {
+  try {
+    const r = await git(root, ['rev-parse', '--abbrev-ref', 'HEAD'], { allowFail: true });
+    const name = r.code === 0 ? r.stdout.trim() : '';
+    return name && name !== 'HEAD' ? name : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Local branches of a folder with the current one flagged; empty when it isn't a repository. Read-only. */
+export async function gitBranchesOf(root: string): Promise<{ current: string | null; branches: string[] }> {
+  try {
+    const r = await git(root, ['for-each-ref', '--format=%(refname:short)', '--sort=-committerdate', 'refs/heads'], { allowFail: true });
+    if (r.code !== 0) return { current: null, branches: [] };
+    const branches = r.stdout.split('\n').map((l) => l.trim()).filter(Boolean);
+    return { current: await gitBranchOf(root), branches };
+  } catch {
+    return { current: null, branches: [] };
+  }
+}
+
+/** Switch to an existing local branch. Git itself refuses when local changes would be overwritten, and that message is passed on. */
+export async function gitSwitchBranch(root: string, name: string): Promise<string> {
+  const { branches } = await gitBranchesOf(root);
+  if (!branches.includes(name)) throw new ProjectError(`There is no branch called ${name}.`);
+  await git(root, ['switch', '--', name]);
+  return name;
+}
+
 export async function gitStatus(root: string): Promise<GitStatus> {
   const empty: GitStatus = { installed: true, repo: false, parentRepo: null, branch: null, remote: null, upstream: null, ahead: 0, behind: 0, files: [], lastCommit: null, identity: null };
   try {

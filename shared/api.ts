@@ -60,6 +60,10 @@ export interface AiTurnContext {
   references?: { kind: 'layer' | 'page'; name: string; id?: string; path?: string }[];
   /** Replies the user chose to remember; shown to the model at the start of every turn. */
   memory?: string[];
+  /** Images the person attached to this message (base64, no data: prefix). */
+  images?: { name: string; mimeType: string; data: string }[];
+  /** False when the user switched web search off for this message. */
+  webSearch?: boolean;
 }
 
 export interface OpenCanvasApi {
@@ -135,6 +139,11 @@ export interface OpenCanvasApi {
   revealProject(): Promise<void>;
   git: {
     status(): Promise<GitStatus>;
+    /** Home page helpers for a recent project's folder, without opening it. */
+    branchOf(root: string): Promise<string | null>;
+    branchesOf(root: string): Promise<{ current: string | null; branches: string[] }>;
+    /** Switches to an existing local branch; rejects with git's own message if local changes are in the way. */
+    switchBranch(root: string, name: string): Promise<string>;
     init(): Promise<void>;
     setIdentity(name: string, email: string): Promise<void>;
     /** Accepts a full URL or GitHub `owner/repo`; returns the stored URL. */

@@ -14,6 +14,8 @@ import { ModelLogo } from "./ModelLogo";
 import { ModelPopover } from "./ModelPopover";
 import { api } from "../../lib/api";
 import { useStore } from "../../lib/store";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Globe02Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -141,6 +143,11 @@ function usageTone(pct: number): { fill: string; ring: string; label: string } {
   return { fill: "#22c55e", ring: "text-[#22c55e]", label: "Healthy" };
 }
 
+const RING = 16;
+const RING_STROKE = 2;
+const RING_R = (RING - RING_STROKE) / 2;
+const RING_C = 2 * Math.PI * RING_R;
+
 function UsagePillMeter({
   filled,
   geom,
@@ -202,8 +209,7 @@ function ContextUsageRing({ used, limit, className }: { used: number; limit: num
           <button
             type="button"
             className={cn(
-              "inline-flex h-6 shrink-0 items-center justify-center rounded-[var(--pill)] px-2 text-[11px] font-medium tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              pct > 0 ? tone.ring : "text-muted-foreground hover:text-foreground",
+              "inline-flex size-6 shrink-0 items-center justify-center rounded-[var(--pill)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               className,
             )}
             aria-label={title}
@@ -211,7 +217,28 @@ function ContextUsageRing({ used, limit, className }: { used: number; limit: num
             aria-expanded={detailOpen}
             onClick={openDetail}
           >
-            {Math.max(1, Math.round(pct * 100))}%
+            <svg width={RING} height={RING} viewBox={`0 0 ${RING} ${RING}`} className="-rotate-90" aria-hidden>
+              <circle
+                cx={RING / 2}
+                cy={RING / 2}
+                r={RING_R}
+                fill="none"
+                stroke="currentColor"
+                strokeOpacity={0.18}
+                strokeWidth={RING_STROKE}
+              />
+              <circle
+                cx={RING / 2}
+                cy={RING / 2}
+                r={RING_R}
+                fill="none"
+                stroke={tone.fill}
+                strokeWidth={RING_STROKE}
+                strokeLinecap="round"
+                strokeDasharray={RING_C}
+                strokeDashoffset={RING_C * (1 - Math.max(pct, 0.02))}
+              />
+            </svg>
           </button>
         </TooltipTrigger>
         <TooltipContent
@@ -544,8 +571,7 @@ function UsageTaskQueue({ chat }: { chat: AiChatItem[] }) {
 }
 
 /** Model + thinking + context usage under the home composer.
- *  `shadow` keeps only the picker, for the back card above the empty home composer.
- *  The context ring stays on the in-conversation bar — it is empty until a chat exists.
+ *  `shadow` is the cluster for the back card above the composer: context ring and picker.
  */
 export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "shadow" } = {}) {
   const status = useStore((s) => s.aiStatus);
@@ -623,15 +649,23 @@ export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "sha
       side={variant === "shadow" ? "bottom" : "top"}
       align={variant === "shadow" ? "end" : "start"}
       avoidCollisions={variant !== "shadow"}
-      triggerClassName={variant === "shadow" ? "max-w-[min(280px,46vw)]" : undefined}
+      logoOnly={variant === "shadow"}
     />
   );
 
-  if (variant === "shadow") return picker;
+  if (variant === "shadow")
+    return (
+      <>
+        <ContextUsageRing used={usage.used} limit={usage.limit} />
+        {picker}
+        {allOpen && <AllModelsDialog models={models} selectedId={settings.model} onPick={pickModel} onClose={() => setAllOpen(false)} />}
+      </>
+    );
 
   return (
     <div className="flex w-full flex-wrap items-center justify-start gap-0 px-1">
       {picker}
+
 
       <ContextUsageRing used={usage.used} limit={usage.limit} className="ms-auto" />
 

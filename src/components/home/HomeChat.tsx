@@ -2,10 +2,11 @@ import { highlight } from "../../lib/highlight";
 import { Brain, Check, CircleNotch, ShieldWarning, SpeakerHigh, Stop, Wrench, X } from '../../lib/home-icons';
 import { humanizeAiError } from "../../lib/ai-errors";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Copy01Icon } from "@hugeicons/core-free-icons";
+import { ArrowDown01Icon, Copy01Icon, Edit02Icon } from "@hugeicons/core-free-icons";
 import { ThumbsDown, ThumbsUp } from '../../lib/home-icons';
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import type { AiChatItem } from "../../../shared/ai";
+import { browseBurstTool, groupConsecutiveWebBrowses, isWebBrowseTool } from "../../../shared/web-browse-trace";
 import { answerAi, approveAi, openAiSettings } from "../../lib/ai";
 import { useStore } from "../../lib/store";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/trace";
 import { ThinkingReasoning } from "@/components/ui/thinking-reasoning";
 import { getVote, isRemembered, setVote, subscribeMemory, toggleRemember, type Vote } from "../../lib/ai-memory";
+import { highlightCode, highlightStyle } from "../../lib/code-highlights";
 import { useThinkingPhrase, withEllipsis } from "../../lib/thinking-phrases";
 import { AgentOrb } from "@/components/ui/agent-orb";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
@@ -45,6 +47,9 @@ const TOOL_LABELS: Record<string, string> = {
 const FENCE_RE = /```([\w-]*)\n?([\s\S]*?)```/g;
 
 /** Nearest ancestor set to scroll — home uses the main column, the dock uses its own log. */
+/** Smooth by default; instant for people who ask their system for reduced motion. */
+const scrollBehavior = (): ScrollBehavior => (window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
+
 function scrollParentOf(el: HTMLElement): HTMLElement | null {
   let node: HTMLElement | null = el.parentElement;
   while (node && node !== document.body) {
@@ -61,6 +66,15 @@ function scrollParentOf(el: HTMLElement): HTMLElement | null {
  */
 function useStickToBottom(rootRef: RefObject<HTMLElement | null>, items: AiChatItem[]) {
   const pinned = useRef(true);
+  const [away, setAway] = useState(false);
+  const jump = useCallback(() => {
+    const root = rootRef.current;
+    const scroller = root && (scrollParentOf(root) ?? root);
+    if (!scroller) return;
+    pinned.current = true;
+    setAway(false);
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: scrollBehavior() });
+  }, [rootRef]);
 
   // A fresh user message means they just sent — jump back to following the thread.
   useLayoutEffect(() => {
@@ -74,6 +88,7 @@ function useStickToBottom(rootRef: RefObject<HTMLElement | null>, items: AiChatI
     const nearBottom = () => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 64;
     const onScroll = () => {
       pinned.current = nearBottom();
+      setAway(!pinned.current && scroller.scrollHeight - scroller.clientHeight > 240);
     };
     const follow = () => {
       if (!pinned.current) return;
@@ -91,15 +106,140 @@ function useStickToBottom(rootRef: RefObject<HTMLElement | null>, items: AiChatI
       mo.disconnect();
     };
   }, [rootRef]);
+  return { showJump: away, jump };
 }
 
 /** Home conversation thread — grows with content; the parent column scrolls. */
 /** `split`: user messages sit on the right and the AI's stay on the left (homepage and canvas chats). */
-export function HomeChat({ mentions = false, split = false }: { mentions?: boolean; split?: boolean } = {}) {
+/** What the person typed, without the references and file contents the home prompt appends. */
+export function typedText(text: string): string {
+  return splitReferences(text).body;
+}
+
+/**
+ * A faint rail of bars beside the thread, one per message you sent. The bar for the part you're reading
+ * is lit; hover shows what the message said, click scrolls to it. Appears once there are three or more.
+ */
+/** "Today, 22:03", "Yesterday, 22:03", "Nov 5, 22:03" (with the year when it isn't this one). */
+export function sentLabel(at: number, now = new Date()): string {
+  const d = new Date(at);
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(now) - day(d)) / 86_400_000);
+  if (diff === 0) return `Today, ${time}`;
+  if (diff === 1) return `Yesterday, ${time}`;
+  const date = d.toLocaleDateString([], { month: "short", day: "numeric", ...(d.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }) });
+  return `${date}, ${time}`;
+}
+
+function ChatOutline({ rootRef, items, fallbackAt }: { rootRef: RefObject<HTMLElement | null>; items: AiChatItem[]; fallbackAt?: number }) {
+  const marks = items.flatMap((i) =>
+    i.kind === "user"
+      ? [{ id: i.id, label: typedText(i.text).replace(/\s+/g, " ").trim() || "(attachment)", when: i.at ?? fallbackAt }]
+      : [],
+  );
+  const [active, setActive] = useState<string | null>(null);
+  // Pinned to the far left of the scrolling area, not beside the text column.
+  const [edge, setEdge] = useState<{ left: number; top: number } | null>(null);
+  const ids = marks.map((m) => m.id).join("|");
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || marks.length < 3) return;
+    const scroller = scrollParentOf(root) ?? root;
+    const place = () => {
+      const r = scroller.getBoundingClientRect();
+      setEdge({ left: r.left + 20, top: r.top + r.height * 0.32 });
+    };
+    place();
+    window.addEventListener("resize", place);
+    const sro = new ResizeObserver(place);
+    sro.observe(scroller);
+    const update = () => {
+      const line = scroller.getBoundingClientRect().top + 140;
+      let current = marks[0].id;
+      for (const m of marks) {
+        const el = root.querySelector<HTMLElement>(`[data-chat-item="${m.id}"]`);
+        if (el && el.getBoundingClientRect().top <= line) current = m.id;
+      }
+      // At the very bottom the last message is the one in play, even if its top is far above.
+      if (scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 8) current = marks[marks.length - 1].id;
+      setActive(current);
+    };
+    update();
+    scroller.addEventListener("scroll", update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(root);
+    return () => {
+      scroller.removeEventListener("scroll", update);
+      window.removeEventListener("resize", place);
+      ro.disconnect();
+      sro.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rootRef, ids]);
+
+  if (marks.length < 3 || !edge) return null;
+  const go = (id: string) => {
+    const el = rootRef.current?.querySelector<HTMLElement>(`[data-chat-item="${id}"]`);
+    el?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+  };
+  return (
+    <nav
+      aria-label="Conversation outline"
+      className="pointer-events-none fixed z-10 hidden min-[1100px]:block"
+      style={{ left: edge.left, top: edge.top }}
+    >
+      <ul className="pointer-events-auto m-0 flex max-h-[40vh] list-none flex-col items-start gap-2 overflow-visible p-0">
+        {marks.map((m) => {
+          const on = m.id === active;
+          return (
+            <li key={m.id} className="group/bar relative">
+              <button
+                type="button"
+                onClick={() => go(m.id)}
+                aria-label={`Go to: ${m.label}`}
+                aria-current={on ? "true" : undefined}
+                className={cn(
+                  "flex h-fit items-center border-0 bg-transparent p-0 outline-none transition-[width] duration-150",
+                  on ? "w-[1rem]" : "w-[0.5rem] group-hover/bar:w-[0.75rem]",
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "block h-[3px] w-full rounded-full transition-[background-color] duration-150",
+                    on ? "bg-foreground" : "bg-foreground/25 group-hover/bar:bg-foreground/50",
+                  )}
+                />
+              </button>
+              <span
+                role="presentation"
+                className="pointer-events-none absolute start-full top-1/2 z-20 ms-2 w-max max-w-[240px] -translate-y-1/2 rounded-xl bg-[var(--composer-front)] px-3 py-1.5 text-xs text-foreground opacity-0 shadow-[inset_0_0_0_1px_var(--composer-edge),var(--composer-lift)] transition-opacity duration-100 group-hover/bar:opacity-100 group-has-[:focus-visible]/bar:opacity-100"
+              >
+                <span className="block truncate">{m.label}</span>
+                {m.when != null && <span className="mt-0.5 block text-[11px] text-muted-foreground">{sentLabel(m.when)}</span>}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+export function HomeChat({
+  mentions = false,
+  split = false,
+  outline = false,
+  outlineFallbackAt,
+  onEditLast,
+}: { mentions?: boolean; split?: boolean; /** Home page only: a rail of bars beside the thread, one per message you sent. */ outline?: boolean; /** Date shown for messages saved before dates were recorded: when the chat began. */ outlineFallbackAt?: number; /** Home page only: pull the last message back into the input to change and resend. */ onEditLast?: (id: string) => void } = {}) {
   const items = useStore((s) => s.aiChat);
   const turnId = useStore((s) => s.aiTurnId);
   const rootRef = useRef<HTMLDivElement>(null);
   const busy = !!turnId;
+  const lastUserId = [...items].reverse().find((i) => i.kind === "user")?.id;
   const waiting = items.some((i) => (i.kind === "question" || i.kind === "approval") && i.answer === null);
   const last = items[items.length - 1];
   const waitingOnModel =
@@ -111,34 +251,72 @@ export function HomeChat({ mentions = false, split = false }: { mentions?: boole
       (last?.kind === "tool" && last.state === "running")
     );
   const thinkingPhrase = useThinkingPhrase(waitingOnModel);
-  useStickToBottom(rootRef, items);
+  const { showJump, jump } = useStickToBottom(rootRef, items);
+  const stoppedAfter = useStore((s) => s.aiStopped);
 
   return (
-    <div ref={rootRef} className="w-full px-1 py-2" aria-label="Conversation">
+    <div ref={rootRef} className="relative w-full px-1 py-2" aria-label="Conversation">
+      {outline && <ChatOutline rootRef={rootRef} items={items} fallbackAt={outlineFallbackAt} />}
       <div className="flex w-full flex-col gap-4 pb-4">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            data-chat-item={item.id}
-            className={
-              item.kind === "user"
-                ? split
-                  ? "flex w-full justify-end pb-3 ps-12"
-                  : "pb-3"
-                : split
-                  ? "w-full pe-12"
-                  : undefined
-            }
-          >
-            <ChatItem
-              item={item}
-              mentions={mentions}
-              align={split ? (item.kind === "user" ? "end" : "start") : "start"}
-              // Hold while this reply streams; stagger-fade words when the chunk finishes.
-              pending={busy && !waiting && item.kind === "assistant" && item.id === last?.id}
-            />
-          </div>
-        ))}
+        {groupConsecutiveWebBrowses(items).map((entry) => {
+          const item = entry.kind === "browse" ? browseBurstTool(entry.items) : entry.item;
+          const rowId = entry.kind === "browse" ? entry.id : item.id;
+          const stoppedHere =
+            !!stoppedAfter && !busy && (entry.kind === "browse" ? entry.items.some((tool) => tool.id === stoppedAfter) : stoppedAfter === item.id);
+          return (
+            <div
+              key={rowId}
+              data-chat-item={rowId}
+              className={cn(
+                "relative",
+                item.kind === "user" ? (split ? "flex w-full justify-end pb-3 ps-12" : "pb-3") : split ? "w-full pe-12" : undefined,
+              )}
+            >
+              {entry.kind === "browse" &&
+                entry.items.slice(1).map((tool) => <span key={tool.id} data-chat-item={tool.id} className="absolute size-0 overflow-hidden" />)}
+              {(() => {
+                const body = (
+                  <ChatItem
+                    item={item}
+                    mentions={mentions}
+                    align={split ? (item.kind === "user" ? "end" : "start") : "start"}
+                    // Hold while this reply streams; stagger-fade words when the chunk finishes.
+                    pending={busy && !waiting && item.kind === "assistant" && item.id === last?.id}
+                  />
+                );
+                const canEdit = !!onEditLast && !busy && item.kind === "user";
+                const stopped = stoppedHere;
+                if (!canEdit && !stopped) return body;
+                const isLast = item.id === lastUserId;
+                return (
+                  <div className={`group flex flex-col gap-0.5 ${split ? "items-end" : "items-start"}`}>
+                    {body}
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => onEditLast(item.id)}
+                        title={isLast ? undefined : "Rewinds the chat to this message"}
+                        className={cn(
+                          "flex items-center gap-1 rounded-[var(--pill)] border-0 bg-transparent px-2 py-1 text-xs text-muted-foreground outline-none transition-opacity hover:bg-foreground/[0.06] hover:text-foreground focus-visible:opacity-100",
+                          !isLast && "opacity-0 group-hover:opacity-100",
+                        )}
+                      >
+                        <HugeiconsIcon icon={Edit02Icon} size={13} strokeWidth={1.8} aria-hidden />
+                        Edit and resend
+                      </button>
+                    )}
+                    {stopped && (
+                      <p className="m-0 flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground" role="status">
+                        <Stop weight="fill" className="size-2.5" aria-hidden />
+                        Stopped
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          );
+        })}
         {waitingOnModel && (
           <div className="flex items-center gap-2" aria-live="polite">
             <span aria-hidden className="text-foreground">
@@ -148,6 +326,18 @@ export function HomeChat({ mentions = false, split = false }: { mentions?: boole
           </div>
         )}
       </div>
+      {showJump && (
+        <div className="pointer-events-none sticky bottom-2 z-10 flex justify-center">
+          <button
+            type="button"
+            onClick={jump}
+            className="pointer-events-auto flex h-8 items-center gap-1.5 rounded-[var(--pill)] border-0 bg-[var(--composer-front)] px-3 text-xs font-medium text-foreground shadow-[inset_0_0_0_1px_var(--composer-edge),var(--composer-lift)] outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
+          >
+            <HugeiconsIcon icon={ArrowDown01Icon} size={14} strokeWidth={2} aria-hidden />
+            Latest
+          </button>
+        </div>
+      )}
       <p className="sr-only" role="status">
         {waiting ? "The AI is waiting for your answer." : busy ? "The AI is working." : items.length ? "The AI is done." : ""}
       </p>
@@ -159,15 +349,21 @@ const REF_RE = /\n\nReferenced:\n([\s\S]*)$/;
 const REF_LINE = /^- \[(project|chat|file|web|google|skill)\] (.+?) \((.*)\)$/;
 
 /** Splits the references the home prompt appends from what the user actually typed. */
-function splitReferences(text: string): { body: string; refs: { kind: SourceKind; title: string }[] } {
+const FILES_RE = /\n\nAttached files:\n([\s\S]*?)(?=\n\nReferenced:\n|$)/;
+
+function splitReferences(raw: string): { body: string; refs: { kind: SourceKind; title: string }[] } {
+  // Attached files travel as `--- name ---` blocks; the bubble shows each as a pill, not its contents.
+  const fm = FILES_RE.exec(raw);
+  const files = fm ? [...fm[1].matchAll(/^--- (.+) ---$/gm)].map((x) => ({ kind: "file" as SourceKind, title: x[1] })) : [];
+  const text = fm ? raw.slice(0, fm.index) + raw.slice(fm.index + fm[0].length) : raw;
   const m = REF_RE.exec(text);
-  if (!m) return { body: text, refs: [] };
+  if (!m) return { body: text, refs: files };
   const refs = m[1]
     .split("\n")
     .map((line) => REF_LINE.exec(line))
     .filter((x): x is RegExpExecArray => !!x)
     .map((x) => ({ kind: x[1] as SourceKind, title: x[2] }));
-  return { body: text.slice(0, m.index), refs };
+  return { body: text.slice(0, m.index), refs: [...files, ...refs] };
 }
 
 /** One line is a full pill; as the text wraps the corners ease down to 18px, always as smooth squircle corners. */
@@ -235,7 +431,7 @@ function UserBubble({ text, mentions = false, align = "start" }: { text: string;
         style={{ borderRadius: radius, cornerShape: wrapped ? "squircle" : "round" } as React.CSSProperties}
         className="w-fit max-w-full bg-muted px-4 py-3 motion-safe:transition-[border-radius] motion-safe:duration-150"
       >
-        <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{body}</p>
+        <p className="m-0 break-words text-[length:var(--chat-font-size)] leading-relaxed text-foreground [overflow-wrap:anywhere] whitespace-pre-wrap">{highlightCode(body).map((part, i) => (part.kind ? <span key={i} style={highlightStyle(part)}>{part.text}</span> : part.text))}</p>
       </div>
       <RefPills refs={refs} />
     </div>
@@ -276,18 +472,25 @@ function ThinkingTrace({ item }: { item: Extract<AiChatItem, { kind: "thinking" 
   return <ThinkingReasoning text={item.text} done={item.done} />;
 }
 
+function toolTraceTitle(item: Extract<AiChatItem, { kind: "tool" }>): string {
+  // Web tools: never list queries or URLs in the thread — just "Browsing" / "Browsed".
+  if (isWebBrowseTool(item)) {
+    if (item.state === "running") return "Browsing…";
+    if (item.state === "failed") return item.summary.startsWith("Failed") ? item.summary : `Failed: ${item.summary}`;
+    return "Browsed";
+  }
+  if (item.state === "running") {
+    return item.summary.endsWith("…") || /ing\b/i.test(item.summary) ? item.summary : `${item.summary}…`;
+  }
+  if (item.state === "failed") {
+    return item.summary.startsWith("Failed") ? item.summary : `Failed: ${item.summary}`;
+  }
+  return item.summary;
+}
+
 function ToolTrace({ item }: { item: Extract<AiChatItem, { kind: "tool" }> }) {
   const status = item.state === "running" ? "running" : item.state === "failed" ? "error" : undefined;
-  const title =
-    item.state === "running"
-      ? item.summary.endsWith("…") || /ing\b/i.test(item.summary)
-        ? item.summary
-        : `${item.summary}…`
-      : item.state === "failed"
-        ? item.summary.startsWith("Failed")
-          ? item.summary
-          : `Failed: ${item.summary}`
-        : item.summary;
+  const title = toolTraceTitle(item);
 
   return (
     <Trace>

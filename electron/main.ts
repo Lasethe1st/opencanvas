@@ -32,7 +32,7 @@ import { googleFonts } from './services/fonts';
 import { projectFavicon } from './services/favicon';
 import { deleteProjectFolder, isGitRepo } from './services/project-actions';
 import { goLiveOnVercel } from './services/vercel';
-import { createGithubRepo, gitClone, gitCommit, gitInit, gitPull, gitPush, gitSetIdentity, gitSetRemote, gitStatus, remoteWebUrl } from './services/git';
+import { createGithubRepo, gitBranchesOf, gitBranchOf, gitClone, gitCommit, gitInit, gitPull, gitPush, gitSetIdentity, gitSetRemote, gitStatus, gitSwitchBranch, remoteWebUrl } from './services/git';
 import { cancelInstall, installDependencies, PreviewManager } from './services/preview';
 import { detectProject, findProjectRoot, listTree, ProjectError, projectSummary, safeResolve, slugify, uniqueDir, writeFiles } from './services/project';
 import { extractZip, ZIP_LIMITS } from './services/zip-import';
@@ -895,6 +895,14 @@ function registerIpc() {
   handle('export:revealProject', () => shell.openPath(requireProject().root));
 
   handle('git:status', () => gitStatus(requireProject().root));
+  // Home page, before any project is open: only folders in the recent list can be asked about or switched.
+  const recentRoot = (root: string) => {
+    if (!readRecent().some((p) => p.root === root)) throw new Error('That folder is not a recent project.');
+    return root;
+  };
+  handle('git:branchOf', (root: string) => gitBranchOf(recentRoot(String(root))));
+  handle('git:branchesOf', (root: string) => gitBranchesOf(recentRoot(String(root))));
+  handle('git:switchBranch', (root: string, name: string) => gitSwitchBranch(recentRoot(String(root)), String(name)));
   handle('git:init', () => gitInit(requireProject().root));
   handle('git:setIdentity', (name: string, email: string) => gitSetIdentity(requireProject().root, name, email));
   handle('git:setRemote', (url: string) => gitSetRemote(requireProject().root, url));

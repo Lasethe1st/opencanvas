@@ -3,6 +3,8 @@
 :root,
 [data-theme='light'] {
   --font: 'Inter Variable', 'Inter', 'Segoe UI Variable Text', system-ui, -apple-system, sans-serif;
+  /* Inter Display optical size — used by Tailwind font-display. */
+  --display-font: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
   --mono: 'Geist Mono Variable', 'Geist Mono', 'Cascadia Code', ui-monospace, Consolas, monospace;
 
   --bg: #f0f0f1;
@@ -14,6 +16,11 @@
   --home-card: #ffffff;
   /* Back card tucked behind the home start composer. */
   --composer-shadow: #f5f5f7;
+  --composer-front: #ffffff;
+  --composer-edge: rgba(17, 17, 19, 0.09);
+  --composer-edge-focus: rgba(17, 17, 19, 0.2);
+  --composer-lift: 0 1px 2px rgba(17, 17, 19, 0.05), 0 10px 24px -10px rgba(17, 17, 19, 0.12);
+  --composer-lift-focus: 0 1px 2px rgba(17, 17, 19, 0.06), 0 14px 32px -10px rgba(17, 17, 19, 0.2);
   /* Source kinds: project, chat, file, web, google. */
   --src-project: #2f6fe4;
   --src-chat: #8a4fd6;
@@ -108,6 +115,11 @@
   --home-card: var(--code-bg);
   /* A soft step above the dark surface, matching the light shadow card. */
   --composer-shadow: #1c1c1e;
+  --composer-front: #222225;
+  --composer-edge: rgba(255, 255, 255, 0.09);
+  --composer-edge-focus: rgba(255, 255, 255, 0.22);
+  --composer-lift: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 28px -10px rgba(0, 0, 0, 0.6);
+  --composer-lift-focus: 0 1px 2px rgba(0, 0, 0, 0.45), 0 16px 36px -10px rgba(0, 0, 0, 0.7);
   --src-project: #6ea0ff;
   --src-chat: #b88cf2;
   --src-file: #e8a53d;
