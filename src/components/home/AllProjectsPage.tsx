@@ -4,7 +4,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 
-const HUES = [12, 36, 150, 190, 222, 262, 300, 340];
 
 export function timeAgo(ms: number) {
   const minutes = Math.round((Date.now() - ms) / 60_000);
@@ -30,26 +29,23 @@ function formatBytes(bytes?: number) {
   return `${n < 10 && i > 0 ? n.toFixed(1) : Math.round(n)} ${units[i]}`;
 }
 
-function coverHue(name: string) {
-  let hash = 0;
-  for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return HUES[hash % HUES.length];
-}
-
+/** Every project icon is shown in one colour (the theme's project blue), so a list of mixed favicons reads as a set.
+ *  The favicon keeps its own light and dark shapes: it is greyscaled and multiplied over the tint, so its shape survives in one colour. */
 export function ProjectThumb({ icon, name, className = 'size-10' }: { icon?: string | null; name: string; className?: string }) {
-  const shell =
-    cn(className, 'shrink-0 overflow-hidden rounded-[28%] bg-muted shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--border)_70%,transparent)] [corner-shape:squircle]');
+  const shell = cn(
+    className,
+    'relative isolate shrink-0 overflow-hidden rounded-[28%] bg-[var(--src-project)] [corner-shape:squircle]',
+  );
   if (icon) {
     return (
       <span className={shell}>
-        <img src={icon} alt="" draggable={false} className="size-full object-cover" />
+        <img src={icon} alt="" draggable={false} className="size-full object-cover mix-blend-multiply [filter:grayscale(1)_contrast(0.6)_brightness(1.45)]" />
       </span>
     );
   }
   return (
     <span
-      className={cn(shell, className === 'size-10' ? 'flex items-center justify-center text-sm font-medium text-white/95' : 'flex items-center justify-center text-[10px] font-medium text-white/95')}
-      style={{ background: `hsl(${coverHue(name)} 42% 42%)` }}
+      className={cn(shell, 'flex items-center justify-center font-medium text-white/95', className === 'size-10' ? 'text-sm' : 'text-[10px]')}
       aria-hidden
     >
       {(name.trim()[0] ?? '?').toUpperCase()}

@@ -1,11 +1,11 @@
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { BookOpen01Icon, Bug01Icon, CodeSquareIcon, Hammer01Icon } from '@hugeicons/core-free-icons';
 
-const PILLS: { id: string; label: string; icon: IconSvgElement; starter: string }[] = [
-  { id: 'debug', label: 'Debug', icon: Bug01Icon, starter: 'Help me debug ' },
-  { id: 'build', label: 'Build', icon: Hammer01Icon, starter: 'Help me build ' },
-  { id: 'review', label: 'Review', icon: CodeSquareIcon, starter: 'Review my code for ' },
-  { id: 'explain', label: 'Explain', icon: BookOpen01Icon, starter: 'Explain how ' },
+const PILLS: { id: string; label: string; icon: IconSvgElement; color: string; starter: string }[] = [
+  { id: 'debug', label: 'Debug', icon: Bug01Icon, color: 'var(--src-google)', starter: 'Help me debug ' },
+  { id: 'build', label: 'Build', icon: Hammer01Icon, color: 'var(--src-file)', starter: 'Help me build ' },
+  { id: 'review', label: 'Review', icon: CodeSquareIcon, color: 'var(--src-chat)', starter: 'Review my code for ' },
+  { id: 'explain', label: 'Explain', icon: BookOpen01Icon, color: 'var(--src-web)', starter: 'Explain how ' },
 ];
 
 /** Four quick starts under the composer. Each puts the start of a request in the box and leaves the cursor at the end. */
@@ -20,7 +20,7 @@ export function HomeActionPills({ onPick, disabled }: { onPick: (starter: string
           onClick={() => onPick(pill.starter)}
           className="inline-flex h-8 items-center gap-1.5 rounded-[var(--pill)] border border-[color:var(--frost-border)] bg-muted/60 ps-2.5 pe-3 text-[13px] text-foreground outline-none transition-[background-color,scale] duration-150 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
         >
-          <HugeiconsIcon icon={pill.icon} size={15} strokeWidth={1.75} className="text-muted-foreground" aria-hidden />
+          <HugeiconsIcon icon={pill.icon} size={15} strokeWidth={1.75} color={pill.color} aria-hidden />
           {pill.label}
         </button>
       ))}
