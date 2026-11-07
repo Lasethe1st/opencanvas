@@ -1,6 +1,7 @@
 import { ArrowUp, Check, Crosshair, GitBranch, MessageSquarePlus, ShieldQuestion, Square, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { providerMeta, type AiChatItem } from '../../../shared/ai';
+import { browseBurstTool, groupConsecutiveWebBrowses, isWebBrowseTool } from '../../../shared/web-browse-trace';
 import { setLeafPage } from '../../../shared/workspace-layout';
 import { selectElement } from '../../lib/actions';
 import { answerAi, approveAi, newAiChat, openAiSettings, sendToAi, stopAi } from '../../lib/ai';
@@ -104,17 +105,15 @@ export function AiChat({ bare = false }: { bare?: boolean } = {}) {
         }}
       >
         {!items.length && <p className="dock-empty">Ask for a change in the bar below. Select an element first to point at it, or type @ to mention a layer or page. Everything the AI does in one reply is a single undo step.</p>}
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className={item.kind === 'user' ? 'flex w-full justify-end ps-8' : 'w-full pe-6'}
-          >
-            <ChatItem
-              item={item}
-              pending={busy && !waiting && item.kind === 'assistant' && item.id === last?.id}
-            />
-          </div>
-        ))}
+        {groupConsecutiveWebBrowses(items).map((entry) => {
+          const item = entry.kind === 'browse' ? browseBurstTool(entry.items) : entry.item;
+          const rowId = entry.kind === 'browse' ? entry.id : item.id;
+          return (
+            <div key={rowId} className={item.kind === 'user' ? 'flex w-full justify-end ps-8' : 'w-full pe-6'}>
+              <ChatItem item={item} pending={busy && !waiting && item.kind === 'assistant' && item.id === last?.id} />
+            </div>
+          );
+        })}
         {waitingOnModel && (
           <div className="ai-thinking">
             <span aria-hidden>
@@ -208,7 +207,7 @@ function ChatItem({ item, pending = false }: { item: AiChatItem; pending?: boole
       );
     case 'tool': {
       const change = changePresentation(item);
-      const web = item.tool === 'web_search' || item.tool === 'fetch_url';
+      const web = isWebBrowseTool(item);
       const summary = change
         ? item.state === 'failed'
           ? change.failed

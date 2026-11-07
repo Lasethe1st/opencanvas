@@ -53,6 +53,7 @@ export * from '../shared/change-line';
 export * from '../shared/running-work';
 export * from '../shared/history';
 export * from '../shared/ai-chat';
+export * from '../shared/web-browse-trace';
 export { SaveeClient, SaveeError, pkcePair, resourceMetadataUrl, toBoard, toResult } from './services/savee';
 export { connectProvider, disconnectProvider, providerBoards, saveeProvider, setProviders } from './services/inspiration';
 export { aiKeyName, aiNotReadyReason, normalizeAiSettings, readAiSettings, redact, SecretStore, writeAiSettings } from './services/ai-keys';

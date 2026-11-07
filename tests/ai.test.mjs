@@ -520,6 +520,35 @@ test('reduceAiChat streams reasoning into a thinking item that closes when the r
   assert.equal(chat[2].text, 'Because it fits.');
 });
 
+test('groupConsecutiveWebBrowses collapses only a consecutive web_search / fetch_url burst', () => {
+  const tool = (id, name, state, summary) => ({ kind: 'tool', id, tool: name, summary, state });
+  const items = [
+    { kind: 'user', id: 'u', text: 'Look this up' },
+    tool('a', 'web_search', 'done', 'Browsed'),
+    tool('b', 'fetch_url', 'done', 'Browsed'),
+    tool('c', 'fetch_url', 'running', 'Browsing'),
+    { kind: 'thinking', id: 'th', text: 'Checking the page.', done: true },
+    tool('d', 'fetch_url', 'done', 'Browsed'),
+    tool('e', 'get_outline', 'done', 'Reading the page structure'),
+    tool('f', 'web_search', 'done', 'Browsed'),
+    tool('g', 'fetch_url', 'failed', 'Couldn’t reach https://example.com.'),
+    tool('h', 'insert_jsx', 'running', 'Inserting new elements'),
+  ];
+  const grouped = h.groupConsecutiveWebBrowses(items);
+  assert.deepEqual(
+    grouped.map((entry) => (entry.kind === 'browse' ? `browse:${entry.items.map((item) => item.id).join('+')}` : entry.item.id)),
+    ['u', 'browse:a+b+c', 'th', 'browse:d', 'e', 'browse:f+g', 'h'],
+  );
+  assert.equal(grouped[1].id, 'a');
+  assert.equal(h.browseBurstTool(grouped[1].items).id, 'c');
+  assert.equal(h.browseBurstTool(grouped[1].items).state, 'running');
+  assert.equal(h.browseBurstTool(grouped[5].items).id, 'g');
+  assert.equal(h.browseBurstTool(grouped[5].items).state, 'failed');
+  assert.equal(h.browseBurstTool([tool('a', 'web_search', 'done', 'Browsed'), tool('b', 'fetch_url', 'done', 'Browsed')]).id, 'b');
+  assert.equal(h.browseBurstTool([tool('a', 'web_search', 'failed', 'No results.'), tool('b', 'fetch_url', 'failed', 'Blocked.')]).summary, 'Blocked.');
+  assert.equal(h.groupConsecutiveWebBrowses([]).length, 0);
+});
+
 test('reduceAiChat keeps the send time on the user message only when the event carries one', () => {
   const stamped = h.reduceAiChat([], { turnId: 't', type: 'start', request: 'Hi', at: 1_700_000_000_000 });
   assert.deepEqual(stamped, [{ kind: 'user', id: 't:user', text: 'Hi', at: 1_700_000_000_000 }]);
