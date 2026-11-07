@@ -240,7 +240,8 @@ export function HomeEllipsisMenu({
                   <span className="sr-only">{label}</span>
                   <HugeiconsIcon icon={EllipsisIcon} strokeWidth={2} aria-hidden />
                 </Menu.Trigger>
-                <Menu.Content className="flex flex-col gap-0.5 p-1 pt-1.5">
+                {/* The menu measures its height as it opens, while still button-sized. A fixed width keeps the labels from wrapping then, so the height fits the items. */}
+                <Menu.Content className="flex w-[168px] flex-col gap-0.5 whitespace-nowrap p-1 pt-1.5">
                   {actions.map((action) => (
                     <Menu.Item
                       key={action.id}

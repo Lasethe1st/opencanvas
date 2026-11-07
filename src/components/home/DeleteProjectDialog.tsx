@@ -36,21 +36,16 @@ export function DeleteProjectDialog({
       onClose={onClose}
       narrow
       footer={
-        <div className="flex w-full items-center justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={!ready}
-            onClick={() => void submit()}
-            className="bg-[var(--destructive)] text-white hover:bg-[var(--destructive)] hover:brightness-95 disabled:opacity-45"
-            style={{ backgroundColor: 'var(--destructive)' }}
-          >
-            {busy ? 'Deleting…' : 'Delete from disk'}
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="destructive"
+          disabled={!ready}
+          onClick={() => void submit()}
+          className="w-full bg-[var(--destructive)] text-white hover:bg-[var(--destructive)] hover:brightness-95 disabled:opacity-45"
+          style={{ backgroundColor: 'var(--destructive)' }}
+        >
+          {busy ? 'Deleting…' : 'Delete from disk'}
+        </Button>
       }
     >
       <form
