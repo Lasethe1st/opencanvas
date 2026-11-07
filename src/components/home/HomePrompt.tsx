@@ -1,3 +1,4 @@
+import { ListeningWave } from "./ListeningWave";
 import type { ReactNode } from "react";
 import { getSendKey } from "../../lib/prefs";
 import { FolderOpen, Waveform } from '../../lib/home-icons';
@@ -370,7 +371,7 @@ export function HomePrompt({
       <InputGroupButton
         variant="ghost"
         size="icon"
-        className={`me-1 rounded-[var(--pill)] ${listening ? "bg-red-500/15 text-red-600 animate-pulse" : "text-muted-foreground"}`}
+        className={`me-1 rounded-[var(--pill)] ${listening ? "bg-red-500/15 text-red-600 dark:text-red-400 [[data-theme=dark]_&]:text-red-400 animate-pulse" : "text-muted-foreground"}`}
         aria-label={listening ? "Stop dictation" : "Dictate"}
         aria-pressed={listening}
         disabled={disabled}
@@ -508,7 +509,9 @@ export function HomePrompt({
             )}
           </>
         )}
-        <div className="relative min-w-0 flex-1">
+        <div className={`relative min-w-0 flex-1 ${deck && listening ? "min-h-[88px]" : ""}`}>
+        {deck && listening && <ListeningWave />}
+        <div className={deck && listening ? "invisible" : undefined}>
         <div
           ref={overlayRef}
           aria-hidden
@@ -561,6 +564,7 @@ export function HomePrompt({
           aria-activedescendant={open ? `${listId}-${active}` : undefined}
           aria-autocomplete="list"
         />
+        </div>
         </div>
         <InputGroupAddon align="inline-end" className={deck ? "self-start pe-2.5 pb-0 pt-2.5 has-[>button]:me-0" : `${inlineControls} pe-0 pb-0 has-[>button]:me-0`}>
           {micButton}
