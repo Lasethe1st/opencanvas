@@ -1,6 +1,6 @@
 import { ChatCircle, FolderSimple, History, Lightning } from '../lib/home-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { LayoutAlignLeftIcon, LayoutAlignRightIcon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
+import { Bug01Icon, Delete02Icon, FolderZipIcon, LayoutAlignLeftIcon, LayoutAlignRightIcon, LinkSquare02Icon, Refresh01Icon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
 import { Library } from '../lib/home-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentProject, SkillMeta } from '../../shared/types';
@@ -19,7 +19,10 @@ import {
 } from '../lib/home-chats';
 import { startProjectFromBrief } from '../lib/start-project';
 import { getState, setState, toast, useStore } from '../lib/store';
-import { homeItemActions } from './home/HomeItemMenu';
+import { homeItemActions, type HomeMenuAction } from './home/HomeItemMenu';
+import { HomeActionPills } from './home/HomeActionPills';
+import { HomeRecentProjects } from './home/HomeRecentProjects';
+import { DeleteProjectDialog } from './home/DeleteProjectDialog';
 import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat, typedText } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
@@ -109,6 +112,7 @@ export function Onboarding() {
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
   const onboarding = useOnboarding();
   const [dialog, setDialog] = useState<HomeDialogState | null>(null);
+  const [deleting, setDeleting] = useState<RecentProject | null>(null);
   const [newMinimized, setNewMinimized] = useState(false);
   const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
   const [chipHost, setChipHost] = useState<HTMLDivElement | null>(null);
@@ -398,6 +402,57 @@ export function Onboarding() {
     [],
   );
 
+  /** The actions in a recent project's menu on the start screen. */
+  const recentActions = useCallback(
+    (project: RecentProject): HomeMenuAction[] => {
+      const icon = (i: IconSvgElement) => <HugeiconsIcon icon={i} strokeWidth={2} />;
+      const fail = (e: unknown) => toast(e instanceof Error ? e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : 'Something went wrong.', 'error');
+      const actions: HomeMenuAction[] = [];
+      if (project.git) {
+        actions.push({
+          id: 'update',
+          label: 'Update',
+          icon: icon(Refresh01Icon),
+          onSelect: () => {
+            toast(`Updating ${project.name}…`);
+            api.projectActions.update(project.root).then(() => toast(`${project.name} is up to date`, 'success'), fail);
+          },
+        });
+      }
+      actions.push(
+        {
+          id: 'debug',
+          label: 'Debug',
+          icon: icon(Bug01Icon),
+          onSelect: () => {
+            setState({ dockDraft: `Help me debug the ${project.name} project: ` });
+            focusPrompt();
+          },
+        },
+        {
+          id: 'share',
+          label: 'Share as zip',
+          icon: icon(FolderZipIcon),
+          onSelect: () => {
+            api.projectActions.zip(project.root).then((r) => r && toast(`Zipped ${r.fileCount} files`, 'success'), fail);
+          },
+        },
+        {
+          id: 'preview',
+          label: 'Preview',
+          icon: icon(LinkSquare02Icon),
+          onSelect: () => {
+            toast('Starting the preview…');
+            api.projectActions.preview(project.root).catch(fail);
+          },
+        },
+        { id: 'delete', label: 'Delete', destructive: true, icon: icon(Delete02Icon), onSelect: () => setDeleting(project) },
+      );
+      return actions;
+    },
+    [],
+  );
+
   const projectMenu = useCallback(
     (project: RecentProject) =>
       homeItemActions({
@@ -680,6 +735,19 @@ export function Onboarding() {
                       />
                     </div>
                   </div>
+                  <HomeActionPills
+                    disabled={busy}
+                    onPick={(starter) => {
+                      setState({ dockDraft: starter });
+                      focusPrompt();
+                    }}
+                  />
+                  <HomeRecentProjects
+                    recent={recent}
+                    onOpen={(p) => void openRecent(p.root)}
+                    actionsFor={recentActions}
+                    onViewAll={() => setDialog({ kind: 'projects' })}
+                  />
                   <HomeAiHint className="text-center" />
                 </div>
               </div>
@@ -716,6 +784,18 @@ export function Onboarding() {
             onClose={closeDialog}
             onMinimize={() => setNewMinimized(true)}
             onRestore={() => setNewMinimized(false)}
+          />
+        )}
+        {deleting && (
+          <DeleteProjectDialog
+            project={deleting}
+            onClose={() => setDeleting(null)}
+            onDelete={async (typedName) => {
+              await api.projectActions.remove(deleting.root, typedName);
+              setRecent((current) => (current ? current.filter((p) => p.root !== deleting.root) : current));
+              setDeleting(null);
+              toast(`Deleted ${deleting.name}`, 'success');
+            }}
           />
         )}
         {dialog?.kind === 'projects' && (

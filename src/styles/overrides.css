@@ -2371,6 +2371,10 @@ html[data-reduce-motion='true'] *, html[data-reduce-motion='true'] *::before, ht
 body:has(.shell .workspace) .assistant-docker [role='listbox'] button { border-radius: 12px !important; }
 body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:first-child { border-radius: 9px !important; }
 
+/* Destructive actions in the bloom menus (chat and project rows): red text and icon, with a red wash on hover. */
+[data-bloom-menu] .bloom-destructive svg { color: var(--destructive) !important; }
+[data-bloom-menu] .bloom-destructive:hover { background: color-mix(in oklab, var(--destructive) 10%, transparent) !important; }
+
 /* Start-state composer: a lifted card in front of the context card. */
 [data-home-composer-front] {
   background: var(--surface-2);

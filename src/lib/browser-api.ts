@@ -46,7 +46,7 @@ const icon = (bg: string, letter: string) =>
 
 const now = Date.now();
 const RECENT: RecentProject[] = [
-  { root: `${ROOT}\\email-collect`, name: 'Email Collect', openedAt: now - 2 * 60_000, icon: icon('#1a1916', 'S'), bytes: 184_320 },
+  { root: `${ROOT}\\email-collect`, name: 'Email Collect', git: true, openedAt: now - 2 * 60_000, icon: icon('#1a1916', 'S'), bytes: 184_320 },
   { root: `${ROOT}\\ad-agency`, name: 'ad-agency', openedAt: now - 6 * 60_000, icon: icon('#ff4d2e', 'N'), bytes: 1_248_000 },
   { root: `${ROOT}\\fieldday-launch`, name: 'Field Day launch', openedAt: now - 3 * 3600_000, icon: icon('#111111', 'F'), bytes: 892_160 },
   { root: `${ROOT}\\portfolio-2026`, name: 'Portfolio 2026', openedAt: now - 2 * 86_400_000, bytes: 512_000 },
@@ -943,6 +943,15 @@ export function createBrowserApi(): OpenCanvasApi {
     templates: async () => TEMPLATES,
     recentProjects: async () => RECENT,
     defaultLocation: async () => ROOT,
+    projectActions: {
+      update: async () => {},
+      zip: async () => ({ path: '/downloads/project.zip', fileCount: 42 }),
+      preview: async () => {},
+      remove: async (root) => {
+        const i = RECENT.findIndex((p) => p.root === root);
+        if (i >= 0) RECENT.splice(i, 1);
+      },
+    },
     projectFiles: {
       list: async (_root, rel) => {
         const names = Object.keys(FILES).filter((f) => (rel ? f.startsWith(rel + '/') : true)).map((f) => (rel ? f.slice(rel.length + 1) : f));

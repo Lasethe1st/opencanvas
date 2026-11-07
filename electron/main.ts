@@ -30,6 +30,7 @@ import { buildProjectZip, runInstructions } from './services/exporter';
 import { runBuildCheck, validateExport } from './services/export-validate';
 import { googleFonts } from './services/fonts';
 import { projectFavicon } from './services/favicon';
+import { deleteProjectFolder, isGitRepo } from './services/project-actions';
 import { goLiveOnVercel } from './services/vercel';
 import { createGithubRepo, gitBranchesOf, gitBranchOf, gitClone, gitCommit, gitInit, gitPull, gitPush, gitSetIdentity, gitSetRemote, gitStatus, gitSwitchBranch, remoteWebUrl } from './services/git';
 import { cancelInstall, installDependencies, PreviewManager } from './services/preview';
@@ -699,9 +700,48 @@ function handle<A extends unknown[], R>(channel: string, fn: (...args: A) => R |
 function registerIpc() {
   handle('templates:list', () => TEMPLATES);
   handle('projects:recent', () =>
-    readRecent().map((p) => ({ ...p, icon: projectFavicon(p.root), bytes: projectBytes(p.root) })),
+    readRecent().map((p) => ({ ...p, icon: projectFavicon(p.root), bytes: projectBytes(p.root), git: isGitRepo(p.root) })),
   );
   handle('projects:defaultLocation', () => projectsDir());
+
+  // Actions from the home list: only for projects in the recent list.
+  const recentProject = (root: string) => {
+    if (!readRecent().some((p) => p.root === root)) throw new ProjectError('That project is not in your recent list.');
+    return root;
+  };
+  handle('projectActions:update', (root: string) => gitPull(recentProject(root)));
+  handle('projectActions:zip', async (root: string) => {
+    const info = detectProject(recentProject(root));
+    const save = await dialog.showSaveDialog(win!, {
+      title: 'Zip project',
+      defaultPath: path.join(app.getPath('downloads'), `${path.basename(info.root)}.zip`),
+      filters: [{ name: 'ZIP archive', extensions: ['zip'] }],
+    });
+    if (save.canceled || !save.filePath) return null;
+    const zip = await buildProjectZip(info);
+    fs.writeFileSync(save.filePath, zip.buffer);
+    shell.showItemInFolder(save.filePath);
+    return { path: save.filePath, fileCount: zip.files.length };
+  });
+  handle('projectActions:preview', async (root: string) => {
+    const info = detectProject(recentProject(root));
+    preview.start(info);
+    const deadline = Date.now() + 90_000;
+    for (;;) {
+      const status = preview.getStatus();
+      if (status.state === 'running') return void (await shell.openExternal(status.url));
+      if (status.state === 'error') throw new ProjectError(`The preview could not start: ${status.error}`);
+      if (Date.now() > deadline) throw new ProjectError('The preview is taking too long to start.');
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  });
+  handle('projectActions:remove', (root: string, typedName: string) => {
+    recentProject(root);
+    if (project && path.resolve(project.root) === path.resolve(root)) throw new ProjectError('Close the project before deleting it.');
+    deleteProjectFolder(root, typedName, [projectsDir()]);
+    const list = readRecent().filter((p) => p.root !== root);
+    fs.writeFileSync(recentFile(), JSON.stringify(list, null, 2));
+  });
   // Browsing is limited to projects in the recent list, never outside the project folder, and never into build or dependency folders.
   const projectPath = (root: string, rel: string) => {
     if (!readRecent().some((p) => p.root === root)) throw new Error('That project is not in your recent list.');
