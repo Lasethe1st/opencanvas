@@ -607,7 +607,7 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
       </Button>
       <Button
         variant="ghost"
-        className={cn(btn, playing && "text-foreground", speakErr && "text-destructive hover:text-destructive")}
+        className={cn(btn, speakErr && "text-destructive hover:text-destructive")}
         aria-label={speaking ? "Pause reading" : paused ? "Resume reading" : "Read aloud"}
         aria-pressed={playing}
         title={speakErr || (speaking ? "Pause" : paused ? "Resume" : "Read aloud")}
@@ -615,15 +615,15 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
       >
         {speech.phase === "loading" && mine ? <CircleNotch className="animate-spin" /> : <HugeiconsIcon icon={speaking ? PauseIcon : PlayIcon} strokeWidth={2} />}
       </Button>
-      <Button variant="ghost" className={cn(btn, vote === "up" && "text-foreground")} aria-label="Good reply" aria-pressed={vote === "up"} title="Good reply" onClick={() => rate("up")}>
+      <Button variant="ghost" className={btn} aria-label="Good reply" aria-pressed={vote === "up"} title="Good reply" onClick={() => rate("up")}>
         <ThumbsUp strokeWidth={2} className={vote === "up" ? "fill-current" : undefined} />
       </Button>
-      <Button variant="ghost" className={cn(btn, vote === "down" && "text-foreground")} aria-label="Bad reply" aria-pressed={vote === "down"} title="Bad reply" onClick={() => rate("down")}>
+      <Button variant="ghost" className={btn} aria-label="Bad reply" aria-pressed={vote === "down"} title="Bad reply" onClick={() => rate("down")}>
         <ThumbsDown strokeWidth={2} className={vote === "down" ? "fill-current" : undefined} />
       </Button>
       <Button
         variant="ghost"
-        className={cn(btn, remembered && "text-[var(--src-chat)] hover:text-[var(--src-chat)]")}
+        className={btn}
         aria-label={remembered ? "Forget this reply" : "Remember this reply"}
         aria-pressed={remembered}
         title={remembered ? "Remembered — click to forget" : "Remember this"}
