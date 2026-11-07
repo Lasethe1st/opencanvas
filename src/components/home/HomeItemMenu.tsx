@@ -247,9 +247,10 @@ export function HomeEllipsisMenu({
                       className={cn(
                         'flex w-full cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors duration-150 hover:bg-accent [&_svg]:size-4 [&_svg]:shrink-0',
                         action.destructive
-                          ? 'text-destructive [&_svg]:text-destructive'
+                          ? 'bloom-destructive text-destructive [&_svg]:text-destructive'
                           : 'text-foreground [&_svg]:text-muted-foreground',
                       )}
+                      style={action.destructive ? { color: 'var(--destructive)' } : undefined}
                       onSelect={action.onSelect}
                     >
                       {action.icon}

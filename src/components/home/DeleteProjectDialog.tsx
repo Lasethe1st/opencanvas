@@ -36,7 +36,7 @@ export function DeleteProjectDialog({
       onClose={onClose}
       narrow
       footer={
-        <>
+        <div className="flex w-full items-center justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
@@ -50,7 +50,7 @@ export function DeleteProjectDialog({
           >
             {busy ? 'Deleting…' : 'Delete from disk'}
           </Button>
-        </>
+        </div>
       }
     >
       <form
