@@ -21,7 +21,6 @@ import { startProjectFromBrief } from '../lib/start-project';
 import { getState, setState, toast, useStore } from '../lib/store';
 import { homeItemActions, type HomeMenuAction } from './home/HomeItemMenu';
 import { HomeActionPills } from './home/HomeActionPills';
-import { HomeRecentProjects } from './home/HomeRecentProjects';
 import { DeleteProjectDialog } from './home/DeleteProjectDialog';
 import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat, typedText } from './home/HomeChat';
@@ -737,12 +736,6 @@ export function Onboarding() {
                       setState({ dockDraft: starter });
                       focusPrompt();
                     }}
-                  />
-                  <HomeRecentProjects
-                    recent={recent}
-                    onOpen={(p) => void openRecent(p.root)}
-                    actionsFor={recentActions}
-                    onViewAll={() => setDialog({ kind: 'projects' })}
                   />
                   <HomeAiHint className="text-center" />
                 </div>
