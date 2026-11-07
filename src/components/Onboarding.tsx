@@ -26,7 +26,7 @@ import { DeleteProjectDialog } from './home/DeleteProjectDialog';
 import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat, typedText } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
-import { HomeComposerShadow } from './home/HomeComposerShadow';
+import { HomeComposerContext } from './home/HomeComposerContext';
 import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
 import { HomeDialog } from './home/HomeDialog';
 import { NewProjectDialog, type StartPath } from './home/NewProjectDialog';
@@ -695,10 +695,10 @@ export function Onboarding() {
                       </Button>
                     </div>
                   )}
-                  {/* Start state only: a taller writing box with the shadow deck behind it.
-                      The running-work pill sits above that stack, not between the two cards.
-                      While nothing is running it stays hidden, so it does not repeat the folder
-                      already shown on the shadow card. */}
+                  {/* Start state only: one taller card. Typing, voice and send on top; attach, web and the model along
+                      the bottom-left, and the branch, project and context ring along the bottom-right.
+                      The running-work pill sits above it and stays hidden while nothing is running.
+                      Once a conversation exists, the block above uses the plain composer. */}
                   {!voiceMode && runningCount > 0 && (
                     <HomeStatusPills
                       className="w-full min-w-0 px-1"
@@ -707,33 +707,29 @@ export function Onboarding() {
                     />
                   )}
                   <div data-home-composer-deck="" className="w-full">
-                    <HomeComposerShadow
-                      projects={recent ?? []}
-                      onOpenProjects={() => setDialog({ kind: 'projects' })}
+                    <HomePrompt
+                      deck
+                      value={dockDraft}
+                      onChange={(value) => setState({ dockDraft: value })}
+                      onSubmit={() => void sendHome()}
+                      onVoice={aiReady ? startVoice : undefined}
+                      disabled={busy}
+                      sending={!!aiTurnId}
+                      mentions={mentionOptions}
+                      onMention={onMention}
+                      skills={skillOptions}
+                      onOpenSkills={openSkills}
+                      commands={slashCommands}
+                      onCommand={onCommand}
+                      attachments={attachments}
+                      onAttach={(f) => void addFiles(f)}
+                      onRemoveAttachment={removeAttachment}
+                      webSearch={webSearch}
+                      onWebSearch={toggleWeb}
+                      history={history}
+                      footerStart={<HomeComposerExtras variant="composer" />}
+                      footerEnd={<HomeComposerContext projects={recent ?? []} onOpenProjects={() => setDialog({ kind: 'projects' })} />}
                     />
-                    <div className="relative z-10">
-                      <HomePrompt
-                        deck
-                        value={dockDraft}
-                        onChange={(value) => setState({ dockDraft: value })}
-                        onSubmit={() => void sendHome()}
-                        onVoice={aiReady ? startVoice : undefined}
-                        disabled={busy}
-                        sending={!!aiTurnId}
-                        mentions={mentionOptions}
-                        onMention={onMention}
-                        skills={skillOptions}
-                        onOpenSkills={openSkills}
-                        commands={slashCommands}
-                        onCommand={onCommand}
-                        attachments={attachments}
-                        onAttach={(f) => void addFiles(f)}
-                        onRemoveAttachment={removeAttachment}
-                        webSearch={webSearch}
-                        onWebSearch={toggleWeb}
-                        history={history}
-                      />
-                    </div>
                   </div>
                   <HomeActionPills
                     disabled={busy}

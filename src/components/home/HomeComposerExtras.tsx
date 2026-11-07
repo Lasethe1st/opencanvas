@@ -573,7 +573,16 @@ function UsageTaskQueue({ chat }: { chat: AiChatItem[] }) {
 /** Model + thinking + context usage under the home composer.
  *  `shadow` is the cluster for the back card above the composer: context ring and picker.
  */
-export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "shadow" } = {}) {
+export function HomeContextRing({ className }: { className?: string }) {
+  const settings = useStore((s) => s.aiStatus?.settings);
+  const aiChat = useStore((s) => s.aiChat);
+  const dockDraft = useStore((s) => s.dockDraft);
+  const used = useMemo(() => estimateTokens(chatChars(aiChat) + dockDraft.length), [aiChat, dockDraft]);
+  if (!settings) return null;
+  return <ContextUsageRing used={used} limit={contextWindow(settings.model ?? "")} className={className} />;
+}
+
+export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "shadow" | "composer" } = {}) {
   const status = useStore((s) => s.aiStatus);
   const settings = status?.settings;
   const aiChat = useStore((s) => s.aiChat);
@@ -646,12 +655,20 @@ export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "sha
       onPickModel={pickModel}
       onEffort={(e) => void save({ thinkingEffort: e })}
       onOpenSettings={() => openAiSettings()}
-      side={variant === "shadow" ? "bottom" : "top"}
+      side={variant === "shadow" || variant === "composer" ? "bottom" : "top"}
       align={variant === "shadow" ? "end" : "start"}
       avoidCollisions={variant !== "shadow"}
       logoOnly={variant === "shadow"}
     />
   );
+
+  if (variant === "composer")
+    return (
+      <>
+        {picker}
+        {allOpen && <AllModelsDialog models={models} selectedId={settings.model} onPick={pickModel} onClose={() => setAllOpen(false)} />}
+      </>
+    );
 
   if (variant === "shadow")
     return (

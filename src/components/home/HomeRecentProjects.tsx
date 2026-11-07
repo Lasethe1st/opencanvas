@@ -19,7 +19,7 @@ export function HomeRecentProjects({
   if (!recent || recent.length === 0) return null;
   const shown = recent.slice(0, limit);
   return (
-    <section className="w-full" aria-label="Recent projects">
+    <section className="mt-7 w-full" aria-label="Recent projects">
       <div className="mb-1 flex items-center justify-between px-3">
         <h2 className="m-0 text-xs font-medium text-muted-foreground">Recent projects</h2>
         {recent.length > limit && onViewAll && (
