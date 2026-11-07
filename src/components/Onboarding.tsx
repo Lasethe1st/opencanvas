@@ -35,6 +35,7 @@ import { HomeRightPanel } from './home/HomeRightPanel';
 import { HomeAccount, HomePlan } from './home/HomeAccount';
 import { MemoryList } from './home/HomeMemory';
 import { HomeOnboardingTasks, useOnboarding, type OnboardingTask } from './home/HomeOnboardingTasks';
+import { HomeTopBlur } from './home/HomeTopBlur';
 import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
 import { HomeStatusPills } from './home/HomeStatusPills';
 import type { RunningJob } from '../lib/running-work';
@@ -745,6 +746,7 @@ export function Onboarding() {
               </div>
             )}
           </main>
+          <HomeTopBlur />
           </div>
           <HomeRightPanel open={sourcesOpen} title="Sources" contentKey={`sources-${sources.length}`} file={openFile ? <FileViewer file={openFile} onClose={() => setOpenFile(null)} /> : undefined}>
             <SourcesPanel sources={sources} file={openFile} onFile={setOpenFile} />
