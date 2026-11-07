@@ -1,8 +1,8 @@
 import { highlight } from "../../lib/highlight";
-import { Check, CircleNotch, ShieldWarning, SpeakerHigh, Stop, Wrench, X } from '../../lib/home-icons';
+import { Check, CircleNotch, ShieldWarning, Stop, Wrench, X } from '../../lib/home-icons';
 import { humanizeAiError } from "../../lib/ai-errors";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowDown01Icon, BookmarkAdd02Icon, BookmarkCheck02Icon, Copy01Icon, Edit02Icon } from "@hugeicons/core-free-icons";
+import { ArrowDown01Icon, PauseIcon, PlayIcon, BookmarkAdd02Icon, BookmarkCheck02Icon, Copy01Icon, Edit02Icon } from "@hugeicons/core-free-icons";
 import { ThumbsDown, ThumbsUp } from '../../lib/home-icons';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import type { AiChatItem } from "../../../shared/ai";
@@ -32,7 +32,7 @@ import { useThinkingPhrase, withEllipsis } from "../../lib/thinking-phrases";
 import { AgentOrb } from "@/components/ui/agent-orb";
 import { SOURCE_META, SourceIcon, type SourceKind } from "./SourcesPanel";
 import { cn } from "@/lib/utils";
-import { speakReply, stopSpeech, useSpeech } from "../../lib/read-aloud";
+import { pauseSpeech, resumeSpeech, speakReply, useSpeech } from "../../lib/read-aloud";
 import { referencesIn } from "../assistant-shapes";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { DiffCounts } from "../DiffCounts";
@@ -596,6 +596,8 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
   const speech = useSpeech();
   const mine = speech.id === id;
   const playing = mine && speech.phase !== "idle";
+  const speaking = mine && speech.phase === "speaking";
+  const paused = mine && speech.phase === "paused";
   const speakErr = mine && speech.phase === "idle" ? speech.error : "";
   const rate = (v: Vote) => setVote(id, v);
   return (
@@ -606,12 +608,12 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
       <Button
         variant="ghost"
         className={cn(btn, playing && "text-foreground", speakErr && "text-destructive hover:text-destructive")}
-        aria-label={playing ? "Stop reading aloud" : "Read aloud"}
+        aria-label={speaking ? "Pause reading" : paused ? "Resume reading" : "Read aloud"}
         aria-pressed={playing}
-        title={speakErr || (playing ? "Stop" : "Read aloud")}
-        onClick={() => (playing ? stopSpeech() : void speakReply(id, text))}
+        title={speakErr || (speaking ? "Pause" : paused ? "Resume" : "Read aloud")}
+        onClick={() => (speaking ? pauseSpeech() : paused ? resumeSpeech() : void speakReply(id, text))}
       >
-        {speech.phase === "loading" && mine ? <CircleNotch className="animate-spin" /> : playing ? <Stop weight="fill" /> : <SpeakerHigh />}
+        {speech.phase === "loading" && mine ? <CircleNotch className="animate-spin" /> : <HugeiconsIcon icon={speaking ? PauseIcon : PlayIcon} strokeWidth={2} />}
       </Button>
       <Button variant="ghost" className={cn(btn, vote === "up" && "text-foreground")} aria-label="Good reply" aria-pressed={vote === "up"} title="Good reply" onClick={() => rate("up")}>
         <ThumbsUp strokeWidth={2} className={vote === "up" ? "fill-current" : undefined} />
