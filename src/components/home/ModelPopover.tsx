@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
-import { CaretDown, Check } from '../../lib/home-icons';
+import { Check } from '../../lib/home-icons';
 import { providerMeta, type AiProviderKind, type AiThinkingEffort } from '../../../shared/ai';
 import { ModelLogo } from './ModelLogo';
 import { EFFORTS, ReasoningEffort } from './ReasoningEffort';
@@ -79,7 +79,6 @@ export function ModelPopover({
               <span className="min-w-0 truncate text-foreground">
                 {modelLabel.replace(/^claude\s+/i, '')} <span className="opacity-50">-</span> {effortMeta.label}
               </span>
-              <CaretDown className="size-3.5 shrink-0 opacity-60" />
             </>
           )}
         </button>
