@@ -143,7 +143,7 @@ export function HomeLocationToggle({ className }: { className?: string }) {
     >
       <span
         aria-hidden
-        className="absolute start-[2px] top-[2px] size-7 rounded-full bg-background shadow-[0_1px_3px_rgb(0_0_0/0.18)] motion-safe:transition-transform motion-safe:duration-[380ms] motion-safe:ease-[cubic-bezier(0.34,1.45,0.64,1)]"
+        className="absolute start-[2px] top-[2px] size-7 rounded-full bg-background shadow-[0_1px_3px_rgb(0_0_0/0.18)] [[data-theme=dark]_&]:bg-foreground/[0.22] [[data-theme=dark]_&]:shadow-none motion-safe:transition-transform motion-safe:duration-[380ms] motion-safe:ease-[cubic-bezier(0.34,1.45,0.64,1)]"
         style={{ transform: `translateX(${index * 28}px)` }}
       />
       {SEGMENTS.map((s, i) => (
