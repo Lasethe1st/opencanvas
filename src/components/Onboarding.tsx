@@ -1,6 +1,6 @@
 import { ChatCircle, FolderSimple, History, Lightning } from '../lib/home-icons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { Bug01Icon, Delete02Icon, FolderZipIcon, LayoutAlignLeftIcon, LayoutAlignRightIcon, LinkSquare02Icon, Refresh01Icon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
+import { Bug01Icon, Delete02Icon, FolderOpenIcon, FolderZipIcon, LayoutAlignLeftIcon, LayoutAlignRightIcon, LinkSquare02Icon, Refresh01Icon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
 import { Library } from '../lib/home-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentProject, SkillMeta } from '../../shared/types';
@@ -22,7 +22,8 @@ import { getState, setState, toast, useStore } from '../lib/store';
 import { homeItemActions, type HomeMenuAction } from './home/HomeItemMenu';
 import { HomeActionPills } from './home/HomeActionPills';
 import { DeleteProjectDialog } from './home/DeleteProjectDialog';
-import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
+import { HomeProjectsPage } from './home/HomeProjectsPage';
+import { ProjectThumb, timeAgo } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat, typedText } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
 import { HomeComposerContext } from './home/HomeComposerContext';
@@ -46,7 +47,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDisplayName } from '../lib/prefs';
 
-type HomeDialogState = { kind: 'new'; path: StartPath | null; brief: string; repo: string } | { kind: 'projects' } | { kind: 'chats' } | { kind: 'memory' };
+type HomeDialogState = { kind: 'new'; path: StartPath | null; brief: string; repo: string } | { kind: 'chats' } | { kind: 'memory' };
 
 /** A pool of openers: some warm, some professional, some a little witty. The name is in every one. */
 const GREETINGS: Array<(name: string, part: string) => string> = [
@@ -121,6 +122,12 @@ export function Onboarding() {
   const [voiceMode, setVoiceMode] = useState(false);
   // Home opens with the left nav closed; the toggle still works for the session.
   const [navOpen, setNavOpen] = useState(false);
+  /** The main pane shows the chat, or the Projects page over it. */
+  const [view, setView] = useState<'home' | 'projects'>('home');
+  const openProjects = useCallback(() => {
+    setDialog(null);
+    setView('projects');
+  }, []);
   const setNav = useCallback((open: boolean) => setNavOpen(open), []);
 
   const chatActive = aiChat.length > 0 || !!aiTurnId || voiceMode;
@@ -254,6 +261,7 @@ export function Onboarding() {
 
   const pickChat = useCallback((chat: HomeChatRecord) => {
     activeChatId.current = chat.id;
+    setView('home');
     stopAi();
     setState({ homeActiveChatId: chat.id, dockDraft: '', aiChat: itemsForHomeChat(chat), aiTurnId: null });
     void api.ai.hydrate(historyTurnsForHomeChat(chat));
@@ -355,6 +363,7 @@ export function Onboarding() {
   const newChat = useCallback(() => {
     activeChatId.current = null;
     setDialog(null);
+    setView('home');
     stopAi();
     setState({ homeActiveChatId: null, dockDraft: '', aiChat: [], aiTurnId: null });
     void api.ai.reset();
@@ -486,7 +495,7 @@ export function Onboarding() {
   const library: NavRow[] = useMemo(
     () => [
       { id: 'chats', label: 'Chats', icon: <ChatCircle />, onSelect: () => setDialog({ kind: 'chats' }) },
-      { id: 'projects', label: 'Projects', icon: <FolderSimple />, disabled: busy, onSelect: () => setDialog({ kind: 'projects' }) },
+      { id: 'projects', label: 'Projects', icon: <FolderSimple />, disabled: busy, onSelect: () => openProjects() },
       { id: 'skills', label: 'Skills', icon: <Lightning />, onSelect: openSkills },
       { id: 'memory', label: 'Memory', icon: <History />, onSelect: () => setDialog({ kind: 'memory' }) },
     ],
@@ -522,7 +531,7 @@ export function Onboarding() {
           onSelect: () => void openRecent(p.root),
           menu: projectMenu(p),
         })),
-        more: (recent?.length ?? 0) > RECENT ? { label: 'View All', onSelect: () => setDialog({ kind: 'projects' }) } : undefined,
+        more: (recent?.length ?? 0) > RECENT ? { label: 'View All', onSelect: () => openProjects() } : undefined,
       },
     ],
     [chats, recent, busy, pickChat, openNew, chatMenu, projectMenu],
@@ -590,14 +599,23 @@ export function Onboarding() {
           <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[var(--r-pill)] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
             <HugeiconsIcon icon={navOpen ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
           </Button>
+          {view === 'projects' && (
+            <HomeProjectsPage
+              recent={recent}
+              busy={busy}
+              onOpen={(root) => void openRecent(root)}
+              onNew={() => openNew()}
+              menuFor={(p) => [{ id: 'open', label: 'Open', icon: <HugeiconsIcon icon={FolderOpenIcon} strokeWidth={2} />, onSelect: () => void openRecent(p.root) }, ...recentActions(p)]}
+            />
+          )}
           <HomeAccount onSettings={() => setState({ settingsOpen: true })} />
           <div className="absolute start-14 top-3 z-20 flex max-w-[calc(100%-9rem)] items-center gap-2">
-            <span title={chatTitle} className="inline-flex h-9 max-w-[240px] min-w-0 items-center overflow-hidden rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground">
+            <span title={chatTitle} className={cn('inline-flex h-9 max-w-[240px] min-w-0 items-center overflow-hidden rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground', view === 'projects' && 'hidden')}>
               <span className="truncate">{chatTitle}</span>
             </span>
             <div ref={setChipHost} className="contents" />
           </div>
-          {(sources.length > 0 || sourcesOpen) && (
+          {view === 'home' && (sources.length > 0 || sourcesOpen) && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -641,7 +659,7 @@ export function Onboarding() {
                     {!voiceMode && (
                       <HomeStatusPills
                         className="min-w-0 px-1"
-                        onOpenProjects={() => setDialog({ kind: 'projects' })}
+                        onOpenProjects={() => openProjects()}
                         onOpenRunning={openRunning}
                       />
                     )}
@@ -704,7 +722,7 @@ export function Onboarding() {
                   {!voiceMode && runningCount > 0 && (
                     <HomeStatusPills
                       className="w-full min-w-0 px-1"
-                      onOpenProjects={() => setDialog({ kind: 'projects' })}
+                      onOpenProjects={() => openProjects()}
                       onOpenRunning={openRunning}
                     />
                   )}
@@ -731,7 +749,7 @@ export function Onboarding() {
                       history={history}
                           onListeningChange={setDictating}
                       footerStart={<HomeComposerExtras variant="composer" />}
-                      footerEnd={<HomeComposerContext projects={recent ?? []} onOpenProjects={() => setDialog({ kind: 'projects' })} />}
+                      footerEnd={<HomeComposerContext projects={recent ?? []} onOpenProjects={() => openProjects()} />}
                     />
                   </div>
                   <HomeActionPills
@@ -791,11 +809,6 @@ export function Onboarding() {
               toast(`Deleted ${deleting.name}`, 'success');
             }}
           />
-        )}
-        {dialog?.kind === 'projects' && (
-          <HomeDialog title="All projects" onClose={closeDialog}>
-            <AllProjectsList recent={recent} />
-          </HomeDialog>
         )}
         {dialog?.kind === 'memory' && (
           <HomeDialog title="Memory" onClose={closeDialog}>
