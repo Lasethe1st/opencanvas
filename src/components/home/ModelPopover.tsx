@@ -24,21 +24,6 @@ function ThinkingSlider({ value, onChange, modelLabel }: { value: AiThinkingEffo
 }
 
 /** One popup for model and thinking: models grouped by provider, then the thinking slider. */
-/** Signal-strength bars: how hard the model thinks. A readout, not a control. */
-function EffortBars({ level }: { level: number }) {
-  return (
-    <span className="flex h-3 shrink-0 items-end gap-[2px]" aria-hidden data-effort-bars={level}>
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className={cn('w-[3px] rounded-[1px] transition-colors duration-300', i < level ? 'bg-foreground' : 'bg-foreground/20')}
-          style={{ height: 5 + i * 3, transitionDelay: `${i * 60}ms` }}
-        />
-      ))}
-    </span>
-  );
-}
-
 export function ModelPopover({
   provider,
   modelLabel,
@@ -91,7 +76,9 @@ export function ModelPopover({
           <ModelLogo provider={provider} />
           {!logoOnly && (
             <>
-              <EffortBars level={Math.max(0, EFFORTS.findIndex((e) => e.id === effort)) + 1} />
+              <span className="min-w-0 truncate text-foreground">
+                {modelLabel.replace(/^claude\s+/i, '')} <span className="opacity-50">-</span> {effortMeta.label}
+              </span>
               <CaretDown className="size-3.5 shrink-0 opacity-60" />
             </>
           )}
