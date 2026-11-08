@@ -25,7 +25,7 @@ import { DeleteProjectDialog } from './home/DeleteProjectDialog';
 import { AllProjectsList, ProjectThumb, timeAgo } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat, typedText } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
-import { HomeComposerContext } from './home/HomeComposerContext';
+import { HomeLocationToggle, HomeProjectPill } from './home/HomeWorkspace';
 import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
 import { HomeDialog } from './home/HomeDialog';
 import { NewProjectDialog, type StartPath } from './home/NewProjectDialog';
@@ -677,7 +677,7 @@ export function Onboarding() {
                           history={history}
                           onListeningChange={setDictating}
                         />
-                        <HomeComposerExtras />
+                        <HomeComposerExtras after={<HomeProjectPill projects={recent ?? []} onOpenProjects={() => setDialog({ kind: 'projects' })} />} />
                         <div className="flex flex-wrap items-center gap-2 px-1">
                           <HomeAiHint />
                         </div>
@@ -730,8 +730,13 @@ export function Onboarding() {
                       onWebSearch={toggleWeb}
                       history={history}
                           onListeningChange={setDictating}
-                      footerStart={<HomeComposerExtras variant="composer" />}
-                      footerEnd={<HomeComposerContext projects={recent ?? []} onOpenProjects={() => setDialog({ kind: 'projects' })} />}
+                      footerStart={
+                        <>
+                          <HomeProjectPill projects={recent ?? []} onOpenProjects={() => setDialog({ kind: 'projects' })} />
+                          <HomeLocationToggle />
+                        </>
+                      }
+                      footerEnd={<HomeComposerExtras variant="composer" />}
                     />
                   </div>
                   <HomeActionPills

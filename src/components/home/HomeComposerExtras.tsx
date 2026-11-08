@@ -1,5 +1,5 @@
 import { ArrowCounterClockwise, Brain, CaretDown, CaretRight, Check, CircleNotch, DotsSixVertical, DotsThree, ListNumbers, Pause, Pencil, Question, Trash, X } from '../../lib/home-icons';
-import { useEffect, useId, useMemo, useRef, useState, type DragEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   providerMeta,
@@ -582,7 +582,33 @@ export function HomeContextRing({ className }: { className?: string }) {
   return <ContextUsageRing used={used} limit={contextWindow(settings.model ?? "")} className={className} />;
 }
 
-export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "shadow" | "composer" } = {}) {
+/** A pure ring hugging the model button: how much of it is filled says how hard the model thinks. No gap between ring and button. */
+function EffortRing({ effort, children }: { effort: string; children: ReactNode }) {
+  const stop = Math.max(0, EFFORTS.findIndex((e) => e.id === effort)) + 1;
+  const R = 15;
+  const C = 2 * Math.PI * R;
+  return (
+    <span data-effort-ring={effort} className="relative inline-flex size-8 shrink-0 items-center justify-center rounded-full">
+      <svg viewBox="0 0 32 32" className="pointer-events-none absolute inset-0 size-full -rotate-90" aria-hidden>
+        <circle cx="16" cy="16" r={R} fill="none" strokeWidth="2" className="stroke-foreground/[0.12]" />
+        <circle
+          cx="16"
+          cy="16"
+          r={R}
+          fill="none"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeDasharray={C}
+          strokeDashoffset={C * (1 - stop / EFFORTS.length)}
+          className="stroke-foreground motion-safe:transition-[stroke-dashoffset] motion-safe:duration-500 motion-safe:ease-[cubic-bezier(0.34,1.2,0.64,1)]"
+        />
+      </svg>
+      {children}
+    </span>
+  );
+}
+
+export function HomeComposerExtras({ variant = "bar", after }: { variant?: "bar" | "shadow" | "composer"; /** Bar only: what sits after the model, such as the project or branch. */ after?: ReactNode } = {}) {
   const status = useStore((s) => s.aiStatus);
   const settings = status?.settings;
   const aiChat = useStore((s) => s.aiChat);
@@ -659,14 +685,14 @@ export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "sha
       align={variant === "shadow" ? "end" : "start"}
       avoidCollisions={variant !== "shadow"}
       logoOnly={variant === "shadow" || variant === "composer"}
-      triggerClassName={variant === "composer" ? "size-8 bg-foreground/[0.07] hover:bg-foreground/[0.12]" : undefined}
+      triggerClassName={variant === "composer" ? "size-7 bg-foreground/[0.07] hover:bg-foreground/[0.12]" : undefined}
     />
   );
 
   if (variant === "composer")
     return (
       <>
-        {picker}
+        <EffortRing effort={effort}>{picker}</EffortRing>
         {allOpen && <AllModelsDialog models={models} selectedId={settings.model} onPick={pickModel} onClose={() => setAllOpen(false)} />}
       </>
     );
@@ -681,8 +707,9 @@ export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "sha
     );
 
   return (
-    <div className="flex w-full flex-wrap items-center justify-start gap-0 px-1">
+    <div className="flex w-full flex-wrap items-center justify-start gap-1 px-1">
       {picker}
+      {after}
 
 
       <ContextUsageRing used={usage.used} limit={usage.limit} className="ms-auto" />
