@@ -582,37 +582,6 @@ export function HomeContextRing({ className }: { className?: string }) {
   return <ContextUsageRing used={used} limit={contextWindow(settings.model ?? "")} className={className} />;
 }
 
-/** A dial of radial ticks around the model button, like a radio volume knob: ticks light up to show how hard the model thinks. */
-const TICKS = 12;
-function EffortRing({ effort, children }: { effort: string; children: ReactNode }) {
-  const stop = Math.max(0, EFFORTS.findIndex((e) => e.id === effort)) + 1;
-  const lit = Math.round((stop / EFFORTS.length) * TICKS);
-  return (
-    <span data-effort-ring={effort} data-lit={lit} className="relative inline-flex size-8 shrink-0 items-center justify-center rounded-full">
-      <svg viewBox="0 0 32 32" className="pointer-events-none absolute inset-0 size-full" aria-hidden>
-        {Array.from({ length: TICKS }, (_, i) => {
-          const a = (i / TICKS) * 2 * Math.PI - Math.PI / 2;
-          const on = i < lit;
-          return (
-            <line
-              key={i}
-              x1={16 + Math.cos(a) * 13.9}
-              y1={16 + Math.sin(a) * 13.9}
-              x2={16 + Math.cos(a) * 15.9}
-              y2={16 + Math.sin(a) * 15.9}
-              strokeWidth="1.7"
-              strokeLinecap="round"
-              className={on ? "stroke-foreground" : "stroke-foreground/[0.18]"}
-              style={{ transition: "stroke 220ms ease", transitionDelay: `${i * 28}ms` }}
-            />
-          );
-        })}
-      </svg>
-      {children}
-    </span>
-  );
-}
-
 export function HomeComposerExtras({ variant = "bar", after }: { variant?: "bar" | "shadow" | "composer"; /** Bar only: what sits after the model, such as the project or branch. */ after?: ReactNode } = {}) {
   const status = useStore((s) => s.aiStatus);
   const settings = status?.settings;
@@ -689,15 +658,15 @@ export function HomeComposerExtras({ variant = "bar", after }: { variant?: "bar"
       side={variant === "shadow" || variant === "composer" ? "bottom" : "top"}
       align={variant === "shadow" ? "end" : "start"}
       avoidCollisions={variant !== "shadow"}
-      logoOnly={variant === "shadow" || variant === "composer"}
-      triggerClassName={variant === "composer" ? "size-[26px] bg-foreground/[0.07] hover:bg-foreground/[0.12]" : undefined}
+      logoOnly={variant === "shadow"}
+      triggerClassName={variant === "composer" ? "h-8 min-w-0 max-w-[220px] shrink bg-foreground/[0.07] px-2.5 text-foreground hover:bg-foreground/[0.12] data-[state=open]:bg-foreground/[0.12]" : undefined}
     />
   );
 
   if (variant === "composer")
     return (
       <>
-        <EffortRing effort={effort}>{picker}</EffortRing>
+        {picker}
         {allOpen && <AllModelsDialog models={models} selectedId={settings.model} onPick={pickModel} onClose={() => setAllOpen(false)} />}
       </>
     );
