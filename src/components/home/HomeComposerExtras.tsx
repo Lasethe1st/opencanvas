@@ -583,7 +583,7 @@ export function HomeContextRing({ className }: { className?: string }) {
 }
 
 /** A dial of radial ticks around the model button, like a radio volume knob: ticks light up to show how hard the model thinks. */
-const TICKS = 24;
+const TICKS = 12;
 function EffortRing({ effort, children }: { effort: string; children: ReactNode }) {
   const stop = Math.max(0, EFFORTS.findIndex((e) => e.id === effort)) + 1;
   const lit = Math.round((stop / EFFORTS.length) * TICKS);
@@ -600,10 +600,10 @@ function EffortRing({ effort, children }: { effort: string; children: ReactNode 
               y1={16 + Math.sin(a) * 13.9}
               x2={16 + Math.cos(a) * 15.9}
               y2={16 + Math.sin(a) * 15.9}
-              strokeWidth="1.3"
+              strokeWidth="1.7"
               strokeLinecap="round"
               className={on ? "stroke-foreground" : "stroke-foreground/[0.18]"}
-              style={{ transition: "stroke 220ms ease", transitionDelay: `${i * 14}ms` }}
+              style={{ transition: "stroke 220ms ease", transitionDelay: `${i * 28}ms` }}
             />
           );
         })}
