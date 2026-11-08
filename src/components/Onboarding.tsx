@@ -1,6 +1,6 @@
 import { ChatCircle, FolderSimple, History, Lightning } from '../lib/home-icons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { Bug01Icon, Delete02Icon, FolderZipIcon, LayoutAlignLeftIcon, LayoutAlignRightIcon, LinkSquare02Icon, Refresh01Icon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
+import { Bug01Icon, UserGroupIcon, Delete02Icon, FolderZipIcon, LayoutAlignLeftIcon, LayoutAlignRightIcon, LinkSquare02Icon, Refresh01Icon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
 import { Library } from '../lib/home-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentProject, SkillMeta } from '../../shared/types';
@@ -38,6 +38,7 @@ import { HomeOnboardingTasks, useOnboarding, type OnboardingTask } from './home/
 import { isGuest, sayToHost } from '../lib/collab';
 import { HomeCollab } from './home/HomeCollab';
 import { HomeTopBlur } from './home/HomeTopBlur';
+import { loadSharedChats, removeSharedChat, saveSharedChats, upsertSharedChat, type SharedChatRecord } from '../lib/shared-chats';
 import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
 import { HomeStatusPills } from './home/HomeStatusPills';
 import type { RunningJob } from '../lib/running-work';
@@ -148,6 +149,28 @@ export function Onboarding() {
     const first = aiChat.find((i) => i.kind === 'user');
     return first && first.kind === 'user' && typedText(first.text).trim() ? titleFromPrompt(typedText(first.text)) : 'New chat';
   }, [aiChat]);
+
+  // Shared chats this computer has been in: remembered so the left lane can list them after they end.
+  const collab = useStore((s) => s.collab);
+  const [shared, setShared] = useState<SharedChatRecord[]>(loadSharedChats);
+  const sharedRoom = collab.status === 'host' || collab.status === 'guest' ? collab.room : '';
+  const sharedRole = collab.you?.role;
+  const sharedProject = useStore((s) => s.homeProjectName);
+  const sharedChatId = useStore((s) => s.homeActiveChatId);
+  useEffect(() => {
+    if (!sharedRoom || !sharedRole) return;
+    setShared((cur) =>
+      upsertSharedChat(cur, {
+        room: sharedRoom,
+        title: chatTitle,
+        project: sharedProject || 'No project',
+        role: sharedRole,
+        at: Date.now(),
+        chatId: collab.status === 'host' ? sharedChatId ?? undefined : undefined,
+      }),
+    );
+  }, [sharedRoom, sharedRole, chatTitle, sharedProject, sharedChatId, collab.status]);
+  useEffect(() => saveSharedChats(shared), [shared]);
 
   const chatSources = useSources(aiChat);
   const [mentioned, setMentioned] = useState<Source[]>([]);
@@ -525,6 +548,27 @@ export function Onboarding() {
         more: { label: 'View All', onSelect: () => setDialog({ kind: 'chats' }) },
       },
       {
+        id: 'shared-chats',
+        title: 'Shared chats',
+        empty: 'Share a chat from the top right',
+        entries: shared.slice(0, RECENT).map((r) => {
+          const live = r.room === sharedRoom;
+          const saved = r.chatId ? chats.find((c) => c.id === r.chatId) : undefined;
+          return {
+            id: r.room,
+            label: r.title,
+            meta: `${r.project} · ${live ? 'Live' : timeAgo(r.at)}`,
+            icon: <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className={cn('size-5 p-0.5', live ? 'text-emerald-500' : 'text-muted-foreground')} aria-hidden />,
+            onSelect: () => {
+              if (live) focusPrompt();
+              else if (saved) pickChat(saved);
+              else toast('This shared chat has ended. Ask the host for a new invite.');
+            },
+            menu: [{ id: 'remove', label: 'Remove from list', destructive: true, icon: <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />, onSelect: () => setShared((cur) => removeSharedChat(cur, r.room)) }],
+          };
+        }),
+      },
+      {
         id: 'recent-projects',
         title: 'Recent projects',
         add: { label: 'New project', onSelect: () => openNew() },
@@ -541,7 +585,7 @@ export function Onboarding() {
         more: (recent?.length ?? 0) > RECENT ? { label: 'View All', onSelect: () => setDialog({ kind: 'projects' }) } : undefined,
       },
     ],
-    [chats, recent, busy, pickChat, openNew, chatMenu, projectMenu],
+    [chats, recent, busy, pickChat, openNew, chatMenu, projectMenu, shared, sharedRoom],
   );
   const tasks: OnboardingTask[] = useMemo(() => {
     const core: OnboardingTask[] = [
