@@ -582,26 +582,31 @@ export function HomeContextRing({ className }: { className?: string }) {
   return <ContextUsageRing used={used} limit={contextWindow(settings.model ?? "")} className={className} />;
 }
 
-/** A pure ring hugging the model button: how much of it is filled says how hard the model thinks. No gap between ring and button. */
+/** A dial of radial ticks around the model button, like a radio volume knob: ticks light up to show how hard the model thinks. */
+const TICKS = 24;
 function EffortRing({ effort, children }: { effort: string; children: ReactNode }) {
   const stop = Math.max(0, EFFORTS.findIndex((e) => e.id === effort)) + 1;
-  const R = 15;
-  const C = 2 * Math.PI * R;
+  const lit = Math.round((stop / EFFORTS.length) * TICKS);
   return (
-    <span data-effort-ring={effort} className="relative inline-flex size-8 shrink-0 items-center justify-center rounded-full">
-      <svg viewBox="0 0 32 32" className="pointer-events-none absolute inset-0 size-full -rotate-90" aria-hidden>
-        <circle cx="16" cy="16" r={R} fill="none" strokeWidth="2" className="stroke-foreground/[0.12]" />
-        <circle
-          cx="16"
-          cy="16"
-          r={R}
-          fill="none"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeDasharray={C}
-          strokeDashoffset={C * (1 - stop / EFFORTS.length)}
-          className="stroke-foreground motion-safe:transition-[stroke-dashoffset] motion-safe:duration-500 motion-safe:ease-[cubic-bezier(0.34,1.2,0.64,1)]"
-        />
+    <span data-effort-ring={effort} data-lit={lit} className="relative inline-flex size-8 shrink-0 items-center justify-center rounded-full">
+      <svg viewBox="0 0 32 32" className="pointer-events-none absolute inset-0 size-full" aria-hidden>
+        {Array.from({ length: TICKS }, (_, i) => {
+          const a = (i / TICKS) * 2 * Math.PI - Math.PI / 2;
+          const on = i < lit;
+          return (
+            <line
+              key={i}
+              x1={16 + Math.cos(a) * 13.9}
+              y1={16 + Math.sin(a) * 13.9}
+              x2={16 + Math.cos(a) * 15.9}
+              y2={16 + Math.sin(a) * 15.9}
+              strokeWidth="1.3"
+              strokeLinecap="round"
+              className={on ? "stroke-foreground" : "stroke-foreground/[0.18]"}
+              style={{ transition: "stroke 220ms ease", transitionDelay: `${i * 14}ms` }}
+            />
+          );
+        })}
       </svg>
       {children}
     </span>
@@ -685,7 +690,7 @@ export function HomeComposerExtras({ variant = "bar", after }: { variant?: "bar"
       align={variant === "shadow" ? "end" : "start"}
       avoidCollisions={variant !== "shadow"}
       logoOnly={variant === "shadow" || variant === "composer"}
-      triggerClassName={variant === "composer" ? "size-7 bg-foreground/[0.07] hover:bg-foreground/[0.12]" : undefined}
+      triggerClassName={variant === "composer" ? "size-[26px] bg-foreground/[0.07] hover:bg-foreground/[0.12]" : undefined}
     />
   );
 
