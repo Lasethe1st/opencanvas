@@ -141,13 +141,14 @@ export function HomeProjectsPage({
                     })}
                     <div className="absolute inset-0 bg-gradient-to-t from-[color-mix(in_srgb,var(--home-card)_94%,transparent)] via-[color-mix(in_srgb,var(--home-card)_62%,transparent)] to-transparent" />
                   </div>
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-1 p-4">
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col p-4">
                     <strong className="truncate text-[15px] font-medium leading-tight text-foreground">{p.name}</strong>
-                    {p.description && <span className="line-clamp-2 text-[12px] leading-snug text-foreground/70">{p.description}</span>}
                     <span className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
                       {p.git && <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-3 shrink-0" aria-label="Git project" />}
                       Last visited {timeAgo(p.openedAt)}
                     </span>
+                    {/* Two lines are always reserved so every name sits at the same height. */}
+                    <span className="mt-2 line-clamp-2 min-h-[2.75em] text-[12px] leading-snug text-foreground/70">{p.description ?? ''}</span>
                   </div>
 
                   <div className="absolute end-2 top-2 z-20 flex items-center gap-1 [&_button]:bg-black/35 [&_button]:text-white [&_button]:backdrop-blur-md [&_button:hover]:bg-black/50">
@@ -160,7 +161,7 @@ export function HomeProjectsPage({
                     >
                       <HugeiconsIcon icon={StarIcon} strokeWidth={2} className={cn('size-4 transition-colors duration-150', fav && 'text-amber-300 [&_path]:fill-amber-300')} aria-hidden />
                     </button>
-                    <div className="opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
+                    <div className="[&_button]:rounded-full [&_button]:border-0 [&_button]:opacity-100">
                       <HomeEllipsisMenu actions={menuFor(p)} label={`${p.name} options`} />
                     </div>
                   </div>
