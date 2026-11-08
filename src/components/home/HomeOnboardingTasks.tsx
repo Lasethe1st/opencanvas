@@ -25,7 +25,11 @@ export function useOnboarding() {
   useEffect(() => subscribeOnboarding(() => setSaved(loadOnboarding())), []);
   const complete = useCallback((id: string) => {
     completeOnboardingTask(id);
-    setSaved(loadOnboarding());
+    // Keep the same object when nothing changed: the tasks effect below calls this on every render for finished tasks.
+    setSaved((prev) => {
+      const next = loadOnboarding();
+      return next.dismissed === prev.dismissed && next.done.length === prev.done.length && next.done.every((d, i) => d === prev.done[i]) ? prev : next;
+    });
   }, []);
   const dismiss = useCallback(() => {
     dismissOnboarding();
