@@ -92,7 +92,6 @@ export function ModelPopover({
           {!logoOnly && (
             <>
               <EffortBars level={Math.max(0, EFFORTS.findIndex((e) => e.id === effort)) + 1} />
-              <span className="truncate">{modelLabel}</span>
               <CaretDown className="size-3.5 shrink-0 opacity-60" />
             </>
           )}

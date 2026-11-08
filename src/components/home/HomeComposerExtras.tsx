@@ -659,7 +659,7 @@ export function HomeComposerExtras({ variant = "bar", after }: { variant?: "bar"
       align={variant === "shadow" ? "end" : "start"}
       avoidCollisions={variant !== "shadow"}
       logoOnly={variant === "shadow"}
-      triggerClassName={variant === "composer" ? "h-8 min-w-0 max-w-[220px] shrink bg-foreground/[0.07] px-2.5 text-foreground hover:bg-foreground/[0.12] data-[state=open]:bg-foreground/[0.12]" : undefined}
+      triggerClassName={variant === "composer" ? "h-8 shrink-0 bg-foreground/[0.07] px-2.5 text-foreground hover:bg-foreground/[0.12] data-[state=open]:bg-foreground/[0.12]" : undefined}
     />
   );
 
