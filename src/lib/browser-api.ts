@@ -44,12 +44,15 @@ const TEMPLATES: TemplateMeta[] = [
 const icon = (bg: string, letter: string) =>
   `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="${bg}"/><text x="16" y="22" text-anchor="middle" font-family="Arial" font-weight="700" font-size="17" fill="#fff">${letter}</text></svg>`)}`;
 
+const art = (a: string, b: string, c: string) =>
+  `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="400" height="600" fill="url(#g)"/><circle cx="280" cy="170" r="120" fill="${c}" fill-opacity=".55"/><rect x="40" y="260" width="190" height="14" rx="7" fill="#fff" fill-opacity=".5"/><rect x="40" y="288" width="130" height="14" rx="7" fill="#fff" fill-opacity=".35"/></svg>`)}`;
+
 const now = Date.now();
 const RECENT: RecentProject[] = [
-  { root: `${ROOT}\\email-collect`, name: 'Email Collect', git: true, openedAt: now - 2 * 60_000, icon: icon('#1a1916', 'S'), bytes: 184_320 },
-  { root: `${ROOT}\\ad-agency`, name: 'ad-agency', openedAt: now - 6 * 60_000, icon: icon('#ff4d2e', 'N'), bytes: 1_248_000 },
-  { root: `${ROOT}\\fieldday-launch`, name: 'Field Day launch', openedAt: now - 3 * 3600_000, icon: icon('#111111', 'F'), bytes: 892_160 },
-  { root: `${ROOT}\\portfolio-2026`, name: 'Portfolio 2026', openedAt: now - 2 * 86_400_000, bytes: 512_000 },
+  { root: `${ROOT}\\email-collect`, name: 'Email Collect', git: true, openedAt: now - 2 * 60_000, icon: icon('#1a1916', 'S'), bytes: 184_320, image: art('#f6d365', '#fda085', '#ffffff'), description: 'Collects sign-ups from your landing page and sends a welcome email.' },
+  { root: `${ROOT}\\ad-agency`, name: 'ad-agency', openedAt: now - 6 * 60_000, icon: icon('#ff4d2e', 'N'), bytes: 1_248_000, image: art('#243b55', '#141e30', '#ff4d2e'), description: 'Marketing site for a small ad agency.' },
+  { root: `${ROOT}\\fieldday-launch`, name: 'Field Day launch', openedAt: now - 3 * 3600_000, icon: icon('#111111', 'F'), bytes: 892_160, image: art('#11998e', '#38ef7d', '#ffffff'), description: 'Launch page and schedule for the Field Day event.' },
+  { root: `${ROOT}\\portfolio-2026`, name: 'Portfolio 2026', openedAt: now - 2 * 86_400_000, bytes: 512_000, description: 'Selected work and case studies.' },
   { root: `${ROOT}\\kin-dashboard`, name: 'Kin dashboard', openedAt: now - 5 * 86_400_000, icon: icon('#2f6b4f', 'K'), bytes: 2_150_400 },
 ];
 

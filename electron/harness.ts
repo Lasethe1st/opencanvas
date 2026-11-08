@@ -37,6 +37,7 @@ export { createWorkspacePage } from './services/project-config';
 export { readWorkspace, writeWorkspace } from './services/workspace';
 export { createVariantTools, VARIANT_TOOL_NAMES } from './services/mcp-tools';
 export { faviconHrefs, projectFavicon } from './services/favicon';
+export { projectCard, projectDescription, shareImageHref } from './services/project-card';
 export { extractJson, githubSlug, goLiveOnVercel, publicAlias, vercelImportUrl } from './services/vercel';
 export { friendlyError, git, gitBranchOf, gitBranchesOf, gitClone, gitCommit, gitInit, gitPush, gitSetIdentity, gitSetRemote, gitStatus, gitSwitchBranch, normalizeRemote, parseStatus, remoteWebUrl, repoName } from './services/git';
 export { buildProjectZip, runInstructions } from './services/exporter';

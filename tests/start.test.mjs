@@ -98,3 +98,28 @@ test('gitClone rejects anything that is not a repository URL before touching dis
   assert.equal(asked, false);
   assert.deepEqual(fs.readdirSync(parent), []);
 });
+
+test('projectCard finds the share image and a short description', (t) => {
+  const root = tempDir(t);
+  write(root, 'index.html', '<head><meta property="og:image" content="/og.png"><meta name="description" content="A  small   shop."></head>');
+  write(root, 'public/og.png', 'png-bytes');
+  const card = h.projectCard(root);
+  assert.match(card.image, /^data:image\/png;base64,/);
+  assert.equal(card.description, 'A small shop.');
+});
+
+test('projectCard falls back to package.json, conventional files, and null', (t) => {
+  const root = tempDir(t);
+  write(root, 'package.json', JSON.stringify({ description: 'From package' }));
+  assert.deepEqual(h.projectCard(root), { image: null, description: 'From package' });
+  write(root, 'public/og-image.png', 'x');
+  assert.match(h.projectCard(root).image, /^data:image\/png/);
+});
+
+test('projectCard ignores remote and out-of-project images', (t) => {
+  const root = tempDir(t);
+  write(root, 'index.html', '<meta property="og:image" content="https://example.com/a.png">');
+  assert.equal(h.projectCard(root).image, null);
+  write(root, 'index.html', '<meta property="og:image" content="../../etc/passwd.png">');
+  assert.equal(h.projectCard(root).image, null);
+});

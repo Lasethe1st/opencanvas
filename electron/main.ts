@@ -30,6 +30,7 @@ import { buildProjectZip, runInstructions } from './services/exporter';
 import { runBuildCheck, validateExport } from './services/export-validate';
 import { googleFonts } from './services/fonts';
 import { projectFavicon } from './services/favicon';
+import { projectCard } from './services/project-card';
 import { deleteProjectFolder, isGitRepo } from './services/project-actions';
 import { goLiveOnVercel } from './services/vercel';
 import { createGithubRepo, gitBranchesOf, gitBranchOf, gitClone, gitCommit, gitInit, gitPull, gitPush, gitSetIdentity, gitSetRemote, gitStatus, gitSwitchBranch, remoteWebUrl } from './services/git';
@@ -700,7 +701,7 @@ function handle<A extends unknown[], R>(channel: string, fn: (...args: A) => R |
 function registerIpc() {
   handle('templates:list', () => TEMPLATES);
   handle('projects:recent', () =>
-    readRecent().map((p) => ({ ...p, icon: projectFavicon(p.root), bytes: projectBytes(p.root), git: isGitRepo(p.root) })),
+    readRecent().map((p) => ({ ...p, icon: projectFavicon(p.root), ...projectCard(p.root), bytes: projectBytes(p.root), git: isGitRepo(p.root) })),
   );
   handle('projects:defaultLocation', () => projectsDir());
 
