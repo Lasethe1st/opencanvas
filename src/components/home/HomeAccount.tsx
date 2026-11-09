@@ -54,9 +54,20 @@ export function HomeAccount({ onSettings }: { onSettings: () => void }) {
 type Person = { id: string; name: string; role: string; color: string };
 const ROLE: Record<string, string> = { owner: 'Host', editor: 'Can write' };
 const OPEN_W = 264;
-/** The closed pill shows up to four separate circles, each a different size. */
-const MAX_CIRCLES = 4;
-const CIRCLE_SIZES = [24, 18, 27, 21];
+/**
+ * The closed pill shows up to five circles in an uneven cluster, from tiny to large, none touching. A fixed set of
+ * slots (centre x, centre y, diameter in px, inside a 30px-high box); who sits in which slot and whether the cluster is
+ * flipped comes from the chat's first person, so it is stable but looks random from chat to chat.
+ */
+const MAX_CIRCLES = 5;
+const CLUSTER_H = 30;
+const SLOTS: ReadonlyArray<readonly [number, number, number]> = [
+  [11, 15, 22],
+  [30, 9, 14],
+  [33, 24, 10],
+  [46, 14, 8],
+  [52, 23, 12],
+];
 function hashOf(s: string) {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -73,6 +84,9 @@ function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?:
   const shown = people.slice(0, MAX_CIRCLES);
   const extra = people.length - shown.length;
   const seed = hashOf(people[0]?.id ?? '');
+  const slots = SLOTS.slice(0, shown.length);
+  const clusterW = Math.max(...slots.map(([x, , d]) => x + d / 2));
+  const flip = seed % 2 === 1;
 
   // The pill's natural width, so it can animate to the open width and back.
   useLayoutEffect(() => {
@@ -116,10 +130,15 @@ function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?:
           className="flex h-9 w-full items-center gap-2 ps-1.5 pe-2.5 text-xs font-medium text-foreground outline-offset-[-2px]"
         >
           <span ref={measure} className="inline-flex w-max items-center gap-2 whitespace-nowrap">
-            <span className="flex items-center gap-1" aria-hidden>
-              {shown.map((p, i) => (
-                <Avatar key={p.id} p={p} size={CIRCLE_SIZES[(seed + i) % CIRCLE_SIZES.length]} />
-              ))}
+            <span className="relative block shrink-0" style={{ width: clusterW, height: CLUSTER_H }} aria-hidden>
+              {shown.map((p, i) => {
+                const [x, y, d] = slots[(i + seed) % slots.length];
+                return (
+                  <span key={p.id} className="absolute" style={{ left: x - d / 2, top: (flip ? CLUSTER_H - y : y) - d / 2 }}>
+                    <Avatar p={p} size={d} />
+                  </span>
+                );
+              })}
             </span>
             {extra > 0 && <span className="tabular-nums text-muted-foreground">+{extra}</span>}
             <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className={cn('size-3.5 text-muted-foreground transition-transform duration-300', open && 'rotate-180')} aria-hidden />
