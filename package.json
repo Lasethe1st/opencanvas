@@ -6,6 +6,7 @@
   "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "relay": "node server/relay.mjs",
     "dev:browser": "vite --config vite.config.ts --port 5199 --strictPort",
     "build:electron": "node scripts/build-electron.mjs",
     "build:renderer": "vite build",
@@ -53,6 +54,7 @@
     "tailwindcss": "^4.3.3",
     "three": "^0.186.1",
     "vite": "^8.3.4",
+    "ws": "^8.18.3",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
@@ -60,6 +62,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/three": "^0.186.0",
+    "@types/ws": "^8.18.2",
     "electron": "44.7.0",
     "esbuild": "^0.28.2",
     "playwright-core": "^1.64.0",

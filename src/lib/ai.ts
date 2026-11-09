@@ -12,11 +12,15 @@ import { activeFrame, getState, setState, toast } from './store';
 import { getAsk } from './ask-box';
 import { clearAiTarget, markAiTarget } from './ai-working';
 import { reduceRunningJobs } from './running-work';
+import { broadcastAiEvent, isHost, onGuestMessage } from './collab';
+import type { Sender } from '../../shared/collab';
 
 type SendExtra = Pick<AiTurnContext, 'skills' | 'references' | 'webSearch' | 'images' | 'projectRoot'>;
 
 /** Follow-ups while a turn is running — drained when the current turn finishes. */
-const pendingRequests: { text: string; extra?: SendExtra }[] = [];
+const pendingRequests: { text: string; extra?: SendExtra; sender?: Sender }[] = [];
+/** Who wrote the message the AI is about to start on; stamped onto its start event so the chat shows the author. */
+let turnSender: Sender | null = null;
 /** Blocks overlapping send() calls before aiTurnId is set from the start event. */
 let sendLock = false;
 
@@ -26,7 +30,7 @@ function isBusyMessage(err: unknown): boolean {
 
 function drainQueue() {
   const next = pendingRequests.shift();
-  if (next) void sendToAi(next.text, next.extra);
+  if (next) void sendToAi(next.text, next.extra, next.sender);
 }
 
 function runningContext(s: ReturnType<typeof getState>) {
@@ -38,7 +42,19 @@ function runningContext(s: ReturnType<typeof getState>) {
   };
 }
 
-export function handleAiEvent(event: AiEvent) {
+/** Local AI events go to the chat as before, and — when this app hosts a shared chat — to every guest as well. */
+export function handleAiEvent(raw: AiEvent) {
+  let event = raw;
+  if (raw.type === 'start' && isHost()) {
+    const sender = turnSender ?? (({ id, name, color }) => ({ id, name, color }))(getState().collab.you!);
+    event = { ...raw, sender };
+    turnSender = null;
+  }
+  applyAiEvent(event);
+  broadcastAiEvent(event);
+}
+
+function applyAiEvent(event: AiEvent) {
   const s = getState();
   const frameId = s.activeFrameId;
   const inProject = !!s.project;
@@ -110,7 +126,7 @@ function turnContext(extra?: SendExtra): AiTurnContext {
 }
 
 /** Sends the request to the in-app AI. Queues while a turn is already running. */
-export async function sendToAi(request: string, extra?: SendExtra): Promise<boolean> {
+export async function sendToAi(request: string, extra?: SendExtra, sender?: Sender): Promise<boolean> {
   const text = request.trim();
   if (!text) return false;
 
@@ -118,7 +134,7 @@ export async function sendToAi(request: string, extra?: SendExtra): Promise<bool
   const followUp = !!getState().project && getState().aiChat.length > 0;
 
   if (getState().aiTurnId || sendLock) {
-    pendingRequests.push({ text, extra });
+    pendingRequests.push({ text, extra, sender });
     if (getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     if (followUp) void import('./onboarding').then((m) => m.completeOnboardingTask('ask-more'));
     return true;
@@ -127,6 +143,7 @@ export async function sendToAi(request: string, extra?: SendExtra): Promise<bool
   sendLock = true;
   try {
     if (getState().aiStopped) setState({ aiStopped: null });
+    turnSender = sender ?? null;
     await api.ai.send(text, turnContext(extra));
     if (getState().dockDraft.trim() === text) setState({ dockDraft: '' });
     if (followUp) void import('./onboarding').then((m) => m.completeOnboardingTask('ask-more'));
@@ -134,7 +151,7 @@ export async function sendToAi(request: string, extra?: SendExtra): Promise<bool
   } catch (err) {
     sendLock = false;
     if (isBusyMessage(err)) {
-      pendingRequests.push({ text, extra });
+      pendingRequests.push({ text, extra, sender });
       if (getState().dockDraft.trim() === text) setState({ dockDraft: '' });
       return true;
     }
@@ -165,3 +182,9 @@ export const approveAi = (id: string, allow: boolean) => void api.ai.approve(id,
 export function openAiSettings() {
   setState({ settingsOpen: true, settingsTab: 'ai' });
 }
+
+// A guest's message reaches the host here and joins the same queue as the host's own, so several people can type at once
+// and the AI answers them one after another.
+onGuestMessage((text, from) => {
+  void sendToAi(text, { webSearch: false }, { id: from.id, name: from.name, color: from.color });
+});

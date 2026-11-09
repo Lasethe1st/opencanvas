@@ -5,7 +5,7 @@ export function reduceAiChat(items: AiChatItem[], event: AiEvent): AiChatItem[] 
   const { turnId } = event;
   switch (event.type) {
     case 'start':
-      return [...items, { kind: 'user', id: `${turnId}:user`, text: event.request, ...(typeof event.at === 'number' ? { at: event.at } : {}) }];
+      return [...items, { kind: 'user', id: `${turnId}:user`, text: event.request, ...(typeof event.at === 'number' ? { at: event.at } : {}), ...(event.sender ? { sender: event.sender } : {}) }];
     case 'text': {
       const last = items[items.length - 1];
       if (last?.kind === 'assistant' && last.id.startsWith(`${turnId}:`)) {

@@ -35,6 +35,8 @@ import { HomeRightPanel } from './home/HomeRightPanel';
 import { HomeAccount, HomePlan } from './home/HomeAccount';
 import { MemoryList } from './home/HomeMemory';
 import { HomeOnboardingTasks, useOnboarding, type OnboardingTask } from './home/HomeOnboardingTasks';
+import { isGuest, sayToHost } from '../lib/collab';
+import { HomeCollab } from './home/HomeCollab';
 import { HomeTopBlur } from './home/HomeTopBlur';
 import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
 import { HomeStatusPills } from './home/HomeStatusPills';
@@ -73,7 +75,13 @@ function greeting(name: string, pick: number): string {
   return GREETINGS[pick % GREETINGS.length](who, part);
 }
 
-const focusPrompt = () => requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-home-prompt]')?.focus());
+const focusPrompt = () =>
+  requestAnimationFrame(() => {
+    const el = document.querySelector<HTMLElement>('[data-home-prompt]');
+    el?.focus();
+    // A composer that is swapped in while someone types (a shared chat's new message arrives) must not leave the caret at the start.
+    if (el instanceof HTMLTextAreaElement) el.setSelectionRange(el.value.length, el.value.length);
+  });
 
 function briefFromChat(items: { kind: string; text?: string }[]): string {
   const users = items.filter((i): i is { kind: 'user'; text: string } => i.kind === 'user' && typeof i.text === 'string');
@@ -98,6 +106,7 @@ export function Onboarding() {
   const aiChat = useStore((s) => s.aiChat);
   const aiTurnId = useStore((s) => s.aiTurnId);
   const aiReady = useStore((s) => !!s.aiStatus?.ready);
+  const viewerOnly = useStore((s) => s.collab.status === 'guest' && s.collab.you?.role === 'viewer');
   const dockDraft = useStore((s) => s.dockDraft);
   const runningCount = useStore((s) => s.runningJobs.length);
   const [recent, setRecent] = useState<RecentProject[] | null>(null);
@@ -295,6 +304,13 @@ export function Onboarding() {
   const sendHome = useCallback(async () => {
     const text = dockDraft.trim() || (attachments.length ? 'See the attached file' + (attachments.length > 1 ? 's.' : '.') : '');
     if (!text || busy) return;
+    // A guest in someone's shared chat writes to the host's chat; the host's AI answers, no key needed here.
+    if (isGuest()) {
+      if (getState().collab.you?.role === 'viewer') return;
+      sayToHost(text);
+      setState({ dockDraft: '' });
+      return;
+    }
     // No AI yet: Enter still starts the project from the brief — the key is optional, not a gate.
     if (!aiReady) {
       void startProjectFromBrief(text);
@@ -597,6 +613,7 @@ export function Onboarding() {
             </span>
             <div ref={setChipHost} className="contents" />
           </div>
+          <HomeCollab className={cn('absolute top-3 z-20', sources.length > 0 || sourcesOpen ? 'end-28' : 'end-3')} />
           {(sources.length > 0 || sourcesOpen) && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -661,7 +678,7 @@ export function Onboarding() {
                           onChange={(value) => setState({ dockDraft: value })}
                           onSubmit={() => void sendHome()}
                           onVoice={aiReady ? startVoice : undefined}
-                          disabled={busy}
+                          disabled={busy || viewerOnly}
                           sending={!!aiTurnId}
                           mentions={mentionOptions}
                           onMention={onMention}
@@ -715,7 +732,7 @@ export function Onboarding() {
                       onChange={(value) => setState({ dockDraft: value })}
                       onSubmit={() => void sendHome()}
                       onVoice={aiReady ? startVoice : undefined}
-                      disabled={busy}
+                      disabled={busy || viewerOnly}
                       sending={!!aiTurnId}
                       mentions={mentionOptions}
                       onMention={onMention}
