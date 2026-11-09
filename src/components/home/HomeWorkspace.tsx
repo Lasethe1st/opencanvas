@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CloudIcon, LaptopMinimalIcon } from "@hugeicons/core-free-icons";
 import type { RecentProject } from "../../../shared/types";
@@ -63,8 +63,11 @@ function useWorkspace(projects: RecentProject[]) {
   return { shown, folder, root, info, isRepo, branchText, load, switchTo };
 }
 
+/** Padding (20) + icon (16) + gap (6) around the label. */
+const PILL_CHROME = 42;
+
 const pillClass =
-  "flex h-8 min-w-0 w-[120px] shrink items-center gap-1.5 rounded-[var(--pill)] border-0 bg-foreground/[0.07] px-2.5 text-xs text-foreground outline-none transition-colors hover:bg-foreground/[0.12] data-[state=open]:bg-foreground/[0.12]";
+  "relative flex h-8 min-w-0 max-w-[190px] shrink items-center gap-1.5 overflow-hidden rounded-[var(--pill)] border-0 bg-foreground/[0.07] px-2.5 text-xs text-foreground outline-none transition-[width,background-color] duration-300 ease-out motion-reduce:transition-none hover:bg-foreground/[0.12] data-[state=open]:bg-foreground/[0.12]";
 
 /**
  * The file being worked on: its icon and name, cut short when long. A cloud project shows the git icon and the
@@ -75,16 +78,25 @@ export function HomeProjectPill({ projects, onOpenProjects, side = "top" }: { pr
   const w = useWorkspace(projects);
   const cloud = mode === "cloud";
   const label = cloud ? w.branchText : w.folder;
+  // The pill fits its content and glides between widths: the text is measured off-screen, then the width is set so it can transition.
+  const measure = useRef<HTMLSpanElement>(null);
+  const [width, setWidth] = useState<number>();
+  useLayoutEffect(() => {
+    if (measure.current) setWidth(Math.ceil(measure.current.offsetWidth) + PILL_CHROME);
+  }, [label, cloud]);
   return (
     <DropdownMenu onOpenChange={(o) => o && w.load()}>
       <DropdownMenuTrigger asChild>
-        <button type="button" data-home-project="" className={pillClass} aria-label={cloud ? `Git branch, ${label}` : `Project, ${label}`} title={cloud ? `${w.folder} · ${label}` : w.root ?? label}>
+        <button type="button" data-home-project="" className={pillClass} style={{ width }} aria-label={cloud ? `Git branch, ${label}` : `Project, ${label}`} title={cloud ? `${w.folder} · ${label}` : w.root ?? label}>
           {cloud ? (
             <GitBranch size={14} className="shrink-0 text-[var(--layer-form)]" />
           ) : (
             <ProjectFolderIcon name={label} className="size-4" />
           )}
           <span className="min-w-0 truncate">{label}</span>
+          <span ref={measure} aria-hidden className="pointer-events-none invisible absolute start-0 top-0 whitespace-nowrap">
+            {label}
+          </span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side={side} align="start" sideOffset={8} className="z-[120] max-h-[280px] min-w-[220px] max-w-[320px] overflow-y-auto rounded-2xl p-1">
