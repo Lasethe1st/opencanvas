@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useId, useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { GitBranchIcon, PlusSignIcon, Search02Icon, StarIcon } from '@hugeicons/core-free-icons';
 import type { RecentProject } from '../../../shared/types';
@@ -26,11 +26,42 @@ const hueOf = (s: string) => {
   return h % 360;
 };
 
-const BLUR_LAYERS = 5;
-/** Four to a row when there is room; fewer in a narrow pane. */
-const GRID = 'm-0 grid list-none grid-cols-2 gap-4 p-0 @3xl/card:grid-cols-3 @5xl/card:grid-cols-4';
+/** Four folders to a row when there is room; fewer in a narrow pane. */
+const GRID = 'm-0 grid list-none grid-cols-2 gap-x-4 gap-y-7 p-0 @3xl/card:grid-cols-3 @5xl/card:grid-cols-4';
 
-/** Every project as a card in the main pane. The left lane stays; this replaces the chat area while it is open. */
+/** A minimal, realistic folder: a darker back with its tab, a sheet of paper, and a lit front. Each project keeps one colour,
+ *  picked from its name. On hover the front dips and the paper rises, as if the folder were about to open. */
+function Folder({ hue }: { hue: number }) {
+  const id = useId().replace(/:/g, '');
+  return (
+    <div className="relative w-full max-w-[210px] transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] group-hover:-translate-y-1 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">
+      <svg viewBox="0 0 200 160" className="block w-full overflow-visible drop-shadow-[0_10px_14px_rgb(0_0_0/0.16)]" aria-hidden>
+        <defs>
+          <linearGradient id={`f${id}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={`hsl(${hue} 62% 72%)`} />
+            <stop offset="1" stopColor={`hsl(${hue} 52% 60%)`} />
+          </linearGradient>
+          <linearGradient id={`b${id}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={`hsl(${hue} 42% 52%)`} />
+            <stop offset="1" stopColor={`hsl(${hue} 42% 45%)`} />
+          </linearGradient>
+        </defs>
+        <path d="M14 12h54c6 0 9 2 13 7l4 6h101c8 0 14 6 14 14v103c0 8-6 14-14 14H14c-8 0-14-6-14-14V26c0-8 6-14 14-14z" fill={`url(#b${id})`} />
+        <g className="transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] group-hover:-translate-y-2.5 motion-reduce:transition-none">
+          <rect x="14" y="30" width="172" height="80" rx="6" fill="#fff" fillOpacity="0.92" />
+          <rect x="26" y="44" width="70" height="5" rx="2.5" fill="#000" fillOpacity="0.08" />
+          <rect x="26" y="56" width="110" height="5" rx="2.5" fill="#000" fillOpacity="0.06" />
+        </g>
+        <g className="transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] group-hover:translate-y-0.5 motion-reduce:transition-none">
+          <path d="M0 62c0-8 6-14 14-14h172c8 0 14 6 14 14v84c0 8-6 14-14 14H14c-8 0-14-6-14-14z" fill={`url(#f${id})`} />
+          <path d="M14 48.5h172c7 0 12.5 4.5 13.7 10.5-1.5-4-5.5-7-11-7H12c-5.500 0-9.500 3-11 7 1-5.500 6-10.500 13-10.500z" fill="#fff" fillOpacity="0.5" />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+/** Every project as a folder in the main pane. The left lane stays; this replaces the chat area while it is open. */
 export function HomeProjectsPage({
   recent,
   busy,
@@ -108,7 +139,7 @@ export function HomeProjectsPage({
         {recent === null ? (
           <div className={GRID}>
             {Array.from({ length: 4 }, (_, i) => (
-              <Skeleton key={i} className="aspect-[2/3] rounded-2xl" />
+              <Skeleton key={i} className="aspect-[5/4] rounded-2xl" />
             ))}
           </div>
         ) : shown.length === 0 ? (
@@ -119,51 +150,33 @@ export function HomeProjectsPage({
               const fav = favorites.includes(p.root);
               const h = hueOf(p.name);
               return (
-                <li key={p.root} className="group relative isolate aspect-[2/3] overflow-hidden rounded-2xl bg-muted shadow-[0_0_0_1px_rgb(0_0_0/0.06)] transition-[translate,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-10px_rgb(0_0_0/0.35)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 [[data-theme=dark]_&]:shadow-[0_0_0_1px_rgb(255_255_255/0.08)]">
-                  {p.image ? (
-                    <img src={p.image} alt="" draggable={false} className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transition-none" />
-                  ) : (
-                    <div aria-hidden className="absolute inset-0" style={{ background: `linear-gradient(160deg, hsl(${h} 42% 64%), hsl(${(h + 40) % 360} 46% 36%))` }}>
-                      <span className="absolute start-1/2 top-[26%] flex size-16 -translate-x-1/2 items-center justify-center overflow-hidden rounded-[22%] bg-white/25 text-2xl font-medium text-white shadow-[0_6px_18px_-6px_rgb(0_0_0/0.4)] backdrop-blur-sm">
-                        {p.icon ? <img src={p.icon} alt="" draggable={false} className="size-full object-cover" /> : (p.name.trim()[0] ?? '?').toUpperCase()}
-                      </span>
+                <li key={p.root} className="group relative isolate flex flex-col items-start gap-3">
+                  <div className="relative w-full max-w-[210px]">
+                    <Folder hue={h} />
+                    <div className="absolute end-1 top-1 z-20 flex items-center gap-1 [&_button]:bg-black/35 [&_button]:text-white [&_button]:backdrop-blur-md [&_button:hover]:bg-black/50">
+                      <button
+                        type="button"
+                        aria-pressed={fav}
+                        aria-label={fav ? `Remove ${p.name} from favorites` : `Add ${p.name} to favorites`}
+                        onClick={() => toggleFavorite(p.root)}
+                        className={cn('inline-flex size-7 items-center justify-center rounded-full outline-offset-2 transition-[opacity,background-color] duration-150', fav ? 'opacity-100' : 'opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100')}
+                      >
+                        <HugeiconsIcon icon={StarIcon} strokeWidth={2} className={cn('size-4 transition-colors duration-150', fav && 'text-amber-300 [&_path]:fill-amber-300')} aria-hidden />
+                      </button>
+                      <div className="[&_button]:rounded-full [&_button]:border-0 [&_button]:opacity-100">
+                        <HomeEllipsisMenu actions={menuFor(p)} label={`${p.name} options`} />
+                      </div>
                     </div>
-                  )}
-                  <button type="button" title={p.root} aria-label={`Open ${p.name}`} disabled={busy} onClick={() => onOpen(p.root)} className="absolute inset-0 z-10 rounded-2xl outline-offset-2 disabled:cursor-default" />
-
-                  {/* The name block: the image blurs more and more toward the bottom and settles into the pane colour. */}
-                  <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[58%]">
-                    {Array.from({ length: BLUR_LAYERS }, (_, i) => {
-                      const solid = Math.max(0, 70 - i * 15);
-                      const mask = `linear-gradient(to top, #000 0%, #000 ${solid}%, transparent ${solid + 30}%)`;
-                      const blur = `blur(${0.75 * 2 ** i}px)`;
-                      return <div key={i} className="absolute inset-0" style={{ backdropFilter: blur, WebkitBackdropFilter: blur, maskImage: mask, WebkitMaskImage: mask }} />;
-                    })}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[color-mix(in_srgb,var(--home-card)_94%,transparent)] via-[color-mix(in_srgb,var(--home-card)_62%,transparent)] to-transparent" />
                   </div>
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-1 p-4">
-                    <strong className="truncate text-[15px] font-medium leading-tight text-foreground">{p.name}</strong>
-                    {p.description && <span className="line-clamp-2 text-[12px] leading-snug text-foreground/70">{p.description}</span>}
-                    <span className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <button type="button" title={p.description ? `${p.name}: ${p.description}` : p.root} aria-label={`Open ${p.name}`} disabled={busy} onClick={() => onOpen(p.root)} className="absolute inset-0 z-10 rounded-2xl outline-offset-4 disabled:cursor-default" />
+                  <div className="pointer-events-none flex w-full min-w-0 max-w-[210px] flex-col items-start px-0.5 text-start">
+                    <strong className="max-w-full truncate text-[14px] font-medium leading-tight text-foreground">{p.name}</strong>
+                    <span className="mt-0.5 flex items-center gap-1 text-[11.5px] text-muted-foreground">
                       {p.git && <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-3 shrink-0" aria-label="Git project" />}
-                      Last visited {timeAgo(p.openedAt)}
+                      Last modified {timeAgo(p.openedAt)}
                     </span>
                   </div>
 
-                  <div className="absolute end-2 top-2 z-20 flex items-center gap-1 [&_button]:bg-black/35 [&_button]:text-white [&_button]:backdrop-blur-md [&_button:hover]:bg-black/50">
-                    <button
-                      type="button"
-                      aria-pressed={fav}
-                      aria-label={fav ? `Remove ${p.name} from favorites` : `Add ${p.name} to favorites`}
-                      onClick={() => toggleFavorite(p.root)}
-                      className={cn('inline-flex size-7 items-center justify-center rounded-full outline-offset-2 transition-[opacity,background-color] duration-150', fav ? 'opacity-100' : 'opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100')}
-                    >
-                      <HugeiconsIcon icon={StarIcon} strokeWidth={2} className={cn('size-4 transition-colors duration-150', fav && 'text-amber-300 [&_path]:fill-amber-300')} aria-hidden />
-                    </button>
-                    <div className="opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
-                      <HomeEllipsisMenu actions={menuFor(p)} label={`${p.name} options`} />
-                    </div>
-                  </div>
                 </li>
               );
             })}
