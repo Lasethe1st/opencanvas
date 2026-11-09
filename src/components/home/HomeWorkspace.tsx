@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CloudIcon, ComputerIcon } from "@hugeicons/core-free-icons";
+import { CloudIcon, LaptopMinimalIcon } from "@hugeicons/core-free-icons";
 import type { RecentProject } from "../../../shared/types";
 import { Check } from "../../lib/home-icons";
 import { ProjectFolderIcon } from "./ProjectFolderIcon";
@@ -64,7 +64,7 @@ function useWorkspace(projects: RecentProject[]) {
 }
 
 const pillClass =
-  "flex h-8 min-w-0 max-w-[190px] shrink items-center gap-1.5 rounded-[var(--pill)] border-0 bg-foreground/[0.07] px-2.5 text-xs text-foreground outline-none transition-colors hover:bg-foreground/[0.12] data-[state=open]:bg-foreground/[0.12]";
+  "flex h-8 min-w-0 w-[120px] shrink items-center gap-1.5 rounded-[var(--pill)] border-0 bg-foreground/[0.07] px-2.5 text-xs text-foreground outline-none transition-colors hover:bg-foreground/[0.12] data-[state=open]:bg-foreground/[0.12]";
 
 /**
  * The file being worked on: its icon and name, cut short when long. A cloud project shows the git icon and the
@@ -120,7 +120,7 @@ export function HomeProjectPill({ projects, onOpenProjects, side = "top" }: { pr
 }
 
 const SEGMENTS = [
-  { id: "local", label: "Local", hint: "A folder on this computer", icon: ComputerIcon },
+  { id: "local", label: "Local", hint: "A folder on this computer", icon: LaptopMinimalIcon },
   { id: "cloud", label: "Cloud", hint: "A project in a git repository", icon: CloudIcon },
 ] as const;
 
