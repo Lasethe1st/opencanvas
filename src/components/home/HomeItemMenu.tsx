@@ -267,3 +267,129 @@ export function HomeEllipsisMenu({
     </div>
   );
 }
+
+const BLOOM_POINT = 12;
+const BLOOM_MENU_W = 168;
+
+/** Right-click menu that blooms out of the pointer, with the same actions and look as the ellipsis menu. */
+export function HomeBloomContextMenu({
+  actions,
+  children,
+  className,
+}: {
+  actions: HomeMenuAction[];
+  children: ReactNode;
+  className?: string;
+}) {
+  const generation = useRef(0);
+  const closeTimer = useRef<number | null>(null);
+  const [at, setAt] = useState<{ top: number; left: number; anchor: 'start' | 'end'; direction: 'top' | 'bottom' } | null>(null);
+  const [phase, setPhase] = useState<'closed' | 'opening' | 'open'>('closed');
+
+  useEffect(() => {
+    if (phase !== 'opening') return;
+    const id = requestAnimationFrame(() => setPhase('open'));
+    return () => cancelAnimationFrame(id);
+  }, [phase]);
+
+  const close = () => {
+    const token = generation.current;
+    setPhase('closed');
+    if (closeTimer.current != null) window.clearTimeout(closeTimer.current);
+    closeTimer.current = window.setTimeout(() => {
+      if (generation.current === token) setAt(null);
+    }, BLOOM_CLOSE_MS);
+  };
+
+  useEffect(() => {
+    if (!at) return;
+    const onScroll = () => close();
+    window.addEventListener('scroll', onScroll, true);
+    return () => window.removeEventListener('scroll', onScroll, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [at]);
+
+  useEffect(() => () => {
+    if (closeTimer.current != null) window.clearTimeout(closeTimer.current);
+  }, []);
+
+  if (!actions.length) return <>{children}</>;
+
+  const menuH = actions.length * 34 + 14;
+  return (
+    <>
+      <div
+        className={className}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          generation.current += 1;
+          if (closeTimer.current != null) window.clearTimeout(closeTimer.current);
+          const flipX = e.clientX + BLOOM_MENU_W + 12 > window.innerWidth;
+          const flipY = e.clientY + menuH + 12 > window.innerHeight;
+          setAt({
+            left: flipX ? e.clientX - BLOOM_POINT : e.clientX,
+            top: flipY ? e.clientY - BLOOM_POINT : e.clientY,
+            anchor: flipX ? 'end' : 'start',
+            direction: flipY ? 'top' : 'bottom',
+          });
+          setPhase('opening');
+        }}
+      >
+        {children}
+      </div>
+      {at &&
+        createPortal(
+          <div
+            data-bloom-menu=""
+            style={{ position: 'fixed', top: at.top, left: at.left, width: BLOOM_POINT, height: BLOOM_POINT, zIndex: 400 }}
+          >
+            <Menu.Root
+              open={phase === 'open'}
+              onOpenChange={(next) => (next ? setPhase('open') : close())}
+              direction={at.direction}
+              anchor={at.anchor}
+              bounce={0.12}
+              visualDuration={0.28}
+            >
+              <Menu.Container
+                buttonSize={BLOOM_POINT}
+                menuWidth={BLOOM_MENU_W}
+                menuRadius={10}
+                buttonRadius={6}
+                className="border border-[color:var(--frost-border)] bg-[var(--frost-bg)] text-foreground"
+                style={{
+                  WebkitBackdropFilter: 'var(--frost-filter)',
+                  backdropFilter: 'var(--frost-filter)',
+                  boxShadow: phase === 'open' ? 'var(--shadow-md)' : 'none',
+                }}
+              >
+                <Menu.Trigger className="opacity-0" aria-label="Options">
+                  <span className="sr-only">Options</span>
+                </Menu.Trigger>
+                <Menu.Content className="flex w-[168px] flex-col gap-0.5 whitespace-nowrap p-1 pt-1.5">
+                  {actions.map((action) => (
+                    <Menu.Item
+                      key={action.id}
+                      className={cn(
+                        'flex w-full cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors duration-150 hover:bg-accent [&_svg]:size-4 [&_svg]:shrink-0',
+                        action.destructive
+                          ? 'bloom-destructive text-destructive [&_svg]:text-destructive'
+                          : 'text-foreground [&_svg]:text-muted-foreground',
+                      )}
+                      style={action.destructive ? { color: 'var(--destructive)' } : undefined}
+                      onSelect={action.onSelect}
+                    >
+                      {action.icon}
+                      {action.label}
+                    </Menu.Item>
+                  ))}
+                </Menu.Content>
+              </Menu.Container>
+            </Menu.Root>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
