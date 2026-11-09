@@ -1,6 +1,7 @@
 import { ArrowSquareOut, CaretRight, ChatCircle, ChatText, Check, Copy, FileText, FolderSimple, Globe, Lightning, MagnifyingGlass, X, type Icon as PhosphorIcon } from '../../lib/home-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { CollapseIcon, Copy01Icon, File02Icon, Folder02Icon } from '@hugeicons/core-free-icons';
+import { ProjectFolderIcon } from './ProjectFolderIcon';
+import { CollapseIcon, Copy01Icon, File02Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useMemo, useState } from 'react';
 import type { DirEntry } from '../../../shared/types';
 import { api } from '../../lib/api';
@@ -23,8 +24,17 @@ export const SOURCE_META: Record<SourceKind, { icon: PhosphorIcon; label: string
 };
 
 /** A source's icon: solid, in the colour of its kind. */
-export function SourceIcon({ kind, className = 'size-4' }: { kind: SourceKind; className?: string }) {
+export function SourceIcon({ kind, className = 'size-4', name }: { kind: SourceKind; className?: string; name?: string }) {
   const { icon: Icon, label, color } = SOURCE_META[kind];
+  // A project is its coloured folder, the same one as on the Projects page.
+  if (kind === 'project') {
+    return (
+      <span className="inline-flex shrink-0 items-center justify-center" title={label}>
+        <ProjectFolderIcon name={name} className={className} />
+        <span className="sr-only">{label}</span>
+      </span>
+    );
+  }
   return (
     <span className="inline-flex shrink-0 items-center justify-center" style={{ color }} title={label}>
       <Icon className={className} weight="fill" aria-hidden />
@@ -381,7 +391,7 @@ function TreeLevel({ root, rel, depth, selected, onFile }: { root: string; rel: 
             >
               {e.dir ? <CaretRight className={cn('size-3 shrink-0 motion-safe:transition-transform motion-safe:duration-150', expanded && 'rotate-90')} aria-hidden /> : <span className="size-3 shrink-0" aria-hidden />}
               {e.dir ? (
-                <HugeiconsIcon icon={Folder02Icon} strokeWidth={2} className="size-3.5 shrink-0 text-[color:var(--src-project)]" aria-hidden />
+                <ProjectFolderIcon className="size-3.5" />
               ) : (
                 <HugeiconsIcon icon={File02Icon} strokeWidth={2} className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
               )}
@@ -520,7 +530,7 @@ export function SourcesPanel({ sources, file, onFile }: { sources: Source[]; fil
     const isLink = !!s.href;
     const body = (
       <>
-        {isLink ? <FaviconCircle href={s.href} title={s.title} size={20} className="mt-0.5 ring-0" /> : <SourceIcon kind={s.kind} className="mt-0.5 size-4" />}
+        {isLink ? <FaviconCircle href={s.href} title={s.title} size={20} className="mt-0.5 ring-0" /> : <SourceIcon kind={s.kind} name={s.title} className="mt-0.5 size-4" />}
         <span className="min-w-0 flex-1">
           <strong className="block truncate text-xs font-medium">{s.title}</strong>
           <span className="block truncate text-[11px] text-muted-foreground">{s.detail}</span>

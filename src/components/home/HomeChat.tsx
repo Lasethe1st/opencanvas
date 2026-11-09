@@ -385,7 +385,7 @@ function RefPills({ refs }: { refs: { kind: SourceKind; title: string }[] }) {
     return (
       <div className="flex flex-wrap items-center gap-0.5">
         <span className={REF_PILL} title={r.title}>
-          <SourceIcon kind={r.kind} className="size-3.5 shrink-0" />
+          <SourceIcon kind={r.kind} name={r.title} className="size-3.5 shrink-0" />
           <span className="truncate">{r.title}</span>
         </span>
       </div>
