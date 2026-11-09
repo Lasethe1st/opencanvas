@@ -2392,3 +2392,15 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
   [data-home-composer-front] { transition: none; }
 }
 
+
+/* Light mode: the home composer is pure white, with a hairline edge and a soft lift. */
+:root:not([data-theme='dark']) [data-home-composer] {
+  background-color: #fff !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: inset 0 0 0 1px var(--composer-edge), var(--composer-lift);
+}
+:root:not([data-theme='dark']) [data-home-composer]:focus-within {
+  background-color: #fff !important;
+  box-shadow: inset 0 0 0 1px var(--composer-edge-focus), var(--composer-lift-focus);
+}
