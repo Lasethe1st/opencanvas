@@ -153,11 +153,11 @@ export function HomeLocationToggle({ className }: { className?: string }) {
       role="radiogroup"
       aria-label="Where the project lives"
       data-home-location=""
-      className={cn("relative inline-grid h-8 shrink-0 grid-cols-2 rounded-[var(--pill)] bg-foreground/[0.07] p-[2px] [:root:not([data-theme=dark])_&]:bg-white [:root:not([data-theme=dark])_&]:shadow-[inset_0_0_0_1px_#ececef]", className)}
+      className={cn("relative inline-grid h-8 shrink-0 grid-cols-2 rounded-[var(--pill)] bg-foreground/[0.07] p-[2px]", className)}
     >
       <span
         aria-hidden
-        className="absolute start-[2px] top-[2px] size-7 rounded-full bg-background shadow-[0_1px_3px_rgb(0_0_0/0.18)] [:root:not([data-theme=dark])_&]:bg-[#efeff2] [:root:not([data-theme=dark])_&]:shadow-[0_1px_2px_rgb(0_0_0/0.10)] [[data-theme=dark]_&]:bg-foreground/[0.22] [[data-theme=dark]_&]:shadow-none motion-safe:transition-transform motion-safe:duration-[380ms] motion-safe:ease-[cubic-bezier(0.34,1.45,0.64,1)]"
+        className="absolute start-[2px] top-[2px] size-7 rounded-full bg-background shadow-[0_1px_3px_rgb(0_0_0/0.18)] [:root:not([data-theme=dark])_&]:bg-white [:root:not([data-theme=dark])_&]:shadow-[0_0_0_1px_#ececef,0_1px_3px_rgb(0_0_0/0.10)] [[data-theme=dark]_&]:bg-foreground/[0.22] [[data-theme=dark]_&]:shadow-none motion-safe:transition-transform motion-safe:duration-[380ms] motion-safe:ease-[cubic-bezier(0.34,1.45,0.64,1)]"
         style={{ transform: `translateX(${index * 28}px)` }}
       />
       {SEGMENTS.map((s, i) => (
