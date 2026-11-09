@@ -55,24 +55,19 @@ type Person = { id: string; name: string; role: string; color: string };
 const ROLE: Record<string, string> = { owner: 'Host', editor: 'Can write' };
 const OPEN_W = 264;
 /**
- * The closed pill shows up to five circles in an uneven cluster, from tiny to large, none touching. A fixed set of
- * slots (centre x, centre y, diameter in px, inside a 30px-high box); who sits in which slot and whether the cluster is
- * flipped comes from the chat's first person, so it is stable but looks random from chat to chat.
+ * The closed pill shows up to five circles packed like marbles inside one round area (32px across): different sizes,
+ * a gap of about a pixel between them, the biggest first. [centre x, centre y, diameter] per person; the arrangement
+ * is the same every time.
  */
 const MAX_CIRCLES = 5;
-const CLUSTER_H = 30;
-const SLOTS: ReadonlyArray<readonly [number, number, number]> = [
-  [11, 15, 22],
-  [30, 9, 14],
-  [33, 24, 10],
-  [46, 14, 8],
-  [52, 23, 12],
-];
-function hashOf(s: string) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h;
-}
+const CLUSTER = 32;
+const LAYOUTS: Record<number, ReadonlyArray<readonly [number, number, number]>> = {
+  1: [[16, 16, 22]],
+  2: [[11.4, 21.1, 14], [20.6, 10.9, 11]],
+  3: [[23.8, 14, 14], [12.9, 22.6, 11], [11.3, 11.5, 9]],
+  4: [[20.9, 21.9, 14], [12.3, 10.7, 11], [8.2, 21.1, 9], [22.5, 10.3, 7]],
+  5: [[12.2, 24.6, 14], [15.5, 10.9, 11], [4.8, 14.3, 9], [22.3, 18.7, 7], [25.2, 11.5, 6]],
+};
 
 /** Everyone in a shared chat. The pill itself grows into the list (no menu hanging below it) and folds back on outside click or Esc. */
 function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?: string; onSettings: () => void }) {
@@ -83,10 +78,7 @@ function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?:
   const trigger = useRef<HTMLButtonElement>(null);
   const shown = people.slice(0, MAX_CIRCLES);
   const extra = people.length - shown.length;
-  const seed = hashOf(people[0]?.id ?? '');
-  const slots = SLOTS.slice(0, shown.length);
-  const clusterW = Math.max(...slots.map(([x, , d]) => x + d / 2));
-  const flip = seed % 2 === 1;
+  const slots = LAYOUTS[shown.length] ?? LAYOUTS[1];
 
   // The pill's natural width, so it can animate to the open width and back.
   useLayoutEffect(() => {
@@ -130,11 +122,11 @@ function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?:
           className="flex h-9 w-full items-center gap-2 ps-1.5 pe-2.5 text-xs font-medium text-foreground outline-offset-[-2px]"
         >
           <span ref={measure} className="inline-flex w-max items-center gap-2 whitespace-nowrap">
-            <span className="relative block shrink-0" style={{ width: clusterW, height: CLUSTER_H }} aria-hidden>
+            <span className="relative block shrink-0" style={{ width: CLUSTER, height: CLUSTER }} aria-hidden>
               {shown.map((p, i) => {
-                const [x, y, d] = slots[(i + seed) % slots.length];
+                const [x, y, d] = slots[i];
                 return (
-                  <span key={p.id} className="absolute" style={{ left: x - d / 2, top: (flip ? CLUSTER_H - y : y) - d / 2 }}>
+                  <span key={p.id} className="absolute flex" style={{ left: x - d / 2, top: y - d / 2 }}>
                     <Avatar p={p} size={d} />
                   </span>
                 );
