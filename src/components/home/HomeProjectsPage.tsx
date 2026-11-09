@@ -46,15 +46,15 @@ function Folder({ hue }: { hue: number }) {
             <stop offset="1" stopColor={`hsl(${hue} 42% 45%)`} />
           </linearGradient>
         </defs>
-        <path d="M14 12h54c6 0 9 2 13 7l4 6h101c8 0 14 6 14 14v103c0 8-6 14-14 14H14c-8 0-14-6-14-14V26c0-8 6-14 14-14z" fill={`url(#b${id})`} />
+        <path d="M22 12h46c6 0 9 2 13 7l4 6h93c12 0 22 10 22 22v87c0 12-10 22-22 22H22c-12 0-22-10-22-22V34c0-12 10-22 22-22z" fill={`url(#b${id})`} />
         <g className="transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] group-hover:-translate-y-2.5 motion-reduce:transition-none">
           <rect x="14" y="30" width="172" height="80" rx="6" fill="#fff" fillOpacity="0.92" />
           <rect x="26" y="44" width="70" height="5" rx="2.5" fill="#000" fillOpacity="0.08" />
           <rect x="26" y="56" width="110" height="5" rx="2.5" fill="#000" fillOpacity="0.06" />
         </g>
         <g className="transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] group-hover:translate-y-0.5 motion-reduce:transition-none">
-          <path d="M0 62c0-8 6-14 14-14h172c8 0 14 6 14 14v84c0 8-6 14-14 14H14c-8 0-14-6-14-14z" fill={`url(#f${id})`} />
-          <path d="M14 48.5h172c7 0 12.5 4.5 13.7 10.5-1.5-4-5.5-7-11-7H12c-5.500 0-9.500 3-11 7 1-5.500 6-10.500 13-10.500z" fill="#fff" fillOpacity="0.5" />
+          <path d="M0 70c0-12 10-22 22-22h156c12 0 22 10 22 22v68c0 12-10 22-22 22H22c-12 0-22-10-22-22z" fill={`url(#f${id})`} />
+          <path d="M22 48.5h156c8 0 14.500 4 18.500 10.500-2.500-4-7-7-13-7H17c-6 0-10.500 3-13 7 4-6.500 10.500-10.500 18-10.500z" fill="#fff" fillOpacity="0.5" />
         </g>
       </svg>
     </div>
