@@ -54,6 +54,14 @@ export function HomeAccount({ onSettings }: { onSettings: () => void }) {
 type Person = { id: string; name: string; role: string; color: string };
 const ROLE: Record<string, string> = { owner: 'Host', editor: 'Can write' };
 const OPEN_W = 264;
+/** The closed pill shows up to four separate circles, each a different size. */
+const MAX_CIRCLES = 4;
+const CIRCLE_SIZES = [24, 18, 27, 21];
+function hashOf(s: string) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
 
 /** Everyone in a shared chat. The pill itself grows into the list (no menu hanging below it) and folds back on outside click or Esc. */
 function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?: string; onSettings: () => void }) {
@@ -62,7 +70,9 @@ function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?:
   const root = useRef<HTMLDivElement>(null);
   const measure = useRef<HTMLSpanElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
-  const extra = people.length - 3;
+  const shown = people.slice(0, MAX_CIRCLES);
+  const extra = people.length - shown.length;
+  const seed = hashOf(people[0]?.id ?? '');
 
   // The pill's natural width, so it can animate to the open width and back.
   useLayoutEffect(() => {
@@ -106,9 +116,9 @@ function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?:
           className="flex h-9 w-full items-center gap-2 ps-1.5 pe-2.5 text-xs font-medium text-foreground outline-offset-[-2px]"
         >
           <span ref={measure} className="inline-flex w-max items-center gap-2 whitespace-nowrap">
-            <span className="flex items-center -space-x-2" aria-hidden>
-              {people.slice(0, 3).map((p) => (
-                <Avatar key={p.id} p={p} size={24} ring />
+            <span className="flex items-center gap-1" aria-hidden>
+              {shown.map((p, i) => (
+                <Avatar key={p.id} p={p} size={CIRCLE_SIZES[(seed + i) % CIRCLE_SIZES.length]} />
               ))}
             </span>
             {extra > 0 && <span className="tabular-nums text-muted-foreground">+{extra}</span>}
