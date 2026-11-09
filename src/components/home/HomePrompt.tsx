@@ -477,7 +477,7 @@ export function HomePrompt({
               ) : isCommand(m) ? (
                 <HugeiconsIcon icon={CommandLineIcon} size={16} strokeWidth={1.8} className="shrink-0 text-muted-foreground" aria-hidden />
               ) : (
-                <SourceIcon kind={m.kind} className="size-4" />
+                <SourceIcon kind={m.kind} name={m.label} className="size-4" />
               )}
               <strong className={`min-w-0 truncate text-sm font-medium ${m.id === SKILLS_FOLDER ? "text-muted-foreground" : ""}`}>{m.label}</strong>
               <span className="ms-auto min-w-0 max-w-[45%] truncate text-xs text-muted-foreground">{m.detail}</span>

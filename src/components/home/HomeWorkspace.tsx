@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CloudIcon, ComputerIcon } from "@hugeicons/core-free-icons";
 import type { RecentProject } from "../../../shared/types";
-import { Check, FolderOpen } from "../../lib/home-icons";
+import { Check } from "../../lib/home-icons";
+import { ProjectFolderIcon } from "./ProjectFolderIcon";
 import { GitBranch } from "../../lib/hugeicons";
 import { api } from "../../lib/api";
 import { getState, setState, toast, useStore } from "../../lib/store";
@@ -81,7 +82,7 @@ export function HomeProjectPill({ projects, onOpenProjects, side = "top" }: { pr
           {cloud ? (
             <GitBranch size={14} className="shrink-0 text-[var(--layer-form)]" />
           ) : (
-            <FolderOpen className="size-3.5 shrink-0 text-[var(--layer-media)]" aria-hidden />
+            <ProjectFolderIcon name={label} className="size-4" />
           )}
           <span className="min-w-0 truncate">{label}</span>
         </button>
@@ -104,6 +105,7 @@ export function HomeProjectPill({ projects, onOpenProjects, side = "top" }: { pr
           projects.slice(0, 6).map((p) => (
             <DropdownMenuItem key={p.root} className="rounded-xl text-xs" title={p.root} onSelect={() => setState({ homeContextRoot: p.root })}>
               <Check className={`size-3.5 ${p.root === w.shown?.root ? "" : "opacity-0"}`} />
+              <ProjectFolderIcon name={p.name} className="size-4" />
               <span className="min-w-0 flex-1 truncate">{p.name}</span>
             </DropdownMenuItem>
           ))

@@ -3,9 +3,10 @@ import { useEffect, useMemo, useRef, useState, type ComponentType, type Keyboard
 import type { RecentProject, TemplateId, TemplateMeta } from '../../../shared/types';
 import { titleFromPrompt, type HomeChat } from '../../lib/home-chats';
 import { createProject, importFromGithub, importZip, openFileFromDisk, openProjectDialog, openRecent } from '../../lib/actions';
-import { GithubMark, ProjectIcon } from '../../ui/StartScreen.jsx';
+import { GithubMark } from '../../ui/StartScreen.jsx';
 import type { HomeMenuAction } from './HomeItemMenu';
 import { ProjectRow, ProjectRowSkeletons } from './ProjectRow';
+import { ProjectFolderIcon } from './ProjectFolderIcon';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
@@ -166,7 +167,7 @@ function RecentList({ recent, matches, repo, activeRow, showActive, onHover, onR
       )}
       {matches.map((p, i) => {
         const index = repo ? i + 1 : i;
-        return <ProjectRow key={p.root} icon={<ProjectIcon src={p.icon} name={p.name} />} name={p.name} detail={timeAgo(p.openedAt)} path={p.root} active={showActive && activeRow === index} onMouseEnter={() => onHover(index)} onClick={() => onRun(index)} />;
+        return <ProjectRow key={p.root} icon={<ProjectFolderIcon name={p.name} className="size-7" />} name={p.name} detail={timeAgo(p.openedAt)} path={p.root} active={showActive && activeRow === index} onMouseEnter={() => onHover(index)} onClick={() => onRun(index)} />;
       })}
     </div>
   );
@@ -323,7 +324,7 @@ export function SearchPanel({ recent, chats, onGithub, onChat, onDone }: { recen
       key: p.root,
       kind: 'project',
       run: () => void openRecent(p.root),
-      render: (isActive, hover) => <ProjectRow icon={<ProjectIcon src={p.icon} name={p.name} />} name={p.name} detail={`Project · ${timeAgo(p.openedAt)}`} path={p.root} active={isActive} onMouseEnter={hover} onClick={() => void openRecent(p.root)} />,
+      render: (isActive, hover) => <ProjectRow icon={<ProjectFolderIcon name={p.name} className="size-7" />} name={p.name} detail={`Project · ${timeAgo(p.openedAt)}`} path={p.root} active={isActive} onMouseEnter={hover} onClick={() => void openRecent(p.root)} />,
     });
   for (const c of matchedChats)
     rows.push({
