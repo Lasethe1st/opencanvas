@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { timeAgo } from './AllProjectsPage';
-import { HomeEllipsisMenu, type HomeMenuAction } from './HomeItemMenu';
+import { HomeBloomContextMenu, type HomeMenuAction } from './HomeItemMenu';
 
 type Sort = 'recent' | 'name';
 
@@ -150,7 +150,8 @@ export function HomeProjectsPage({
               const fav = favorites.includes(p.root);
               const h = hueOf(p.name);
               return (
-                <li key={p.root} className="group relative isolate flex flex-col items-start gap-3">
+                <HomeBloomContextMenu key={p.root} actions={menuFor(p)} className="contents">
+                <li className="group relative isolate flex flex-col items-start gap-3">
                   <div className="relative w-full max-w-[210px]">
                     <Folder hue={h} />
                     <div className="absolute end-1 top-1 z-20 flex items-center gap-1 [&_button]:bg-black/35 [&_button]:text-white [&_button]:backdrop-blur-md [&_button:hover]:bg-black/50">
@@ -163,9 +164,6 @@ export function HomeProjectsPage({
                       >
                         <HugeiconsIcon icon={StarIcon} strokeWidth={2} className={cn('size-4 transition-colors duration-150', fav && 'text-amber-300 [&_path]:fill-amber-300')} aria-hidden />
                       </button>
-                      <div className="[&_button]:rounded-full [&_button]:border-0 [&_button]:opacity-100">
-                        <HomeEllipsisMenu actions={menuFor(p)} label={`${p.name} options`} />
-                      </div>
                     </div>
                   </div>
                   <button type="button" title={p.description ? `${p.name}: ${p.description}` : p.root} aria-label={`Open ${p.name}`} disabled={busy} onClick={() => onOpen(p.root)} className="absolute inset-0 z-10 rounded-2xl outline-offset-4 disabled:cursor-default" />
@@ -176,8 +174,8 @@ export function HomeProjectsPage({
                       Last modified {timeAgo(p.openedAt)}
                     </span>
                   </div>
-
                 </li>
+                </HomeBloomContextMenu>
               );
             })}
           </ul>
