@@ -1,5 +1,5 @@
 import { ArrowCounterClockwise, Brain, CaretDown, CaretRight, Check, CircleNotch, DotsSixVertical, DotsThree, ListNumbers, Pause, Pencil, Question, Trash, X } from '../../lib/home-icons';
-import { useEffect, useId, useMemo, useRef, useState, type DragEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   providerMeta,
@@ -582,7 +582,7 @@ export function HomeContextRing({ className }: { className?: string }) {
   return <ContextUsageRing used={used} limit={contextWindow(settings.model ?? "")} className={className} />;
 }
 
-export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "shadow" | "composer" } = {}) {
+export function HomeComposerExtras({ variant = "bar", after }: { variant?: "bar" | "shadow" | "composer"; /** Bar only: what sits after the model, such as the project or branch. */ after?: ReactNode } = {}) {
   const status = useStore((s) => s.aiStatus);
   const settings = status?.settings;
   const aiChat = useStore((s) => s.aiChat);
@@ -658,8 +658,8 @@ export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "sha
       side={variant === "shadow" || variant === "composer" ? "bottom" : "top"}
       align={variant === "shadow" ? "end" : "start"}
       avoidCollisions={variant !== "shadow"}
-      logoOnly={variant === "shadow" || variant === "composer"}
-      triggerClassName={variant === "composer" ? "size-8 bg-foreground/[0.07] hover:bg-foreground/[0.12]" : undefined}
+      logoOnly={variant === "shadow"}
+      triggerClassName={variant === "composer" ? "h-8 min-w-0 max-w-[220px] shrink bg-foreground/[0.07] px-2.5 text-foreground hover:bg-foreground/[0.12] data-[state=open]:bg-foreground/[0.12]" : undefined}
     />
   );
 
@@ -681,8 +681,9 @@ export function HomeComposerExtras({ variant = "bar" }: { variant?: "bar" | "sha
     );
 
   return (
-    <div className="flex w-full flex-wrap items-center justify-start gap-0 px-1">
+    <div className="flex w-full flex-wrap items-center justify-start gap-1 px-1">
       {picker}
+      {after}
 
 
       <ContextUsageRing used={usage.used} limit={usage.limit} className="ms-auto" />

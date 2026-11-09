@@ -158,6 +158,8 @@ interface State {
   runningJobs: RunningJob[];
   /** Explicit folder picked on the home composer. Null follows the newest recent project. */
   homeContextRoot: string | null;
+  /** Home composer: a cloud project lives in a git repository, a local one is a folder on this computer. */
+  homeWorkspace: 'local' | 'cloud';
   /** Folder the home composer is aimed at right now (the chip the person sees). */
   homeProjectRoot: string | null;
   homeProjectName: string | null;
@@ -260,6 +262,13 @@ export const initialState: State = {
   collab: IDLE_COLLAB,
   runningJobs: [],
   homeContextRoot: null,
+  homeWorkspace: (() => {
+    try {
+      return localStorage.getItem('oc.home.workspace') === 'cloud' ? 'cloud' : 'local';
+    } catch {
+      return 'local';
+    }
+  })(),
   homeProjectRoot: null,
   homeProjectName: null,
   homeActiveChatId: null,
