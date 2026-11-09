@@ -315,6 +315,10 @@ export interface RecentProject {
   openedAt: number;
   /** The project's favicon as a data URL, when it has one. */
   icon?: string | null;
+  /** The image shown when the project's link is shared (og:image), as a data URL, when it has one. */
+  image?: string | null;
+  /** A short description from index.html or package.json. */
+  description?: string | null;
   /** Approximate on-disk size in bytes (excludes node_modules, .git, dist). */
   bytes?: number;
   /** The folder is a git repository, so it can be updated with a pull. */
