@@ -54,6 +54,20 @@ export function HomeAccount({ onSettings }: { onSettings: () => void }) {
 type Person = { id: string; name: string; role: string; color: string };
 const ROLE: Record<string, string> = { owner: 'Host', editor: 'Can write' };
 const OPEN_W = 264;
+/**
+ * The closed pill shows up to five circles packed like marbles inside one round area (32px across): different sizes,
+ * a gap of about a pixel between them, the biggest first. [centre x, centre y, diameter] per person; the arrangement
+ * is the same every time.
+ */
+const MAX_CIRCLES = 5;
+const CLUSTER = 32;
+const LAYOUTS: Record<number, ReadonlyArray<readonly [number, number, number]>> = {
+  1: [[16, 16, 22]],
+  2: [[11.4, 21.1, 14], [20.6, 10.9, 11]],
+  3: [[23.8, 14, 14], [12.9, 22.6, 11], [11.3, 11.5, 9]],
+  4: [[20.9, 21.9, 14], [12.3, 10.7, 11], [8.2, 21.1, 9], [22.5, 10.3, 7]],
+  5: [[12.2, 24.6, 14], [15.5, 10.9, 11], [4.8, 14.3, 9], [22.3, 18.7, 7], [25.2, 11.5, 6]],
+};
 
 /** Everyone in a shared chat. The pill itself grows into the list (no menu hanging below it) and folds back on outside click or Esc. */
 function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?: string; onSettings: () => void }) {
@@ -62,7 +76,9 @@ function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?:
   const root = useRef<HTMLDivElement>(null);
   const measure = useRef<HTMLSpanElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
-  const extra = people.length - 3;
+  const shown = people.slice(0, MAX_CIRCLES);
+  const extra = people.length - shown.length;
+  const slots = LAYOUTS[shown.length] ?? LAYOUTS[1];
 
   // The pill's natural width, so it can animate to the open width and back.
   useLayoutEffect(() => {
@@ -106,10 +122,15 @@ function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?:
           className="flex h-9 w-full items-center gap-2 ps-1.5 pe-2.5 text-xs font-medium text-foreground outline-offset-[-2px]"
         >
           <span ref={measure} className="inline-flex w-max items-center gap-2 whitespace-nowrap">
-            <span className="flex items-center -space-x-2" aria-hidden>
-              {people.slice(0, 3).map((p) => (
-                <Avatar key={p.id} p={p} size={24} ring />
-              ))}
+            <span className="relative block shrink-0" style={{ width: CLUSTER, height: CLUSTER }} aria-hidden>
+              {shown.map((p, i) => {
+                const [x, y, d] = slots[i];
+                return (
+                  <span key={p.id} className="absolute flex" style={{ left: x - d / 2, top: y - d / 2 }}>
+                    <Avatar p={p} size={d} />
+                  </span>
+                );
+              })}
             </span>
             {extra > 0 && <span className="tabular-nums text-muted-foreground">+{extra}</span>}
             <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className={cn('size-3.5 text-muted-foreground transition-transform duration-300', open && 'rotate-180')} aria-hidden />
