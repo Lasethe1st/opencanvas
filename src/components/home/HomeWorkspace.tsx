@@ -64,7 +64,7 @@ function useWorkspace(projects: RecentProject[]) {
 }
 
 const pillClass =
-  "flex h-8 min-w-0 w-[150px] shrink items-center gap-1.5 rounded-[var(--pill)] border-0 bg-foreground/[0.07] px-2.5 text-xs text-foreground outline-none transition-colors hover:bg-foreground/[0.12] data-[state=open]:bg-foreground/[0.12]";
+  "flex h-8 min-w-0 w-[120px] shrink items-center gap-1.5 rounded-[var(--pill)] border-0 bg-foreground/[0.07] px-2.5 text-xs text-foreground outline-none transition-colors hover:bg-foreground/[0.12] data-[state=open]:bg-foreground/[0.12]";
 
 /**
  * The file being worked on: its icon and name, cut short when long. A cloud project shows the git icon and the
