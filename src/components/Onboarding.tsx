@@ -1,6 +1,6 @@
 import { ChatCircle, FolderSimple, History, Lightning } from '../lib/home-icons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { Bug01Icon, Delete02Icon, FolderOpenIcon, FolderZipIcon, LayoutAlignLeftIcon, LayoutAlignRightIcon, LinkSquare02Icon, Refresh01Icon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
+import { Bug01Icon, UserGroupIcon, Delete02Icon, FolderOpenIcon, FolderZipIcon, LayoutAlignLeftIcon, LayoutAlignRightIcon, LinkSquare02Icon, Refresh01Icon, Search02Icon, SquarePenIcon } from '@hugeicons/core-free-icons';
 import { Library } from '../lib/home-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RecentProject, SkillMeta } from '../../shared/types';
@@ -26,7 +26,7 @@ import { HomeProjectsPage } from './home/HomeProjectsPage';
 import { ProjectThumb, timeAgo } from './home/AllProjectsPage';
 import { HomeAiHint, HomeChat, typedText } from './home/HomeChat';
 import { HomeComposerExtras } from './home/HomeComposerExtras';
-import { HomeComposerContext } from './home/HomeComposerContext';
+import { HomeLocationToggle, HomeProjectPill } from './home/HomeWorkspace';
 import { RecentChatsPanel, SearchPanel } from './home/HomePanels';
 import { HomeDialog } from './home/HomeDialog';
 import { NewProjectDialog, type StartPath } from './home/NewProjectDialog';
@@ -36,7 +36,10 @@ import { HomeRightPanel } from './home/HomeRightPanel';
 import { HomeAccount, HomePlan } from './home/HomeAccount';
 import { MemoryList } from './home/HomeMemory';
 import { HomeOnboardingTasks, useOnboarding, type OnboardingTask } from './home/HomeOnboardingTasks';
+import { isGuest, sayToHost } from '../lib/collab';
+import { HomeCollab } from './home/HomeCollab';
 import { HomeTopBlur } from './home/HomeTopBlur';
+import { loadSharedChats, removeSharedChat, saveSharedChats, upsertSharedChat, type SharedChatRecord } from '../lib/shared-chats';
 import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
 import { HomeStatusPills } from './home/HomeStatusPills';
 import type { RunningJob } from '../lib/running-work';
@@ -74,7 +77,13 @@ function greeting(name: string, pick: number): string {
   return GREETINGS[pick % GREETINGS.length](who, part);
 }
 
-const focusPrompt = () => requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-home-prompt]')?.focus());
+const focusPrompt = () =>
+  requestAnimationFrame(() => {
+    const el = document.querySelector<HTMLElement>('[data-home-prompt]');
+    el?.focus();
+    // A composer that is swapped in while someone types (a shared chat's new message arrives) must not leave the caret at the start.
+    if (el instanceof HTMLTextAreaElement) el.setSelectionRange(el.value.length, el.value.length);
+  });
 
 function briefFromChat(items: { kind: string; text?: string }[]): string {
   const users = items.filter((i): i is { kind: 'user'; text: string } => i.kind === 'user' && typeof i.text === 'string');
@@ -99,6 +108,7 @@ export function Onboarding() {
   const aiChat = useStore((s) => s.aiChat);
   const aiTurnId = useStore((s) => s.aiTurnId);
   const aiReady = useStore((s) => !!s.aiStatus?.ready);
+  const viewerOnly = useStore((s) => s.collab.status === 'guest' && s.collab.you?.role === 'viewer');
   const dockDraft = useStore((s) => s.dockDraft);
   const runningCount = useStore((s) => s.runningJobs.length);
   const [recent, setRecent] = useState<RecentProject[] | null>(null);
@@ -146,6 +156,28 @@ export function Onboarding() {
     const first = aiChat.find((i) => i.kind === 'user');
     return first && first.kind === 'user' && typedText(first.text).trim() ? titleFromPrompt(typedText(first.text)) : 'New chat';
   }, [aiChat]);
+
+  // Shared chats this computer has been in: remembered so the left lane can list them after they end.
+  const collab = useStore((s) => s.collab);
+  const [shared, setShared] = useState<SharedChatRecord[]>(loadSharedChats);
+  const sharedRoom = collab.status === 'host' || collab.status === 'guest' ? collab.room : '';
+  const sharedRole = collab.you?.role;
+  const sharedProject = useStore((s) => s.homeProjectName);
+  const sharedChatId = useStore((s) => s.homeActiveChatId);
+  useEffect(() => {
+    if (!sharedRoom || !sharedRole) return;
+    setShared((cur) =>
+      upsertSharedChat(cur, {
+        room: sharedRoom,
+        title: chatTitle,
+        project: sharedProject || 'No project',
+        role: sharedRole,
+        at: Date.now(),
+        chatId: collab.status === 'host' ? sharedChatId ?? undefined : undefined,
+      }),
+    );
+  }, [sharedRoom, sharedRole, chatTitle, sharedProject, sharedChatId, collab.status]);
+  useEffect(() => saveSharedChats(shared), [shared]);
 
   const chatSources = useSources(aiChat);
   const [mentioned, setMentioned] = useState<Source[]>([]);
@@ -303,6 +335,13 @@ export function Onboarding() {
   const sendHome = useCallback(async () => {
     const text = dockDraft.trim() || (attachments.length ? 'See the attached file' + (attachments.length > 1 ? 's.' : '.') : '');
     if (!text || busy) return;
+    // A guest in someone's shared chat writes to the host's chat; the host's AI answers, no key needed here.
+    if (isGuest()) {
+      if (getState().collab.you?.role === 'viewer') return;
+      sayToHost(text);
+      setState({ dockDraft: '' });
+      return;
+    }
     // No AI yet: Enter still starts the project from the brief — the key is optional, not a gate.
     if (!aiReady) {
       void startProjectFromBrief(text);
@@ -518,6 +557,27 @@ export function Onboarding() {
         more: { label: 'View All', onSelect: () => setDialog({ kind: 'chats' }) },
       },
       {
+        id: 'shared-chats',
+        title: 'Shared chats',
+        empty: 'Share a chat from the top right',
+        entries: shared.slice(0, RECENT).map((r) => {
+          const live = r.room === sharedRoom;
+          const saved = r.chatId ? chats.find((c) => c.id === r.chatId) : undefined;
+          return {
+            id: r.room,
+            label: r.title,
+            meta: `${r.project} · ${live ? 'Live' : timeAgo(r.at)}`,
+            icon: <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className={cn('size-5 p-0.5', live ? 'text-emerald-500' : 'text-muted-foreground')} aria-hidden />,
+            onSelect: () => {
+              if (live) focusPrompt();
+              else if (saved) pickChat(saved);
+              else toast('This shared chat has ended. Ask the host for a new invite.');
+            },
+            menu: [{ id: 'remove', label: 'Remove from list', destructive: true, icon: <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />, onSelect: () => setShared((cur) => removeSharedChat(cur, r.room)) }],
+          };
+        }),
+      },
+      {
         id: 'recent-projects',
         title: 'Recent projects',
         add: { label: 'New project', onSelect: () => openNew() },
@@ -534,7 +594,7 @@ export function Onboarding() {
         more: (recent?.length ?? 0) > RECENT ? { label: 'View All', onSelect: () => openProjects() } : undefined,
       },
     ],
-    [chats, recent, busy, pickChat, openNew, chatMenu, projectMenu],
+    [chats, recent, busy, pickChat, openNew, chatMenu, projectMenu, shared, sharedRoom],
   );
   const tasks: OnboardingTask[] = useMemo(() => {
     const core: OnboardingTask[] = [
@@ -615,6 +675,7 @@ export function Onboarding() {
             </span>
             <div ref={setChipHost} className="contents" />
           </div>
+          <HomeCollab className={cn('absolute top-3 z-20', sources.length > 0 || sourcesOpen ? 'end-28' : 'end-3')} />
           {view === 'home' && (sources.length > 0 || sourcesOpen) && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -679,7 +740,7 @@ export function Onboarding() {
                           onChange={(value) => setState({ dockDraft: value })}
                           onSubmit={() => void sendHome()}
                           onVoice={aiReady ? startVoice : undefined}
-                          disabled={busy}
+                          disabled={busy || viewerOnly}
                           sending={!!aiTurnId}
                           mentions={mentionOptions}
                           onMention={onMention}
@@ -695,7 +756,7 @@ export function Onboarding() {
                           history={history}
                           onListeningChange={setDictating}
                         />
-                        <HomeComposerExtras />
+                        <HomeComposerExtras after={<HomeProjectPill projects={recent ?? []} onOpenProjects={() => openProjects()} />} />
                         <div className="flex flex-wrap items-center gap-2 px-1">
                           <HomeAiHint />
                         </div>
@@ -733,7 +794,7 @@ export function Onboarding() {
                       onChange={(value) => setState({ dockDraft: value })}
                       onSubmit={() => void sendHome()}
                       onVoice={aiReady ? startVoice : undefined}
-                      disabled={busy}
+                      disabled={busy || viewerOnly}
                       sending={!!aiTurnId}
                       mentions={mentionOptions}
                       onMention={onMention}
@@ -748,8 +809,13 @@ export function Onboarding() {
                       onWebSearch={toggleWeb}
                       history={history}
                           onListeningChange={setDictating}
-                      footerStart={<HomeComposerExtras variant="composer" />}
-                      footerEnd={<HomeComposerContext projects={recent ?? []} onOpenProjects={() => openProjects()} />}
+                      footerStart={
+                        <>
+                          <HomeProjectPill projects={recent ?? []} onOpenProjects={() => openProjects()} />
+                          <HomeLocationToggle />
+                        </>
+                      }
+                      footerEnd={<HomeComposerExtras variant="composer" />}
                     />
                   </div>
                   <HomeActionPills

@@ -1,3 +1,4 @@
+import { IDLE_COLLAB, type CollabView } from '../../shared/collab-view';
 import { create } from 'zustand';
 import { breakpointFor, type Camera, type FrameLayout, type Guide } from '../../shared/canvas';
 import { IDLE_BUILD, type BuildState } from '../../shared/build-stages';
@@ -151,10 +152,14 @@ interface State {
   aiChat: AiChatItem[];
   /** The AI turn that is running, if any. */
   aiTurnId: string | null;
+  /** The shared chat session this app is in, if any (see lib/collab.ts). */
+  collab: CollabView;
   /** Projects with a turn in flight. The home composer shows one pill for this list. */
   runningJobs: RunningJob[];
   /** Explicit folder picked on the home composer. Null follows the newest recent project. */
   homeContextRoot: string | null;
+  /** Home composer: a cloud project lives in a git repository, a local one is a folder on this computer. */
+  homeWorkspace: 'local' | 'cloud';
   /** Folder the home composer is aimed at right now (the chip the person sees). */
   homeProjectRoot: string | null;
   homeProjectName: string | null;
@@ -254,8 +259,16 @@ export const initialState: State = {
   aiStatus: null,
   aiChat: [],
   aiTurnId: null,
+  collab: IDLE_COLLAB,
   runningJobs: [],
   homeContextRoot: null,
+  homeWorkspace: (() => {
+    try {
+      return localStorage.getItem('oc.home.workspace') === 'cloud' ? 'cloud' : 'local';
+    } catch {
+      return 'local';
+    }
+  })(),
   homeProjectRoot: null,
   homeProjectName: null,
   homeActiveChatId: null,

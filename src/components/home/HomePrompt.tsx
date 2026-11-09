@@ -1,9 +1,10 @@
 import { ListeningWave } from "./ListeningWave";
 import type { ReactNode } from "react";
+import * as Popover from "@radix-ui/react-popover";
 import { getSendKey } from "../../lib/prefs";
 import { FolderOpen, Waveform } from '../../lib/home-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowUp02Icon, AttachmentIcon, Cancel01Icon, CommandLineIcon, File01Icon, Globe02Icon, Mic01Icon } from '@hugeicons/core-free-icons';
+import { Add01Icon, ArrowUp02Icon, AttachmentIcon, Cancel01Icon, CommandLineIcon, File01Icon, Globe02Icon, Mic01Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { stopAi } from "../../lib/ai";
 import { highlightCode, highlightStyle } from "../../lib/code-highlights";
@@ -355,30 +356,67 @@ export function HomePrompt({
 
   /** Inline composer centers a one-line field and pins the controls once it wraps. */
   const inlineControls = textareaHeight > 44 ? "self-end" : "self-center";
-  const attachButton = (
-    <InputGroupButton variant="ghost" size="icon" className="rounded-[var(--pill)] bg-foreground/[0.07] hover:bg-foreground/[0.12] text-muted-foreground" aria-label="Attach files" onClick={() => fileRef.current?.click()}>
-      <HugeiconsIcon icon={AttachmentIcon} size={18} strokeWidth={1.8} aria-hidden />
-    </InputGroupButton>
-  );
-  const webButton = onWebSearch ? (
-    <InputGroupButton
-      variant="ghost"
-      size="icon"
-      className={`rounded-[var(--pill)] ${webSearch ? "bg-[#007AFF] text-white hover:bg-[#007AFF]/90 hover:text-white" : "bg-foreground/[0.07] hover:bg-foreground/[0.12] text-muted-foreground"}`}
-      aria-label="Web search"
-      aria-pressed={webSearch}
-      title={webSearch ? "Web search is on" : "Web search is off"}
-      onClick={() => onWebSearch(!webSearch)}
-    >
-      <HugeiconsIcon icon={Globe02Icon} size={18} strokeWidth={1.8} aria-hidden />
-    </InputGroupButton>
+  const [plusOpen, setPlusOpen] = useState(false);
+  /** One circle with a plus: it opens upward with attachments and the web search switch. */
+  const plusButton = onAttach || onWebSearch ? (
+    <Popover.Root open={plusOpen} onOpenChange={setPlusOpen}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          data-home-plus=""
+          aria-label="Add"
+          className="relative grid size-8 shrink-0 place-items-center rounded-full border-0 bg-foreground/[0.07] text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.12] hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30 data-[state=open]:bg-foreground/[0.12] data-[state=open]:text-foreground"
+        >
+          <HugeiconsIcon icon={Add01Icon} size={18} strokeWidth={1.8} aria-hidden className="motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.34,1.45,0.64,1)] group-data-[state=open]:rotate-45 [[data-state=open]>&]:rotate-45" />
+          {webSearch && onWebSearch && <span aria-hidden className="absolute end-0.5 top-0.5 size-2 rounded-full bg-[#007AFF] ring-2 ring-[var(--home-card)]" />}
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          side="top"
+          align="start"
+          sideOffset={10}
+          collisionPadding={12}
+          className="z-[120] w-[236px] rounded-3xl border border-[color:var(--line)] bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-md)] outline-none motion-safe:data-[state=open]:animate-[fade-in_0.14s_ease-out]"
+        >
+          {onAttach && (
+            <button
+              type="button"
+              className="flex h-10 w-full items-center gap-2.5 rounded-2xl border-0 bg-transparent px-3 text-start text-[13px] outline-none hover:bg-accent focus-visible:bg-accent"
+              onClick={() => {
+                setPlusOpen(false);
+                fileRef.current?.click();
+              }}
+            >
+              <HugeiconsIcon icon={AttachmentIcon} size={17} strokeWidth={1.8} className="text-muted-foreground" aria-hidden />
+              Add files or photos
+            </button>
+          )}
+          {onWebSearch && (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={webSearch}
+              className="flex h-10 w-full items-center gap-2.5 rounded-2xl border-0 bg-transparent px-3 text-start text-[13px] outline-none hover:bg-accent focus-visible:bg-accent"
+              onClick={() => onWebSearch(!webSearch)}
+            >
+              <HugeiconsIcon icon={Globe02Icon} size={17} strokeWidth={1.8} className="text-muted-foreground" aria-hidden />
+              <span className="flex-1">Browse the web</span>
+              <span aria-hidden className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${webSearch ? "bg-[#007AFF]" : "bg-foreground/20"}`}>
+                <span className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-transform duration-200 ${webSearch ? "translate-x-[18px]" : "translate-x-0.5"}`} />
+              </span>
+            </button>
+          )}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   ) : null;
   const micButton =
-    canDictate && !sending && (focused || listening) ? (
+    canDictate && !sending ? (
       <InputGroupButton
         variant="ghost"
         size="icon"
-        className={`me-1 rounded-[var(--pill)] ${listening ? "bg-red-500/15 text-red-600 dark:text-red-400 [[data-theme=dark]_&]:text-red-400 animate-pulse" : "text-muted-foreground"}`}
+        className={`rounded-[var(--pill)] ${listening ? "bg-red-500/15 text-red-600 dark:text-red-400 [[data-theme=dark]_&]:text-red-400 animate-pulse" : "bg-foreground/[0.07] text-muted-foreground hover:bg-foreground/[0.12] hover:text-foreground"}`}
         aria-label={listening ? "Stop dictation" : "Dictate"}
         aria-pressed={listening}
         disabled={disabled}
@@ -509,10 +547,7 @@ export function HomePrompt({
             />
             {!deck && (
               <InputGroupAddon align="inline-start" className={`${inlineControls} ps-3 pb-0`}>
-                <div className="flex items-center gap-0.5">
-                  {attachButton}
-                  {webButton}
-                </div>
+                <div className="flex items-center gap-0.5">{plusButton}</div>
               </InputGroupAddon>
             )}
           </>
@@ -573,19 +608,24 @@ export function HomePrompt({
         />
         </div>
         </div>
-        <InputGroupAddon align="inline-end" className={deck ? "self-start pe-2.5 pb-0 pt-2.5 has-[>button]:me-0" : `${inlineControls} pe-0 pb-0 has-[>button]:me-0`}>
-          {micButton}
-          {trailingButton}
-        </InputGroupAddon>
+        {!deck && (
+          <InputGroupAddon align="inline-end" className={`${inlineControls} gap-1 pe-0 pb-0 has-[>button]:me-0`}>
+            {micButton}
+            {trailingButton}
+          </InputGroupAddon>
+        )}
       </InputGroup>
       {deck && (
         <div data-home-composer-toolbar="" className="flex w-full min-w-0 shrink-0 items-center justify-between gap-2" style={{ padding: "0 10px 10px" }}>
-          <div className="flex min-w-0 items-center gap-0.5">
-            {onAttach ? attachButton : null}
-            {webButton}
+          <div className="flex min-w-0 items-center gap-1.5">
+            {plusButton}
             {footerStart}
           </div>
-          <div className="flex min-w-0 items-center">{footerEnd}</div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {footerEnd}
+            {micButton}
+            {trailingButton}
+          </div>
         </div>
       )}
     </div>
