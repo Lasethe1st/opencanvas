@@ -1,3 +1,4 @@
+import { friendlyTag } from '../lib/element-names';
 import { Article, Code, Palette, Ruler, TextAa, SquaresFour as LayoutIcon, Columns, CursorClick, EyeSlash, Info, Question, Square, SquaresFour, TextAlignCenter, TextAlignJustify, TextAlignLeft, TextAlignRight, TextT, UploadSimple } from '../lib/hugeicons';
 import { LayerIcon } from '../lib/layer-icons';
 import { useEffect, useState } from 'react';
@@ -45,6 +46,7 @@ function ElementHeader() {
       icon={<LayerIcon tag={selection.tag} size={16} />}
       name={name}
       tag={selection.tag}
+      tagLabel={friendlyTag(selection.tag)}
       parent={parentName}
       source={info ? `${info.file}:${info.line}` : null}
       onSource={() => info && revealInCode(info.file, info.line)}
@@ -164,7 +166,7 @@ function TagSelect({ disabled }: { disabled: boolean }) {
         <select aria-label="Element type" value={tag} disabled={disabled} onChange={(e) => void setTag(e.target.value)}>
           {RETAGGABLE_TAGS.map((t) => (
             <option key={t} value={t}>
-              {t}
+              {friendlyTag(t)} ({t})
             </option>
           ))}
         </select>

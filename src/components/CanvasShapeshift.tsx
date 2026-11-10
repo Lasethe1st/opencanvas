@@ -1,3 +1,4 @@
+import { friendlyTag } from '../lib/element-names';
 import { X } from '../lib/hugeicons';
 import { layerKind } from '../lib/layer-icons';
 import { useQuickPills } from '../lib/prefs';
@@ -72,8 +73,8 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
 
   // The selected element rides inside the field as an inline chip, so nothing floats above the dock.
   const contextChip = selection ? (
-        <span className="assistant-docker__context" data-kind={layerKind(selection.tag)} title={`The AI knows ${selection.name} is selected`}>
-          <code>{`.${/\s\.(\S+)$/.exec(selection.name)?.[1] ?? selection.tag}`}</code>
+        <span className="assistant-docker__context" data-kind={layerKind(selection.tag)} title={`The AI knows ${selection.name} (<${selection.tag}>) is selected`}>
+          <span>{friendlyTag(selection.tag)}</span>
           <button type="button" aria-label="Deselect" onClick={() => selectElement(null)}>
             <X size={11} />
           </button>

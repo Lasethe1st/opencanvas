@@ -1,13 +1,13 @@
 import { Code2, Link2, Link2Off } from '../lib/hugeicons';
 import { Button, IconButton } from './primitives.jsx';
 
-export function InspectorHeader({ icon, name, tag, parent, source, onRename, onSource }) {
+export function InspectorHeader({ icon, name, tag, tagLabel, parent, source, onRename, onSource }) {
   return (
     <div className="inspector-head">
       <div className="inspector-head__row">
         {icon}
         <input data-oc="input-o3u49" className="inspector-head__name" defaultValue={name} key={name} aria-label="Layer name" onBlur={(e) => onRename?.(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
-        <span className="tag">&lt;{tag}&gt;</span>
+        <span className="tag" title={`<${tag}>`}>{tagLabel ?? `<${tag}>`}</span>
         {source && (
           <IconButton size="sm" label={`Open ${source} in code`} tipSide="bottom" className="inspector-head__source" onClick={onSource}>
             <Code2 size={14} />

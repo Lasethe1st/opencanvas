@@ -985,7 +985,7 @@ kbd, .kbd,
   width: min(560px, calc(var(--dock-room) - 32px));
 }
 /* Too narrow for the dock and the zoom controls side by side: the zoom controls sit above the dock bar. */
-.workspace--bleed .workspace__center[data-nav-stacked] .canvas-nav { bottom: 16px; }
+.workspace--bleed .workspace__center[data-nav-stacked] .canvas-nav { bottom: 72px; }
 
 /* Layer right-click menu */
 .layer-menu { position: fixed; z-index: 400; }
@@ -1699,9 +1699,6 @@ kbd, .kbd,
 .workspace--bleed > .workspace__center + * { margin-left: 0; }
 .workspace .stage__dots { display: none; }
 
-/* Zoom / minimap pill: parked for now (kept mounted so it can come back). */
-.canvas-nav--parked { display: none !important; }
-
 /* Assistant docker: context chip + conversation. */
 .assistant-docker { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .assistant-docker [data-slot='shapeshift'] { align-self: stretch; }
@@ -2392,3 +2389,16 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
   [data-home-composer-front] { transition: none; }
 }
 
+
+/* Frame header: the size reads at rest; the actions are faint until the frame is hovered or active. */
+.frame-chrome__size { color: var(--fg-3); }
+.frame-chrome__menu { opacity: 0.55; }
+.frame-chrome__label:hover .frame-chrome__menu,
+.frame-chrome.is-active .frame-chrome__menu,
+.frame-chrome__menu.is-active { opacity: 1; }
+
+/* Box model: the captions get their own row so "Margin"/"Padding" never run into the top value. */
+.boxmodel { padding-top: 44px; }
+.boxmodel__padding { padding-top: 44px; }
+.boxmodel > .box-slot--top,
+.boxmodel__padding > .box-slot--top { top: 20px; }

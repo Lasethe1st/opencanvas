@@ -48,6 +48,7 @@ import {
   displayRect,
   duplicateFrame,
   fitAll,
+  fitFrame,
   wrapperPad,
   fitSelection,
   layoutRedo,
@@ -88,6 +89,7 @@ import { CanvasRulers } from './CanvasRulers';
 import { variantLetter } from '../../shared/variants';
 import { Button, IconButton, Menu, MenuItem, Notice } from '../ui/primitives.jsx';
 
+const DEVICE_NAME: Record<string, string> = { desktop: 'Desktop', laptop: 'Laptop', tablet: 'Tablet', mobile: 'Mobile', custom: 'Custom' };
 export const SCOPE_LABEL: Record<Breakpoint, string> = { base: 'Base', tablet: 'Tablet', mobile: 'Mobile' };
 
 const EMPTY_RUNTIME: FrameRuntime = { ready: false, contentHeight: 0, tree: [] };
@@ -771,7 +773,7 @@ export function Canvas({ hidden }: { hidden: boolean }) {
       groups.set(key, g);
     }
     const z = camera.zoom;
-    return [...groups.entries()].map(([id, g]) => {
+    const list = [...groups.entries()].map(([id, g]) => {
       const x0 = Math.min(...g.rects.map((r) => r.x));
       const y0 = Math.min(...g.rects.map((r) => r.y));
       const x1 = Math.max(...g.rects.map((r) => r.x + r.width));
@@ -779,8 +781,25 @@ export function Canvas({ hidden }: { hidden: boolean }) {
       const { side, top } = wrapperPad(z);
       const world = { x: x0 - side, y: y0 - top, width: x1 - x0 + 2 * side, height: y1 - y0 + top + side };
       const p = worldToScreen(camera, world);
-      return { id, name: g.name, count: g.rects.length, world, screen: { x: p.x, y: p.y, width: world.width * z } };
+      return { id, name: g.name, count: g.rects.length, world, framesBottom: y1, screen: { x: p.x, y: p.y, width: world.width * z } };
     });
+    // Padding grows with zoom-out, so a page's card can run into the title of the page below it. Trim the
+    // bottom of the upper card to leave room for that title, never past the frames it holds.
+    const TITLE_ROOM = 36;
+    for (const a of list) {
+      for (const b of list) {
+        if (a === b || b.world.y <= a.world.y) continue;
+        if (b.world.x >= a.world.x + a.world.width || a.world.x >= b.world.x + b.world.width) continue;
+        const limit = b.screen.y - TITLE_ROOM;
+        const bottom = (a.world.y + a.world.height) * z + camera.y;
+        if (bottom > limit) {
+          const minBottom = a.framesBottom + 8 / z;
+          const next = Math.max((limit - camera.y) / z, minBottom);
+          a.world = { ...a.world, height: next - a.world.y };
+        }
+      }
+    }
+    return list;
   })();
   const toScreenGuide = (g: Guide) =>
     g.axis === 'x'
@@ -950,6 +969,8 @@ export function Canvas({ hidden }: { hidden: boolean }) {
                 scope={SCOPE_LABEL[scope]}
                 device={f.preset}
                 tip={`${f.name} · ${Math.round(eff.width)}`}
+                size={`${DEVICE_NAME[f.preset] ?? 'Custom'} · ${Math.round(eff.width)} × ${Math.round(f.height)}`}
+                onZoom={() => { setActiveFrame(f.id); fitFrame(f.id); }}
                 active={f.id === activeFrame?.id}
                 working={!!aiTarget && !aiTarget.elementId && aiTarget.frameId === f.id}
                 fitPage={f.fitPage}

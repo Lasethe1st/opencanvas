@@ -41,6 +41,7 @@ export function FrameChrome(props: {
   onDragStart?: (e: PointerEvent<HTMLDivElement>) => void;
   onRename?: () => void;
   onResizeStart?: (e: PointerEvent<HTMLDivElement>, edge: ResizeEdge) => void;
+  onZoom?: () => void;
   menuOpen?: boolean;
   onMenu?: () => void;
   menu?: ReactNode;
