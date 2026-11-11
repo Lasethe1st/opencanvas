@@ -19,6 +19,7 @@ import {
 } from './actions';
 import { fitAll, fitSelection, layoutRedo, layoutUndo, zoomBy, zoomToLevel } from './canvas';
 import { getExperienceLevel } from './experience';
+import { stepPage } from './pages';
 import { editSelectedText, INLINE_TAGS } from './inline-edit';
 import { getState, setState } from './store';
 
@@ -86,6 +87,7 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string[][]; label:
       { keys: [[MOD, '0']], label: 'Zoom to 100%' },
       { keys: [['Shift', '1']], label: 'Fit all frames' },
       { keys: [['Shift', '2']], label: 'Zoom to selection' },
+      { keys: [[ALT, 'PgUp'], [ALT, 'PgDn']], label: 'Previous / next page' },
       { keys: [[MOD, ALT, 'Z']], label: 'Undo layout change' },
       { keys: [[MOD, ALT, 'Shift', 'Z']], label: 'Redo layout change' },
     ],
@@ -171,6 +173,10 @@ export function handleShortcut(key: string, meta: boolean, shift: boolean, alt =
   }
   if (shift && !meta && (key === '@' || key === '2')) {
     fitSelection();
+    return true;
+  }
+  if (alt && !meta && !shift && (key === 'PageUp' || key === 'PageDown')) {
+    stepPage(key === 'PageUp' ? -1 : 1);
     return true;
   }
   if (interact) return false;

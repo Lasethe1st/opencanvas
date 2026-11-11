@@ -14,7 +14,7 @@ import {
   Trash2,
   X,
 } from '../lib/hugeicons';
-import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
   breakpointFor,
@@ -48,6 +48,7 @@ import {
   displayRect,
   duplicateFrame,
   fitAll,
+  pageFrames,
   fitFrame,
   wrapperPad,
   fitSelection,
@@ -148,7 +149,7 @@ function onStageContextMenu(e: React.MouseEvent<HTMLElement>) {
   e.preventDefault();
   if (getState().interact) return;
   const world = worldAt(e.clientX, e.clientY);
-  const hit = [...getState().frames].reverse().find((f) => world.x >= f.x && world.x <= f.x + f.width && world.y >= f.y - 40 && world.y <= f.y + f.height);
+  const hit = [...pageFrames()].reverse().find((f) => world.x >= f.x && world.x <= f.x + f.width && world.y >= f.y - 40 && world.y <= f.y + f.height);
   if (hit) prepareFrameInsert(hit.id);
   openInsertMenu({ x: e.clientX, y: e.clientY, frameId: hit?.id ?? null, world });
 }
@@ -548,9 +549,11 @@ export function Canvas({ hidden }: { hidden: boolean }) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const status = useStore((s) => s.previewStatus);
   const project = useStore((s) => s.project)!;
-  const frames = useStore((s) => s.frames);
+  const allFrames = useStore((s) => s.frames);
   const projectConfig = useStore((s) => s.projectConfig);
   const activeFrameId = useStore((s) => s.activeFrameId);
+  // One canvas per page: only the current page's frames are shown.
+  const frames = useMemo(() => pageFrames({ ...getState(), frames: allFrames, projectConfig, activeFrameId }), [allFrames, projectConfig, activeFrameId]);
   const camera = useStore((s) => s.camera);
   const runtime = useStore((s) => s.frameRuntime);
   const variants = useStore((s) => s.variants);
