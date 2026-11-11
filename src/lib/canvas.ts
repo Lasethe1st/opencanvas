@@ -132,15 +132,43 @@ export function displayRect(frame: FrameLayout, runtime?: FrameRuntime): Rect {
   return { x: frame.x, y: frame.y, width: frame.width, height };
 }
 
+/** The frames of the page being shown (the page of the active frame). Without page config, every frame. */
+export function pageFrames(s = getState()): FrameLayout[] {
+  if (!s.projectConfig) return s.frames;
+  const current = pageOf(s.frames.find((f) => f.id === s.activeFrameId) ?? s.frames[0], s);
+  if (!current) return s.frames;
+  return s.frames.filter((f) => pageOf(f, s)?.id === current.id);
+}
+
 const rects = () => {
-  const { frames, frameRuntime } = getState();
-  return frames.map((f) => displayRect(f, frameRuntime[f.id]));
+  const s = getState();
+  return pageFrames(s).map((f) => displayRect(f, s.frameRuntime[f.id]));
 };
+
+/** Each page keeps its own zoom and position while you are on another page. */
+const pageCameras = new Map<string, Camera>();
+const cameraKey = (pageId: string) => `${getState().project?.root ?? ''}:${pageId}`;
+export function currentPageId(s = getState()): string | undefined {
+  return s.projectConfig ? pageOf(s.frames.find((f) => f.id === s.activeFrameId) ?? s.frames[0], s)?.id : undefined;
+}
 
 const updateFrame = (id: string, patch: Partial<FrameLayout>) => getState().frames.map((f) => (f.id === id ? { ...f, ...patch } : f));
 
 export function setActiveFrame(id: string) {
-  if (getState().activeFrameId === id) return;
+  const s = getState();
+  if (s.activeFrameId === id) return;
+  const from = currentPageId(s);
+  const target = s.frames.find((f) => f.id === id);
+  const to = target && s.projectConfig ? pageOf(target, s)?.id : undefined;
+  if (from && to && from !== to) {
+    // Switching pages: remember where this page was, then show the other one where it was left (or fitted).
+    pageCameras.set(cameraKey(from), s.camera);
+    setState({ activeFrameId: id, selection: null, multiSelect: [], domTree: s.frameRuntime[id]?.tree ?? [] });
+    const saved = pageCameras.get(cameraKey(to));
+    if (saved) setCamera(saved);
+    else fitAll();
+    return;
+  }
   setState({ activeFrameId: id });
 }
 

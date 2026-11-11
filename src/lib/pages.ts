@@ -86,8 +86,23 @@ export function focusPage(id: string) {
   const frames = framesOf(id);
   const frame = frames.find((f) => f.id === getState().activeFrameId) ?? frames[0];
   if (!frame) return;
+  const switching = activePage()?.id !== id;
   setActiveFrame(frame.id);
-  fitFrame(frame.id);
+  // Coming from another page restores that page's own view; asking for the page you are on fits its frame.
+  if (!switching) fitFrame(frame.id);
+}
+
+/** The design pages, in order: the ones that have a canvas. */
+export function designPages(): PageConfig[] {
+  return (getState().projectConfig?.pages ?? []).filter((p) => (p.viewType ?? 'design') === 'design' && framesOf(p.id).length > 0);
+}
+
+/** Flip to the next or previous page (wraps around). */
+export function stepPage(step: -1 | 1) {
+  const pages = designPages();
+  if (pages.length < 2) return;
+  const i = pages.findIndex((p) => p.id === activePage()?.id);
+  focusPage(pages[(i + step + pages.length) % pages.length].id);
 }
 
 async function mutate(run: () => Promise<PageMutation>, label: (m: PageMutation) => string): Promise<PageMutation | null> {
