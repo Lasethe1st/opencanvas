@@ -118,7 +118,7 @@ export function CalmPagePill({ className, side = 'bottom' }: { className?: strin
           type="button"
           aria-label={`Page: ${current.name}. Switch page`}
           className={cn(
-            'calm-pill flex h-9 max-w-[180px] items-center gap-1.5 rounded-full border-0 bg-muted px-3.5 text-xs font-medium text-foreground outline-none transition-colors hover:bg-secondary data-[state=open]:bg-secondary',
+            'calm-circle calm-pill flex h-9 max-w-[180px] items-center gap-1.5 rounded-full px-3.5 text-xs font-medium text-foreground outline-none',
             className,
           )}
         >
