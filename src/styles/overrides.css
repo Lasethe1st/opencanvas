@@ -2426,11 +2426,20 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 [data-theme='dark'] .shell--calm .workspace .stage__dots { --canvas-dot: #2a2a2e; }
 
 /* Settings: learning-curve slider (the home page's thinking slider) with its context underneath. */
-.lc { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; }
-.lc__row { display: flex; justify-content: center; }
-.lc__context { display: flex; flex-direction: column; gap: 4px; min-height: 38px; text-align: center; }
+.lc { display: flex; flex-direction: column; gap: 14px; padding: 16px; }
+.lc__context { display: flex; flex-direction: column; gap: 3px; min-height: 40px; }
 .lc__context p { margin: 0; }
+.lc__name { color: var(--fg); font-size: 13px; font-weight: 600; }
 .lc__blurb { color: var(--fg-3); font-size: 12.5px; line-height: 1.45; }
+/* Full-width stepped slider with a vertical pill thumb. */
+.stepslider { position: relative; width: 100%; height: 36px; border-radius: 999px; background: color-mix(in srgb, var(--fg) 7%, var(--surface)); cursor: pointer; touch-action: none; outline: none; user-select: none; overflow: hidden; --thumb-w: 12px; }
+.stepslider__fill { position: absolute; inset: 0 auto 0 0; width: calc(4px + (100% - 8px - var(--thumb-w)) * var(--t) + var(--thumb-w) + 6px); border-radius: 999px; background: linear-gradient(90deg, color-mix(in srgb, #4ade80 calc(18% + 24% * var(--t)), transparent), color-mix(in srgb, #16a34a calc(34% + 62% * var(--t)), transparent)); transition: width 0.22s cubic-bezier(0.23, 1, 0.32, 1); }
+.stepslider__thumb { position: absolute; top: 6px; bottom: 6px; width: var(--thumb-w); left: calc(4px + (100% - 8px - var(--thumb-w)) * var(--t)); border-radius: 999px; background: var(--surface, #fff); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22), 0 0 0 0.5px color-mix(in srgb, var(--fg) 16%, transparent); transition: left 0.22s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.16s; }
+[data-theme='dark'] .stepslider__thumb { background: color-mix(in srgb, var(--fg) 88%, var(--surface)); }
+.stepslider[data-dragging='true'] .stepslider__fill, .stepslider[data-dragging='true'] .stepslider__thumb { transition: none; }
+.stepslider[data-dragging='true'] .stepslider__thumb { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28), 0 0 0 0.5px color-mix(in srgb, var(--fg) 16%, transparent); }
+.stepslider:focus-visible .stepslider__thumb { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22), 0 0 0 3px color-mix(in srgb, #16a34a 30%, transparent); }
+@media (prefers-reduced-motion: reduce) { .stepslider__fill, .stepslider__thumb { transition: none; } }
 
 /* Light mode: the home composer is pure white, with a hairline edge and a soft lift. */
 :root:not([data-theme='dark']) [data-home-composer] {
