@@ -7,6 +7,7 @@ import { plural } from '../lib/plural';
 import { setState, toast, useStore, type SettingsTab } from '../lib/store';
 import { AiSettingsPanel } from './settings/AiSettings';
 import { SettingRow, SettingsGroup, Switch } from './settings/parts';
+import { ReasoningEffort } from './home/ReasoningEffort';
 import { CHAT_BUBBLE_PRESETS, setChatBubblePreset, useChatBubblePreset } from '../lib/chat-bubble';
 import { CHAT_FONT_SIZE_PRESETS, setChatFontSize, useChatFontSize } from '../lib/chat-font-size';
 import { getOrbColors, ORB_COLOR_PRESETS, setOrbColorPreset, useOrbColorPreset } from '../lib/orb-colors';
@@ -127,6 +128,28 @@ const LEVELS: { id: ExperienceLevel; label: string; blurb: string; unlocks: stri
   { id: 'veteran', label: 'Veteran', blurb: 'The whole editor, for people who work in code.', unlocks: 'Adds code, terminal, tools and MCP' },
 ];
 
+const LEVEL_STOPS = LEVELS.map(({ id, label }) => ({ id, label }));
+
+/** The learning curve as the same slider the home page uses for thinking strength; what each stop means sits underneath. */
+function LearningCurve({ level }: { level: ExperienceLevel }) {
+  const current = LEVELS.find((l) => l.id === level) ?? LEVELS[0];
+  const [live, setLive] = useState(current.label);
+  useEffect(() => setLive(current.label), [current.label]);
+  const shown = LEVELS.find((l) => l.label === live) ?? current;
+  return (
+    <div className="lc">
+      <div className="lc__row">
+        <ReasoningEffort<ExperienceLevel> value={level} onChange={setExperienceLevel} modelLabel={current.label} onStopChange={setLive} stops={LEVEL_STOPS} ariaLabel="Learning curve" />
+        <span className="lc__live">{live}</span>
+      </div>
+      <div className="lc__context" aria-live="polite">
+        <p className="lc__blurb">{shown.blurb}</p>
+        <p className="lc__unlocks">{shown.unlocks}</p>
+      </div>
+    </div>
+  );
+}
+
 function GeneralSettings() {
   const fontSize = useChatFontSize();
   const sendKey = useSendKey();
@@ -140,15 +163,7 @@ function GeneralSettings() {
   return (
     <>
       <SettingsGroup title="Learning curve" hint="Start simple and unlock more of the editor as you get comfortable. You can change this any time.">
-        <div className="lc" role="radiogroup" aria-label="Learning curve">
-          {LEVELS.map(({ id, label, blurb, unlocks }) => (
-            <button key={id} type="button" role="radio" aria-checked={level === id} className={`lc__card${level === id ? ' is-active' : ''}`} onClick={() => setExperienceLevel(id)}>
-              <span className="lc__title">{label}</span>
-              <span className="lc__blurb">{blurb}</span>
-              <span className="lc__unlocks">{unlocks}</span>
-            </button>
-          ))}
-        </div>
+        <LearningCurve level={level} />
       </SettingsGroup>
 
       <SettingsGroup title="You">
