@@ -7,7 +7,7 @@ import { createPage, designPages, focusPage } from '../lib/pages';
 import { activeFrame, pageOf, useStore } from '../lib/store';
 
 /** The calm canvas shows one page at a time; this pill names it and switches to another. */
-export function CalmPagePill({ className }: { className?: string }) {
+export function CalmPagePill({ className, side = 'bottom' }: { className?: string; side?: 'top' | 'bottom' }) {
   const config = useStore((s) => s.projectConfig);
   const current = useStore((s) => pageOf(activeFrame(s), s));
   useStore((s) => s.frames);
@@ -43,8 +43,8 @@ export function CalmPagePill({ className }: { className?: string }) {
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
-          side="bottom"
-          align="center"
+          side={side}
+          align={side === 'top' ? 'start' : 'center'}
           sideOffset={8}
           collisionPadding={12}
           className="z-[120] w-[240px] rounded-2xl border border-[color:var(--line)] bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-md)] outline-none"
