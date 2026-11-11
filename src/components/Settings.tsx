@@ -140,11 +140,9 @@ function LearningCurve({ level }: { level: ExperienceLevel }) {
     <div className="lc">
       <div className="lc__row">
         <ReasoningEffort<ExperienceLevel> value={level} onChange={setExperienceLevel} modelLabel={current.label} onStopChange={setLive} stops={LEVEL_STOPS} ariaLabel="Learning curve" />
-        <span className="lc__live">{live}</span>
       </div>
       <div className="lc__context" aria-live="polite">
         <p className="lc__blurb">{shown.blurb}</p>
-        <p className="lc__unlocks">{shown.unlocks}</p>
       </div>
     </div>
   );
@@ -162,7 +160,7 @@ function GeneralSettings() {
   const autosave = useAutosave();
   return (
     <>
-      <SettingsGroup title="Learning curve" hint="Start simple and unlock more of the editor as you get comfortable. You can change this any time.">
+      <SettingsGroup title="Learning curve">
         <LearningCurve level={level} />
       </SettingsGroup>
 

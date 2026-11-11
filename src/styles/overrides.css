@@ -2427,12 +2427,10 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 
 /* Settings: learning-curve slider (the home page's thinking slider) with its context underneath. */
 .lc { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; }
-.lc__row { display: flex; align-items: flex-end; gap: 14px; }
-.lc__live { display: flex; align-items: center; height: 32px; font-size: 13px; font-weight: 600; color: var(--fg); white-space: nowrap; }
-.lc__context { display: flex; flex-direction: column; gap: 4px; min-height: 52px; }
+.lc__row { display: flex; justify-content: center; }
+.lc__context { display: flex; flex-direction: column; gap: 4px; min-height: 38px; text-align: center; }
 .lc__context p { margin: 0; }
-.lc__blurb { color: var(--fg); font-size: 13px; line-height: 1.45; }
-.lc__unlocks { color: var(--fg-3); font-size: 12px; line-height: 1.4; }
+.lc__blurb { color: var(--fg-3); font-size: 12.5px; line-height: 1.45; }
 
 /* Light mode: the home composer is pure white, with a hairline edge and a soft lift. */
 :root:not([data-theme='dark']) [data-home-composer] {
