@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Home04Icon, LayoutAlignLeftIcon, LayoutAlignRightIcon, RulerDimensionLineIcon, RulerIcon, Search02Icon } from '@hugeicons/core-free-icons';
+import { Add01Icon, Home04Icon, LayoutAlignLeftIcon, LayoutAlignRightIcon, RulerDimensionLineIcon, RulerIcon, Search02Icon } from '@hugeicons/core-free-icons';
 import { CalmPagePill } from './CalmPagePill';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -8,8 +8,21 @@ import { useExperienceLevel } from '../lib/experience';
 import { closeProject } from '../lib/actions';
 import { setMeasure, useMeasure } from '../lib/measure';
 import { setRulers, useRulers } from '../lib/rulers';
-import { setState } from '../lib/store';
+import { openInsertMenu } from '../lib/element-menu';
+import { getState, setState } from '../lib/store';
+import { prepareFrameInsert } from './InsertContextMenu';
 import { USER_AVATAR_SRC } from '../lib/user-avatar';
+
+/** Opens the insert menu from the + pill: elements go into the page's active frame, frames onto the page. */
+function openAddMenu(button: HTMLElement) {
+  const r = button.getBoundingClientRect();
+  const vp = document.querySelector('.stage__viewport')?.getBoundingClientRect();
+  const { camera, activeFrameId } = getState();
+  const cx = (vp?.width ?? window.innerWidth) / 2;
+  const cy = (vp?.height ?? window.innerHeight) / 2;
+  if (activeFrameId) prepareFrameInsert(activeFrameId);
+  openInsertMenu({ x: r.left, y: r.bottom + 6, frameId: activeFrameId, world: { x: (cx - camera.x) / camera.zoom, y: (cy - camera.y) / camera.zoom } });
+}
 
 /** Corner and centre pills of the calm canvas: the same shapes as the home page's toggles, plus search. */
 export function CalmPills() {
@@ -35,6 +48,14 @@ export function CalmPills() {
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">Home</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" className="calm-circle calm-pill calm-pill--round relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]" aria-label="Add to page" onClick={(e) => openAddMenu(e.currentTarget)}>
+                <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Add to page</TooltipContent>
           </Tooltip>
         </div>
         <div className="absolute start-3 z-50" style={{ bottom: 12 }}>

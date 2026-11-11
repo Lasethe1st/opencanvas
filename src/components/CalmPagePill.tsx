@@ -1,15 +1,74 @@
 import { useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Add01Icon, ArrowDown01Icon, File02Icon, Tick02Icon } from '@hugeicons/core-free-icons';
+import { Add01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
 import { createPage, designPages, focusPage } from '../lib/pages';
+import { PAGE_ICONS, setPageIcon, usePageIcon, type PageIconName } from '../lib/page-icons';
 import { activeFrame, pageOf, useStore } from '../lib/store';
+
+/** A page's icon; click it in the list to choose another (kept on this device). */
+function PageIconButton({ page, root }: { page: { id: string; name: string; path?: string }; root: string | undefined }) {
+  const { icon, name } = usePageIcon(root, page.id, page.path);
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label={`Change icon for ${page.name}`}
+          title="Change icon"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              setOpen((o) => !o);
+            }
+          }}
+          className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.09] hover:text-foreground focus-visible:bg-foreground/[0.09]"
+        >
+          <HugeiconsIcon icon={icon} strokeWidth={2} className="size-4" />
+        </span>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content side="right" align="start" sideOffset={10} collisionPadding={12} onClick={(e) => e.stopPropagation()} className="z-[130] w-[248px] rounded-2xl border border-[color:var(--line)] bg-popover p-2 text-popover-foreground shadow-[var(--shadow-md)] outline-none">
+          <div className="grid grid-cols-6 gap-1" role="listbox" aria-label="Page icons">
+            {(Object.keys(PAGE_ICONS) as PageIconName[]).map((n) => (
+              <button
+                key={n}
+                type="button"
+                role="option"
+                aria-selected={name === n}
+                aria-label={n}
+                onClick={() => {
+                  setPageIcon(root, page.id, n);
+                  setOpen(false);
+                }}
+                className={cn('flex size-9 items-center justify-center rounded-lg border-0 bg-transparent text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.07] hover:text-foreground', name === n && 'bg-foreground/[0.09] text-foreground')}
+              >
+                <HugeiconsIcon icon={PAGE_ICONS[n]} strokeWidth={2} className="size-[18px]" />
+              </button>
+            ))}
+          </div>
+          {name && (
+            <button type="button" onClick={() => { setPageIcon(root, page.id, null); setOpen(false); }} className="mt-1.5 w-full rounded-lg border-0 bg-transparent px-2 py-1.5 text-left text-xs text-muted-foreground outline-none hover:bg-foreground/[0.06] hover:text-foreground">
+              Reset to default
+            </button>
+          )}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
 
 /** The calm canvas shows one page at a time; this pill names it and switches to another. */
 export function CalmPagePill({ className, side = 'bottom' }: { className?: string; side?: 'top' | 'bottom' }) {
   const config = useStore((s) => s.projectConfig);
   const current = useStore((s) => pageOf(activeFrame(s), s));
+  const root = useStore((s) => s.project?.root);
+  const cur = usePageIcon(root, current?.id ?? '', current?.path);
   useStore((s) => s.frames);
   const busy = useStore((s) => s.busy);
   const [open, setOpen] = useState(false);
@@ -37,8 +96,8 @@ export function CalmPagePill({ className, side = 'bottom' }: { className?: strin
             className,
           )}
         >
+          <HugeiconsIcon icon={cur.icon} strokeWidth={2} className="size-4 shrink-0 text-muted-foreground" />
           <span className="min-w-0 truncate">{current.name}</span>
-          <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="size-3.5 shrink-0 text-muted-foreground" />
         </button>
       </Popover.Trigger>
       <Popover.Portal>
@@ -54,24 +113,25 @@ export function CalmPagePill({ className, side = 'bottom' }: { className?: strin
             {pages.map((p) => {
               const on = p.id === current.id;
               return (
-                <button
-                  key={p.id}
-                  type="button"
-                  role="option"
-                  aria-selected={on}
-                  onClick={() => {
-                    setOpen(false);
-                    focusPage(p.id);
-                  }}
-                  className={cn('flex w-full items-center gap-2 rounded-xl border-0 bg-transparent px-2.5 py-1.5 text-left outline-none transition-colors hover:bg-foreground/[0.06]', on && 'bg-foreground/[0.06]')}
-                >
-                  <HugeiconsIcon icon={File02Icon} strokeWidth={2} className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-sm text-foreground">{p.name}</span>
-                    <span className="truncate text-[11px] text-muted-foreground">{p.path}</span>
-                  </span>
-                  {on && <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} className="size-4 shrink-0" />}
-                </button>
+                <div key={p.id} className={cn('flex w-full items-center gap-1 rounded-xl px-1 transition-colors hover:bg-foreground/[0.06]', on && 'bg-foreground/[0.06]')}>
+                  <PageIconButton page={p} root={root} />
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={on}
+                    onClick={() => {
+                      setOpen(false);
+                      focusPage(p.id);
+                    }}
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border-0 bg-transparent py-1.5 pe-1.5 text-left outline-none"
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-sm text-foreground">{p.name}</span>
+                      <span className="truncate text-[11px] text-muted-foreground">{p.path}</span>
+                    </span>
+                    {on && <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} className="size-4 shrink-0" />}
+                  </button>
+                </div>
               );
             })}
           </div>
