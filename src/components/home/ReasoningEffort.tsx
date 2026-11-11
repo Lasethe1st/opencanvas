@@ -173,23 +173,28 @@ function shellPath(cx: number, open: number, plateauW: number) {
 }
 
 
-export function ReasoningEffort({
+export function ReasoningEffort<T extends string = AiThinkingEffort>({
   value,
   onChange,
   modelLabel,
   onStopChange,
+  stops,
 }: {
-  value: AiThinkingEffort;
-  onChange: (next: AiThinkingEffort) => void;
+  value: T;
+  onChange: (next: T) => void;
   modelLabel: string;
+  /** Three named stops to use instead of the thinking-effort ones. */
+  stops?: readonly { id: T; label: string }[];
   /** Current stop while dragging, so a label beside the track can follow the thumb. */
   onStopChange?: (label: string) => void;
 }) {
   const MODEL = modelLabel;
+  const list = (stops ?? EFFORTS) as readonly { id: T; label: string }[];
+  const STOPS = list.map((e) => e.label);
   const rootRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
-  const startIndex = Math.max(0, EFFORTS.findIndex((e) => e.id === value));
+  const startIndex = Math.max(0, list.findIndex((e) => e.id === value));
   const valueRef = useRef(startIndex);
   const displayRef = useRef(startIndex);
   const openRef = useRef(0);
@@ -325,7 +330,7 @@ export function ReasoningEffort({
 
   useEffect(() => {
     if (draggingRef.current) return;
-    const idx = Math.max(0, EFFORTS.findIndex((e) => e.id === value));
+    const idx = Math.max(0, list.findIndex((e) => e.id === value));
     if (Math.round(valueRef.current) !== idx) {
       valueRef.current = idx;
       displayRef.current = idx;
@@ -339,7 +344,7 @@ export function ReasoningEffort({
   }, [stopLabel, onStopChange]);
 
   function emit(index: number) {
-    const id = EFFORTS[clamp(Math.round(index), 0, EFFORTS.length - 1)].id;
+    const id = list[clamp(Math.round(index), 0, list.length - 1)].id;
     if (id !== value) onChange(id);
   }
 

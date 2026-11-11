@@ -202,6 +202,14 @@ export function addCustomFrame(width: number, height: number, name = 'Custom') {
   focusRect(displayRect(frame));
 }
 
+/** A custom-size frame (a device preset) with its top-left at a canvas point. */
+export function addCustomFrameAt(width: number, height: number, name: string, at: { x: number; y: number }) {
+  const size = { width: clamp(Math.round(width), MIN_FRAME.width, MAX_FRAME.width), height: clamp(Math.round(height), MIN_FRAME.height, MAX_FRAME.height) };
+  const frame: FrameLayout = { id: frameId(), name, x: Math.round(at.x), y: Math.round(at.y), ...size, preset: 'custom', fitPage: false, pageId: activePageId() };
+  commitLayout(`Add ${name} frame`, [...getState().frames, frame], frame.id);
+  focusRect(displayRect(frame));
+}
+
 export function duplicateFrame(id: string) {
   const { frames } = getState();
   const frame = frames.find((f) => f.id === id);

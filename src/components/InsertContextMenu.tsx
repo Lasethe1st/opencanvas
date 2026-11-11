@@ -4,12 +4,12 @@ import { Menu } from 'bloom-menu';
 import { motion } from 'framer-motion';
 import type { InsertKind } from '../../shared/types';
 import { insertElement, insertImageFromDisk } from '../lib/actions';
-import { addFrame, addFrameAt } from '../lib/canvas';
+import { addCustomFrame, addCustomFrameAt, addFrame, addFrameAt } from '../lib/canvas';
 import { bloomPlacement, closeInsertMenu, useInsertMenu } from '../lib/element-menu';
 import { editSelectedText, INLINE_TAGS } from '../lib/inline-edit';
 import { Frame } from '../lib/hugeicons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { AiMagicIcon, MoreHorizontalIcon } from '@hugeicons/core-free-icons';
+import { AiMagicIcon, ComputerIcon, GameController03Icon, LaptopIcon, MoreHorizontalIcon, SmartPhone01Icon, Tablet01Icon } from '@hugeicons/core-free-icons';
 
 const MoreIcon = () => <HugeiconsIcon icon={MoreHorizontalIcon} size={15} strokeWidth={1.8} />;
 import { getState, setState, useStore } from '../lib/store';
@@ -17,12 +17,20 @@ import { openDock } from './Dock';
 import { ELEMENTS } from './ToolRail';
 import { ROW, SideBloom } from './SideBloom';
 
+/** Device sizes offered by the Frame row, in CSS pixels. */
+const DEVICES: { section: string; icon: typeof ComputerIcon; items: [name: string, w: number, h: number][] }[] = [
+  { section: 'Computer', icon: LaptopIcon, items: [['Desktop', 1440, 900], ['MacBook Air 13"', 1470, 956], ['MacBook Pro 16"', 1728, 1117], ['Windows laptop', 1366, 768], ['Full HD monitor', 1920, 1080]] },
+  { section: 'Phone', icon: SmartPhone01Icon, items: [['iPhone 16', 393, 852], ['iPhone 16 Pro Max', 440, 956], ['Pixel 9', 412, 915], ['Galaxy S24', 360, 780]] },
+  { section: 'Tablet', icon: Tablet01Icon, items: [['iPad Pro 11"', 834, 1194], ['iPad mini', 744, 1133]] },
+  { section: 'Console', icon: GameController03Icon, items: [['Steam Deck', 1280, 800], ['Nintendo Switch', 1280, 720], ['PlayStation / Xbox', 1920, 1080]] },
+];
+
 const SEED = 8;
 const CLOSE_MS = 320;
 const W = 224;
 const H = 300;
 
-type Item = { id: string; label: string; icon: ReactNode; hint?: string; keywords: string; needsFrame: boolean; run: () => void };
+type Item = { id: string; label: string; icon: ReactNode; hint?: string; keywords: string; needsFrame: boolean; section?: string; run: () => void };
 
 /** Wait for the inserted element to become the selection, then start typing into it. */
 function editWhenSelected(before: string | undefined) {
@@ -50,6 +58,7 @@ export function InsertContextMenu() {
   const [focus, setFocus] = useState(0);
   const timer = useRef<number | null>(null);
   const [more, setMore] = useState(false);
+  const [sideKind, setSideKind] = useState<'more' | 'frame'>('more');
   const [sideFocus, setSideFocus] = useState(-1);
   const moreRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -77,6 +86,7 @@ export function InsertContextMenu() {
   }, [phase]);
 
   const inFrame = !!origin?.frameId;
+  const q = query.trim().toLowerCase();
   const el = (kind: InsertKind, label?: string, hint?: string): Item => {
     const e = ELEMENTS.find((x) => x.kind === kind)!;
     const Icon = e.icon;
@@ -91,16 +101,26 @@ export function InsertContextMenu() {
   };
   const basics: Item[] = [
     el('paragraph', 'Text'),
-    { id: 'frame', label: 'Frame', hint: undefined, keywords: 'frame artboard page screen desktop', needsFrame: false, icon: <Frame size={15} />, run: () => (origin?.frameId ? addFrame('desktop') : origin && addFrameAt('desktop', origin.world)) },
+    { id: 'frame', label: 'Frame', hint: q ? undefined : '›', keywords: 'frame artboard page screen desktop', needsFrame: false, icon: <Frame size={15} />, run: () => (q ? (origin?.frameId ? addFrame('desktop') : origin && addFrameAt('desktop', origin.world)) : openSide('frame')) },
     el('image', undefined, 'I'),
     el('div', 'Rectangle', 'R'),
     el('button', undefined, 'B'),
     el('input'),
   ];
   const extras: Item[] = [el('heading'), el('link'), el('section'), el('flex'), el('grid'), el('form')];
-  const moreItem: Item = { id: 'more', label: 'More…', hint: '›', keywords: '', needsFrame: true, icon: <MoreIcon />, run: () => setMore((m) => !m) };
+  const moreItem: Item = { id: 'more', label: 'More…', hint: '›', keywords: '', needsFrame: true, icon: <MoreIcon />, run: () => openSide('more') };
+  const devices: Item[] = DEVICES.flatMap((d) => d.items.map(([name, w, h]) => ({
+    id: `device:${name}`, label: name, hint: `${w}×${h}`, keywords: `${name} ${d.section}`.toLowerCase(), needsFrame: false, section: d.section,
+    icon: <HugeiconsIcon icon={d.icon} size={15} strokeWidth={1.8} />,
+    run: () => (origin?.frameId ? addCustomFrame(w, h, name) : origin && addCustomFrameAt(w, h, name, origin.world)),
+  })));
+  const sideItems = sideKind === 'frame' ? devices : extras;
+  const openSide = (k: 'more' | 'frame') => {
+    if (more && sideKind === k) return setMore(false);
+    setSideKind(k);
+    setMore(true);
+  };
   const ai: Item = { id: 'ai', label: 'Ask AI', keywords: 'ask ai chat help', needsFrame: false, icon: <HugeiconsIcon icon={AiMagicIcon} size={15} strokeWidth={1.8} />, run: () => openDock('input') };
-  const q = query.trim().toLowerCase();
   const matches = (it: Item) => it.label.toLowerCase().includes(q) || it.keywords.includes(q);
   const rank = (it: Item) => (it.label.toLowerCase().startsWith(q) ? 0 : it.label.toLowerCase().includes(q) ? 1 : 2);
   const usable = (it: Item) => !it.needsFrame || (inFrame && editable);
@@ -114,7 +134,7 @@ export function InsertContextMenu() {
   const live = flat.filter(usable);
   const pick = (it: Item | undefined) => {
     if (!it || !usable(it)) return;
-    if (it.id === 'more') return it.run();
+    if (!q && (it.id === 'more' || it.id === 'frame')) return it.run();
     closeInsertMenu();
     it.run();
   };
@@ -126,7 +146,7 @@ export function InsertContextMenu() {
       if (phase === 'closed') return;
       const stop = () => { e.preventDefault(); e.stopImmediatePropagation(); };
       if (more) {
-        const opts = extras.filter(usable);
+        const opts = sideItems.filter(usable);
         if (e.key === 'Escape' || e.key === 'ArrowLeft') { stop(); setMore(false); return; }
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { stop(); setSideFocus((f) => (f + (e.key === 'ArrowDown' ? 1 : opts.length - 1)) % opts.length); return; }
         if (e.key === 'Enter') { stop(); pick(opts[sideFocus]); return; }
@@ -135,13 +155,14 @@ export function InsertContextMenu() {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         stop();
         setFocus((f) => (live.length ? (f + (e.key === 'ArrowDown' ? 1 : live.length - 1)) % live.length : 0));
-      } else if (e.key === 'ArrowRight' && live[focus]?.id === 'more') {
+      } else if (e.key === 'ArrowRight' && !q && (live[focus]?.id === 'more' || live[focus]?.id === 'frame')) {
         stop();
         setSideFocus(0);
+        setSideKind(live[focus].id as 'more' | 'frame');
         setMore(true);
       } else if (e.key === 'Enter') {
         stop();
-        if (live[focus]?.id === 'more') setSideFocus(0);
+        if (live[focus]?.id === 'more' || live[focus]?.id === 'frame') setSideFocus(0);
         pick(live[focus]);
       } else if (e.key === 'Backspace') {
         stop();
@@ -176,12 +197,13 @@ export function InsertContextMenu() {
   const row = (it: Item) => {
     const delay = 0.05 + 0.022 * n++;
     const off = !usable(it);
-    const isMore = it.id === 'more';
+    const isMore = !q && (it.id === 'more' || it.id === 'frame');
+    const isActiveSide = isMore && it.id === (sideKind === 'frame' ? 'frame' : 'more');
     return (
-      <motion.div key={it.id} ref={isMore ? moreRef : undefined} style={{ pointerEvents: off ? 'none' : undefined }} onMouseEnter={() => { if (!off) setFocus(live.indexOf(it)); if (isMore && !off) { setSideFocus(-1); setMore(true); } }} initial={{ opacity: 0, y: -4 }} animate={phase === 'open' ? { opacity: off ? 0.4 : 1, y: 0 } : { opacity: 0, y: -4 }} transition={{ delay: phase === 'open' && !q ? delay : 0, duration: 0.18, ease: 'easeOut' }}>
+      <motion.div key={it.id} ref={isActiveSide ? moreRef : undefined} style={{ pointerEvents: off ? 'none' : undefined }} onMouseEnter={() => { if (!off) setFocus(live.indexOf(it)); if (isMore && !off) { setSideFocus(-1); setSideKind(it.id as 'more' | 'frame'); setMore(true); } }} initial={{ opacity: 0, y: -4 }} animate={phase === 'open' ? { opacity: off ? 0.4 : 1, y: 0 } : { opacity: 0, y: -4 }} transition={{ delay: phase === 'open' && !q ? delay : 0, duration: 0.18, ease: 'easeOut' }}>
         <Menu.Item
           disabled={off}
-          className={`${ROW} ${it === focused || (isMore && more) ? 'bg-accent' : ''}`}
+          className={`${ROW} ${it === focused || (isActiveSide && more) ? 'bg-accent' : ''}`}
           onSelect={() => pick(it)}
         >
           {it.icon}
@@ -227,10 +249,11 @@ export function InsertContextMenu() {
       <SideBloom
         open={more && phase === 'open' && !q}
         anchor={moreRef.current}
-        items={extras.map((it) => ({ ...it, disabled: !usable(it) }))}
+        width={sideKind === 'frame' ? 264 : undefined}
+        items={sideItems.map((it) => ({ ...it, disabled: !usable(it) }))}
         focus={sideFocus}
         setFocus={setSideFocus}
-        onPick={(it) => pick(extras.find((x) => x.id === it.id))}
+        onPick={(it) => pick(sideItems.find((x) => x.id === it.id))}
         onClose={() => setMore(false)}
         overSide={overSide}
       />

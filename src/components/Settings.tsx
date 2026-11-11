@@ -13,6 +13,7 @@ import { getOrbColors, ORB_COLOR_PRESETS, setOrbColorPreset, useOrbColorPreset }
 import { setThemePreference, useTheme } from '../lib/theme';
 import { setCalm, useCalm } from '../lib/calm';
 import { setShowMarkers, useShowMarkers } from '../lib/comments';
+import { ReasoningEffort } from './home/ReasoningEffort';
 import { setExperienceLevel, useExperienceLevel, type ExperienceLevel } from '../lib/experience';
 import { setAutosave, setDisplayName, setQuickPills, setReduceMotion, setSendKey, useAutosave, useDisplayName, useQuickPills, useReduceMotion, useSendKey } from '../lib/prefs';
 import { setRulers, useRulers } from '../lib/rulers';
@@ -121,11 +122,17 @@ export function SettingsPage() {
   );
 }
 
-const LEVELS: { id: ExperienceLevel; label: string; blurb: string; unlocks: string }[] = [
-  { id: 'beginner', label: 'Easy', blurb: 'Describe changes in chat and tweak things right on the canvas.', unlocks: 'Chat, quick pills, calm canvas' },
-  { id: 'intermediate', label: 'Moderate', blurb: 'Take more control of how your pages are put together.', unlocks: 'Adds layers, pages and the inspector' },
-  { id: 'veteran', label: 'Veteran', blurb: 'The whole editor, for people who work in code.', unlocks: 'Adds code, terminal, tools and MCP' },
+const LEVELS: { id: ExperienceLevel; label: string }[] = [
+  { id: 'beginner', label: 'Easy' },
+  { id: 'intermediate', label: 'Moderate' },
+  { id: 'veteran', label: 'Veteran' },
 ];
+
+const LEVEL_CONTEXT: Record<ExperienceLevel, string> = {
+  beginner: 'Describe changes in chat and tweak things right on the canvas. Layers, the inspector and code stay out of the way.',
+  intermediate: 'Adds layers, pages and the property inspector, so you can take more control of how your pages are put together.',
+  veteran: 'The whole editor: code, terminal, tools and MCP, for people who work in code.',
+};
 
 function GeneralSettings() {
   const fontSize = useChatFontSize();
@@ -139,15 +146,9 @@ function GeneralSettings() {
   const autosave = useAutosave();
   return (
     <>
-      <SettingsGroup title="Learning curve" hint="Start simple and unlock more of the editor as you get comfortable. You can change this any time.">
-        <div className="lc" role="radiogroup" aria-label="Learning curve">
-          {LEVELS.map(({ id, label, blurb, unlocks }) => (
-            <button key={id} type="button" role="radio" aria-checked={level === id} className={`lc__card${level === id ? ' is-active' : ''}`} onClick={() => setExperienceLevel(id)}>
-              <span className="lc__title">{label}</span>
-              <span className="lc__blurb">{blurb}</span>
-              <span className="lc__unlocks">{unlocks}</span>
-            </button>
-          ))}
+      <SettingsGroup title="Learning curve" hint={<><strong className="text-foreground">{LEVELS.find((l) => l.id === level)?.label}.</strong> {LEVEL_CONTEXT[level]}</>}>
+        <div className="lc">
+          <ReasoningEffort value={level} onChange={setExperienceLevel} modelLabel="Learning curve" stops={LEVELS} />
         </div>
       </SettingsGroup>
 
