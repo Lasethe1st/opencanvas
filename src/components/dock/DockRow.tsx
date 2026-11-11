@@ -3,7 +3,7 @@ import { chooseImageForSelection, setFontFamily, setStyle, setStyles } from '../
 import { editSelectedText } from '../../lib/inline-edit';
 import { useStore, type Selection } from '../../lib/store';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { ArrowDown01Icon, Tick02Icon, AlignHorizontalSpaceAroundIcon, ArtboardIcon, Edit02Icon, FitToScreenIcon, ImageUploadIcon, PaintBucketIcon, Resize01Icon, SquareRoundCornerIcon, TextAlignLeft01Icon, TextColorIcon, TextFontIcon, TextIcon } from '@hugeicons/core-free-icons';
+import { Add01Icon, MinusSignIcon, ArrowDown01Icon, Tick02Icon, AlignHorizontalSpaceAroundIcon, ArtboardIcon, Edit02Icon, FitToScreenIcon, ImageUploadIcon, PaintBucketIcon, Resize01Icon, SquareRoundCornerIcon, TextAlignLeft01Icon, TextColorIcon, TextFontIcon, TextIcon } from '@hugeicons/core-free-icons';
 import { TextAlignCenter, TextAlignLeft, TextAlignRight } from '../../lib/hugeicons';
 import { createPortal } from 'react-dom';
 import { Menu } from 'bloom-menu';
@@ -70,6 +70,34 @@ const ALIGNS = ['left', 'center', 'right'] as const;
 const ALIGN_ICON = { left: TextAlignLeft, center: TextAlignCenter, right: TextAlignRight } as const;
 
 const PillIcon = ({ icon }: { icon: IconSvgElement }) => <HugeiconsIcon icon={icon} size={18} strokeWidth={1.8} className="dockpill__icon" />;
+
+/** A small − / + beside a number, for people who don't know the arrow keys work. Press and hold to keep stepping. */
+function StepButton({ dir, label, onStep }: { dir: 1 | -1; label: string; onStep: (dir: 1 | -1, shift: boolean) => void }) {
+  const timer = useRef<number | null>(null);
+  const stop = () => {
+    if (timer.current != null) window.clearTimeout(timer.current);
+    timer.current = null;
+  };
+  useEffect(() => stop, []);
+  const start = (e: ReactPointerEvent) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const shift = e.shiftKey;
+    onStep(dir, shift);
+    const again = () => {
+      onStep(dir, shift);
+      timer.current = window.setTimeout(again, 70);
+    };
+    timer.current = window.setTimeout(again, 420);
+    window.addEventListener('pointerup', stop, { once: true });
+  };
+  return (
+    <button type="button" tabIndex={-1} className="dockpill__step" aria-label={label} title={label} onPointerDown={start} onPointerLeave={stop} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStep(dir, e.shiftKey); } }}>
+      <HugeiconsIcon icon={dir > 0 ? Add01Icon : MinusSignIcon} size={12} strokeWidth={2.2} />
+    </button>
+  );
+}
 
 /**
  * A number you change in place: type into it (Enter/blur commits, Esc reverts), scroll over it, or drag
@@ -141,7 +169,7 @@ function Scrub({ value, min = 0, step = 1, unit = 'px', onChange, label, icon }:
         ref={input}
         aria-label={label}
         inputMode="decimal"
-        style={{ width: `${Math.min(6, Math.max(1, draft.length)) + 0.4}ch` }}
+        style={{ width: `${Math.min(6, Math.max(3, draft.length)) + 0.4}ch` }}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={(e) => commit(e.target.value)}
@@ -158,6 +186,10 @@ function Scrub({ value, min = 0, step = 1, unit = 'px', onChange, label, icon }:
         }}
       />
       <span className="dockpill__unit">{unit}</span>
+      <span className="dockpill__steps">
+        <StepButton dir={-1} label={`Decrease ${label.toLowerCase()}`} onStep={(d, shift) => nudge(live.current + d * step * (shift ? 10 : 1))} />
+        <StepButton dir={1} label={`Increase ${label.toLowerCase()}`} onStep={(d, shift) => nudge(live.current + d * step * (shift ? 10 : 1))} />
+      </span>
     </label>
   );
 }
