@@ -2410,3 +2410,11 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 .frame-chrome__handle--se::after,
 .frame-chrome__handle--e-end::after { display: none !important; }
 .frame-chrome.is-ai .frame-chrome__outline::before { display: none !important; }
+
+/* Calm canvas: a faint dot matrix on the empty surface (behind the frames), panning and zooming with the camera. */
+.shell--calm .workspace .stage__dots {
+  display: block;
+  --canvas-dot: #d8d8dd;
+  background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1.4px);
+}
+[data-theme='dark'] .shell--calm .workspace .stage__dots { --canvas-dot: #2a2a2e; }
