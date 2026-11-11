@@ -2425,12 +2425,11 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 }
 [data-theme='dark'] .shell--calm .workspace .stage__dots { --canvas-dot: #2a2a2e; }
 
-/* Settings: learning-curve cards. */
-.lc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 10px; }
-.lc__card { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: transparent; color: var(--fg); text-align: left; cursor: pointer; outline: none; transition: border-color 0.14s, background 0.14s; }
-.lc__card:hover { background: color-mix(in srgb, var(--fg) 4%, transparent); }
-.lc__card.is-active { border-color: var(--fg); background: color-mix(in srgb, var(--fg) 5%, transparent); box-shadow: inset 0 0 0 1px var(--fg); }
-.lc__title { font-size: 13px; font-weight: 600; }
-.lc__blurb { color: var(--fg-3); font-size: 12px; line-height: 1.4; }
-.lc__unlocks { margin-top: auto; padding-top: 4px; color: var(--fg-2, var(--fg-3)); font-size: 11px; font-weight: 500; }
-@media (max-width: 560px) { .lc { grid-template-columns: 1fr; } }
+/* Settings: learning-curve slider (the home page's thinking slider) with its context underneath. */
+.lc { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; }
+.lc__row { display: flex; align-items: flex-end; gap: 14px; }
+.lc__live { display: flex; align-items: center; height: 32px; font-size: 13px; font-weight: 600; color: var(--fg); white-space: nowrap; }
+.lc__context { display: flex; flex-direction: column; gap: 4px; min-height: 52px; }
+.lc__context p { margin: 0; }
+.lc__blurb { color: var(--fg); font-size: 13px; line-height: 1.45; }
+.lc__unlocks { color: var(--fg-3); font-size: 12px; line-height: 1.4; }

@@ -4,18 +4,20 @@ import { Menu } from 'bloom-menu';
 import { motion } from 'framer-motion';
 import type { InsertKind } from '../../shared/types';
 import { insertElement, insertImageFromDisk } from '../lib/actions';
-import { addFrame, addFrameAt } from '../lib/canvas';
+import { addCustomFrame, addFrame } from '../lib/canvas';
+import { PRESETS } from '../../shared/canvas';
+import { DEVICE_GROUPS, DEVICE_PRESETS } from '../lib/frame-presets';
 import { bloomPlacement, closeInsertMenu, useInsertMenu } from '../lib/element-menu';
 import { editSelectedText, INLINE_TAGS } from '../lib/inline-edit';
 import { Frame } from '../lib/hugeicons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { AiMagicIcon, MoreHorizontalIcon } from '@hugeicons/core-free-icons';
+import { AiMagicIcon, ComputerIcon, GameController01Icon, LaptopIcon, MoreHorizontalIcon, SmartPhone01Icon, Tablet01Icon } from '@hugeicons/core-free-icons';
 
 const MoreIcon = () => <HugeiconsIcon icon={MoreHorizontalIcon} size={15} strokeWidth={1.8} />;
 import { getState, setState, useStore } from '../lib/store';
 import { openDock } from './Dock';
 import { ELEMENTS } from './ToolRail';
-import { ROW, SideBloom } from './SideBloom';
+import { ROW, SideBloom, sideBloomKey, type SideItem } from './SideBloom';
 
 const SEED = 8;
 const CLOSE_MS = 320;
@@ -50,8 +52,9 @@ export function InsertContextMenu() {
   const [focus, setFocus] = useState(0);
   const timer = useRef<number | null>(null);
   const [more, setMore] = useState(false);
+  const [subKind, setSubKind] = useState<'more' | 'frame'>('more');
   const [sideFocus, setSideFocus] = useState(-1);
-  const moreRef = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const listRef = useRef<HTMLDivElement>(null);
   const listH = useRef(0);
   const overSide = useRef(false);
@@ -91,30 +94,52 @@ export function InsertContextMenu() {
   };
   const basics: Item[] = [
     el('paragraph', 'Text'),
-    { id: 'frame', label: 'Frame', hint: undefined, keywords: 'frame artboard page screen desktop', needsFrame: false, icon: <Frame size={15} />, run: () => (origin?.frameId ? addFrame('desktop') : origin && addFrameAt('desktop', origin.world)) },
+    { id: 'frame', label: 'Frame', hint: '›', keywords: 'frame artboard page screen', needsFrame: false, icon: <Frame size={15} />, run: () => { setSubKind('frame'); setMore(true); } },
     el('image', undefined, 'I'),
     el('div', 'Rectangle', 'R'),
     el('button', undefined, 'B'),
     el('input'),
   ];
   const extras: Item[] = [el('heading'), el('link'), el('section'), el('flex'), el('grid'), el('form')];
-  const moreItem: Item = { id: 'more', label: 'More…', hint: '›', keywords: '', needsFrame: true, icon: <MoreIcon />, run: () => setMore((m) => !m) };
+  const moreItem: Item = { id: 'more', label: 'More…', hint: '›', keywords: '', needsFrame: true, icon: <MoreIcon />, run: () => { setSubKind('more'); setMore(true); } };
+  // Frame presets: the three built-in sizes first, then real devices grouped by kind. Placed at the cursor for right-click, else beside the page's other frames.
+  const KIND_ICON = { desktop: LaptopIcon, phone: SmartPhone01Icon, tablet: Tablet01Icon, console: GameController01Icon } as const;
+  const sizeHint = (w: number, h: number) => `${w}×${h}`;
+  const frameLeaves: Item[] = [
+    ...(['desktop', 'tablet', 'mobile'] as const).map((k): Item => ({
+      id: `frame:${k}`, label: PRESETS[k].name, hint: sizeHint(PRESETS[k].width, PRESETS[k].height), keywords: `frame ${PRESETS[k].name}`.toLowerCase(), needsFrame: false,
+      icon: <HugeiconsIcon icon={k === 'desktop' ? ComputerIcon : k === 'tablet' ? Tablet01Icon : SmartPhone01Icon} size={15} strokeWidth={1.8} />,
+      run: () => (origin?.frameId || !origin ? addFrame(k) : addCustomFrame(PRESETS[k].width, PRESETS[k].height, PRESETS[k].name, origin.world)),
+    })),
+    ...DEVICE_PRESETS.map((d): Item => ({
+      id: `frame:${d.id}`, label: d.label, hint: sizeHint(d.width, d.height), keywords: `frame ${d.label} ${d.kind} ${d.width}x${d.height}`.toLowerCase(), needsFrame: false,
+      icon: <HugeiconsIcon icon={KIND_ICON[d.kind]} size={15} strokeWidth={1.8} />,
+      run: () => addCustomFrame(d.width, d.height, d.label, origin?.frameId ? undefined : origin?.world),
+    })),
+  ];
+  const frameSide: SideItem[] = [
+    { id: 'h:basic', label: 'Basic', icon: null, heading: true, disabled: true },
+    ...frameLeaves.slice(0, 3),
+    ...DEVICE_GROUPS.flatMap((g): SideItem[] => [{ id: `h:${g.kind}`, label: g.title, icon: null, heading: true, disabled: true }, ...frameLeaves.slice(3).filter((_, i) => DEVICE_PRESETS[i].kind === g.kind)]),
+  ];
   const ai: Item = { id: 'ai', label: 'Ask AI', keywords: 'ask ai chat help', needsFrame: false, icon: <HugeiconsIcon icon={AiMagicIcon} size={15} strokeWidth={1.8} />, run: () => openDock('input') };
   const q = query.trim().toLowerCase();
   const matches = (it: Item) => it.label.toLowerCase().includes(q) || it.keywords.includes(q);
   const rank = (it: Item) => (it.label.toLowerCase().startsWith(q) ? 0 : it.label.toLowerCase().includes(q) ? 1 : 2);
   const usable = (it: Item) => !it.needsFrame || (inFrame && editable);
+  const sideItems: SideItem[] = subKind === 'frame' ? frameSide : extras.map((it) => ({ ...it, disabled: !usable(it) }));
+  const firstSide = (items: SideItem[]) => items.findIndex((i) => !i.heading && !i.disabled);
   // Unfiltered: six basics + More… (blooms a side menu), then Ask AI. Filtering searches everything, hidden extras included, in one list.
   // Items that can't be used here (e.g. element inserts on bare canvas) are hidden, not greyed out; the filter only searches what's visible.
   const groups: Item[][] = (q
-    ? [[...basics, ...extras, ai].filter(usable).filter(matches).sort((a, b) => rank(a) - rank(b))]
+    ? [[...basics.filter((i) => i.id !== 'frame'), ...frameLeaves, ...extras, ai].filter(usable).filter(matches).sort((a, b) => rank(a) - rank(b))]
     : [[...basics, moreItem].filter(usable), [ai]]
   ).filter((g) => g.length);
   const flat = groups.flat();
   const live = flat.filter(usable);
   const pick = (it: Item | undefined) => {
     if (!it || !usable(it)) return;
-    if (it.id === 'more') return it.run();
+    if (it.id === 'more' || it.id === 'frame') return it.run();
     closeInsertMenu();
     it.run();
   };
@@ -125,23 +150,23 @@ export function InsertContextMenu() {
     const onKey = (e: KeyboardEvent) => {
       if (phase === 'closed') return;
       const stop = () => { e.preventDefault(); e.stopImmediatePropagation(); };
-      if (more) {
-        const opts = extras.filter(usable);
-        if (e.key === 'Escape' || e.key === 'ArrowLeft') { stop(); setMore(false); return; }
-        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { stop(); setSideFocus((f) => (f + (e.key === 'ArrowDown' ? 1 : opts.length - 1)) % opts.length); return; }
-        if (e.key === 'Enter') { stop(); pick(opts[sideFocus]); return; }
-      }
+      if (more && sideBloomKey(e, sideItems, sideFocus, setSideFocus, (it) => pick([...frameLeaves, ...extras].find((x) => x.id === it.id)), () => setMore(false))) return;
       if (e.key === 'Escape') { e.preventDefault(); return close(); }
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         stop();
         setFocus((f) => (live.length ? (f + (e.key === 'ArrowDown' ? 1 : live.length - 1)) % live.length : 0));
-      } else if (e.key === 'ArrowRight' && live[focus]?.id === 'more') {
+      } else if (e.key === 'ArrowRight' && (live[focus]?.id === 'more' || live[focus]?.id === 'frame')) {
         stop();
-        setSideFocus(0);
+        const kind = live[focus].id as 'more' | 'frame';
+        setSubKind(kind);
+        setSideFocus(firstSide(kind === 'frame' ? frameSide : extras.map((it) => ({ ...it, disabled: !usable(it) }))));
         setMore(true);
       } else if (e.key === 'Enter') {
         stop();
-        if (live[focus]?.id === 'more') setSideFocus(0);
+        if (live[focus]?.id === 'more' || live[focus]?.id === 'frame') {
+          setSubKind(live[focus].id as 'more' | 'frame');
+          setSideFocus(firstSide(live[focus].id === 'frame' ? frameSide : extras.map((it) => ({ ...it, disabled: !usable(it) }))));
+        }
         pick(live[focus]);
       } else if (e.key === 'Backspace') {
         stop();
@@ -176,12 +201,12 @@ export function InsertContextMenu() {
   const row = (it: Item) => {
     const delay = 0.05 + 0.022 * n++;
     const off = !usable(it);
-    const isMore = it.id === 'more';
+    const isMore = it.id === 'more' || it.id === 'frame';
     return (
-      <motion.div key={it.id} ref={isMore ? moreRef : undefined} style={{ pointerEvents: off ? 'none' : undefined }} onMouseEnter={() => { if (!off) setFocus(live.indexOf(it)); if (isMore && !off) { setSideFocus(-1); setMore(true); } }} initial={{ opacity: 0, y: -4 }} animate={phase === 'open' ? { opacity: off ? 0.4 : 1, y: 0 } : { opacity: 0, y: -4 }} transition={{ delay: phase === 'open' && !q ? delay : 0, duration: 0.18, ease: 'easeOut' }}>
+      <motion.div key={it.id} ref={isMore ? (el: HTMLDivElement | null) => { rowRefs.current[it.id] = el; } : undefined} style={{ pointerEvents: off ? 'none' : undefined }} onMouseEnter={() => { if (!off) setFocus(live.indexOf(it)); if (isMore && !off) { setSubKind(it.id as 'more' | 'frame'); setSideFocus(-1); setMore(true); } else if (!overSide.current) setMore(false); }} initial={{ opacity: 0, y: -4 }} animate={phase === 'open' ? { opacity: off ? 0.4 : 1, y: 0 } : { opacity: 0, y: -4 }} transition={{ delay: phase === 'open' && !q ? delay : 0, duration: 0.18, ease: 'easeOut' }}>
         <Menu.Item
           disabled={off}
-          className={`${ROW} ${it === focused || (isMore && more) ? 'bg-accent' : ''}`}
+          className={`${ROW} ${it === focused || (isMore && more && it.id === subKind) ? 'bg-accent' : ''}`}
           onSelect={() => pick(it)}
         >
           {it.icon}
@@ -226,11 +251,12 @@ export function InsertContextMenu() {
       )}
       <SideBloom
         open={more && phase === 'open' && !q}
-        anchor={moreRef.current}
-        items={extras.map((it) => ({ ...it, disabled: !usable(it) }))}
+        anchor={rowRefs.current[subKind] ?? null}
+        items={sideItems}
+        width={subKind === 'frame' ? 268 : undefined}
         focus={sideFocus}
         setFocus={setSideFocus}
-        onPick={(it) => pick(extras.find((x) => x.id === it.id))}
+        onPick={(it) => pick([...frameLeaves, ...extras].find((x) => x.id === it.id))}
         onClose={() => setMore(false)}
         overSide={overSide}
       />

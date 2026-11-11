@@ -14,7 +14,7 @@ export const EFFORTS: { id: AiThinkingEffort; label: string; hint: string }[] = 
   { id: "medium", label: "Balanced", hint: "A good mix of speed and depth" },
   { id: "high", label: "Harder", hint: "Slower, deeper reasoning" },
 ];
-const STOPS = EFFORTS.map((e) => e.label);
+const DEFAULT_EFFORTS = EFFORTS;
 const TRACK = 268;
 const HEIGHT = 32;
 const RADIUS = HEIGHT / 2;
@@ -28,9 +28,9 @@ function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
-function centerFor(value: number) {
+function centerFor(value: number, count: number) {
   const span = TRACK - RADIUS * 2;
-  return RADIUS + (value / (STOPS.length - 1)) * span;
+  return RADIUS + (value / (count - 1)) * span;
 }
 
 function easeOut(t: number) {
@@ -173,19 +173,28 @@ function shellPath(cx: number, open: number, plateauW: number) {
 }
 
 
-export function ReasoningEffort({
+export type SliderStop<T extends string = string> = { id: T; label: string };
+
+/** A stepped slider whose label bump rises while dragging. Defaults to the AI thinking-effort stops; pass `stops` to reuse it. */
+export function ReasoningEffort<T extends string = AiThinkingEffort>({
   value,
   onChange,
   modelLabel,
   onStopChange,
+  stops,
+  ariaLabel = "Reasoning effort",
 }: {
-  value: AiThinkingEffort;
-  onChange: (next: AiThinkingEffort) => void;
+  value: T;
+  onChange: (next: T) => void;
   modelLabel: string;
   /** Current stop while dragging, so a label beside the track can follow the thumb. */
   onStopChange?: (label: string) => void;
+  stops?: SliderStop<T>[];
+  ariaLabel?: string;
 }) {
   const MODEL = modelLabel;
+  const EFFORTS = (stops ?? (DEFAULT_EFFORTS as unknown as SliderStop<T>[])) as SliderStop<T>[];
+  const STOPS = EFFORTS.map((e) => e.label);
   const rootRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
@@ -401,7 +410,7 @@ export function ReasoningEffort({
     emit(next);
   }
 
-  const center = centerFor(display);
+  const center = centerFor(display, STOPS.length);
   const thumbW = REST_W + (DRAG_W - REST_W) * open;
   const thumbH = REST_H;
   const outerPad = EDGE_PAD;
@@ -476,7 +485,7 @@ export function ReasoningEffort({
         className={s.track}
         role="slider"
         tabIndex={0}
-        aria-label="Reasoning effort"
+        aria-label={ariaLabel}
         aria-valuemin={0}
         aria-valuemax={STOPS.length - 1}
         aria-valuenow={active}
@@ -498,7 +507,7 @@ export function ReasoningEffort({
           }}
         />
         {STOPS.map((label, index) => {
-          const x = centerFor(index);
+          const x = centerFor(index, STOPS.length);
           const onThumb = x >= thumbLeft + 0.5 && x <= thumbRight - 0.5;
           return (
             <span
