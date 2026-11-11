@@ -1,29 +1,38 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
 import { createPage, designPages, focusPage } from '../lib/pages';
-import { PAGE_ICONS, setPageIcon, usePageIcon, type PageIconName } from '../lib/page-icons';
+import { PAGE_ICONS, PAGE_ICON_WORDS, setPageIcon, usePageIcon, type PageIconName } from '../lib/page-icons';
 import { activeFrame, pageOf, useStore } from '../lib/store';
 
 /** A page's icon; click it in the list to choose another (kept on this device). */
 function PageIconButton({ page, root }: { page: { id: string; name: string; path?: string }; root: string | undefined }) {
   const { icon, name } = usePageIcon(root, page.id, page.path);
   const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const anchor = useRef<HTMLElement | null>(null);
+  const query = q.trim().toLowerCase();
+  const names = (Object.keys(PAGE_ICONS) as PageIconName[]).filter((n) => !query || `${n} ${PAGE_ICON_WORDS[n]}`.includes(query));
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQ(''); }}>
+      <Popover.Anchor virtualRef={anchor} />
       <Popover.Trigger asChild>
         <span
           role="button"
           tabIndex={0}
           aria-label={`Change icon for ${page.name}`}
           title="Change icon"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            anchor.current = e.currentTarget.closest('[role=dialog]');
+            e.stopPropagation();
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               e.stopPropagation();
+              anchor.current = e.currentTarget.closest('[role=dialog]');
               setOpen((o) => !o);
             }
           }}
@@ -33,27 +42,44 @@ function PageIconButton({ page, root }: { page: { id: string; name: string; path
         </span>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content side="right" align="start" sideOffset={10} collisionPadding={12} onClick={(e) => e.stopPropagation()} className="z-[130] w-[248px] rounded-2xl border border-[color:var(--line)] bg-popover p-2 text-popover-foreground shadow-[var(--shadow-md)] outline-none">
-          <div className="grid grid-cols-6 gap-1" role="listbox" aria-label="Page icons">
-            {(Object.keys(PAGE_ICONS) as PageIconName[]).map((n) => (
-              <button
-                key={n}
-                type="button"
-                role="option"
-                aria-selected={name === n}
-                aria-label={n}
-                onClick={() => {
-                  setPageIcon(root, page.id, n);
-                  setOpen(false);
-                }}
-                className={cn('flex size-9 items-center justify-center rounded-lg border-0 bg-transparent text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.07] hover:text-foreground', name === n && 'bg-foreground/[0.09] text-foreground')}
-              >
-                <HugeiconsIcon icon={PAGE_ICONS[n]} strokeWidth={2} className="size-[18px]" />
-              </button>
-            ))}
+        <Popover.Content data-tw="" side="right" align="start" sideOffset={8} collisionPadding={12} onClick={(e) => e.stopPropagation()} className="z-[130] w-[248px] rounded-2xl border border-[color:var(--line)] bg-popover p-2 text-popover-foreground shadow-[var(--shadow-md)] outline-none">
+          <div className="h-[196px] overflow-y-auto rounded-xl" role="listbox" aria-label="Page icons">
+            <div className="sticky top-0 z-10 bg-popover pb-1.5">
+              <input
+                autoFocus
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search icons"
+                aria-label="Search icons"
+                className="h-8 w-full rounded-lg border-0 bg-foreground/[0.06] px-2.5 text-xs text-foreground outline-none placeholder:text-muted-foreground focus-visible:bg-foreground/[0.09]"
+              />
+            </div>
+            {names.length ? (
+              <div className="grid grid-cols-6 gap-1">
+                {names.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    role="option"
+                    aria-selected={name === n}
+                    aria-label={n}
+                    title={n}
+                    onClick={() => {
+                      setPageIcon(root, page.id, n);
+                      setOpen(false);
+                    }}
+                    className={cn('flex size-9 items-center justify-center rounded-lg border-0 bg-transparent text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.07] hover:text-foreground', name === n && 'bg-foreground/[0.09] text-foreground')}
+                  >
+                    <HugeiconsIcon icon={PAGE_ICONS[n]} strokeWidth={2} className="size-[18px]" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="px-2 py-6 text-center text-xs text-muted-foreground">No icons match</div>
+            )}
           </div>
           {name && (
-            <button type="button" onClick={() => { setPageIcon(root, page.id, null); setOpen(false); }} className="mt-1.5 w-full rounded-lg border-0 bg-transparent px-2 py-1.5 text-left text-xs text-muted-foreground outline-none hover:bg-foreground/[0.06] hover:text-foreground">
+            <button type="button" onClick={() => { setPageIcon(root, page.id, null); setOpen(false); }} className="mt-1 w-full rounded-lg border-0 bg-transparent px-2 py-1.5 text-left text-xs text-muted-foreground outline-none hover:bg-foreground/[0.06] hover:text-foreground">
               Reset to default
             </button>
           )}
@@ -92,7 +118,7 @@ export function CalmPagePill({ className, side = 'bottom' }: { className?: strin
           type="button"
           aria-label={`Page: ${current.name}. Switch page`}
           className={cn(
-            'calm-pill flex h-9 max-w-[180px] items-center gap-1.5 rounded-full border-0 bg-muted px-3.5 text-xs font-medium text-foreground outline-none transition-colors hover:bg-secondary data-[state=open]:bg-secondary',
+            'calm-circle calm-pill flex h-9 max-w-[180px] items-center gap-1.5 rounded-full px-3.5 text-xs font-medium text-foreground outline-none',
             className,
           )}
         >
@@ -102,11 +128,12 @@ export function CalmPagePill({ className, side = 'bottom' }: { className?: strin
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
+          data-tw=""
           side={side}
           align={side === 'top' ? 'start' : 'center'}
           sideOffset={8}
           collisionPadding={12}
-          className="z-[120] w-[300px] rounded-2xl border border-[color:var(--line)] bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-md)] outline-none"
+          className="z-[120] w-[256px] rounded-2xl border border-[color:var(--line)] bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-md)] outline-none"
         >
           <div className="px-2.5 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Pages</div>
           <div className="flex max-h-[280px] flex-col gap-0.5 overflow-y-auto" role="listbox" aria-label="Pages">

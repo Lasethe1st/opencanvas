@@ -6,7 +6,9 @@ import { cx, IconButton } from './primitives.jsx';
 
 /** The infinite surface: a dotted background that pans/zooms with the camera and a transformed world layer. */
 export function Stage({ stageRef, camera, dots, tool, panning, world, chrome, overlay, notice, nav, dock, className, ...rest }) {
-  const size = 20 * camera.zoom;
+  // Keep the matrix airy: when zoomed out, double the spacing until dots are at least 14px apart.
+  let size = 20 * camera.zoom;
+  while (size < 14) size *= 2;
   return (
     <section className={cx('stage', tool === 'hand' && 'is-hand', panning && 'is-panning', className)} aria-label="Canvas" {...rest}>
       <div className="stage__viewport" ref={stageRef}>

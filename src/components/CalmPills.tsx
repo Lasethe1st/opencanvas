@@ -62,7 +62,7 @@ export function CalmPills() {
           <CalmPagePill side="top" />
         </div>
         <div className="absolute top-3 z-20 flex items-center gap-2" style={{ left: '50%', translate: '-50% 0' }}>
-        <Button variant="ghost" className="calm-pill calm-pill--search h-9 gap-2 rounded-full bg-muted px-4 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground [&_svg]:size-4" aria-label="Search layers and pages" onClick={() => setState({ canvasSearchOpen: true })}>
+        <Button variant="ghost" className="calm-circle calm-pill calm-pill--search h-9 gap-2 rounded-full px-4 text-xs font-medium text-muted-foreground hover:text-foreground [&_svg]:size-4" aria-label="Search layers and pages" onClick={() => setState({ canvasSearchOpen: true })}>
           <HugeiconsIcon icon={Search02Icon} strokeWidth={2} />
           <span>Search</span>
         </Button>

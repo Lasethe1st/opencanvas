@@ -59,3 +59,15 @@ export function usePageIcon(root: string | undefined, pageId: string, path?: str
   const name = saved[keyOf(root, pageId)];
   return { name: name ?? null, icon: PAGE_ICONS[name ?? (path === '/' ? 'home' : 'file')] };
 }
+
+/** Extra words a person might type to find an icon. */
+export const PAGE_ICON_WORDS: Record<PageIconName, string> = {
+  file: 'document page text', home: 'house landing start', user: 'profile account person about team', mail: 'email contact message inbox',
+  cart: 'shop store checkout buy', settings: 'gear preferences config', calendar: 'date events schedule booking', image: 'photo gallery picture',
+  book: 'docs guide blog read', chart: 'analytics stats dashboard graph', heart: 'favorite like love', star: 'rating featured review',
+  bell: 'notifications alerts', search: 'find explore', location: 'map pin place address', card: 'payment billing pricing',
+  chat: 'messages comments support talk', help: 'faq question', info: 'about details', rocket: 'launch start product',
+  camera: 'photo portfolio', music: 'audio sound', play: 'video media watch', work: 'jobs careers business portfolio',
+  globe: 'world web language international', shield: 'security privacy legal terms', megaphone: 'announcement marketing promo',
+  news: 'blog press articles updates', support: 'help contact service', tags: 'categories labels pricing', gift: 'offers rewards promo', plus: 'add new',
+};

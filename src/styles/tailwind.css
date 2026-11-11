@@ -15,6 +15,7 @@
 @source '../components/CommentPopover.tsx';
 @source '../components/ElementContextMenu.tsx';
 @source '../components/CalmPills.tsx';
+@source '../components/CalmPagePill.tsx';
 
 .model-logo--monochrome {
   filter: brightness(0);

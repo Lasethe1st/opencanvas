@@ -1927,9 +1927,15 @@ body:has(.shell .workspace) .dockrow .dockpill { border-radius: 999px !important
 .dockpill__main:hover, .dockpill__scrub:hover { background: color-mix(in srgb, var(--fg) 6%, transparent); }
 .dockpill__select select { flex: 1; min-width: 0; height: 28px; padding: 0 2px; border: 0; background: transparent; color: inherit; font: inherit; outline: none; cursor: pointer; text-overflow: ellipsis; }
 .dockpill__scrub { display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; width: auto; height: 36px; padding: 0 12px; border-radius: 999px; cursor: ew-resize; user-select: none; }
-.dockpill__scrub input { width: auto; field-sizing: content; min-width: 1ch; max-width: 6ch; flex: none; height: 26px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; font-family: var(--font-mono, ui-monospace, monospace); font-size: inherit; font-variant-numeric: tabular-nums; text-align: left; outline: none; cursor: text; }
-.dockpill__scrub input:focus { background: color-mix(in srgb, var(--fg) 10%, transparent); }
-.dockpill__pair { display: flex; width: auto; } .dockpill__pair > .dockpill__scrub { width: auto; padding: 0 8px 0 12px; } .dockpill__pair > .dockpill__scrub + .dockpill__scrub { padding: 0 12px 0 4px; }
+.dockpill__scrub input { width: auto; min-width: 1ch; max-width: 7ch; flex: none; height: 26px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; font-family: var(--font-mono, ui-monospace, monospace); font-size: inherit; font-variant-numeric: tabular-nums; text-align: left; outline: none; cursor: text; }
+.dockpill__scrub input:focus, .dockpill__scrub input:focus-visible { background: transparent; outline: none; box-shadow: none; }
+.dockpill__scrub input { caret-color: currentColor; text-align: right; }
+.dockpill__steps { display: inline-flex; align-items: center; gap: 1px; margin-inline-start: 2px; }
+.dockpill__step { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: color-mix(in srgb, var(--fg) 45%, transparent); cursor: pointer; outline: none; transition: background 0.12s, color 0.12s; }
+.dockpill__step:hover { background: color-mix(in srgb, var(--fg) 10%, transparent); color: var(--fg); }
+.dockpill__step:active { background: color-mix(in srgb, var(--fg) 16%, transparent); }
+.dockpill__unit { font-family: var(--font-mono, ui-monospace, monospace); font-variant-numeric: tabular-nums; }
+.dockpill__pair { display: flex; width: auto; } .dockpill__pair > .dockpill__scrub { width: auto; padding: 0 6px 0 12px; } .dockpill__pair > .dockpill__scrub + .dockpill__scrub { padding: 0 8px 0 4px; }
 .dockpill__value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .dockpill__caret { flex: none; opacity: 0.6; }
 .font-bloom__search { height: 30px; margin: 2px 2px 4px; padding: 0 10px; border: 0; border-radius: 10px; background: color-mix(in srgb, var(--fg) 7%, transparent); color: inherit; font: inherit; font-size: 13px; outline: none; }
@@ -2410,6 +2416,23 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 .frame-chrome__handle--se::after,
 .frame-chrome__handle--e-end::after { display: none !important; }
 .frame-chrome.is-ai .frame-chrome__outline::before { display: none !important; }
+
+/* Calm canvas: a faint dot matrix on the empty surface (behind the frames), panning and zooming with the camera. */
+.shell--calm .workspace .stage__dots {
+  display: block;
+  --canvas-dot: #d8d8dd;
+  background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1.4px);
+}
+[data-theme='dark'] .shell--calm .workspace .stage__dots { --canvas-dot: #2a2a2e; }
+
+/* Settings: learning-curve slider (the home page's thinking slider) with its context underneath. */
+.lc { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; }
+.lc__row { display: flex; align-items: flex-end; gap: 14px; }
+.lc__live { display: flex; align-items: center; height: 32px; font-size: 13px; font-weight: 600; color: var(--fg); white-space: nowrap; }
+.lc__context { display: flex; flex-direction: column; gap: 4px; min-height: 52px; }
+.lc__context p { margin: 0; }
+.lc__blurb { color: var(--fg); font-size: 13px; line-height: 1.45; }
+.lc__unlocks { color: var(--fg-3); font-size: 12px; line-height: 1.4; }
 
 /* Light mode: the home composer is pure white, with a hairline edge and a soft lift. */
 :root:not([data-theme='dark']) [data-home-composer] {
