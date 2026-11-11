@@ -121,10 +121,10 @@ export function SettingsPage() {
   );
 }
 
-const LEVELS: { id: ExperienceLevel; label: string }[] = [
-  { id: 'beginner', label: 'Beginner' },
-  { id: 'intermediate', label: 'Intermediate' },
-  { id: 'veteran', label: 'Veteran' },
+const LEVELS: { id: ExperienceLevel; label: string; blurb: string; unlocks: string }[] = [
+  { id: 'beginner', label: 'Easy', blurb: 'Describe changes in chat and tweak things right on the canvas.', unlocks: 'Chat, quick pills, calm canvas' },
+  { id: 'intermediate', label: 'Moderate', blurb: 'Take more control of how your pages are put together.', unlocks: 'Adds layers, pages and the inspector' },
+  { id: 'veteran', label: 'Veteran', blurb: 'The whole editor, for people who work in code.', unlocks: 'Adds code, terminal, tools and MCP' },
 ];
 
 function GeneralSettings() {
@@ -139,6 +139,18 @@ function GeneralSettings() {
   const autosave = useAutosave();
   return (
     <>
+      <SettingsGroup title="Learning curve" hint="Start simple and unlock more of the editor as you get comfortable. You can change this any time.">
+        <div className="lc" role="radiogroup" aria-label="Learning curve">
+          {LEVELS.map(({ id, label, blurb, unlocks }) => (
+            <button key={id} type="button" role="radio" aria-checked={level === id} className={`lc__card${level === id ? ' is-active' : ''}`} onClick={() => setExperienceLevel(id)}>
+              <span className="lc__title">{label}</span>
+              <span className="lc__blurb">{blurb}</span>
+              <span className="lc__unlocks">{unlocks}</span>
+            </button>
+          ))}
+        </div>
+      </SettingsGroup>
+
       <SettingsGroup title="You">
         <SettingRow label="Name" hint="Used in the greeting on the home page.">
           <InputShell>
@@ -174,24 +186,6 @@ function GeneralSettings() {
       </SettingsGroup>
 
       <SettingsGroup title="Canvas">
-        <SettingRow
-          label="Experience"
-          hint={
-            level === 'beginner'
-              ? 'Chat and quick edits only — layers, inspector and code stay hidden.'
-              : level === 'intermediate'
-                ? 'Adds layers, pages and the property inspector.'
-                : 'Full editor: code, terminal, tools and MCP.'
-          }
-        >
-          <div className="theme-toggle" role="radiogroup" aria-label="Experience level">
-            {LEVELS.map(({ id, label }) => (
-              <button key={id} type="button" role="radio" aria-checked={level === id} className={`theme-toggle__btn sx-text-btn${level === id ? ' is-active' : ''}`} onClick={() => setExperienceLevel(id)}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </SettingRow>
         <SettingRow label="Calm canvas" hint="Just your site and the dock on a plain background. Panels open from the corner pills.">
           <Switch
             label="Calm canvas"
