@@ -133,7 +133,7 @@ export function CalmPagePill({ className, side = 'bottom' }: { className?: strin
           align={side === 'top' ? 'start' : 'center'}
           sideOffset={8}
           collisionPadding={12}
-          className="z-[120] w-[300px] rounded-2xl border border-[color:var(--line)] bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-md)] outline-none"
+          className="z-[120] w-[256px] rounded-2xl border border-[color:var(--line)] bg-popover p-1.5 text-popover-foreground shadow-[var(--shadow-md)] outline-none"
         >
           <div className="px-2.5 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Pages</div>
           <div className="flex max-h-[280px] flex-col gap-0.5 overflow-y-auto" role="listbox" aria-label="Pages">
