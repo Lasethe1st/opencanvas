@@ -487,6 +487,7 @@ export function HomePrompt({
       )}
     <div
       ref={shellRef}
+      data-home-composer=""
       data-home-composer-front={deck ? "" : undefined}
       onFocus={() => setFocused(true)}
       onBlur={(e) => {
