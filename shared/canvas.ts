@@ -199,7 +199,7 @@ export function placeFrame(frames: Rect[], size: { width: number; height: number
 export function placeBelow(frames: Rect[]): Point {
   if (!frames.length) return { x: 0, y: 0 };
   const bounds = unionRect(frames)!;
-  return { x: snapToGrid(bounds.x), y: snapToGrid(bounds.y + bounds.height + FRAME_GAP * 2) };
+  return { x: snapToGrid(bounds.x), y: snapToGrid(bounds.y + bounds.height + FRAME_GAP * 3) };
 }
 
 let idCounter = 0;

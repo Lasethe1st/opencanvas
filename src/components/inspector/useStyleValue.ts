@@ -65,6 +65,6 @@ export function toHex(color: string): string {
 export function shortValue(value: string): string {
   return value
     .replace(/rgba\(0, 0, 0, 0\)/, 'transparent')
-    // Computed lengths like 679.703px read better as 679.7px.
-    .replace(/(-?\d+\.\d{2,})px/g, (_, n: string) => `${Number(Number(n).toFixed(1))}px`);
+    // Computed lengths read as whole pixels (679.703px -> 680px); only small ones keep a decimal (1.25px -> 1.3px).
+    .replace(/(-?\d+\.\d+)px/g, (_, n: string) => (Math.abs(Number(n)) >= 10 ? `${Math.round(Number(n))}px` : `${Number(Number(n).toFixed(1))}px`));
 }

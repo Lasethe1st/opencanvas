@@ -60,7 +60,7 @@ export function AiWeave({ className }) {
 }
 
 /** Screen-space chrome for one frame: label above, outline and resize handles. */
-export function FrameChrome({ rect, name, size, scope, device, tip, active, fitPage, onActivate, onDragStart, onRename, onResizeStart, menuOpen, onMenu, menu, working }) {
+export function FrameChrome({ rect, name, size, scope, device, tip, active, fitPage, onActivate, onDragStart, onRename, onResizeStart, onZoom, menuOpen, onMenu, menu, working }) {
   return (
     <div className={cx('frame-chrome', active && 'is-active', working && 'is-ai')} style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}>
       <div className="frame-chrome__label" onPointerDown={onDragStart} onClick={onActivate} onDoubleClick={onRename}>
@@ -73,6 +73,20 @@ export function FrameChrome({ rect, name, size, scope, device, tip, active, fitP
         )}
         {size && <span className="frame-chrome__size">{size}</span>}
         {working && <AiWeave />}
+        {onZoom && (
+          <IconButton
+            size="sm"
+            label="Zoom to this frame"
+            className="frame-chrome__menu frame-chrome__zoom"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onZoom();
+            }}
+          >
+            <Focus size={13} />
+          </IconButton>
+        )}
         <IconButton
           size="sm"
           label={`${typeof name === 'string' ? name : 'Frame'} options`}
