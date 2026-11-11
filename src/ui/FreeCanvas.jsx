@@ -62,7 +62,7 @@ export function AiWeave({ className }) {
 /** Screen-space chrome for one frame: label above, outline and resize handles. */
 export function FrameChrome({ rect, name, size, scope, device, tip, active, fitPage, onActivate, onDragStart, onRename, onResizeStart, onZoom, menuOpen, onMenu, menu, working }) {
   return (
-    <div className={cx('frame-chrome', active && 'is-active', working && 'is-ai')} style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}>
+    <div className={cx('frame-chrome', active && 'is-active')} style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}>
       <div className="frame-chrome__label" onPointerDown={onDragStart} onClick={onActivate} onDoubleClick={onRename}>
         {typeof name === 'string' ? (
           <span className="frame-chrome__device" title={tip ?? name} aria-label={tip ?? name}>
@@ -72,7 +72,6 @@ export function FrameChrome({ rect, name, size, scope, device, tip, active, fitP
           <span className="frame-chrome__name">{name}</span>
         )}
         {size && <span className="frame-chrome__size">{size}</span>}
-        {working && <AiWeave />}
         {onZoom && (
           <IconButton
             size="sm"
