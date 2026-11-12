@@ -42,6 +42,7 @@ import { HomeTopBlur } from './home/HomeTopBlur';
 import { loadSharedChats, removeSharedChat, saveSharedChats, upsertSharedChat, type SharedChatRecord } from '../lib/shared-chats';
 import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
 import { HomeBotsPage } from './home/HomeBotsPage';
+import { HomeBotsList } from './home/HomeBotsList';
 import { useBots } from '@/lib/bots';
 import { HomeStatusPills } from './home/HomeStatusPills';
 import type { RunningJob } from '../lib/running-work';
@@ -135,13 +136,17 @@ export function Onboarding() {
   // Home opens with the left nav closed; the toggle still works for the session.
   const [navOpen, setNavOpen] = useState(false);
   /** The main pane shows the chat, or the Projects page over it. */
-  const [view, setView] = useState<'home' | 'projects' | 'bot'>('home');
-  const { bots, add: addBot, rename: renameBot, remove: removeBot } = useBots();
+  const [view, setView] = useState<'home' | 'projects' | 'bots' | 'bot'>('home');
+  const { bots, add: addBot, update: updateBot, remove: removeBot } = useBots();
   const [botId, setBotId] = useState<string | null>(null);
   const openBot = useCallback((id: string) => {
     setDialog(null);
     setBotId(id);
     setView('bot');
+  }, []);
+  const openBots = useCallback(() => {
+    setDialog(null);
+    setView('bots');
   }, []);
   const activeBot = view === 'bot' ? bots.find((b) => b.id === botId) : undefined;
   const openProjects = useCallback(() => {
@@ -567,6 +572,20 @@ export function Onboarding() {
         more: { label: 'View All', onSelect: () => setDialog({ kind: 'chats' }) },
       },
       {
+        id: 'bots',
+        title: 'Bots',
+        empty: 'No bots yet',
+        add: { label: 'New bot', onSelect: () => openBot(addBot().id) },
+        entries: bots.slice(0, RECENT).map((b) => ({
+          id: b.id,
+          label: b.name,
+          meta: b.role || 'No role yet',
+          icon: <span className="bot-dot size-5" aria-hidden />,
+          onSelect: () => openBot(b.id),
+        })),
+        more: { label: 'View All', onSelect: openBots },
+      },
+      {
         id: 'shared-chats',
         title: 'Shared chats',
         empty: 'Share a chat from the top right',
@@ -662,7 +681,6 @@ export function Onboarding() {
             actions={actions}
             library={library}
             sections={sections}
-            bots={{ items: bots, activeId: activeBot?.id, onSelect: openBot, onAdd: () => openBot(addBot().id) }}
             headerEnd={<HomePlan />}
             footer={!onboarding.dismissed ? <HomeOnboardingTasks tasks={tasks} onDismiss={onboarding.dismiss} onAutoDone={onboarding.complete} /> : null}
           />
@@ -679,13 +697,15 @@ export function Onboarding() {
               menuFor={(p) => [{ id: 'open', label: 'Open', icon: <HugeiconsIcon icon={FolderOpenIcon} strokeWidth={2} />, onSelect: () => void openRecent(p.root) }, ...recentActions(p)]}
             />
           )}
+          {view === 'bots' && <HomeBotsList bots={bots} onOpen={openBot} onNew={() => openBot(addBot().id)} />}
           {activeBot && (
             <HomeBotsPage
               bot={activeBot}
-              onRename={(name) => renameBot(activeBot.id, name)}
+              onChange={(patch) => updateBot(activeBot.id, patch)}
+              onBack={() => setView('bots')}
               onRemove={() => {
                 removeBot(activeBot.id);
-                setView('home');
+                setView('bots');
               }}
             />
           )}
