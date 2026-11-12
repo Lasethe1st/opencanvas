@@ -57,6 +57,8 @@ const OPEN_W = 264;
 /** Up to three circles overlap in one row (the last one drawn on top gets a ring so the edges read); anyone else is a "+N" circle. */
 const MAX_CIRCLES = 3;
 const CIRCLE = 24;
+/** How far each circle tucks under the one before it. */
+const OVERLAP = 8;
 
 /** A stable "Group A", "Group B"… from the room code, so everyone in the chat sees the same name. */
 export function groupName(room: string): string {
@@ -118,12 +120,14 @@ function HomePresence({ people, room, youId, onSettings }: { people: Person[]; r
           className="flex h-9 w-full items-center gap-2 ps-1.5 pe-2.5 text-xs font-medium text-foreground outline-offset-[-2px]"
         >
           <span ref={measure} className="inline-flex w-max items-center gap-2 whitespace-nowrap">
-            <span className="flex shrink-0 items-center -space-x-2" aria-hidden>
-              {shown.map((p) => (
-                <Avatar key={p.id} p={p} size={CIRCLE} ring />
+            <span className="flex shrink-0 items-center" aria-hidden>
+              {shown.map((p, i) => (
+                <span key={p.id} className="flex" style={{ marginInlineStart: i ? -OVERLAP : 0 }}>
+                  <Avatar p={p} size={CIRCLE} ring />
+                </span>
               ))}
               {extra > 0 && (
-                <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-foreground/[0.12] text-[10px] font-semibold tabular-nums text-foreground ring-2 ring-muted" style={{ width: CIRCLE, height: CIRCLE }}>
+                <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-foreground/[0.12] text-[10px] font-semibold tabular-nums text-foreground ring-2 ring-muted" style={{ width: CIRCLE + 6, height: CIRCLE, paddingInlineStart: 6, marginInlineStart: -OVERLAP }}>
                   +{extra}
                 </span>
               )}
