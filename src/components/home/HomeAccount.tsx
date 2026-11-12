@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 export function HomeAccount({ onSettings }: { onSettings: () => void }) {
   const collab = useStore((s) => s.collab);
   const people = collab.status === 'host' || collab.status === 'guest' ? collab.roster : [];
-  if (people.length > 1) return <HomePresence people={people} youId={collab.you?.id} onSettings={onSettings} />;
+  if (people.length > 1) return <HomePresence people={people} room={collab.room} youId={collab.you?.id} onSettings={onSettings} />;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -54,23 +54,19 @@ export function HomeAccount({ onSettings }: { onSettings: () => void }) {
 type Person = { id: string; name: string; role: string; color: string };
 const ROLE: Record<string, string> = { owner: 'Host', editor: 'Can write' };
 const OPEN_W = 264;
-/**
- * The closed pill shows up to five circles packed like marbles inside one round area (32px across): different sizes,
- * a gap of about a pixel between them, the biggest first. [centre x, centre y, diameter] per person; the arrangement
- * is the same every time.
- */
-const MAX_CIRCLES = 5;
-const CLUSTER = 32;
-const LAYOUTS: Record<number, ReadonlyArray<readonly [number, number, number]>> = {
-  1: [[16, 16, 22]],
-  2: [[11.4, 21.1, 14], [20.6, 10.9, 11]],
-  3: [[23.8, 14, 14], [12.9, 22.6, 11], [11.3, 11.5, 9]],
-  4: [[20.9, 21.9, 14], [12.3, 10.7, 11], [8.2, 21.1, 9], [22.5, 10.3, 7]],
-  5: [[12.2, 24.6, 14], [15.5, 10.9, 11], [4.8, 14.3, 9], [22.3, 18.7, 7], [25.2, 11.5, 6]],
-};
+/** Up to three circles overlap in one row (the last one drawn on top gets a ring so the edges read); anyone else is a "+N" circle. */
+const MAX_CIRCLES = 3;
+const CIRCLE = 24;
+
+/** A stable "Group A", "Group B"… from the room code, so everyone in the chat sees the same name. */
+export function groupName(room: string): string {
+  let h = 0;
+  for (const ch of room) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return `Group ${String.fromCharCode(65 + (h % 26))}`;
+}
 
 /** Everyone in a shared chat. The pill itself grows into the list (no menu hanging below it) and folds back on outside click or Esc. */
-function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?: string; onSettings: () => void }) {
+function HomePresence({ people, room, youId, onSettings }: { people: Person[]; room: string; youId?: string; onSettings: () => void }) {
   const [open, setOpen] = useState(false);
   const [closedW, setClosedW] = useState(0);
   const root = useRef<HTMLDivElement>(null);
@@ -78,7 +74,7 @@ function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?:
   const trigger = useRef<HTMLButtonElement>(null);
   const shown = people.slice(0, MAX_CIRCLES);
   const extra = people.length - shown.length;
-  const slots = LAYOUTS[shown.length] ?? LAYOUTS[1];
+  const name = groupName(room);
 
   // The pill's natural width, so it can animate to the open width and back.
   useLayoutEffect(() => {
@@ -117,26 +113,26 @@ function HomePresence({ people, youId, onSettings }: { people: Person[]; youId?:
           type="button"
           aria-expanded={open}
           aria-controls="home-presence-list"
-          aria-label="People in this chat"
+          aria-label={`${name}, ${people.length} people`}
           onClick={() => setOpen((v) => !v)}
           className="flex h-9 w-full items-center gap-2 ps-1.5 pe-2.5 text-xs font-medium text-foreground outline-offset-[-2px]"
         >
           <span ref={measure} className="inline-flex w-max items-center gap-2 whitespace-nowrap">
-            <span className="relative block shrink-0" style={{ width: CLUSTER, height: CLUSTER }} aria-hidden>
-              {shown.map((p, i) => {
-                const [x, y, d] = slots[i];
-                return (
-                  <span key={p.id} className="absolute flex" style={{ left: x - d / 2, top: y - d / 2 }}>
-                    <Avatar p={p} size={d} />
-                  </span>
-                );
-              })}
+            <span className="flex shrink-0 items-center -space-x-2" aria-hidden>
+              {shown.map((p) => (
+                <Avatar key={p.id} p={p} size={CIRCLE} ring />
+              ))}
+              {extra > 0 && (
+                <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-foreground/[0.12] text-[10px] font-semibold tabular-nums text-foreground ring-2 ring-muted" style={{ width: CIRCLE, height: CIRCLE }}>
+                  +{extra}
+                </span>
+              )}
             </span>
-            {extra > 0 && <span className="tabular-nums text-muted-foreground">+{extra}</span>}
+            <span className="truncate">{name}</span>
             <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className={cn('size-3.5 text-muted-foreground transition-transform duration-300', open && 'rotate-180')} aria-hidden />
           </span>
           <span className={cn('ms-auto truncate text-[11px] uppercase tracking-wide text-muted-foreground transition-opacity duration-200', open ? 'opacity-100 delay-100' : 'opacity-0')} aria-hidden>
-            In this chat · {people.length}
+            {people.length} people
           </span>
         </button>
         <div id="home-presence-list" className={cn('grid transition-[grid-template-rows] duration-[380ms] ease-[cubic-bezier(0.34,1.2,0.64,1)] motion-reduce:transition-none', open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')} inert={!open}>
