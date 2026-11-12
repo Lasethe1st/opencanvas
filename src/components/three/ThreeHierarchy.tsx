@@ -66,6 +66,7 @@ function Row({
         </IconButton>
         <IconButton
           size="sm"
+          className="icon-btn--danger"
           label="Delete"
           onClick={(e) => {
             e.stopPropagation();

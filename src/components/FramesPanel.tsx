@@ -70,7 +70,7 @@ export function FramesPanel() {
                   <IconButton size="sm" label={`Duplicate ${f.name}`} onClick={(e) => { e.stopPropagation(); duplicateFrame(f.id); }}>
                     <Copy size={12} />
                   </IconButton>
-                  <IconButton size="sm" label={`Delete ${f.name}`} disabled={frames.length < 2} onClick={(e) => { e.stopPropagation(); deleteFrame(f.id); }}>
+                  <IconButton size="sm" className="icon-btn--danger" label={`Delete ${f.name}`} disabled={frames.length < 2} onClick={(e) => { e.stopPropagation(); deleteFrame(f.id); }}>
                     <Trash2 size={12} />
                   </IconButton>
                 </>

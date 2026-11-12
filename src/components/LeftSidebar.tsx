@@ -137,7 +137,7 @@ function FileTreeNode({ node, ...props }: TreeProps & { node: FileNode }) {
       <IconButton size="sm" label={`Rename ${node.path}`} onClick={stop(() => setRenaming(node.path))}>
         <PencilSimple size={12} />
       </IconButton>
-      <IconButton size="sm" label={`Delete ${node.path}`} onClick={stop(() => void deletePath(node.path, node.type === 'dir'))}>
+      <IconButton size="sm" className="icon-btn--danger" label={`Delete ${node.path}`} onClick={stop(() => void deletePath(node.path, node.type === 'dir'))}>
         <Trash size={12} />
       </IconButton>
     </>
@@ -327,7 +327,7 @@ function LayerNode({ node, ...props }: LayerProps & { node: TreeNode }) {
                   <IconButton size="sm" label={`Duplicate (${MOD_KEY}+D)`} onClick={stop(() => { if (!isPrimary) selectElement(node.id, node.uid); void duplicateSelected(); })}>
                     <Copy size={12} />
                   </IconButton>
-                  <IconButton size="sm" label="Delete (Del)" onClick={stop(() => { if (!isPrimary) selectElement(node.id, node.uid); void removeSelected(); })}>
+                  <IconButton size="sm" className="icon-btn--danger" label="Delete (Del)" onClick={stop(() => { if (!isPrimary) selectElement(node.id, node.uid); void removeSelected(); })}>
                     <Trash size={12} />
                   </IconButton>
                 </>

@@ -74,7 +74,7 @@ function ReferenceCard({
               <ExternalLink size={12} />
             </IconButton>
           )}
-          <IconButton size="sm" label={`Remove ${item.title}`} onClick={onRemove}>
+          <IconButton size="sm" className="icon-btn--danger" label={`Remove ${item.title}`} onClick={onRemove}>
             <Trash2 size={12} />
           </IconButton>
         </div>

@@ -1005,8 +1005,8 @@ kbd, .kbd,
 .layer-menu .menu-item { height: 28px; border-radius: var(--r); }
 .layer-menu .menu-item__hint { margin-left: auto; color: var(--fg-4); font-size: 11px; }
 .layer-menu__sep { height: 1px; margin: 4px 6px; background: var(--line); }
-.layer-menu .layer-menu__danger, .layer-menu .layer-menu__danger svg { color: var(--danger); }
-.layer-menu .layer-menu__danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.layer-menu .layer-menu__danger, .layer-menu .layer-menu__danger svg { color: var(--destructive); }
+.layer-menu .layer-menu__danger:hover:not(:disabled) { background: color-mix(in srgb, var(--destructive) 10%, transparent); }
 
 /* Inspector: no hairlines between groups; spacing does the grouping. */
 .panel--right .panel__body > *,
@@ -2445,6 +2445,14 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
   background-color: #fff !important;
   box-shadow: inset 0 0 0 1px #dcdce1, 0 1px 2px rgba(17, 17, 19, 0.04), 0 12px 28px -12px rgba(17, 17, 19, 0.12);
 }
+
+.sx-avatar { width: 40px; height: 40px; border-radius: 999px; object-fit: cover; background: var(--hover); }
+/* Actions that can't be undone are red: text and icon always, soft red wash on hover. */
+.btn.btn--danger, .btn.btn--danger svg { color: var(--destructive); }
+.btn.btn--danger:hover:not(:disabled) { background: color-mix(in srgb, var(--destructive) 10%, transparent); color: var(--destructive); }
+.btn.btn--danger:focus-visible { outline-color: var(--destructive); }
+.icon-btn.icon-btn--danger:hover:not(:disabled), .icon-btn.icon-btn--danger:focus-visible { color: var(--destructive); background: color-mix(in srgb, var(--destructive) 10%, transparent); }
+.menu-item.is-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--destructive) 10%, transparent); }
 
 /* Settings: one palette for every toggle and switch, taken from the learning-curve toggle. */
 .settings-page, .lt {

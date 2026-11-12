@@ -195,7 +195,7 @@ interface State {
   threeScenes: Record<string, ThreeSceneDoc>;
 }
 
-export type SettingsTab = 'general' | 'appearance' | 'ai' | 'mcp';
+export type SettingsTab = 'general' | 'appearance' | 'ai' | 'connections' | 'account';
 
 export type DockMode = 'input' | 'variants' | 'search' | 'direction' | 'design-system';
 

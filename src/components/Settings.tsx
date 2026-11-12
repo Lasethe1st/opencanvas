@@ -6,7 +6,10 @@ import { api } from '../lib/api';
 import { plural } from '../lib/plural';
 import { setState, toast, useStore, type SettingsTab } from '../lib/store';
 import { AiSettingsPanel } from './settings/AiSettings';
+import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
+import { AiMagicIcon, ConnectIcon, CursorEdit02Icon, FilterVerticalIcon, User02Icon } from '@hugeicons/core-free-icons';
 import { SettingRow, SettingsGroup, Switch } from './settings/parts';
+import { USER_AVATAR_SRC } from '../lib/user-avatar';
 import { ReasoningEffort } from './home/ReasoningEffort';
 import { CHAT_BUBBLE_PRESETS, setChatBubblePreset, useChatBubblePreset } from '../lib/chat-bubble';
 import { CHAT_FONT_SIZE_PRESETS, setChatFontSize, useChatFontSize } from '../lib/chat-font-size';
@@ -37,19 +40,20 @@ export function SettingsButton() {
   );
 }
 
-const TABS: { id: SettingsTab; label: string; icon: typeof Sun; lead: string | null }[] = [
-  { id: 'general', label: 'General', icon: SlidersHorizontal, lead: 'Everyday preferences for the home chat.' },
-  { id: 'appearance', label: 'Appearance', icon: Palette, lead: 'Theme and colors.' },
-  { id: 'ai', label: 'AI', icon: Sparkles, lead: 'The model that answers in chat and on the canvas, and how it sounds.' },
-  { id: 'mcp', label: 'MCP server', icon: Plug, lead: 'Connect AI agents to the project you have open.' },
+const TABS: { id: SettingsTab; label: string; icon: IconSvgElement; lead: string | null }[] = [
+  { id: 'general', label: 'General', icon: FilterVerticalIcon, lead: 'Everyday preferences for the home chat.' },
+  { id: 'appearance', label: 'Appearance', icon: CursorEdit02Icon, lead: 'Theme and colors.' },
+  { id: 'ai', label: 'AI', icon: AiMagicIcon, lead: 'The model that answers in chat and on the canvas, and how it sounds.' },
+  { id: 'connections', label: 'Connections', icon: ConnectIcon, lead: 'Connect agents and other tools to your project.' },
+  { id: 'account', label: 'Account', icon: User02Icon, lead: 'Your profile and the data kept on this device.' },
 ];
 
 export function SettingsPage() {
   const open = useStore((s) => s.settingsOpen);
   const tab = useStore((s) => s.settingsTab);
   const level = useExperienceLevel();
-  const tabs = TABS.filter((t) => t.id !== 'mcp' || level === 'veteran');
-  const activeTab = tab === 'mcp' && level !== 'veteran' ? 'general' : tab;
+  const tabs = TABS;
+  const activeTab = tab;
   const setTab = (id: SettingsTab) => setState({ settingsTab: id });
   const close = () => setState({ settingsOpen: false });
   const dialog = useRef<HTMLElement>(null);
@@ -69,10 +73,6 @@ export function SettingsPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
-  useEffect(() => {
-    if (tab === 'mcp' && level !== 'veteran') setState({ settingsTab: 'general' });
-  }, [tab, level]);
-
   if (!open) return null;
   const current = tabs.find((t) => t.id === activeTab) ?? tabs[0]!;
   // Portaled to <body>: the workspace restyles its direct children, which pushed this page off to the side.
@@ -84,7 +84,7 @@ export function SettingsPage() {
             <h1 className="settings-page__title">Settings</h1>
             {tabs.map(({ id, label, icon: Icon }) => (
               <button key={id} role="tab" aria-selected={activeTab === id} className={`settings-page__tab${activeTab === id ? ' is-active' : ''}`} onClick={() => setTab(id)}>
-                <Icon size={16} />
+                <HugeiconsIcon icon={Icon} size={16} strokeWidth={1.8} />
                 {label}
               </button>
             ))}
@@ -110,8 +110,10 @@ export function SettingsPage() {
                 <AppearanceSettings />
               ) : activeTab === 'ai' ? (
                 <AiSettingsPanel />
+              ) : activeTab === 'connections' ? (
+                <ConnectionsSettings />
               ) : (
-                <McpSettings />
+                <AccountSettings />
               )}
             </div>
           </div>
@@ -156,7 +158,6 @@ function GeneralSettings() {
   const level = useExperienceLevel();
   const calm = useCalm();
   const markers = useShowMarkers();
-  const name = useDisplayName();
   const pills = useQuickPills();
   const rulers = useRulers();
   const autosave = useAutosave();
@@ -164,14 +165,6 @@ function GeneralSettings() {
     <>
       <SettingsGroup title="Learning curve" hint="Start simple and unlock more of the editor as you get comfortable. You can change this any time.">
         <LearningCurve level={level} />
-      </SettingsGroup>
-
-      <SettingsGroup title="You">
-        <SettingRow label="Name" hint="Used in the greeting on the home page.">
-          <InputShell>
-            <input aria-label="Your name" value={name} maxLength={40} placeholder="Optional" onChange={(e) => setDisplayName(e.target.value)} />
-          </InputShell>
-        </SettingRow>
       </SettingsGroup>
 
       <SettingsGroup title="Chat">
@@ -336,6 +329,88 @@ async function copy(text: string, what: string) {
   } catch {
     toast('Could not copy to the clipboard. Select the text and copy it with Ctrl+C.', 'error');
   }
+}
+
+const SOON = [
+  { name: 'GitHub', hint: 'Import and push private repositories.' },
+  { name: 'Figma', hint: 'Pull frames and styles from a Figma file.' },
+  { name: 'Slack', hint: 'Share designs and get review comments in a channel.' },
+];
+
+function ConnectionsSettings() {
+  return (
+    <>
+      <McpSettings />
+      <SettingsGroup title="More connections">
+        {SOON.map(({ name, hint }) => (
+          <SettingRow key={name} label={<span className="sx-status">{name}<span className="sx-tag">Soon</span></span>} hint={hint} />
+        ))}
+      </SettingsGroup>
+    </>
+  );
+}
+
+const PREF_PREFIX = 'oc.';
+const prefKeys = () => {
+  try {
+    return Object.keys(localStorage).filter((k) => k.startsWith(PREF_PREFIX));
+  } catch {
+    return [];
+  }
+};
+
+function AccountSettings() {
+  const name = useDisplayName();
+  const [sure, setSure] = useState(false);
+  useEffect(() => {
+    if (!sure) return;
+    const t = window.setTimeout(() => setSure(false), 5000);
+    return () => window.clearTimeout(t);
+  }, [sure]);
+
+  const exportPrefs = () => {
+    const data: Record<string, string | null> = {};
+    for (const k of prefKeys()) data[k] = localStorage.getItem(k);
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: 'open-canvas-preferences.json' });
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const reset = () => {
+    for (const k of prefKeys()) localStorage.removeItem(k);
+    window.location.reload();
+  };
+
+  return (
+    <>
+      <SettingsGroup title="Profile">
+        <SettingRow label="Photo" hint="Shown on the canvas and in chat.">
+          <img src={USER_AVATAR_SRC} alt="" width={40} height={40} className="sx-avatar" draggable={false} referrerPolicy="no-referrer" />
+        </SettingRow>
+        <SettingRow label="Name" hint="Used in the greeting on the home page.">
+          <InputShell>
+            <input aria-label="Your name" value={name} maxLength={40} placeholder="Optional" onChange={(e) => setDisplayName(e.target.value)} />
+          </InputShell>
+        </SettingRow>
+      </SettingsGroup>
+
+      <SettingsGroup title="Your data" hint="Preferences such as your name, theme, learning curve and page icons are kept on this device. Your projects stay in their own folders and are never touched here.">
+        <SettingRow label="Export preferences" hint="Download them as a JSON file.">
+          <Button size="sm" onClick={exportPrefs}>Export</Button>
+        </SettingRow>
+        <SettingRow label="Reset everything" hint="Clears all preferences and starts fresh. Projects are not deleted.">
+          {sure ? (
+            <div className="sx-inline">
+              <Button size="sm" variant="ghost" onClick={() => setSure(false)}>Cancel</Button>
+              <Button size="sm" variant="danger" onClick={reset}>Yes, reset</Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="danger" onClick={() => setSure(true)}>Reset</Button>
+          )}
+        </SettingRow>
+      </SettingsGroup>
+    </>
+  );
 }
 
 function McpSettings() {

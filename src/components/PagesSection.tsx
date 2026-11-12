@@ -183,7 +183,7 @@ export function PagesSection({ bare = false }: { bare?: boolean }) {
                     <IconButton size="sm" label={`Duplicate ${p.name}`} disabled={busy || (viewType === 'design' && !p.file)} onClick={(e) => { e.stopPropagation(); void duplicatePage(p.id); }}>
                       <Copy size={12} />
                     </IconButton>
-                    <IconButton size="sm" label={home ? 'The home page can’t be deleted' : `Delete ${p.name}`} disabled={home || busy} onClick={(e) => { e.stopPropagation(); remove(); }}>
+                    <IconButton size="sm" className="icon-btn--danger" label={home ? 'The home page can’t be deleted' : `Delete ${p.name}`} disabled={home || busy} onClick={(e) => { e.stopPropagation(); remove(); }}>
                       <Trash2 size={12} />
                     </IconButton>
                   </>
