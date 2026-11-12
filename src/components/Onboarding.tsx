@@ -41,7 +41,7 @@ import { HomeCollab } from './home/HomeCollab';
 import { HomeTopBlur } from './home/HomeTopBlur';
 import { loadSharedChats, removeSharedChat, saveSharedChats, upsertSharedChat, type SharedChatRecord } from '../lib/shared-chats';
 import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
-import { HomeBotsPage } from './home/HomeBotsPage';
+import { HomeBotPanel } from './home/HomeBotPanel';
 import { HomeBotsList } from './home/HomeBotsList';
 import { useBots } from '@/lib/bots';
 import { HomeStatusPills } from './home/HomeStatusPills';
@@ -136,19 +136,18 @@ export function Onboarding() {
   // Home opens with the left nav closed; the toggle still works for the session.
   const [navOpen, setNavOpen] = useState(false);
   /** The main pane shows the chat, or the Projects page over it. */
-  const [view, setView] = useState<'home' | 'projects' | 'bots' | 'bot'>('home');
+  const [view, setView] = useState<'home' | 'projects' | 'bots'>('home');
   const { bots, add: addBot, update: updateBot, remove: removeBot } = useBots();
   const [botId, setBotId] = useState<string | null>(null);
   const openBot = useCallback((id: string) => {
     setDialog(null);
     setBotId(id);
-    setView('bot');
   }, []);
   const openBots = useCallback(() => {
     setDialog(null);
     setView('bots');
   }, []);
-  const activeBot = view === 'bot' ? bots.find((b) => b.id === botId) : undefined;
+  const activeBot = botId ? bots.find((b) => b.id === botId) : undefined;
   const openProjects = useCallback(() => {
     setDialog(null);
     setView('projects');
@@ -697,15 +696,16 @@ export function Onboarding() {
               menuFor={(p) => [{ id: 'open', label: 'Open', icon: <HugeiconsIcon icon={FolderOpenIcon} strokeWidth={2} />, onSelect: () => void openRecent(p.root) }, ...recentActions(p)]}
             />
           )}
-          {view === 'bots' && <HomeBotsList bots={bots} onOpen={openBot} onNew={() => openBot(addBot().id)} />}
+          {view === 'bots' && <HomeBotsList bots={bots} activeId={activeBot?.id} panelOpen={!!activeBot} onOpen={openBot} onNew={() => openBot(addBot().id)} />}
           {activeBot && (
-            <HomeBotsPage
+            <HomeBotPanel
+              key={activeBot.id}
               bot={activeBot}
               onChange={(patch) => updateBot(activeBot.id, patch)}
-              onBack={() => setView('bots')}
+              onClose={() => setBotId(null)}
               onRemove={() => {
                 removeBot(activeBot.id);
-                setView('bots');
+                setBotId(null);
               }}
             />
           )}
