@@ -191,7 +191,7 @@ export function VariantsPanel() {
           <Button size="sm" variant="ghost" onClick={() => void discardAll()}>
             Keep original
           </Button>
-          <Button size="sm" variant="ghost" icon={<Trash2 size={13} />} onClick={() => void discardAll()}>
+          <Button size="sm" variant="ghost" className="btn--danger" icon={<Trash2 size={13} />} onClick={() => void discardAll()}>
             Discard all
           </Button>
         </div>
@@ -249,7 +249,7 @@ function VariantCard({
             <Button size="sm" icon={<Check size={13} />} onClick={() => onApply(v.id)}>
               Apply
             </Button>
-            <Action icon={<Trash2 size={13} />} onClick={() => onDiscard(v.id)}>
+            <Action danger icon={<Trash2 size={13} />} onClick={() => onDiscard(v.id)}>
               Discard
             </Action>
           </>
@@ -259,7 +259,7 @@ function VariantCard({
             <Button size="sm" icon={<RotateCcw size={13} />} onClick={() => onRetry(v.id)}>
               {v.status === 'stale' ? 'Regenerate' : 'Retry'}
             </Button>
-            <Action icon={<Trash2 size={13} />} onClick={() => onDiscard(v.id)}>
+            <Action danger icon={<Trash2 size={13} />} onClick={() => onDiscard(v.id)}>
               Discard
             </Action>
           </>
@@ -274,9 +274,9 @@ function VariantCard({
   );
 }
 
-function Action({ icon, children, onClick }: { icon: ReactNode; children: ReactNode; onClick: () => void }) {
+function Action({ icon, children, onClick, danger }: { icon: ReactNode; children: ReactNode; onClick: () => void; danger?: boolean }) {
   return (
-    <Button size="sm" variant="ghost" icon={icon} onClick={onClick}>
+    <Button size="sm" variant="ghost" className={danger ? 'btn--danger' : undefined} icon={icon} onClick={onClick}>
       {children}
     </Button>
   );

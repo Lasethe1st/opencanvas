@@ -11,7 +11,7 @@
 }
 
 .menu-item.is-danger {
-  color: var(--danger);
+  color: var(--destructive);
 }
 
 .fieldset-reset {
