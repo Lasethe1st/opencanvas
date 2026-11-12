@@ -1005,8 +1005,8 @@ kbd, .kbd,
 .layer-menu .menu-item { height: 28px; border-radius: var(--r); }
 .layer-menu .menu-item__hint { margin-left: auto; color: var(--fg-4); font-size: 11px; }
 .layer-menu__sep { height: 1px; margin: 4px 6px; background: var(--line); }
-.layer-menu .layer-menu__danger, .layer-menu .layer-menu__danger svg { color: var(--danger); }
-.layer-menu .layer-menu__danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.layer-menu .layer-menu__danger, .layer-menu .layer-menu__danger svg { color: var(--destructive); }
+.layer-menu .layer-menu__danger:hover:not(:disabled) { background: color-mix(in srgb, var(--destructive) 10%, transparent); }
 
 /* Inspector: no hairlines between groups; spacing does the grouping. */
 .panel--right .panel__body > *,
@@ -2447,3 +2447,9 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 }
 
 .sx-avatar { width: 40px; height: 40px; border-radius: 999px; object-fit: cover; background: var(--hover); }
+/* Actions that can't be undone are red: text and icon always, soft red wash on hover. */
+.btn.btn--danger, .btn.btn--danger svg { color: var(--destructive); }
+.btn.btn--danger:hover:not(:disabled) { background: color-mix(in srgb, var(--destructive) 10%, transparent); color: var(--destructive); }
+.btn.btn--danger:focus-visible { outline-color: var(--destructive); }
+.icon-btn.icon-btn--danger:hover:not(:disabled), .icon-btn.icon-btn--danger:focus-visible { color: var(--destructive); background: color-mix(in srgb, var(--destructive) 10%, transparent); }
+.menu-item.is-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--destructive) 10%, transparent); }

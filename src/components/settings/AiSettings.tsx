@@ -201,7 +201,7 @@ export function AiSettingsPanel() {
                 <Button size="sm" onClick={() => setReplacing(true)}>
                   Replace
                 </Button>
-                <Button size="sm" variant="ghost" icon={<Trash2 size={13} aria-hidden />} onClick={() => void apply(() => api.ai.clearKey())}>
+                <Button size="sm" variant="ghost" className="btn--danger" icon={<Trash2 size={13} aria-hidden />} onClick={() => void apply(() => api.ai.clearKey())}>
                   Remove
                 </Button>
               </div>

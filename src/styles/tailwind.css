@@ -105,7 +105,7 @@
   --color-muted-foreground: var(--fg-3);
   --color-accent: var(--hover);
   --color-accent-foreground: var(--fg);
-  --color-destructive: var(--danger);
+  --color-destructive: var(--destructive);
   --color-border: var(--line);
   /* Soft hairline for controls; prefer fill over heavy strokes on Lime surfaces. */
   --color-input: var(--line);
