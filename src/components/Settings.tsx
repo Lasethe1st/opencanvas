@@ -1,4 +1,4 @@
-import { Copy, Keyboard, KeyRound, Monitor, Moon, Palette, Plug, RefreshCw, Settings as SettingsIcon, SlidersHorizontal, Sparkles, Sun, Type, X } from '../lib/hugeicons';
+import { Copy, Keyboard, KeyRound, Laptop, Moon, Palette, Plug, RefreshCw, Settings as SettingsIcon, SlidersHorizontal, Sparkles, Sun, Type, X } from '../lib/hugeicons';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { McpStatus, ThemePreference } from '../../shared/types';
@@ -245,7 +245,7 @@ function GeneralSettings() {
 }
 
 const THEMES: { id: ThemePreference; label: string; icon: typeof Sun }[] = [
-  { id: 'system', label: 'System', icon: Monitor },
+  { id: 'system', label: 'System', icon: Laptop },
   { id: 'light', label: 'Light', icon: Sun },
   { id: 'dark', label: 'Dark', icon: Moon },
 ];
