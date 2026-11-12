@@ -7,7 +7,7 @@ import { plural } from '../lib/plural';
 import { setState, toast, useStore, type SettingsTab } from '../lib/store';
 import { AiSettingsPanel } from './settings/AiSettings';
 import { SettingRow, SettingsGroup, Switch } from './settings/parts';
-import { StepSlider } from './StepSlider';
+import { LearningToggle } from './LearningToggle';
 import { CHAT_BUBBLE_PRESETS, setChatBubblePreset, useChatBubblePreset } from '../lib/chat-bubble';
 import { CHAT_FONT_SIZE_PRESETS, setChatFontSize, useChatFontSize } from '../lib/chat-font-size';
 import { getOrbColors, ORB_COLOR_PRESETS, setOrbColorPreset, useOrbColorPreset } from '../lib/orb-colors';
@@ -132,16 +132,11 @@ const LEVEL_STOPS = LEVELS.map(({ id, label }) => ({ id, label }));
 
 /** The learning curve as the same slider the home page uses for thinking strength; what each stop means sits underneath. */
 function LearningCurve({ level }: { level: ExperienceLevel }) {
-  const [preview, setPreview] = useState(level);
-  useEffect(() => setPreview(level), [level]);
-  const shown = LEVELS.find((l) => l.id === preview) ?? LEVELS[0];
+  const shown = LEVELS.find((l) => l.id === level) ?? LEVELS[0];
   return (
     <div className="lc">
-      <StepSlider<ExperienceLevel> value={level} onChange={setExperienceLevel} onPreview={setPreview} stops={LEVEL_STOPS} ariaLabel="Learning curve" />
-      <div className="lc__context" aria-live="polite">
-        <p className="lc__name">{shown.label}</p>
-        <p className="lc__blurb">{shown.blurb}</p>
-      </div>
+      <LearningToggle<ExperienceLevel> value={level} onChange={setExperienceLevel} options={LEVEL_STOPS} ariaLabel="Learning curve" />
+      <p className="lc__blurb" aria-live="polite">{shown.blurb}</p>
     </div>
   );
 }
