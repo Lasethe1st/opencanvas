@@ -2445,3 +2445,19 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
   background-color: #fff !important;
   box-shadow: inset 0 0 0 1px #dcdce1, 0 1px 2px rgba(17, 17, 19, 0.04), 0 12px 28px -12px rgba(17, 17, 19, 0.12);
 }
+
+/* Settings: one palette for every toggle and switch, taken from the learning-curve toggle. */
+.settings-page, .lt {
+  --tg-track: color-mix(in srgb, var(--fg) 7%, var(--surface));
+  --tg-track-strong: color-mix(in srgb, var(--fg) 16%, var(--surface));
+  --tg-pill: var(--surface, #fff);
+  --tg-pill-shadow: 0 1px 3px rgba(0, 0, 0, 0.16), 0 0 0 0.5px color-mix(in srgb, var(--fg) 14%, transparent);
+}
+[data-theme='dark'] .settings-page, [data-theme='dark'] .lt { --tg-pill: color-mix(in srgb, var(--fg) 14%, var(--surface)); }
+.lt { background: var(--tg-track); }
+.lt__pill { background: var(--tg-pill); box-shadow: var(--tg-pill-shadow); }
+.settings-page .theme-toggle { border-radius: 12px; padding: 3px; background: var(--tg-track); border-color: transparent; }
+.settings-page .theme-toggle__btn { border-radius: 9px; }
+.settings-page .theme-toggle__btn.is-active { background: var(--tg-pill); box-shadow: var(--tg-pill-shadow); color: var(--fg); }
+.sx-switch span { background: var(--tg-track-strong, color-mix(in srgb, var(--fg) 16%, var(--surface))); }
+.sx-switch input:checked + span { background: var(--fg); }
