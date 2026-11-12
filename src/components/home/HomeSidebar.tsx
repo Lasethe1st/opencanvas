@@ -7,6 +7,14 @@ import { HomeContextMenu, type HomeMenuAction } from './HomeItemMenu';
 
 export const HOME_NAV_WIDTH = 250;
 
+/** The user's bots, drawn as a row of plain circles under their own heading. */
+export interface NavBots {
+  items: { id: string; name: string }[];
+  activeId?: string | null;
+  onSelect: (id: string) => void;
+  onAdd: () => void;
+}
+
 /** A plain navigation row: icon, label, optional trailing text. */
 export interface NavRow {
   id: string;
@@ -48,6 +56,7 @@ export function HomeSidebar({
   actions,
   library,
   sections,
+  bots,
   footer,
   headerEnd,
 }: {
@@ -56,6 +65,7 @@ export function HomeSidebar({
   actions: NavRow[];
   library: NavRow[];
   sections: NavSection[];
+  bots?: NavBots;
   footer: ReactNode;
   /** Top right of the pane, level with the logo. */
   headerEnd?: ReactNode;
@@ -157,6 +167,45 @@ export function HomeSidebar({
               </ul>
             </section>
           ))}
+          {bots && (
+            <section aria-labelledby={`${regionId}-bots`} className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2 ps-2 pe-0.5">
+                <h2 id={`${regionId}-bots`} className="m-0 min-w-0 truncate text-xs font-medium text-muted-foreground">
+                  Bots
+                </h2>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" className="size-6 shrink-0 rounded-[6px] p-0 text-muted-foreground hover:bg-accent hover:text-foreground [&_svg]:size-3.5" aria-label="New bot" onClick={bots.onAdd}>
+                      <Plus />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side={side}>New bot</TooltipContent>
+                </Tooltip>
+              </div>
+              {bots.items.length === 0 ? (
+                <p className="m-0 px-2 py-1 text-xs text-muted-foreground">No bots yet</p>
+              ) : (
+                <ul className="m-0 flex list-none flex-wrap gap-2 p-0 ps-2">
+                  {bots.items.map((b) => (
+                    <li key={b.id}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label={b.name}
+                            aria-current={bots.activeId === b.id ? 'true' : undefined}
+                            className="bot-dot size-8 cursor-pointer transition-shadow duration-150 hover:shadow-[0_0_0_2px_var(--fg-3)] focus-visible:shadow-[0_0_0_2px_var(--fg-3)] aria-[current=true]:shadow-[0_0_0_2px_var(--fg)]"
+                            onClick={() => bots.onSelect(b.id)}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">{b.name}</TooltipContent>
+                      </Tooltip>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
         </nav>
 
         <div className="flex shrink-0 flex-col gap-2 border-t border-foreground/[0.06] p-2">{footer}</div>

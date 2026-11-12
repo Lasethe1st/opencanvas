@@ -41,6 +41,8 @@ import { HomeCollab } from './home/HomeCollab';
 import { HomeTopBlur } from './home/HomeTopBlur';
 import { loadSharedChats, removeSharedChat, saveSharedChats, upsertSharedChat, type SharedChatRecord } from '../lib/shared-chats';
 import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
+import { HomeBotsPage } from './home/HomeBotsPage';
+import { useBots } from '@/lib/bots';
 import { HomeStatusPills } from './home/HomeStatusPills';
 import type { RunningJob } from '../lib/running-work';
 import { SearchOverlay } from './home/SearchOverlay';
@@ -133,7 +135,15 @@ export function Onboarding() {
   // Home opens with the left nav closed; the toggle still works for the session.
   const [navOpen, setNavOpen] = useState(false);
   /** The main pane shows the chat, or the Projects page over it. */
-  const [view, setView] = useState<'home' | 'projects'>('home');
+  const [view, setView] = useState<'home' | 'projects' | 'bot'>('home');
+  const { bots, add: addBot, rename: renameBot, remove: removeBot } = useBots();
+  const [botId, setBotId] = useState<string | null>(null);
+  const openBot = useCallback((id: string) => {
+    setDialog(null);
+    setBotId(id);
+    setView('bot');
+  }, []);
+  const activeBot = view === 'bot' ? bots.find((b) => b.id === botId) : undefined;
   const openProjects = useCallback(() => {
     setDialog(null);
     setView('projects');
@@ -652,6 +662,7 @@ export function Onboarding() {
             actions={actions}
             library={library}
             sections={sections}
+            bots={{ items: bots, activeId: activeBot?.id, onSelect: openBot, onAdd: () => openBot(addBot().id) }}
             headerEnd={<HomePlan />}
             footer={!onboarding.dismissed ? <HomeOnboardingTasks tasks={tasks} onDismiss={onboarding.dismiss} onAutoDone={onboarding.complete} /> : null}
           />
@@ -668,9 +679,19 @@ export function Onboarding() {
               menuFor={(p) => [{ id: 'open', label: 'Open', icon: <HugeiconsIcon icon={FolderOpenIcon} strokeWidth={2} />, onSelect: () => void openRecent(p.root) }, ...recentActions(p)]}
             />
           )}
+          {activeBot && (
+            <HomeBotsPage
+              bot={activeBot}
+              onRename={(name) => renameBot(activeBot.id, name)}
+              onRemove={() => {
+                removeBot(activeBot.id);
+                setView('home');
+              }}
+            />
+          )}
           <HomeAccount onSettings={() => setState({ settingsOpen: true })} />
           <div className="absolute start-14 top-3 z-20 flex max-w-[calc(100%-9rem)] items-center gap-2">
-            <span title={chatTitle} className={cn('inline-flex h-9 max-w-[240px] min-w-0 items-center overflow-hidden rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground', view === 'projects' && 'hidden')}>
+            <span title={chatTitle} className={cn('inline-flex h-9 max-w-[240px] min-w-0 items-center overflow-hidden rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground', view !== 'home' && 'hidden')}>
               <span className="truncate">{chatTitle}</span>
             </span>
             <div ref={setChipHost} className="contents" />
