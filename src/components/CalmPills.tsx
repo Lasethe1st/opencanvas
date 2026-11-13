@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Add01Icon, Home04Icon, LayoutAlignLeftIcon, LayoutAlignRightIcon, RulerDimensionLineIcon, RulerIcon, Search02Icon } from '@hugeicons/core-free-icons';
+import { Add01Icon, AiChat02Icon, Home04Icon, LayoutAlignLeftIcon, LayoutAlignRightIcon, RulerDimensionLineIcon, RulerIcon, Search02Icon } from '@hugeicons/core-free-icons';
 import { CalmPagePill } from './CalmPagePill';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -9,7 +9,7 @@ import { closeProject } from '../lib/actions';
 import { setMeasure, useMeasure } from '../lib/measure';
 import { setRulers, useRulers } from '../lib/rulers';
 import { openInsertMenu } from '../lib/element-menu';
-import { getState, setState } from '../lib/store';
+import { getState, setState, useStore } from '../lib/store';
 import { prepareFrameInsert } from './InsertContextMenu';
 import { USER_AVATAR_SRC } from '../lib/user-avatar';
 
@@ -32,10 +32,19 @@ export function CalmPills() {
   const showGuides = level !== 'beginner';
   const measuring = useMeasure();
   const rulers = useRulers();
+  const chatOpen = useStore((s) => s.dockMode === 'input');
   return (
     <TooltipProvider>
       <div data-tw="" className={`calm-pills${rulers && showGuides ? ' calm-pills--rulers' : ''}`}>
         <div className="calm-pill-pair absolute start-3 top-3 z-20 flex items-center gap-1.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" className="calm-circle calm-pill calm-pill--round relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]" aria-label={chatOpen ? 'Close AI chat' : 'Open AI chat'} aria-pressed={chatOpen} onClick={() => setState({ dockMode: chatOpen ? null : 'input' })}>
+                <HugeiconsIcon icon={AiChat02Icon} strokeWidth={2} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{chatOpen ? 'Close AI chat' : 'AI chat'}</TooltipContent>
+          </Tooltip>
           {showSidePanels && (
             <Button variant="ghost" className="calm-circle calm-pill calm-pill--round relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]" aria-label={left ? 'Close left panel' : 'Open left panel'} aria-expanded={left} onClick={() => toggleCalmPanel('left')}>
               <HugeiconsIcon icon={left ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
