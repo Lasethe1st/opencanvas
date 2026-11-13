@@ -41,6 +41,9 @@ import { HomeCollab } from './home/HomeCollab';
 import { HomeTopBlur } from './home/HomeTopBlur';
 import { loadSharedChats, removeSharedChat, saveSharedChats, upsertSharedChat, type SharedChatRecord } from '../lib/shared-chats';
 import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
+import { HomeBotPanel } from './home/HomeBotPanel';
+import { HomeBotsList } from './home/HomeBotsList';
+import { useBots } from '@/lib/bots';
 import { HomeStatusPills } from './home/HomeStatusPills';
 import type { RunningJob } from '../lib/running-work';
 import { SearchOverlay } from './home/SearchOverlay';
@@ -133,7 +136,19 @@ export function Onboarding() {
   // Home opens with the left nav closed; the toggle still works for the session.
   const [navOpen, setNavOpen] = useState(false);
   /** The main pane shows the chat, or the Projects page over it. */
-  const [view, setView] = useState<'home' | 'projects'>('home');
+  const [view, setView] = useState<'home' | 'projects' | 'bots'>('home');
+  const { bots, add: addBot, update: updateBot, remove: removeBot } = useBots();
+  const [botId, setBotId] = useState<string | null>(null);
+  const openBot = useCallback((id: string) => {
+    setDialog(null);
+    setSourcesOpen(false);
+    setBotId(id);
+  }, []);
+  const openBots = useCallback(() => {
+    setDialog(null);
+    setView('bots');
+  }, []);
+  const activeBot = botId ? bots.find((b) => b.id === botId) : undefined;
   const openProjects = useCallback(() => {
     setDialog(null);
     setView('projects');
@@ -282,14 +297,15 @@ export function Onboarding() {
         setSearchOpen(true);
         return;
       }
-      if (e.key === 'Escape' && sourcesOpen && !dialog && !document.querySelector('.dialog-backdrop, .settings-page, [data-home-search]')) {
+      if (e.key === 'Escape' && (sourcesOpen || botId) && !dialog && !document.querySelector('.dialog-backdrop, .settings-page, [data-home-search]')) {
         e.preventDefault();
-        setSourcesOpen(false);
+        if (botId) setBotId(null);
+        else setSourcesOpen(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [sourcesOpen, dialog]);
+  }, [sourcesOpen, botId, dialog]);
 
   const pickChat = useCallback((chat: HomeChatRecord) => {
     activeChatId.current = chat.id;
@@ -557,6 +573,20 @@ export function Onboarding() {
         more: { label: 'View All', onSelect: () => setDialog({ kind: 'chats' }) },
       },
       {
+        id: 'bots',
+        title: 'Bots',
+        empty: 'No bots yet',
+        add: { label: 'New bot', onSelect: () => openBot(addBot().id) },
+        entries: bots.slice(0, RECENT).map((b) => ({
+          id: b.id,
+          label: b.name,
+          meta: b.role || 'No role yet',
+          icon: <span className="bot-dot size-5" aria-hidden />,
+          onSelect: () => openBot(b.id),
+        })),
+        more: { label: 'View All', onSelect: openBots },
+      },
+      {
         id: 'shared-chats',
         title: 'Shared chats',
         empty: 'Share a chat from the top right',
@@ -655,7 +685,7 @@ export function Onboarding() {
             headerEnd={<HomePlan />}
             footer={!onboarding.dismissed ? <HomeOnboardingTasks tasks={tasks} onDismiss={onboarding.dismiss} onAutoDone={onboarding.complete} /> : null}
           />
-          <div ref={setCardEl} className={cn('@container/card relative min-w-0 flex-1 overflow-hidden border bg-[var(--home-card)] motion-safe:transition-[margin,border-radius,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', navOpen || sourcesOpen ? 'm-2 rounded-[10px] border-foreground/[0.08]' : 'm-0 rounded-none border-transparent')}>
+          <div ref={setCardEl} className={cn('@container/card relative min-w-0 flex-1 overflow-hidden border bg-[var(--home-card)] motion-safe:transition-[margin,border-radius,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', navOpen || sourcesOpen || activeBot ? 'm-2 rounded-[10px] border-foreground/[0.08]' : 'm-0 rounded-none border-transparent')}>
           <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[var(--r-pill)] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
             <HugeiconsIcon icon={navOpen ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
           </Button>
@@ -668,9 +698,10 @@ export function Onboarding() {
               menuFor={(p) => [{ id: 'open', label: 'Open', icon: <HugeiconsIcon icon={FolderOpenIcon} strokeWidth={2} />, onSelect: () => void openRecent(p.root) }, ...recentActions(p)]}
             />
           )}
+          {view === 'bots' && <HomeBotsList bots={bots} activeId={activeBot?.id} onOpen={openBot} onNew={() => openBot(addBot().id)} />}
           <HomeAccount onSettings={() => setState({ settingsOpen: true })} />
           <div className="absolute start-14 top-3 z-20 flex max-w-[calc(100%-9rem)] items-center gap-2">
-            <span title={chatTitle} className={cn('inline-flex h-9 max-w-[240px] min-w-0 items-center overflow-hidden rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground', view === 'projects' && 'hidden')}>
+            <span title={chatTitle} className={cn('inline-flex h-9 max-w-[240px] min-w-0 items-center overflow-hidden rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground', view !== 'home' && 'hidden')}>
               <span className="truncate">{chatTitle}</span>
             </span>
             <div ref={setChipHost} className="contents" />
@@ -688,7 +719,10 @@ export function Onboarding() {
                   )}
                   aria-label={sourcesOpen ? 'Hide sources' : 'Show sources'}
                   aria-expanded={sourcesOpen}
-                  onClick={() => setSourcesOpen((o) => !o)}
+                  onClick={() => {
+                    setBotId(null);
+                    setSourcesOpen((o) => !o);
+                  }}
                 >
                   {sources.some((s) => s.href) ? (
                     <WebFaviconStack sources={sources.filter((s) => !!s.href)} max={3} size={26} overlap={10} />
@@ -832,8 +866,20 @@ export function Onboarding() {
           </main>
           <HomeTopBlur />
           </div>
-          <HomeRightPanel open={sourcesOpen} title="Sources" contentKey={`sources-${sources.length}`} file={openFile ? <FileViewer file={openFile} onClose={() => setOpenFile(null)} /> : undefined}>
-            <SourcesPanel sources={sources} file={openFile} onFile={setOpenFile} />
+          <HomeRightPanel open={sourcesOpen || !!activeBot} title={activeBot ? 'Bot' : 'Sources'} contentKey={activeBot ? `bot-${activeBot.id}` : `sources-${sources.length}`} flush={!!activeBot} file={!activeBot && openFile ? <FileViewer file={openFile} onClose={() => setOpenFile(null)} /> : undefined}>
+            {activeBot ? (
+              <HomeBotPanel
+                bot={activeBot}
+                onChange={(patch) => updateBot(activeBot.id, patch)}
+                onClose={() => setBotId(null)}
+                onRemove={() => {
+                  removeBot(activeBot.id);
+                  setBotId(null);
+                }}
+              />
+            ) : (
+              <SourcesPanel sources={sources} file={openFile} onFile={setOpenFile} />
+            )}
           </HomeRightPanel>
         </div>
         {searchOpen && (
