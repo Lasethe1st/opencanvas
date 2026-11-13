@@ -107,6 +107,8 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
   };
 
   const wrap = (children: React.ReactNode) => (panel ? <>{children}</> : <DockRow tucked={chatOpen || focused || voice || !showPills}>{children}</DockRow>);
+  // The calm chat panel has its own composer, so the bar steps aside while it is open.
+  if (calm && !panel && chatOpen) return null;
   return wrap(
     <>
     <div className={`canvas-shapeshift assistant-docker${panel ? ' assistant-docker--panel' : ''}`} onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={bloomChat || undefined} onPointerDown={(e) => e.stopPropagation()}>

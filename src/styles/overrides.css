@@ -2470,15 +2470,18 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 .sx-switch span { background: var(--tg-track-strong, color-mix(in srgb, var(--fg) 16%, var(--surface))); }
 .sx-switch input:checked + span { background: var(--fg); }
 
-/* Easy canvas: the AI conversation as a docked left column; the canvas card insets beside it. */
+/* Easy canvas: the AI conversation as a docked left column; the canvas card insets beside it. Laid out like an active home chat. */
 .shell--calm .workspace > .calm-chat {
   flex: none;
   min-width: 0;
   overflow: hidden;
   transition: width 200ms cubic-bezier(0.2, 0, 0, 1);
 }
-.calm-chat__inner { display: flex; height: 100%; flex-direction: column; padding: 8px 0 8px 8px; box-sizing: border-box; }
+.calm-chat__inner { position: relative; display: flex; height: 100%; flex-direction: column; padding: 0; box-sizing: border-box; }
+.calm-chat__actions { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 2px; height: 48px; padding: 0 8px; }
+.calm-chat__log { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding-bottom: 8px; }
+.calm-chat__log::-webkit-scrollbar { display: none; }
+.calm-chat__empty { margin: 0; padding: 4px 16px 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.calm-chat__composer { flex: none; padding: 8px 8px 12px; background: linear-gradient(to top, var(--home-bg) 55%, transparent); }
 .calm-chat .docker-chat { flex: 1; min-height: 0; }
-.calm-chat .docker-chat__head { padding-left: 8px; }
-.calm-chat .docker-chat__log { padding: 0 8px; scrollbar-width: thin; }
 @media (prefers-reduced-motion: reduce) { .shell--calm .workspace > .calm-chat { transition: none; } }
