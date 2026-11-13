@@ -88,20 +88,18 @@ async function draw(shape: BotShape, theme: BotTheme): Promise<string | null> {
   geometry.center();
   const r = geometry.boundingSphere?.radius || 1;
 
-  // Glossy toy plastic: a bright colour with a clear coat, so each one catches a little highlight.
-  const material = new THREE.MeshPhysicalMaterial({ color: SHAPE_COLORS[shape][theme], roughness: 0.32, metalness: 0, clearcoat: 0.8, clearcoatRoughness: 0.18 });
+  // Matte, like painted clay: no clear coat, no specular highlight, no rim light, and soft even lighting so the
+  // faces only differ a little. The shape reads from its edges and the gentle change of tone between faces.
+  const material = new THREE.MeshLambertMaterial({ color: SHAPE_COLORS[shape][theme] });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.scale.setScalar(1 / r);
 
   const scene = new THREE.Scene();
   scene.add(mesh);
-  scene.add(new THREE.HemisphereLight(0xffffff, theme === 'dark' ? 0x3a3a46 : 0xb8b8d0, theme === 'dark' ? 1.2 : 1.35));
-  const key = new THREE.DirectionalLight(0xffffff, theme === 'dark' ? 2.4 : 2.2);
+  scene.add(new THREE.AmbientLight(0xffffff, 1.9));
+  const key = new THREE.DirectionalLight(0xffffff, 1.1);
   key.position.set(-1.5, 4, 3);
   scene.add(key);
-  const rim = new THREE.DirectionalLight(0xffffff, 0.9);
-  rim.position.set(3, -1, -2);
-  scene.add(rim);
 
   // True isometric: an orthographic camera on the (1, 1, 1) diagonal, so equal edges stay equal and parallel lines stay parallel.
   const half = 1.12;
