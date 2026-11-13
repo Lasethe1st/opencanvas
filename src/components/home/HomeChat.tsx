@@ -46,6 +46,8 @@ const TOOL_LABELS: Record<string, string> = {
   run_command: "Run a command",
 };
 
+import { HtmlVariantRow, parseSetId } from "../variants/ChatVariants";
+import { ProjectVariantRow } from "../variants/ProjectVariants";
 const FENCE_RE = /```([\w-]*)\n?([\s\S]*?)```/g;
 
 /** Nearest ancestor set to scroll — home uses the main column, the dock uses its own log. */
@@ -262,7 +264,7 @@ export function HomeChat({
     <div ref={rootRef} className="relative w-full px-1 py-2" aria-label="Conversation">
       {outline && <ChatOutline rootRef={rootRef} items={items} fallbackAt={outlineFallbackAt} />}
       <div className="flex w-full flex-col gap-4 pb-4">
-        {groupConsecutiveWebBrowses(items).map((entry) => {
+        {groupConsecutiveWebBrowses(items.filter((i) => !(i.kind === "tool" && i.tool === "propose_variant"))).map((entry) => {
           const item = entry.kind === "browse" ? browseBurstTool(entry.items) : entry.item;
           const rowId = entry.kind === "browse" ? entry.id : item.id;
           const stoppedHere =
@@ -552,8 +554,8 @@ function ErrorMessage({ text }: { text: string }) {
 
 function AssistantMessage({ id, text, pending = false }: { id: string; text: string; pending?: boolean }) {
   const phrase = useThinkingPhrase(pending);
-  // Hold a shimmer while tokens stream; when ready, words stagger-fade in.
-  if (pending) {
+  // Hold a shimmer while tokens stream; when ready, words stagger-fade in. A variant set shows at once.
+  if (pending && !text.startsWith("```variants")) {
     return (
       <div className="flex items-center gap-2" aria-live="polite" aria-busy="true">
         <span aria-hidden className="text-foreground">
@@ -564,11 +566,25 @@ function AssistantMessage({ id, text, pending = false }: { id: string; text: str
     );
   }
   const parts = splitFenced(text);
+  // Consecutive `variant` fences become one row of blocks; a `variants` marker shows a set from the open project.
+  const nodes: Array<(typeof parts)[number] | { type: "row"; codes: string[] } | { type: "set"; setId: string }> = [];
+  for (const part of parts) {
+    const last = nodes[nodes.length - 1];
+    if (part.type === "code" && part.lang === "variant") {
+      if (last?.type === "row") last.codes.push(part.code);
+      else nodes.push({ type: "row", codes: [part.code] });
+    } else if (part.type === "code" && part.lang === "variants" && parseSetId(part.code)) nodes.push({ type: "set", setId: parseSetId(part.code)! });
+    else nodes.push(part);
+  }
   return (
     <div className="flex max-w-full flex-col gap-1.5">
       <div className="flex max-w-full flex-col gap-2 text-[length:var(--chat-font-size)] leading-relaxed text-foreground">
-        {parts.map((part, i) =>
-          part.type === "code" ? (
+        {nodes.map((part, i) =>
+          part.type === "row" ? (
+            <HtmlVariantRow key={i} codes={part.codes} />
+          ) : part.type === "set" ? (
+            <ProjectVariantRow key={i} setId={part.setId} />
+          ) : part.type === "code" ? (
             <CodeBlock key={i} size="sm" className="motion-safe:animate-[fade-in_0.2s_var(--ease-out-strong,ease-out)]">
               <CodeBlockHeader>
                 <CodeBlockTitle>{part.lang || "Code"}</CodeBlockTitle>

@@ -227,8 +227,6 @@ function VariantCard({
       tabIndex={0}
       aria-selected={active}
       className={`variant-card${active ? ' is-active' : ''}${v.status === 'failed' || v.status === 'stale' ? ' is-failed' : ''}`}
-      onMouseEnter={() => setState({ variantHighlightId: v.id })}
-      onMouseLeave={() => setState({ variantHighlightId: null })}
       onKeyDown={(e) => onKey(v, e)}
     >
       <div className="variant-card__head">
@@ -244,7 +242,7 @@ function VariantCard({
         {v.status === 'ready' && (
           <>
             <Action icon={<Eye size={13} />} onClick={() => setState({ variantHighlightId: v.id })}>
-              Show on canvas
+              Preview on canvas
             </Action>
             <Button size="sm" icon={<Check size={13} />} onClick={() => onApply(v.id)}>
               Apply

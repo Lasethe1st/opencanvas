@@ -1741,7 +1741,8 @@ kbd, .kbd,
 :where(body:has(.shell .workspace) *:not(
   .assistant-docker [data-slot='shapeshift-shell'], .assistant-docker [data-slot='shapeshift-shell'] *,
   [class*='avatar'], [class*='badge'], [class*='orb'], [class*='spin'], [class*='dot'],
-  [role='dialog'], [role='dialog'] *, .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu], [data-bloom-menu] *
+  [role='dialog'], [role='dialog'] *, .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu], [data-bloom-menu] *,
+  .vb, .vb *
 )) { border-radius: 0 !important; }
 body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data-tip]::before { border-radius: 0 !important; }
 
@@ -1763,9 +1764,9 @@ body:has(.shell .workspace) :is(
   .toggle-more__select, .state-switcher-select, .input, .search, .search input, textarea,
   input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
   .swatch, .section__icon, .field-select, .ai-option, .ai-card__text input
-):not(.assistant-docker *, [class*='avatar'], .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu] *, [role='dialog'] *) { border-radius: 10px !important; corner-shape: squircle; }
+):not(.assistant-docker *, [class*='avatar'], .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu] *, [role='dialog'] *, .vb *) { border-radius: 10px !important; corner-shape: squircle; }
 /* Active, selected and pressed states follow the same soft corner. */
-body:has(.shell .workspace) :is(.is-active, .is-current, .is-selected, [aria-selected='true'], [aria-pressed='true'], [aria-current='true'], .segmented__pill):not(.assistant-docker *, .stage__world *, .calm-pill, .calm-pill *, [role='dialog'] *) { border-radius: 10px !important; corner-shape: squircle; }
+body:has(.shell .workspace) :is(.is-active, .is-current, .is-selected, [aria-selected='true'], [aria-pressed='true'], [aria-current='true'], .segmented__pill):not(.assistant-docker *, .stage__world *, .calm-pill, .calm-pill *, [role='dialog'] *, .vb *) { border-radius: 10px !important; corner-shape: squircle; }
 /* Switches are pills; checkboxes and radios get a small radius. */
 body:has(.shell .workspace) :is([role='switch'], .switch, .toggle-switch, .toggle-switch *) { border-radius: 999px !important; corner-shape: round; }
 body:has(.shell .workspace) input[type='checkbox'] { border-radius: 5px !important; }
@@ -2469,3 +2470,9 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 .settings-page .theme-toggle__btn.is-active { background: var(--tg-pill); box-shadow: var(--tg-pill-shadow); color: var(--fg); }
 .sx-switch span { background: var(--tg-track-strong, color-mix(in srgb, var(--fg) 16%, var(--surface))); }
 .sx-switch input:checked + span { background: var(--fg); }
+
+/* Variant blocks: a row of rounded blocks, each a live preview. */
+.vb-shimmer { background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--fg, currentColor) 9%, transparent) 50%, transparent 80%) -100% 0 / 200% 100% no-repeat, color-mix(in srgb, var(--fg, currentColor) 4%, transparent); animation: vb-shimmer 1.4s ease-in-out infinite; }
+@keyframes vb-shimmer { to { background-position: 200% 0, 0 0; } }
+@media (prefers-reduced-motion: reduce) { .vb-shimmer { animation: none; } }
+.vb { --r-pill: 999px; }
