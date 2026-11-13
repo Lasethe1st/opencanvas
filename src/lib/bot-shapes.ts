@@ -81,9 +81,13 @@ function getContext() {
 
 async function draw(shape: BotShape, theme: BotTheme): Promise<string | null> {
   const { THREE, renderer } = await getContext();
-  const { RoundedBoxGeometry } = await import('three/examples/jsm/geometries/RoundedBoxGeometry.js');
+  const [{ RoundedBoxGeometry }, { ConvexGeometry }, { mergeVertices }] = await Promise.all([
+    import('three/examples/jsm/geometries/RoundedBoxGeometry.js'),
+    import('three/examples/jsm/geometries/ConvexGeometry.js'),
+    import('three/examples/jsm/utils/BufferGeometryUtils.js'),
+  ]);
 
-  const geometry = build(THREE, RoundedBoxGeometry, shape);
+  const geometry = build(THREE, { RoundedBoxGeometry, ConvexGeometry, mergeVertices }, shape);
   geometry.computeBoundingSphere();
   geometry.center();
   const r = geometry.boundingSphere?.radius || 1;
@@ -114,14 +118,21 @@ async function draw(shape: BotShape, theme: BotTheme): Promise<string | null> {
   return url;
 }
 
-function build(THREE: Three, RoundedBoxGeometry: typeof import('three/examples/jsm/geometries/RoundedBoxGeometry.js').RoundedBoxGeometry, shape: BotShape): import('three').BufferGeometry {
+type Kit = {
+  RoundedBoxGeometry: typeof import('three/examples/jsm/geometries/RoundedBoxGeometry.js').RoundedBoxGeometry;
+  ConvexGeometry: typeof import('three/examples/jsm/geometries/ConvexGeometry.js').ConvexGeometry;
+  mergeVertices: typeof import('three/examples/jsm/utils/BufferGeometryUtils.js').mergeVertices;
+};
+
+function build(THREE: Three, kit: Kit, shape: BotShape): import('three').BufferGeometry {
+  const { RoundedBoxGeometry } = kit;
   switch (shape) {
     case 'sphere':
       return new THREE.SphereGeometry(1, 48, 32);
     case 'cube':
-      return new RoundedBoxGeometry(1.5, 1.5, 1.5, 8, 0.34);
+      return new RoundedBoxGeometry(1.5, 1.5, 1.5, 10, 0.42);
     case 'pyramid':
-      return new THREE.ConeGeometry(1.1, 1.6, 4, 1).rotateY(Math.PI / 4);
+      return roundedHull(THREE, kit, [[0.62, -0.35, 0.62], [-0.62, -0.35, 0.62], [0.62, -0.35, -0.62], [-0.62, -0.35, -0.62], [0, 0.75, 0]], 0.4);
     case 'star': {
       const s = new THREE.Shape();
       const pts = 5;
@@ -134,20 +145,20 @@ function build(THREE: Three, RoundedBoxGeometry: typeof import('three/examples/j
         else s.lineTo(x, y);
       }
       s.closePath();
-      return new THREE.ExtrudeGeometry(s, { depth: 0.45, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 0.18, bevelSegments: 8 });
+      return new THREE.ExtrudeGeometry(s, { depth: 0.3, bevelEnabled: true, bevelThickness: 0.28, bevelSize: 0.28, bevelSegments: 10 });
     }
     case 'torus':
       return new THREE.TorusGeometry(0.8, 0.42, 32, 64);
     case 'gem':
-      return new THREE.IcosahedronGeometry(1.1, 0);
+      return roundedHull(THREE, kit, new THREE.IcosahedronGeometry(0.68, 0).getAttribute('position').array, 0.4);
     case 'cylinder':
-      return roundedCylinder(THREE, 0.8, 1.3, 0.26);
+      return roundedCylinder(THREE, 0.85, 1.3, 0.45);
     case 'capsule':
       return new THREE.CapsuleGeometry(0.62, 1.0, 10, 28);
     case 'knot':
       return new THREE.TorusKnotGeometry(0.72, 0.3, 160, 24);
     case 'prism':
-      return new THREE.CylinderGeometry(0.95, 0.95, 1.4, 3);
+      return roundedHull(THREE, kit, [0, 1].flatMap((y) => [0, 1, 2].map((i) => [Math.cos((i * 2 * Math.PI) / 3 + Math.PI / 2) * 0.62, y ? 0.35 : -0.35, Math.sin((i * 2 * Math.PI) / 3 + Math.PI / 2) * 0.62])), 0.38);
   }
 }
 
@@ -166,4 +177,22 @@ function roundedCylinder(THREE: Three, radius: number, height: number, bevel: nu
   }
   pts.push(new THREE.Vector2(0, h));
   return new THREE.LatheGeometry(pts, 48);
+}
+
+/** A convex shape with every corner and edge rounded: the hull of a small sphere placed on each (shrunken) corner. */
+function roundedHull(THREE: Three, kit: Kit, corners: ArrayLike<number> | number[][], radius: number): import('three').BufferGeometry {
+  const flat: number[][] = Array.isArray(corners) && Array.isArray(corners[0])
+    ? (corners as number[][])
+    : Array.from({ length: (corners as ArrayLike<number>).length / 3 }, (_, i) => [(corners as ArrayLike<number>)[i * 3], (corners as ArrayLike<number>)[i * 3 + 1], (corners as ArrayLike<number>)[i * 3 + 2]]);
+  const dirs = new THREE.IcosahedronGeometry(1, 3).getAttribute('position');
+  const pts: import('three').Vector3[] = [];
+  for (const [x, y, z] of flat) {
+    for (let i = 0; i < dirs.count; i++) pts.push(new THREE.Vector3(x + dirs.getX(i) * radius, y + dirs.getY(i) * radius, z + dirs.getZ(i) * radius));
+  }
+  const hull = new kit.ConvexGeometry(pts);
+  // Weld and re-smooth so the rounded parts read as one soft surface rather than facets.
+  hull.deleteAttribute('normal');
+  const welded = kit.mergeVertices(hull, 1e-3);
+  welded.computeVertexNormals();
+  return welded;
 }
