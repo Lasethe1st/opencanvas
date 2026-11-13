@@ -1,3 +1,4 @@
+import { toast as sonner } from 'sonner';
 import { IDLE_COLLAB, type CollabView } from '../../shared/collab-view';
 import { create } from 'zustand';
 import { breakpointFor, type Camera, type FrameLayout, type Guide } from '../../shared/canvas';
@@ -332,11 +333,12 @@ useStore.subscribe((s, prev) => {
   }
 });
 
-let toastId = 0;
+/** Shows a toast with Sonner. `<Toasts />` mounts the one Toaster; an action adds a button, e.g. Undo. */
 export function toast(message: string, kind: Toast['kind'] = 'info', action?: Toast['action']) {
-  const id = ++toastId;
-  setState((s) => ({ toasts: [...s.toasts, { id, kind, message, action }] }));
-  setTimeout(() => setState((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })), kind === 'error' || action ? 6000 : 3200);
+  const options = action ? { action: { label: action.label, onClick: () => action.run() }, duration: 6000 } : kind === 'error' ? { duration: 6000 } : undefined;
+  if (kind === 'error') sonner.error(message, options);
+  else if (kind === 'success') sonner.success(message, options);
+  else sonner(message, options);
 }
 
 export function hasUnsaved(state: State = getState()): boolean {

@@ -158,7 +158,7 @@ export function VariantsPopover({ elementId, name, onClose }: { elementId: strin
         )
       )}
 
-      {items.length > 0 && <VariantRow items={items} actions={actions} per={2.7} />}
+      {items.length > 0 && <VariantRow items={items} actions={actions} itemWidth={170} />}
     </div>
   );
 }

@@ -217,7 +217,7 @@ function Block({ v, index, hidden, onOpen, actions }: { v: BlockVariant; index: 
  * A row of 3:2 blocks on a native-scroll carousel. `per` is how many show at once (a fraction leaves the next one peeking).
  * A soft fade on the right edge says there are more. Click a block to open it in the dialog.
  */
-export function VariantRow({ items, actions = {}, per = 3, className, pad = 0 }: { items: BlockVariant[]; actions?: VariantActions; per?: number; className?: string; pad?: number }) {
+export function VariantRow({ items, actions = {}, per = 3, itemWidth, className, pad = 0 }: { items: BlockVariant[]; actions?: VariantActions; per?: number; itemWidth?: number; className?: string; pad?: number }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const open = items.find((v) => v.id === openId) ?? null;
   const carousel = useRef<BlossomCarouselHandle>(null);
@@ -236,7 +236,7 @@ export function VariantRow({ items, actions = {}, per = 3, className, pad = 0 }:
     return () => { el.removeEventListener('scroll', read); ro.disconnect(); };
   }, [items.length]);
 
-  const width = `calc((100% - ${GAP * Math.max(0, per - 1)}px) / ${per})`;
+  const width = itemWidth ? `${itemWidth}px` : `calc((100% - ${GAP * Math.max(0, per - 1)}px) / ${per})`;
   return (
     <LayoutGroup id={`vb-${items[0]?.id ?? 'x'}`}>
       <div className={`vb relative ${className ?? ''}`} data-tw="">
