@@ -19,6 +19,20 @@ export const BOT_SHAPE_LABELS: Record<BotShape, string> = {
   prism: 'Prism',
 };
 
+/** One cheerful colour per shape: bright in light mode, a little deeper in dark so they don't glare. */
+const SHAPE_COLORS: Record<BotShape, { light: number; dark: number }> = {
+  sphere: { light: 0xff7a6b, dark: 0xf0675a },
+  cube: { light: 0x5aa9ff, dark: 0x4a93ea },
+  pyramid: { light: 0xffd23f, dark: 0xf0bf2a },
+  star: { light: 0xff9f43, dark: 0xf08a2e },
+  torus: { light: 0xff6fae, dark: 0xee5c9b },
+  gem: { light: 0x3fd9b4, dark: 0x2fc4a1 },
+  cylinder: { light: 0xa78bfa, dark: 0x9272ee },
+  capsule: { light: 0x9be15d, dark: 0x86cf48 },
+  knot: { light: 0xff5d73, dark: 0xee4a61 },
+  prism: { light: 0x6f7cff, dark: 0x5c69ee },
+};
+
 export const isBotShape = (v: unknown): v is BotShape => typeof v === 'string' && (BOT_SHAPES as readonly string[]).includes(v);
 
 /** A bot without a chosen shape gets a steady one from its id, so it never changes under you. */
@@ -74,16 +88,15 @@ async function draw(shape: BotShape, theme: BotTheme): Promise<string | null> {
   geometry.center();
   const r = geometry.boundingSphere?.radius || 1;
 
-  // Soft clay: one quiet grey per theme, no brand colour. The shading does the work.
-  const color = theme === 'dark' ? 0x8e8e96 : 0xb4b4be;
-  const material = new THREE.MeshStandardMaterial({ color, roughness: 0.42, metalness: 0.06 });
+  // Glossy toy plastic: a bright colour with a clear coat, so each one catches a little highlight.
+  const material = new THREE.MeshPhysicalMaterial({ color: SHAPE_COLORS[shape][theme], roughness: 0.32, metalness: 0, clearcoat: 0.8, clearcoatRoughness: 0.18 });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.scale.setScalar(1 / r);
 
   const scene = new THREE.Scene();
   scene.add(mesh);
-  scene.add(new THREE.HemisphereLight(0xffffff, theme === 'dark' ? 0x2a2a30 : 0x9a9aa6, theme === 'dark' ? 1.1 : 0.95));
-  const key = new THREE.DirectionalLight(0xffffff, theme === 'dark' ? 2.2 : 2.0);
+  scene.add(new THREE.HemisphereLight(0xffffff, theme === 'dark' ? 0x3a3a46 : 0xb8b8d0, theme === 'dark' ? 1.2 : 1.35));
+  const key = new THREE.DirectionalLight(0xffffff, theme === 'dark' ? 2.4 : 2.2);
   key.position.set(-1.5, 4, 3);
   scene.add(key);
   const rim = new THREE.DirectionalLight(0xffffff, 0.9);
@@ -108,14 +121,14 @@ function build(THREE: Three, RoundedBoxGeometry: typeof import('three/examples/j
     case 'sphere':
       return new THREE.SphereGeometry(1, 48, 32);
     case 'cube':
-      return new RoundedBoxGeometry(1.5, 1.5, 1.5, 6, 0.18);
+      return new RoundedBoxGeometry(1.5, 1.5, 1.5, 8, 0.34);
     case 'pyramid':
       return new THREE.ConeGeometry(1.1, 1.6, 4, 1).rotateY(Math.PI / 4);
     case 'star': {
       const s = new THREE.Shape();
       const pts = 5;
       for (let i = 0; i < pts * 2; i++) {
-        const rad = i % 2 === 0 ? 1.1 : 0.5;
+        const rad = i % 2 === 0 ? 1.05 : 0.62;
         const a = (i / (pts * 2)) * Math.PI * 2 + Math.PI / 2;
         const x = Math.cos(a) * rad;
         const y = Math.sin(a) * rad;
@@ -123,19 +136,36 @@ function build(THREE: Three, RoundedBoxGeometry: typeof import('three/examples/j
         else s.lineTo(x, y);
       }
       s.closePath();
-      return new THREE.ExtrudeGeometry(s, { depth: 0.35, bevelEnabled: true, bevelThickness: 0.14, bevelSize: 0.12, bevelSegments: 5 });
+      return new THREE.ExtrudeGeometry(s, { depth: 0.45, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 0.18, bevelSegments: 8 });
     }
     case 'torus':
-      return new THREE.TorusGeometry(0.85, 0.34, 28, 64);
+      return new THREE.TorusGeometry(0.8, 0.42, 32, 64);
     case 'gem':
       return new THREE.IcosahedronGeometry(1.1, 0);
     case 'cylinder':
-      return new THREE.CylinderGeometry(0.8, 0.8, 1.5, 40);
+      return roundedCylinder(THREE, 0.8, 1.3, 0.26);
     case 'capsule':
       return new THREE.CapsuleGeometry(0.62, 1.0, 10, 28);
     case 'knot':
-      return new THREE.TorusKnotGeometry(0.75, 0.26, 140, 20);
+      return new THREE.TorusKnotGeometry(0.72, 0.3, 160, 24);
     case 'prism':
       return new THREE.CylinderGeometry(0.95, 0.95, 1.4, 3);
   }
+}
+
+/** A cylinder with softened rims, spun from a profile so it stays smooth. */
+function roundedCylinder(THREE: Three, radius: number, height: number, bevel: number): import('three').BufferGeometry {
+  const h = height / 2;
+  const pts: import('three').Vector2[] = [new THREE.Vector2(0, -h)];
+  const steps = 8;
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * (Math.PI / 2);
+    pts.push(new THREE.Vector2(radius - bevel + Math.sin(a) * bevel, -h + bevel - Math.cos(a) * bevel));
+  }
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * (Math.PI / 2);
+    pts.push(new THREE.Vector2(radius - bevel + Math.cos(a) * bevel, h - bevel + Math.sin(a) * bevel));
+  }
+  pts.push(new THREE.Vector2(0, h));
+  return new THREE.LatheGeometry(pts, 48);
 }
