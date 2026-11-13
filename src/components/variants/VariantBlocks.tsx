@@ -1,30 +1,29 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
+import { BlossomCarousel, type BlossomCarouselHandle } from '@blossom-carousel/react';
+import '@blossom-carousel/react/style.css';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Cancel01Icon, Copy01Icon, Delete02Icon, RefreshIcon, Tick02Icon, ViewIcon } from '@hugeicons/core-free-icons';
-import { fitBox, rememberSize, sizeOf, type BlockVariant, type PreviewSource } from '../../lib/variant-blocks';
+import { Delete02Icon, RefreshIcon } from '@hugeicons/core-free-icons';
+import { rememberSize, sizeOf, type BlockVariant, type PreviewSource } from '../../lib/variant-blocks';
 import { useTheme } from '../../lib/theme';
 
 /** `corner-shape` isn't in the CSS typings yet; browsers without it fall back to a plain rounded corner. */
 const SQUIRCLE = { cornerShape: 'squircle' } as CSSProperties;
 const EASE = [0.23, 1, 0.32, 1] as const;
 const SPRING = { type: 'spring', visualDuration: 0.38, bounce: 0.08 } as const;
-
-const BLOCK = { maxW: 340, maxH: 196, minW: 150, minH: 76 };
-const THUMB = { maxW: 92, maxH: 56, minW: 56, minH: 40, maxScale: 1 };
+/** Every block, and the stage in the dialog, is a landscape rectangle: width : height = 1.5 : 1. */
+const RATIO = 1.5;
+const GAP = 12;
 
 type Nat = { w: number; h: number; x: number; y: number };
-const icon = (i: Parameters<typeof HugeiconsIcon>[0]['icon'], size = 15) => <HugeiconsIcon icon={i} size={size} strokeWidth={1.8} aria-hidden />;
 
 export interface VariantActions {
+  /** Use this variant (double-click). For snippets this copies the HTML. */
   apply?: (id: string) => void | Promise<void>;
+  /** Only the popup offers this; it shows as a small red button on a block. */
   discard?: (id: string) => void | Promise<void>;
   retry?: (id: string) => void | Promise<void>;
-  /** Show the variant in place on the real canvas. */
-  preview?: (id: string) => void;
-  /** Standalone snippets: copy the HTML. */
-  copy?: (id: string) => void;
 }
 
 /* ───────────────────────── live preview ───────────────────────── */
@@ -37,10 +36,10 @@ function snippetDoc(html: string, dark: boolean) {
 }
 
 /**
- * Draws one variant live. A page variant is the real page with the variant switched on, cropped to the element it replaces;
- * a snippet is its own tiny document. Either way the iframe is measured once it has rendered and reports its natural size.
+ * Draws one variant live. A page variant is the real page with the variant switched on, clipped to the element it replaces;
+ * a snippet is its own small document. The iframe is measured once rendered and reports the element's natural size.
  */
-function LiveFrame({ id, source, fit, nat, onNat }: { id: string; source: PreviewSource; fit: { scale: number; dx: number; dy: number }; nat: Nat | null; onNat: (n: Nat) => void }) {
+function LiveFrame({ id, source, fit, nat, onNat, round }: { id: string; source: PreviewSource; fit: { scale: number; dx: number; dy: number }; nat: Nat | null; onNat: (n: Nat) => void; round: number }) {
   const ref = useRef<HTMLIFrameElement>(null);
   const dark = useTheme().resolved === 'dark';
   const iw = source.kind === 'frame' ? source.width : SNIPPET_W;
@@ -105,9 +104,16 @@ function LiveFrame({ id, source, fit, nat, onNat }: { id: string; source: Previe
     position: 'absolute', left: 0, top: 0, width: iw, height: ih, border: 0, background: 'transparent', pointerEvents: 'none',
     transformOrigin: '0 0', transform: `translate(${-n.x * fit.scale}px, ${-n.y * fit.scale}px) scale(${fit.scale})`,
   };
-  // The crop is clipped to the element itself, so neighbouring page content never shows in the block's padding.
+  // Clipped to the element itself, so neighbouring page content never shows around it.
   return (
-    <div aria-hidden style={{ position: 'absolute', left: fit.dx, top: fit.dy, width: n.w * fit.scale, height: n.h * fit.scale, overflow: 'hidden', opacity: nat ? 1 : 0, transition: 'opacity 0.18s ease-out' }}>
+    <div
+      aria-hidden
+      style={{
+        position: 'absolute', left: fit.dx, top: fit.dy, width: n.w * fit.scale, height: n.h * fit.scale, overflow: 'hidden', borderRadius: round,
+        boxShadow: source.kind === 'frame' ? '0 1px 2px rgb(0 0 0 / 0.08), 0 10px 28px rgb(0 0 0 / 0.1)' : undefined,
+        opacity: nat ? 1 : 0, transition: 'opacity 0.18s ease-out',
+      }}
+    >
       {source.kind === 'frame' ? (
         <iframe ref={ref} src={source.url} title="Variant preview" tabIndex={-1} style={frameStyle} sandbox="allow-scripts allow-same-origin allow-forms" />
       ) : (
@@ -117,105 +123,137 @@ function LiveFrame({ id, source, fit, nat, onNat }: { id: string; source: Previe
   );
 }
 
-/** One preview in a box sized to its content. Shared by the block, the dialog and the thumbnails. */
-function Stage({ v, box, className, style, children, onMeasured }: { v: BlockVariant; box: Parameters<typeof fitBox>[1]; className?: string; style?: CSSProperties; children?: ReactNode; onMeasured?: () => void }) {
-  const [nat, setNat] = useState<Nat | null>(() => {
-    return sizeOf(v.id);
-  });
+/**
+ * Fills its parent (which sets the size) with one variant on a soft plate: the element is scaled to fit whole, centred, with room around it.
+ * Shared by the blocks, the dialog and the thumbnails.
+ */
+function Stage({ v, pad, maxScale = 1.4, round = 8 }: { v: BlockVariant; pad: number; maxScale?: number; round?: number }) {
+  const host = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  const [nat, setNat] = useState<Nat | null>(() => sizeOf(v.id));
   const natRef = useRef<Nat | null>(nat);
+  const dark = useTheme().resolved === 'dark';
+
+  useLayoutEffect(() => {
+    const el = host.current;
+    if (!el) return;
+    const read = () => setBox({ w: el.clientWidth, h: el.clientHeight });
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const onNat = useCallback((n: Nat) => {
     const prev = natRef.current;
     if (prev && prev.w === n.w && prev.h === n.h && prev.x === n.x && prev.y === n.y) return;
     natRef.current = n;
     rememberSize(v.id, n);
     setNat(n);
-    onMeasured?.();
-  }, [v.id, onMeasured]);
-  const fit = fitBox(nat ?? (sizeOf(v.id) ?? null), box);
-  const dark = useTheme().resolved === 'dark';
-  const plate = v.source?.kind === 'html' ? (dark ? '#1b1b1d' : '#ffffff') : undefined;
+  }, [v.id]);
+
+  const n = nat ?? { w: 320, h: 160, x: 0, y: 0 };
+  const scale = Math.max(0.02, Math.min((box.w - pad * 2) / n.w, (box.h - pad * 2) / n.h, maxScale));
+  const fit = { scale, dx: (box.w - n.w * scale) / 2, dy: (box.h - n.h * scale) / 2 };
+  const plate = dark ? '#1c1c1e' : '#f1f1ef';
   return (
-    <div className={className} style={{ position: 'relative', overflow: 'hidden', width: fit.w, height: fit.h, background: plate, ...style }}>
-      {v.source && <LiveFrame id={v.id} source={v.source} fit={fit} nat={nat} onNat={onNat} />}
-      {children}
+    <div ref={host} style={{ position: 'absolute', inset: 0, overflow: 'hidden', background: plate }}>
+      {v.source && box.w > 0 && <LiveFrame id={v.id} source={v.source} fit={fit} nat={nat} onNat={onNat} round={round} />}
     </div>
   );
 }
 
 /* ───────────────────────── a block ───────────────────────── */
 
-function Shimmer() {
-  return <div aria-hidden className="vb-shimmer absolute inset-0" />;
-}
-
 function Block({ v, index, hidden, onOpen, actions }: { v: BlockVariant; index: number; hidden: boolean; onOpen: () => void; actions: VariantActions }) {
   const failed = v.status === 'failed' || v.status === 'stale';
   const ready = v.status === 'ready' && !!v.source;
-  const letter = String.fromCharCode(65 + index);
-  const [, setTick] = useState(0);
-  const remeasured = useCallback(() => setTick((t) => t + 1), []);
-  const size = fitBox(sizeOf(v.id), BLOCK);
   return (
-    <div role="listitem" className="vb-item" style={{ scrollSnapAlign: 'start', flex: '0 0 auto', width: size.w }}>
-      <div className="relative" style={{ width: size.w, height: size.h }}>
-        {!hidden && (
-          <motion.button
-            type="button"
-            layoutId={`vb-${v.id}`}
-            layout="position"
-            onClick={ready ? onOpen : undefined}
-            disabled={!ready}
-            aria-label={`${v.label} — open`}
-            className="vb-block group absolute inset-0 block cursor-pointer border border-foreground/10 bg-muted/40 p-0 text-left outline-none transition-[box-shadow,transform] focus-visible:ring-2 focus-visible:ring-foreground/40 enabled:hover:shadow-[0_6px_20px_rgb(0_0_0/0.12)] enabled:active:scale-[0.985] disabled:cursor-default"
-            style={{ borderRadius: 24, ...SQUIRCLE, overflow: 'hidden' }}
-            whileTap={ready ? { scale: 0.985 } : undefined}
-            transition={SPRING}
-          >
-            {ready ? (
-              <Stage v={v} box={BLOCK} onMeasured={remeasured} style={{ position: 'absolute', left: 0, top: 0 }} />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-                {v.status === 'generating' ? <Shimmer /> : <span className="px-4 text-center">{v.error || 'This variant didn’t finish'}</span>}
-              </div>
-            )}
-          </motion.button>
-        )}
-        {failed && actions.retry && (
-          <button type="button" onClick={() => void actions.retry?.(v.id)} className="vb-retry absolute right-2 top-2 inline-flex items-center gap-1 rounded-full border border-foreground/10 bg-background px-2.5 py-1 text-xs font-medium text-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-foreground/40">
-            {icon(RefreshIcon, 13)} {v.status === 'stale' ? 'Regenerate' : 'Retry'}
-          </button>
-        )}
-      </div>
-      <div className="mt-1.5 flex items-center gap-1.5 px-1 text-xs text-foreground">
-        <span className="grid size-4 shrink-0 place-items-center rounded-full bg-foreground text-[10px] font-semibold text-background">{letter}</span>
-        <span className="truncate">{v.label}</span>
-      </div>
+    <div role="listitem" data-blossom-slide className="vb-item group relative" style={{ aspectRatio: RATIO, width: 'var(--vb-w)', flex: '0 0 var(--vb-w)', scrollSnapAlign: 'start' }}>
+      {!hidden && (
+        <motion.button
+          type="button"
+          layoutId={`vb-${v.id}`}
+          layout="position"
+          onClick={ready ? onOpen : undefined}
+          disabled={!ready}
+          aria-label={`Variant ${String.fromCharCode(65 + index)}: ${v.label}`}
+          className="vb-block absolute inset-0 block cursor-pointer border border-foreground/10 p-0 text-left outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-foreground/40 enabled:hover:shadow-[0_8px_24px_rgb(0_0_0/0.14)] disabled:cursor-default"
+          style={{ borderRadius: 22, ...SQUIRCLE, overflow: 'hidden' }}
+          whileTap={ready ? { scale: 0.985 } : undefined}
+          transition={SPRING}
+        >
+          {ready ? (
+            <Stage v={v} pad={18} />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted/40 text-xs text-muted-foreground">
+              {v.status === 'generating' ? <div aria-hidden className="vb-shimmer absolute inset-0" /> : <span className="px-4 text-center">{v.error || 'This variant didn’t finish'}</span>}
+            </div>
+          )}
+        </motion.button>
+      )}
+      {failed && actions.retry && (
+        <button type="button" onClick={() => void actions.retry?.(v.id)} className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full border border-foreground/10 bg-background px-2.5 py-1 text-xs font-medium text-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-foreground/40">
+          <HugeiconsIcon icon={RefreshIcon} size={13} strokeWidth={1.8} aria-hidden /> {v.status === 'stale' ? 'Regenerate' : 'Retry'}
+        </button>
+      )}
+      {actions.discard && !hidden && v.status !== 'generating' && (
+        <button
+          type="button"
+          onClick={() => void actions.discard?.(v.id)}
+          aria-label={`Discard variant ${String.fromCharCode(65 + index)}`}
+          className="absolute right-2 top-2 grid size-7 place-items-center rounded-full border border-foreground/10 bg-background/90 text-[color:var(--destructive)] opacity-0 outline-none backdrop-blur transition-opacity hover:bg-[color:var(--destructive)]/10 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[color:var(--destructive)]/50 group-hover:opacity-100"
+        >
+          <HugeiconsIcon icon={Delete02Icon} size={14} strokeWidth={1.8} aria-hidden />
+        </button>
+      )}
     </div>
   );
 }
 
 /* ───────────────────────── the row ───────────────────────── */
 
-/** A row of rounded blocks that scrolls sideways. Click one and it opens into a dialog with a thumbnail track to flip between the rest. */
-export function VariantRow({ items, actions = {}, className, pad = 0 }: { items: BlockVariant[]; actions?: VariantActions; className?: string; pad?: number }) {
+/**
+ * A row of 3:2 blocks on a native-scroll carousel. `per` is how many show at once (a fraction leaves the next one peeking).
+ * A soft fade on the right edge says there are more. Click a block to open it in the dialog.
+ */
+export function VariantRow({ items, actions = {}, per = 3, className, pad = 0 }: { items: BlockVariant[]; actions?: VariantActions; per?: number; className?: string; pad?: number }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const open = items.find((v) => v.id === openId) ?? null;
+  const carousel = useRef<BlossomCarouselHandle>(null);
+  const [edges, setEdges] = useState({ start: false, end: false });
   // A discarded variant takes the dialog with it.
   useEffect(() => { if (openId && !items.some((v) => v.id === openId)) setOpenId(null); }, [items, openId]);
+
+  useEffect(() => {
+    const el = carousel.current?.element as HTMLElement | undefined;
+    if (!el) return;
+    const read = () => setEdges({ start: el.scrollLeft > 4, end: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 });
+    read();
+    el.addEventListener('scroll', read, { passive: true });
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => { el.removeEventListener('scroll', read); ro.disconnect(); };
+  }, [items.length]);
+
+  const width = `calc((100% - ${GAP * Math.max(0, per - 1)}px) / ${per})`;
   return (
     <LayoutGroup id={`vb-${items[0]?.id ?? 'x'}`}>
-      <div className={`vb ${className ?? ''}`} data-tw="">
-        <div
+      <div className={`vb relative ${className ?? ''}`} data-tw="">
+        <BlossomCarousel
+          ref={carousel}
+          as="div"
           role="list"
           aria-label="Variants"
-          className="vb-row flex items-start gap-3 overflow-x-auto overscroll-x-contain pb-2"
-          style={{ scrollSnapType: 'x proximity', scrollbarWidth: 'thin', paddingInline: pad }}
-          tabIndex={items.length > 1 ? 0 : undefined}
+          className="vb-row"
+          style={{ display: 'flex', gap: GAP, overflowX: 'auto', scrollSnapType: 'x mandatory', scrollbarWidth: 'none', paddingInline: pad, scrollPaddingInline: pad, ['--vb-w' as string]: width }}
         >
           {items.map((v, i) => (
             <Block key={v.id} v={v} index={i} hidden={openId === v.id} onOpen={() => setOpenId(v.id)} actions={actions} />
           ))}
-        </div>
+        </BlossomCarousel>
+        <div aria-hidden className="vb-fade vb-fade--end" style={{ opacity: edges.end ? 1 : 0 }} />
+        <div aria-hidden className="vb-fade vb-fade--start" style={{ opacity: edges.start ? 1 : 0 }} />
       </div>
       <VariantDialog items={items} openId={open ? open.id : null} setOpenId={setOpenId} actions={actions} />
     </LayoutGroup>
@@ -224,6 +262,7 @@ export function VariantRow({ items, actions = {}, className, pad = 0 }: { items:
 
 /* ───────────────────────── the dialog ───────────────────────── */
 
+/** The variant, large on its stage, and the track of thumbnails. Click a thumbnail to see it; double-click to use it. */
 function VariantDialog({ items, openId, setOpenId, actions }: { items: BlockVariant[]; openId: string | null; setOpenId: (id: string | null) => void; actions: VariantActions }) {
   const ready = useMemo(() => items.filter((v) => v.status === 'ready' && v.source), [items]);
   const current = ready.find((v) => v.id === openId) ?? null;
@@ -237,6 +276,10 @@ function VariantDialog({ items, openId, setOpenId, actions }: { items: BlockVari
   }, []);
 
   const close = useCallback(() => setOpenId(null), [setOpenId]);
+  const use = useCallback(async (id: string) => {
+    close();
+    await actions.apply?.(id);
+  }, [actions, close]);
   const go = useCallback((step: number) => {
     if (!ready.length) return;
     setOpenId(ready[(index + step + ready.length) % ready.length].id);
@@ -248,18 +291,18 @@ function VariantDialog({ items, openId, setOpenId, actions }: { items: BlockVari
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+      else if (e.key === 'Enter') { e.preventDefault(); void use(current.id); }
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [current, close, go]);
+  }, [current, close, go, use]);
 
   // Keep the active thumbnail in view.
   useLayoutEffect(() => {
     trackRef.current?.querySelector<HTMLElement>('[aria-current="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
   }, [openId]);
 
-  const big = { maxW: Math.min(760, vp.w - 56), maxH: Math.max(220, Math.min(560, vp.h - 270)), minW: 220, minH: 160, maxScale: 1.4 };
-  const panelW = Math.min(vp.w - 32, Math.max(360, fitBox(current ? sizeOf(current.id) : null, big).w + 32));
+  const stageW = Math.max(280, Math.min(800, vp.w - 48, (vp.h - 170) * RATIO));
 
   return createPortal(
     <AnimatePresence>
@@ -278,75 +321,53 @@ function VariantDialog({ items, openId, setOpenId, actions }: { items: BlockVari
           onContextMenu={(e) => e.preventDefault()}
         >
           <div className="absolute inset-0 bg-black/45 backdrop-blur-[3px]" onPointerDown={close} aria-hidden />
-          <div role="dialog" aria-modal="true" aria-label={`${current.label}`} className="relative flex max-h-full flex-col items-center gap-3" style={{ width: panelW }}>
+          <div role="dialog" aria-modal="true" aria-label="Variants" className="relative flex flex-col items-center gap-4" style={{ width: stageW }}>
             <motion.div
               key={current.id}
               layoutId={`vb-${current.id}`}
               transition={SPRING}
-              className="relative max-w-full border border-foreground/10 bg-background p-0 shadow-[0_24px_64px_rgb(0_0_0/0.35)]"
-              style={{ borderRadius: 28, ...SQUIRCLE, overflow: 'hidden' }}
+              onDoubleClick={() => void use(current.id)}
+              className="relative w-full border border-foreground/10 shadow-[0_24px_64px_rgb(0_0_0/0.35)]"
+              style={{ aspectRatio: RATIO, borderRadius: 30, ...SQUIRCLE, overflow: 'hidden' }}
             >
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.14, duration: 0.18, ease: EASE }}>
-                <Stage v={current} box={big} />
+              <motion.div className="absolute inset-0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.14, duration: 0.18, ease: EASE }}>
+                <Stage v={current} pad={Math.round(stageW * 0.07)} maxScale={1.6} round={12} />
               </motion.div>
-              <button type="button" onClick={close} aria-label="Close" className="absolute right-3 top-3 grid size-8 place-items-center rounded-full border border-foreground/10 bg-background/85 text-foreground outline-none backdrop-blur hover:bg-background focus-visible:ring-2 focus-visible:ring-foreground/40">
-                {icon(Cancel01Icon, 15)}
-              </button>
             </motion.div>
 
-            <motion.div className="flex w-full flex-col items-center gap-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6, transition: { duration: 0.1 } }} transition={{ delay: 0.1, duration: 0.24, ease: EASE }}>
-              <div className="flex w-full max-w-full flex-col items-center gap-0.5 text-center">
-                <div className="text-sm font-medium text-white drop-shadow">{current.label}</div>
-                {current.notes && <div className="max-w-[56ch] text-xs text-white/75">{current.notes}</div>}
-              </div>
-
-              <div className="flex max-w-full items-center gap-2 rounded-full border border-foreground/10 bg-background/90 p-1.5 shadow-[0_8px_24px_rgb(0_0_0/0.2)] backdrop-blur">
-                {actions.apply && (
-                  <button type="button" onClick={() => void actions.apply?.(current.id)} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-foreground px-4 text-sm font-medium text-background outline-none transition-transform active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-foreground/50">
-                    {icon(Tick02Icon)} Apply
-                  </button>
-                )}
-                {actions.preview && (
-                  <button type="button" onClick={() => { actions.preview?.(current.id); close(); }} className="inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm text-foreground outline-none transition-[background-color,transform] hover:bg-accent active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-foreground/40">
-                    {icon(ViewIcon)} Preview on canvas
-                  </button>
-                )}
-                {actions.copy && (
-                  <button type="button" onClick={() => actions.copy?.(current.id)} className="inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm text-foreground outline-none transition-[background-color,transform] hover:bg-accent active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-foreground/40">
-                    {icon(Copy01Icon)} Copy HTML
-                  </button>
-                )}
-                {actions.discard && (
-                  <button type="button" onClick={() => void actions.discard?.(current.id)} className="inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm text-[color:var(--destructive)] outline-none transition-[background-color,transform] hover:bg-[color:var(--destructive)]/10 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[color:var(--destructive)]/50">
-                    {icon(Delete02Icon)} Discard
-                  </button>
-                )}
-              </div>
-
-              {ready.length > 1 && (
-                <div ref={trackRef} role="tablist" aria-label="All variants" className="vb-track flex max-w-full items-center gap-2 overflow-x-auto rounded-[22px] border border-foreground/10 bg-background/85 p-2 backdrop-blur" style={{ ...SQUIRCLE, scrollbarWidth: 'none' }}>
-                  {ready.map((v, i) => {
-                    const on = v.id === current.id;
-                    return (
-                      <button
-                        key={v.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={on}
-                        aria-current={on ? 'true' : undefined}
-                        aria-label={`${String.fromCharCode(65 + i)}: ${v.label}`}
-                        title={v.label}
-                        onClick={() => setOpenId(v.id)}
-                        className={`relative shrink-0 border-0 bg-transparent p-0 outline-none transition-[transform,opacity] focus-visible:ring-2 focus-visible:ring-foreground/50 ${on ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
-                        style={{ borderRadius: 14, ...SQUIRCLE, boxShadow: on ? '0 0 0 2px var(--foreground, currentColor)' : '0 0 0 1px rgb(127 127 127 / 0.25)' }}
-                      >
-                        <Stage v={v} box={THUMB} style={{ borderRadius: 14, ...SQUIRCLE }} />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </motion.div>
+            {ready.length > 1 && (
+              <motion.div
+                ref={trackRef}
+                role="tablist"
+                aria-label="All variants"
+                className="vb-track flex max-w-full items-center gap-2 overflow-x-auto p-1.5"
+                style={{ scrollbarWidth: 'none' }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6, transition: { duration: 0.1 } }}
+                transition={{ delay: 0.1, duration: 0.24, ease: EASE }}
+              >
+                {ready.map((v, i) => {
+                  const on = v.id === current.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={on}
+                      aria-current={on ? 'true' : undefined}
+                      aria-label={`Variant ${String.fromCharCode(65 + i)}: ${v.label}. Double-click to use`}
+                      onClick={() => setOpenId(v.id)}
+                      onDoubleClick={() => void use(v.id)}
+                      className={`relative shrink-0 border-0 bg-transparent p-0 outline-none transition-[transform,opacity,box-shadow] focus-visible:ring-2 focus-visible:ring-white/70 ${on ? 'opacity-100' : 'opacity-65 hover:opacity-100'}`}
+                      style={{ width: 96, aspectRatio: RATIO, borderRadius: 14, ...SQUIRCLE, overflow: 'hidden', boxShadow: on ? '0 0 0 2px #fff, 0 6px 16px rgb(0 0 0 / 0.3)' : '0 0 0 1px rgb(255 255 255 / 0.25)', transform: on ? 'scale(1.04)' : undefined }}
+                    >
+                      <Stage v={v} pad={7} maxScale={1} round={3} />
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
           </div>
         </motion.div>
       )}

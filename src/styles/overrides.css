@@ -2476,3 +2476,8 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 @keyframes vb-shimmer { to { background-position: 200% 0, 0 0; } }
 @media (prefers-reduced-motion: reduce) { .vb-shimmer { animation: none; } }
 .vb { --r-pill: 999px; }
+
+.vb-row::-webkit-scrollbar { display: none; }
+.vb-fade { position: absolute; top: 0; bottom: 0; width: 56px; pointer-events: none; transition: opacity 0.2s ease; }
+.vb-fade--end { right: 0; background: linear-gradient(to right, transparent, var(--vb-fade, var(--bg, var(--background, #fff)))); }
+.vb-fade--start { left: 0; background: linear-gradient(to left, transparent, var(--vb-fade, var(--bg, var(--background, #fff)))); }

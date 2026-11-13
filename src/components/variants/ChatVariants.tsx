@@ -31,10 +31,10 @@ export function HtmlVariantRow({ codes }: { codes: string[] }) {
     if (idx < 0) return;
     try {
       await navigator.clipboard.writeText(parseSnippet(codes[idx], idx).html);
-      toast('Copied the HTML');
+      toast('Copied the HTML', 'success');
     } catch {
       toast('Copy was blocked by the browser', 'error');
     }
   };
-  return <VariantRow items={items} actions={{ copy }} />;
+  return <VariantRow items={items} actions={{ apply: copy }} per={3} />;
 }

@@ -67,6 +67,8 @@ export interface Toast {
   id: number;
   kind: 'info' | 'error' | 'success';
   message: string;
+  /** An optional button on the toast, e.g. Undo. */
+  action?: { label: string; run: () => void };
 }
 
 export type Tool = 'select' | 'hand';
@@ -331,10 +333,10 @@ useStore.subscribe((s, prev) => {
 });
 
 let toastId = 0;
-export function toast(message: string, kind: Toast['kind'] = 'info') {
+export function toast(message: string, kind: Toast['kind'] = 'info', action?: Toast['action']) {
   const id = ++toastId;
-  setState((s) => ({ toasts: [...s.toasts, { id, kind, message }] }));
-  setTimeout(() => setState((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })), kind === 'error' ? 6000 : 3200);
+  setState((s) => ({ toasts: [...s.toasts, { id, kind, message, action }] }));
+  setTimeout(() => setState((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })), kind === 'error' || action ? 6000 : 3200);
 }
 
 export function hasUnsaved(state: State = getState()): boolean {

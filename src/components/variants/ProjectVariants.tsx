@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { AiMagicIcon, Delete02Icon, StopIcon } from '@hugeicons/core-free-icons';
 import { VARIANT_COUNT, clampVariantCount } from '../../../shared/variants';
-import { errorMessage } from '../../lib/actions';
+import { errorMessage, undo } from '../../lib/actions';
 import { openAiSettings } from '../../lib/ai';
 import { api } from '../../lib/api';
 import { setState, toast, useStore } from '../../lib/store';
@@ -19,7 +19,7 @@ export function useVariantActions(): VariantActions {
         try {
           const result = await api.variants.apply(id);
           if (!result.ok) toast(result.error || 'Could not apply', 'error');
-          else toast('Variant applied');
+          else toast('Variant applied', 'success', { label: 'Undo', run: () => void undo() });
           setState({ variantHighlightId: null });
         } catch (err) {
           toast(errorMessage(err), 'error');
@@ -39,8 +39,6 @@ export function useVariantActions(): VariantActions {
         }
         await refresh();
       },
-      // Shows it in place on the real canvas, without applying it.
-      preview: (id) => setState({ variantHighlightId: id }),
     }),
     [],
   );
@@ -54,7 +52,8 @@ export function ProjectVariantRow({ setId }: { setId: string }) {
   if (!items.length) {
     return <p className="m-0 text-xs text-muted-foreground">These variants were applied or discarded.</p>;
   }
-  return <VariantRow items={items} actions={actions} />;
+  // In a chat reply the blocks only open and apply; discarding lives in the right-click popup.
+  return <VariantRow items={items} actions={{ apply: actions.apply, retry: actions.retry }} per={3} />;
 }
 
 const pill = 'inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-sm outline-none transition-[background-color,transform] active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-foreground/40';
@@ -159,7 +158,7 @@ export function VariantsPopover({ elementId, name, onClose }: { elementId: strin
         )
       )}
 
-      {items.length > 0 && <VariantRow items={items} actions={actions} pad={4} />}
+      {items.length > 0 && <VariantRow items={items} actions={actions} per={2.3} />}
     </div>
   );
 }
