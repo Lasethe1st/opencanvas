@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import type { Bot } from '@/lib/bots';
 
 /** Every bot as a card in the main pane: its circle, name, role and a short summary. Three to a row when there is room. */
-export function HomeBotsList({ bots, activeId, panelOpen, onOpen, onNew }: { bots: Bot[]; activeId?: string | null; panelOpen?: boolean; onOpen: (id: string) => void; onNew: () => void }) {
+export function HomeBotsList({ bots, activeId, onOpen, onNew }: { bots: Bot[]; activeId?: string | null; onOpen: (id: string) => void; onNew: () => void }) {
   return (
-    <section aria-label="Bots" className={`absolute inset-0 z-[15] overflow-y-auto bg-[var(--home-card)] ps-6 pb-10 pt-[68px] ${panelOpen ? 'pe-[364px]' : 'pe-6'}`}>
+    <section aria-label="Bots" className="absolute inset-0 z-[15] overflow-y-auto bg-[var(--home-card)] px-6 pb-10 pt-[68px]">
       <div className="mx-auto flex w-full max-w-[960px] flex-col gap-6">
         <header className="flex items-center justify-between gap-3">
           <h1 className="m-0 text-xl font-semibold text-foreground">Bots</h1>
@@ -18,7 +18,7 @@ export function HomeBotsList({ bots, activeId, panelOpen, onOpen, onNew }: { bot
         {bots.length === 0 ? (
           <p className="m-0 py-16 text-center text-sm text-muted-foreground">No bots yet. Create one to get started.</p>
         ) : (
-          <ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 ${panelOpen ? '@xl/card:grid-cols-2' : '@2xl/card:grid-cols-2 @4xl/card:grid-cols-3'}`}>
+          <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 @2xl/card:grid-cols-2 @4xl/card:grid-cols-3">
             {bots.map((b) => (
               <li key={b.id} className="min-w-0">
                 <button

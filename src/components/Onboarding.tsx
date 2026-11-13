@@ -141,6 +141,7 @@ export function Onboarding() {
   const [botId, setBotId] = useState<string | null>(null);
   const openBot = useCallback((id: string) => {
     setDialog(null);
+    setSourcesOpen(false);
     setBotId(id);
   }, []);
   const openBots = useCallback(() => {
@@ -296,14 +297,15 @@ export function Onboarding() {
         setSearchOpen(true);
         return;
       }
-      if (e.key === 'Escape' && sourcesOpen && !dialog && !document.querySelector('.dialog-backdrop, .settings-page, [data-home-search]')) {
+      if (e.key === 'Escape' && (sourcesOpen || botId) && !dialog && !document.querySelector('.dialog-backdrop, .settings-page, [data-home-search]')) {
         e.preventDefault();
-        setSourcesOpen(false);
+        if (botId) setBotId(null);
+        else setSourcesOpen(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [sourcesOpen, dialog]);
+  }, [sourcesOpen, botId, dialog]);
 
   const pickChat = useCallback((chat: HomeChatRecord) => {
     activeChatId.current = chat.id;
@@ -683,7 +685,7 @@ export function Onboarding() {
             headerEnd={<HomePlan />}
             footer={!onboarding.dismissed ? <HomeOnboardingTasks tasks={tasks} onDismiss={onboarding.dismiss} onAutoDone={onboarding.complete} /> : null}
           />
-          <div ref={setCardEl} className={cn('@container/card relative min-w-0 flex-1 overflow-hidden border bg-[var(--home-card)] motion-safe:transition-[margin,border-radius,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', navOpen || sourcesOpen ? 'm-2 rounded-[10px] border-foreground/[0.08]' : 'm-0 rounded-none border-transparent')}>
+          <div ref={setCardEl} className={cn('@container/card relative min-w-0 flex-1 overflow-hidden border bg-[var(--home-card)] motion-safe:transition-[margin,border-radius,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', navOpen || sourcesOpen || activeBot ? 'm-2 rounded-[10px] border-foreground/[0.08]' : 'm-0 rounded-none border-transparent')}>
           <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[var(--r-pill)] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
             <HugeiconsIcon icon={navOpen ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
           </Button>
@@ -696,19 +698,7 @@ export function Onboarding() {
               menuFor={(p) => [{ id: 'open', label: 'Open', icon: <HugeiconsIcon icon={FolderOpenIcon} strokeWidth={2} />, onSelect: () => void openRecent(p.root) }, ...recentActions(p)]}
             />
           )}
-          {view === 'bots' && <HomeBotsList bots={bots} activeId={activeBot?.id} panelOpen={!!activeBot} onOpen={openBot} onNew={() => openBot(addBot().id)} />}
-          {activeBot && (
-            <HomeBotPanel
-              key={activeBot.id}
-              bot={activeBot}
-              onChange={(patch) => updateBot(activeBot.id, patch)}
-              onClose={() => setBotId(null)}
-              onRemove={() => {
-                removeBot(activeBot.id);
-                setBotId(null);
-              }}
-            />
-          )}
+          {view === 'bots' && <HomeBotsList bots={bots} activeId={activeBot?.id} onOpen={openBot} onNew={() => openBot(addBot().id)} />}
           <HomeAccount onSettings={() => setState({ settingsOpen: true })} />
           <div className="absolute start-14 top-3 z-20 flex max-w-[calc(100%-9rem)] items-center gap-2">
             <span title={chatTitle} className={cn('inline-flex h-9 max-w-[240px] min-w-0 items-center overflow-hidden rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground', view !== 'home' && 'hidden')}>
@@ -729,7 +719,10 @@ export function Onboarding() {
                   )}
                   aria-label={sourcesOpen ? 'Hide sources' : 'Show sources'}
                   aria-expanded={sourcesOpen}
-                  onClick={() => setSourcesOpen((o) => !o)}
+                  onClick={() => {
+                    setBotId(null);
+                    setSourcesOpen((o) => !o);
+                  }}
                 >
                   {sources.some((s) => s.href) ? (
                     <WebFaviconStack sources={sources.filter((s) => !!s.href)} max={3} size={26} overlap={10} />
@@ -873,8 +866,20 @@ export function Onboarding() {
           </main>
           <HomeTopBlur />
           </div>
-          <HomeRightPanel open={sourcesOpen} title="Sources" contentKey={`sources-${sources.length}`} file={openFile ? <FileViewer file={openFile} onClose={() => setOpenFile(null)} /> : undefined}>
-            <SourcesPanel sources={sources} file={openFile} onFile={setOpenFile} />
+          <HomeRightPanel open={sourcesOpen || !!activeBot} title={activeBot ? 'Bot' : 'Sources'} contentKey={activeBot ? `bot-${activeBot.id}` : `sources-${sources.length}`} flush={!!activeBot} file={!activeBot && openFile ? <FileViewer file={openFile} onClose={() => setOpenFile(null)} /> : undefined}>
+            {activeBot ? (
+              <HomeBotPanel
+                bot={activeBot}
+                onChange={(patch) => updateBot(activeBot.id, patch)}
+                onClose={() => setBotId(null)}
+                onRemove={() => {
+                  removeBot(activeBot.id);
+                  setBotId(null);
+                }}
+              />
+            ) : (
+              <SourcesPanel sources={sources} file={openFile} onFile={setOpenFile} />
+            )}
           </HomeRightPanel>
         </div>
         {searchOpen && (
