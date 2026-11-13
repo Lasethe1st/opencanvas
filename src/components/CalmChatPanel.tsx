@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { HomeChat, typedText } from './home/HomeChat';
 import { HomePrompt, type MentionOption } from './home/HomePrompt';
+import { HomeActionPills } from './home/HomeActionPills';
+import { HomeComposerExtras } from './home/HomeComposerExtras';
 import { mentionables, referencesIn } from './assistant-shapes';
 import { InputPanel } from './Dock';
 
@@ -106,7 +108,16 @@ function ChatBody() {
             <HomeChat mentions split onEditLast={editLast} />
           </div>
         ) : (
-          <p className="calm-chat__empty">Ask for a change below. Type @ to point at a layer or page. Everything the AI does in one reply is a single undo step.</p>
+          <div className="calm-chat__empty">
+            <p className="m-0">Ask for a change below. Type @ to point at a layer or page. Everything the AI does in one reply is a single undo step.</p>
+            <HomeActionPills
+              disabled={!aiReady}
+              onPick={(starter) => {
+                setState({ dockDraft: starter });
+                requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('.calm-chat__composer textarea')?.focus());
+              }}
+            />
+          </div>
         )}
       </div>
       <div className="calm-chat__composer">
@@ -121,6 +132,7 @@ function ChatBody() {
           history={history}
           webSearch={false}
         />
+        <HomeComposerExtras />
         {!aiReady && (
           <p className="m-0 px-1 pt-2 text-xs text-muted-foreground">
             Connect AI to chat here.{' '}

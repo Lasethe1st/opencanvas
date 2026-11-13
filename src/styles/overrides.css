@@ -2481,7 +2481,8 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 .calm-chat__actions { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 2px; height: 48px; padding: 0 8px; }
 .calm-chat__log { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding-bottom: 8px; }
 .calm-chat__log::-webkit-scrollbar { display: none; }
-.calm-chat__empty { margin: 0; padding: 4px 16px 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.calm-chat__empty { display: flex; flex-direction: column; gap: 16px; padding: 4px 16px 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.calm-chat__empty > div { justify-content: flex-start; }
 .calm-chat__composer { flex: none; padding: 8px 8px 12px; background: linear-gradient(to top, var(--home-bg) 55%, transparent); }
 .calm-chat .docker-chat { flex: 1; min-height: 0; }
 @media (prefers-reduced-motion: reduce) { .shell--calm .workspace > .calm-chat { transition: none; } }
