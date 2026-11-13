@@ -42,6 +42,7 @@ import { HomeTopBlur } from './home/HomeTopBlur';
 import { loadSharedChats, removeSharedChat, saveSharedChats, upsertSharedChat, type SharedChatRecord } from '../lib/shared-chats';
 import { HomeSidebar, type NavRow, type NavSection } from './home/HomeSidebar';
 import { HomeBotPanel } from './home/HomeBotPanel';
+import { BotAvatar } from './home/BotAvatar';
 import { HomeBotsList } from './home/HomeBotsList';
 import { useBots } from '@/lib/bots';
 import { HomeStatusPills } from './home/HomeStatusPills';
@@ -581,7 +582,7 @@ export function Onboarding() {
           id: b.id,
           label: b.name,
           meta: b.role || 'No role yet',
-          icon: <span className="bot-dot size-5" aria-hidden />,
+          icon: <BotAvatar shape={b.shape} size={24} />,
           onSelect: () => openBot(b.id),
         })),
         more: { label: 'View All', onSelect: openBots },

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { BOT_SHAPES, defaultShape, isBotShape, type BotShape } from './bot-shapes';
 
 /** A bot the user keeps. Global to the app for now; kept on this device. */
 export interface Bot {
@@ -8,6 +9,8 @@ export interface Bot {
   role: string;
   /** A line or two on what it does. */
   summary: string;
+  /** Its 3D avatar. */
+  shape: BotShape;
   at: number;
 }
 
@@ -19,7 +22,7 @@ const load = (): Bot[] => {
     return Array.isArray(raw)
       ? raw
           .filter((b) => !!b && typeof b.id === 'string' && typeof b.name === 'string' && typeof b.at === 'number')
-          .map((b): Bot => ({ id: b.id, name: b.name, at: b.at, role: typeof b.role === 'string' ? b.role : '', summary: typeof b.summary === 'string' ? b.summary : '' }))
+          .map((b): Bot => ({ id: b.id, name: b.name, at: b.at, role: typeof b.role === 'string' ? b.role : '', summary: typeof b.summary === 'string' ? b.summary : '', shape: isBotShape(b.shape) ? b.shape : defaultShape(b.id) }))
       : [];
   } catch {
     return [];
@@ -47,14 +50,16 @@ export function useBots() {
   useEffect(() => save(bots), [bots]);
 
   const add = useCallback((): Bot => {
-    const bot: Bot = { id: `bot-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`, name: '', role: '', summary: '', at: Date.now() };
+    const id = `bot-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const bot: Bot = { id, name: '', role: '', summary: '', shape: 'sphere', at: Date.now() };
     setBots((cur) => {
       bot.name = nextBotName(cur);
+      bot.shape = BOT_SHAPES[cur.length % BOT_SHAPES.length];
       return [...cur, bot];
     });
     return bot;
   }, []);
-  const update = useCallback((id: string, patch: Partial<Pick<Bot, 'name' | 'role' | 'summary'>>) => setBots((cur) => cur.map((b) => (b.id === id ? { ...b, ...patch } : b))), []);
+  const update = useCallback((id: string, patch: Partial<Pick<Bot, 'name' | 'role' | 'summary' | 'shape'>>) => setBots((cur) => cur.map((b) => (b.id === id ? { ...b, ...patch } : b))), []);
   const remove = useCallback((id: string) => setBots((cur) => cur.filter((b) => b.id !== id)), []);
   return { bots, add, update, remove };
 }

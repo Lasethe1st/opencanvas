@@ -2,6 +2,8 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon, Delete02Icon } from '@hugeicons/core-free-icons';
 import { Button } from '@/components/ui/button';
 import type { Bot } from '@/lib/bots';
+import { BOT_SHAPES, BOT_SHAPE_LABELS } from '@/lib/bot-shapes';
+import { BotAvatar } from './BotAvatar';
 import { timeAgo } from './AllProjectsPage';
 
 const fieldCls = 'w-full rounded-md border-0 p-0 text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50';
@@ -10,11 +12,11 @@ const fieldCls = 'w-full rounded-md border-0 p-0 text-foreground outline-none pl
  * One bot, shown in the home right panel (the same docked column Sources uses): edit its name, role and summary
  * (saved as you type) and see what it's up to. Bots can't run anything yet, so the activity sections hold their empty states.
  */
-export function HomeBotPanel({ bot, onChange, onClose, onRemove }: { bot: Bot; onChange: (patch: Partial<Pick<Bot, 'name' | 'role' | 'summary'>>) => void; onClose: () => void; onRemove: () => void }) {
+export function HomeBotPanel({ bot, onChange, onClose, onRemove }: { bot: Bot; onChange: (patch: Partial<Pick<Bot, 'name' | 'role' | 'summary' | 'shape'>>) => void; onClose: () => void; onRemove: () => void }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col" aria-label={`${bot.name || 'Bot'} details`}>
       <header className="flex shrink-0 items-center justify-between gap-2 ps-3 pe-1 pt-1">
-        <span className="bot-dot size-8 shrink-0" aria-hidden />
+        <BotAvatar shape={bot.shape} size={44} />
         <Button variant="ghost" className="size-8 shrink-0 rounded-full p-0 text-muted-foreground hover:text-foreground [&_svg]:size-4" aria-label="Close bot panel" onClick={onClose}>
           <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
         </Button>
@@ -32,6 +34,26 @@ export function HomeBotPanel({ bot, onChange, onClose, onRemove }: { bot: Bot; o
           />
           <p className="m-0 mt-0.5 text-xs text-muted-foreground">Created {timeAgo(bot.at)}</p>
         </div>
+
+        <section className="flex flex-col gap-1.5">
+          <h2 className="m-0 text-xs font-medium text-muted-foreground">Avatar</h2>
+          <div role="radiogroup" aria-label="Avatar" className="grid grid-cols-5 gap-1">
+            {BOT_SHAPES.map((sh) => (
+              <button
+                key={sh}
+                type="button"
+                role="radio"
+                aria-checked={bot.shape === sh}
+                aria-label={BOT_SHAPE_LABELS[sh]}
+                title={BOT_SHAPE_LABELS[sh]}
+                onClick={() => onChange({ shape: sh })}
+                className="flex aspect-square cursor-pointer items-center justify-center rounded-[10px] border-0 bg-transparent p-0 transition-colors duration-150 hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring aria-checked:bg-muted aria-checked:shadow-[inset_0_0_0_1.5px_var(--fg)]"
+              >
+                <BotAvatar shape={sh} size={30} />
+              </button>
+            ))}
+          </div>
+        </section>
 
         <section className="flex flex-col gap-1.5">
           <h2 className="m-0 text-xs font-medium text-muted-foreground">Role</h2>

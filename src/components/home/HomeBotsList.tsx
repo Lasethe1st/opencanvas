@@ -2,6 +2,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { PlusSignIcon } from '@hugeicons/core-free-icons';
 import { Button } from '@/components/ui/button';
 import type { Bot } from '@/lib/bots';
+import { BotAvatar } from './BotAvatar';
 
 /** Every bot as a card in the main pane: its circle, name, role and a short summary. Three to a row when there is room. */
 export function HomeBotsList({ bots, activeId, onOpen, onNew }: { bots: Bot[]; activeId?: string | null; onOpen: (id: string) => void; onNew: () => void }) {
@@ -27,7 +28,7 @@ export function HomeBotsList({ bots, activeId, onOpen, onNew }: { bots: Bot[]; a
                   onClick={() => onOpen(b.id)}
                   className="flex h-full w-full flex-col items-start gap-3 rounded-2xl border border-foreground/[0.08] bg-[var(--home-bg)] p-4 text-start transition-colors duration-150 hover:border-foreground/[0.16] focus-visible:border-foreground/[0.16] aria-pressed:border-foreground/[0.28]"
                 >
-                  <span className="bot-dot size-11 shrink-0" aria-hidden />
+                  <BotAvatar shape={b.shape} size={52} />
                   <span className="min-w-0 max-w-full">
                     <span className="block truncate text-sm font-medium text-foreground">{b.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">{b.role || 'No role yet'}</span>
