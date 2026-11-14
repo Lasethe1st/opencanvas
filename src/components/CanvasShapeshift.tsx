@@ -14,6 +14,7 @@ import { closeElementMenu } from '../lib/element-menu';
 import { selectElement } from '../lib/actions';
 import { sendToAi } from '../lib/ai';
 import { useExperienceLevel } from '../lib/experience';
+import { useCalm } from '../lib/calm';
 import { activePage } from '../lib/pages';
 import { clearDockNotice, dockNotice, getState, setState, useStore } from '../lib/store';
 import { InputPanel } from './Dock';
@@ -49,6 +50,9 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
   const barWidth = useRef(0);
   // The width the dock occupies while it shows a status; null means "the composer's own width".
   const [slotW, setSlotW] = useState<number | null>(null);
+  // In the easy canvas the thread shows in the left panel, so the bar never blooms upward there.
+  const calm = useCalm();
+  const bloomChat = chatOpen && !calm;
   const pageName = useStore((s) => (s.projectConfig ? activePage()?.name : null));
 
   // While this dock is on screen it can show short statuses ("Variant applied · Undo") in place of the composer.
@@ -140,10 +144,12 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
   };
 
   const wrap = (children: React.ReactNode) => (panel ? <>{children}</> : <DockRow tucked={chatOpen || focused || voice || !showPills}>{children}</DockRow>);
+  // The calm chat panel has its own composer, so the bar steps aside while it is open.
+  if (calm && !panel && chatOpen) return null;
   return wrap(
     <>
     <div ref={panel ? undefined : slot} className="assistant-docker-slot" style={panel ? undefined : { position: 'relative', flex: 'none', width: slotW ?? undefined, transition: 'width 0.3s cubic-bezier(0.23, 1, 0.32, 1)' }}>
-    <div ref={bar} style={panel ? undefined : { opacity: noticing ? 0 : 1, transform: noticing ? 'scale(0.96)' : undefined, filter: noticing ? 'blur(4px)' : undefined, pointerEvents: noticing ? 'none' : undefined, transition: 'opacity 0.18s ease, transform 0.28s cubic-bezier(0.23,1,0.32,1), filter 0.2s ease' }} className={`canvas-shapeshift assistant-docker${panel ? ' assistant-docker--panel' : ''}`} onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
+    <div ref={bar} style={panel ? undefined : { opacity: noticing ? 0 : 1, transform: noticing ? 'scale(0.96)' : undefined, filter: noticing ? 'blur(4px)' : undefined, pointerEvents: noticing ? 'none' : undefined, transition: 'opacity 0.18s ease, transform 0.28s cubic-bezier(0.23,1,0.32,1), filter 0.2s ease' }} className={`canvas-shapeshift assistant-docker${panel ? ' assistant-docker--panel' : ''}`} onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={bloomChat || undefined} onPointerDown={(e) => e.stopPropagation()}>
       <Shapeshift
         ref={handle}
         shapes={assistantShapes}
@@ -160,7 +166,7 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
         listAll={false}
         above={
           panel ? undefined : <AnimatePresence initial={false}>
-            {chatOpen && (
+            {bloomChat && (
               <motion.div
                 key="chat"
                 className="assistant-docker__chat"

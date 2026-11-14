@@ -1742,7 +1742,8 @@ kbd, .kbd,
   .assistant-docker [data-slot='shapeshift-shell'], .assistant-docker [data-slot='shapeshift-shell'] *,
   [class*='avatar'], [class*='badge'], [class*='orb'], [class*='spin'], [class*='dot'],
   [role='dialog'], [role='dialog'] *, .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu], [data-bloom-menu] *,
-  .vb, .vb *
+  .vb, .vb *,
+  .calm-chat, .calm-chat *
 )) { border-radius: 0 !important; }
 body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data-tip]::before { border-radius: 0 !important; }
 
@@ -1764,7 +1765,7 @@ body:has(.shell .workspace) :is(
   .toggle-more__select, .state-switcher-select, .input, .search, .search input, textarea,
   input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
   .swatch, .section__icon, .field-select, .ai-option, .ai-card__text input
-):not(.assistant-docker *, [class*='avatar'], .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu] *, [role='dialog'] *, .vb *) { border-radius: 10px !important; corner-shape: squircle; }
+):not(.assistant-docker *, [class*='avatar'], .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu] *, [role='dialog'] *, .vb *, .calm-chat *) { border-radius: 10px !important; corner-shape: squircle; }
 /* Active, selected and pressed states follow the same soft corner. */
 body:has(.shell .workspace) :is(.is-active, .is-current, .is-selected, [aria-selected='true'], [aria-pressed='true'], [aria-current='true'], .segmented__pill):not(.assistant-docker *, .stage__world *, .calm-pill, .calm-pill *, [role='dialog'] *, .vb *) { border-radius: 10px !important; corner-shape: squircle; }
 /* Switches are pills; checkboxes and radios get a small radius. */
@@ -2481,3 +2482,25 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 .vb-fade { position: absolute; top: 0; bottom: 0; width: 56px; pointer-events: none; transition: opacity 0.2s ease; }
 .vb-fade--end { right: 0; background: linear-gradient(to right, transparent, var(--vb-fade, var(--bg, var(--background, #fff)))); }
 .vb-fade--start { left: 0; background: linear-gradient(to left, transparent, var(--vb-fade, var(--bg, var(--background, #fff)))); }
+
+/* Easy canvas: the AI conversation as a docked left column; the canvas card insets beside it. Laid out like an active home chat. */
+.shell--calm .workspace > .calm-chat {
+  flex: none;
+  min-width: 0;
+  overflow: hidden;
+  transition: width 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+.calm-chat__inner { position: relative; display: flex; height: 100%; flex-direction: column; padding: 0; box-sizing: border-box; }
+.calm-chat__actions { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 2px; height: 48px; padding: 0 8px; }
+.calm-chat__log { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding-bottom: 8px; }
+.calm-chat__log::-webkit-scrollbar { display: none; }
+.calm-chat__empty { display: flex; flex-direction: column; gap: 16px; padding: 4px 16px 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.calm-chat__empty > div { justify-content: flex-start; }
+.calm-chat__composer { flex: none; padding: 8px 8px 12px; background: linear-gradient(to top, var(--home-bg) 55%, transparent); }
+.calm-chat { --r-pill: 999px; }
+.calm-chat .docker-chat { flex: 1; min-height: 0; }
+@media (prefers-reduced-motion: reduce) { .shell--calm .workspace > .calm-chat { transition: none; } }
+
+/* Bots: plain circles. Near-white in light, near-black in dark, with a hairline so they read on the sidebar. */
+.bot-dot { display: inline-block; border-radius: 9999px; background: #f5f5f7; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent); }
+[data-theme='dark'] .bot-dot { background: #1d1d1f; }
