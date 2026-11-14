@@ -1743,7 +1743,8 @@ kbd, .kbd,
   [class*='avatar'], [class*='badge'], [class*='orb'], [class*='spin'], [class*='dot'],
   [role='dialog'], [role='dialog'] *, .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu], [data-bloom-menu] *,
   .vb, .vb *,
-  .calm-chat, .calm-chat *
+  .calm-chat, .calm-chat *,
+  .oc-view-menu, .oc-view-menu *
 )) { border-radius: 0 !important; }
 body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data-tip]::before { border-radius: 0 !important; }
 
@@ -1765,7 +1766,7 @@ body:has(.shell .workspace) :is(
   .toggle-more__select, .state-switcher-select, .input, .search, .search input, textarea,
   input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
   .swatch, .section__icon, .field-select, .ai-option, .ai-card__text input
-):not(.assistant-docker *, [class*='avatar'], .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu] *, [role='dialog'] *, .vb *, .calm-chat *) { border-radius: 10px !important; corner-shape: squircle; }
+):not(.assistant-docker *, [class*='avatar'], .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu] *, [role='dialog'] *, .vb *, .calm-chat *, .oc-view-menu *) { border-radius: 10px !important; corner-shape: squircle; }
 /* Active, selected and pressed states follow the same soft corner. */
 body:has(.shell .workspace) :is(.is-active, .is-current, .is-selected, [aria-selected='true'], [aria-pressed='true'], [aria-current='true'], .segmented__pill):not(.assistant-docker *, .stage__world *, .calm-pill, .calm-pill *, [role='dialog'] *, .vb *) { border-radius: 10px !important; corner-shape: squircle; }
 /* Switches are pills; checkboxes and radios get a small radius. */

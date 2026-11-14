@@ -304,7 +304,7 @@ export function applyEdit(project: ProjectInfo, command: EditCommand): EditResul
       case 'insert': {
         if (!command.parentId) throw new EditError('There is no element on the page to insert into.');
         const { file, line, column } = requireId(command.parentId);
-        const snippet = buildSnippet(command.kind, command.kind === 'image' ? command.image : undefined);
+        const snippet = buildSnippet(command.kind, command.kind === 'image' || command.kind === 'video' ? command.image : undefined);
         const result = insertElement(readSource(set, file), file, line, column, snippet.jsx);
         set.write(file, result.code);
         let css = ensureStylesheet(set, project);

@@ -989,3 +989,28 @@ export function revealInCode(file: string, line: number) {
 }
 
 export { errorMessage };
+
+/** Assets dropped on the canvas: onto an <img>, a single image replaces its source; anywhere else they are inserted into the element under the cursor. */
+export async function dropAssets(rels: string[], hit: { id: string | null; tag: string | null }) {
+  const isVideo = (r: string) => /\.(mp4|webm|mov|m4v|ogv)$/i.test(r);
+  if (!rels.length) return;
+  if (hit.id && hit.tag === 'img' && rels.length === 1 && !isVideo(rels[0])) {
+    await runEdit({ type: 'setAttribute', id: hit.id, name: 'src', value: assetUrl(rels[0]) }, `Set image to ${rels[0]}`);
+    return;
+  }
+  const { domTree } = getState();
+  const VOID = new Set(['img', 'input', 'video', 'br', 'hr', 'textarea', 'select']);
+  let parentId = hit.id;
+  if (parentId && hit.tag && VOID.has(hit.tag)) {
+    const path = findPathById(domTree, parentId);
+    parentId = path && path.length > 1 ? path[path.length - 2].id : null;
+  }
+  parentId = parentId ?? domTree[0]?.id ?? null;
+  if (!parentId) {
+    toast('The preview has no editable elements yet. Wait for it to load, then try again.', 'error');
+    return;
+  }
+  for (const rel of rels) {
+    await runEdit({ type: 'insert', parentId, kind: isVideo(rel) ? 'video' : 'image', image: { src: assetUrl(rel), alt: altFor(rel) } }, `Insert ${rel}`);
+  }
+}

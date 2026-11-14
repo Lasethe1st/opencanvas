@@ -944,6 +944,14 @@
         if (el && msg.scroll) scrollWithinPreview(el);
         break;
       }
+      case 'asset-hit': {
+        // The editor is dragging assets over this frame: report (and optionally highlight) the editable element under the point.
+        const hit = document.elementFromPoint(msg.x, msg.y);
+        const target = hit && hit.closest ? hit.closest(`[${ATTR}]`) : null;
+        if (msg.hover && !editing) { hovered = target; render(); }
+        post('asset-hit', { token: msg.token, id: target ? target.getAttribute(ATTR) : null, tag: target ? target.tagName.toLowerCase() : null });
+        break;
+      }
       case 'hover':
         if (editing) break;
         hovered = (msg.uid && byUid.get(msg.uid)) || byId(msg.id) || null;

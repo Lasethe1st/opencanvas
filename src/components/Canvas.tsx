@@ -307,6 +307,9 @@ function useBridgeMessages(stageRef: React.RefObject<HTMLDivElement | null>) {
         case 'space':
           setSpace(!!msg.payload.down);
           break;
+        case 'asset-hit':
+          window.dispatchEvent(new CustomEvent('oc-asset-hit', { detail: { fid, ...msg.payload } }));
+          break;
         case 'filedrag':
           window.dispatchEvent(new Event('oc-filedrag'));
           break;

@@ -19,6 +19,9 @@ import { FontPicker } from './inspector/FontPicker';
 import { AlignGrid, ColorInput, CommitInput, CompactInput, CompactSelect, More, Section, StyleField, StyleInput, StyleSelect, ToggleGroup } from './inspector/fields';
 import { useStyleValue } from './inspector/useStyleValue';
 import { Resizer } from './Resizer';
+import { AssetsPanel } from './inspector/AssetsPanel';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ArrowDown, Image as ImageIcon, Sparkles } from '../lib/hugeicons';
 
 const TEXT_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'button', 'label', 'li', 'strong', 'em', 'small', 'summary', 'blockquote', 'figcaption', 'td', 'th']);
 /** Elements that never render text of their own: no Typography section. */
@@ -337,7 +340,13 @@ function AppearanceSection({ disabled, isMedia }: { disabled: boolean; isMedia: 
   );
 }
 
-type InspectorTab = 'visual' | 'code' | 'motion';
+type InspectorTab = 'visual' | 'code' | 'motion' | 'assets';
+const TAB_LABELS: { id: InspectorTab; label: string; icon: typeof Code }[] = [
+  { id: 'visual', label: 'Visual', icon: Palette },
+  { id: 'code', label: 'Code', icon: Code },
+  { id: 'motion', label: 'Motion', icon: Sparkles },
+  { id: 'assets', label: 'Assets', icon: ImageIcon },
+];
 
 function ElementEmpty({ title, message }: { title: string; message: string }) {
   return (
@@ -485,16 +494,26 @@ export function Inspector() {
       hidden={calm ? !calmRight : hiddenPanel}
       aria-label="Inspector"
       head={
-        <Segmented
-          label="Inspector"
-          value={tab}
-          onChange={(id) => setTab(id)}
-          options={[
-            { id: 'visual', label: 'Visual', text: 'Visual' },
-            { id: 'code', label: 'Code', text: 'Code' },
-            { id: 'motion', label: 'Motion', text: 'Motion' },
-          ]}
-        />
+        <div data-tw="" className="w-full">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" aria-label="Inspector view" className="flex h-8 w-full cursor-pointer items-center justify-between gap-2 rounded-full border border-foreground/10 bg-transparent ps-3.5 pe-2.5 text-sm font-medium text-foreground outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-accent">
+                <span className="flex items-center gap-2">
+                  {(() => { const Icon = TAB_LABELS.find((t) => t.id === tab)!.icon; return <Icon size={15} aria-hidden />; })()}
+                  {TAB_LABELS.find((t) => t.id === tab)?.label}
+                </span>
+                <ArrowDown size={14} aria-hidden />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={6} className="oc-view-menu rounded-[10px] p-1" style={{ width: "var(--radix-dropdown-menu-trigger-width)", minWidth: 0, cornerShape: "squircle" } as React.CSSProperties}>
+              <DropdownMenuRadioGroup value={tab} onValueChange={(v) => setTab(v as InspectorTab)}>
+                {TAB_LABELS.map((t) => (
+                  <DropdownMenuRadioItem key={t.id} value={t.id} className="rounded-[6px]"><t.icon size={16} aria-hidden />{t.label}</DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       }
       resizer={<Resizer value={width} min={250} max={440} invert onChange={(v) => setState({ rightWidth: v })} />}
     >
@@ -504,6 +523,7 @@ export function Inspector() {
         ) : (
           <VisualPanel selection={selection} grouped={grouped} disabled={disabled} info={info} sourceError={sourceError} />
         ))}
+      {tab === 'assets' && <AssetsPanel />}
       {tab === 'code' &&
         (!selection ? (
           <ElementEmpty title="No element selected" message="Pick an element to see and edit its source code here." />
