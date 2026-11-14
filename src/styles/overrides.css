@@ -2526,3 +2526,7 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 .panel--right .boxmodel { border-radius: 16px !important; corner-shape: squircle; }
 .panel--right .boxmodel__padding { border-radius: 12px !important; corner-shape: squircle; }
 .panel--right .boxmodel__content { border-radius: 8px !important; corner-shape: squircle; }
+/* With no caption row or link buttons on top, every side of both boxes gets the same room. */
+.panel--right .boxmodel, .panel--right .boxmodel__padding { padding: 24px 34px; }
+.panel--right .boxmodel > .box-slot--top, .panel--right .boxmodel__padding > .box-slot--top { top: 2px; }
+.panel--right .boxmodel > .box-slot--bottom, .panel--right .boxmodel__padding > .box-slot--bottom { bottom: 2px; }
