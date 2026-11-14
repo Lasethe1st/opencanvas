@@ -502,10 +502,10 @@ export function Inspector() {
                 <ArrowDown size={14} aria-hidden />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" sideOffset={6} className="rounded-2xl p-1" style={{ width: "var(--radix-dropdown-menu-trigger-width)", minWidth: 0 }}>
+            <DropdownMenuContent align="start" sideOffset={6} className="oc-view-menu rounded-[10px] p-1" style={{ width: "var(--radix-dropdown-menu-trigger-width)", minWidth: 0, cornerShape: "squircle" } as React.CSSProperties}>
               <DropdownMenuRadioGroup value={tab} onValueChange={(v) => setTab(v as InspectorTab)}>
                 {TAB_LABELS.map((t) => (
-                  <DropdownMenuRadioItem key={t.id} value={t.id} className="rounded-xl">{t.label}</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem key={t.id} value={t.id} className="rounded-[6px]">{t.label}</DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
