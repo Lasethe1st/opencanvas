@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Cancel01Icon, MessageAdd01Icon } from '@hugeicons/core-free-icons';
+import { Cancel01Icon, Home04Icon, MessageAdd01Icon } from '@hugeicons/core-free-icons';
 import { api } from '../lib/api';
+import { closeProject } from '../lib/actions';
 import { newAiChat, openAiSettings, sendToAi, stopAi } from '../lib/ai';
 import { getState, setState, useStore } from '../lib/store';
 import { Button } from '@/components/ui/button';
@@ -162,6 +163,14 @@ export function CalmChatPanel({ open }: { open: boolean }) {
         {open && (
           <TooltipProvider>
             <div className="calm-chat__actions">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" style={{ marginInlineEnd: 'auto' }} className="size-8 rounded-full p-0 text-muted-foreground hover:text-foreground [&_svg]:size-4" aria-label="Go home" onClick={() => void closeProject()}>
+                    <HugeiconsIcon icon={Home04Icon} strokeWidth={2} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Home</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" className="size-8 rounded-full p-0 text-muted-foreground hover:text-foreground [&_svg]:size-4" aria-label="New chat" disabled={!hasThread} onClick={() => void newAiChat()}>
