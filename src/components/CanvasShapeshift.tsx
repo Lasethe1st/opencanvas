@@ -6,14 +6,16 @@ import { AnimatePresence, motion } from 'motion/react';
 import { createPortal } from 'react-dom';
 import { Waveform } from '../lib/home-icons';
 import { VoiceOrbSession } from './home/VoiceOrbSession';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Tick02Icon } from '@hugeicons/core-free-icons';
 import { getAsk, setAsk } from '../lib/ask-box';
 import { closeElementMenu } from '../lib/element-menu';
 import { selectElement } from '../lib/actions';
 import { sendToAi } from '../lib/ai';
 import { useExperienceLevel } from '../lib/experience';
 import { activePage } from '../lib/pages';
-import { getState, setState, useStore } from '../lib/store';
+import { clearDockNotice, dockNotice, getState, setState, useStore } from '../lib/store';
 import { InputPanel } from './Dock';
 import { DockRow } from './dock/DockRow';
 import { assistantShapes, insertMention, referencesIn } from './assistant-shapes';
@@ -40,7 +42,24 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
   const ready = useStore((s) => !!s.aiStatus?.ready);
   const busy = useStore((s) => !!s.aiTurnId);
   const chatOpen = useStore((s) => s.dockMode === 'input');
+  const notice = useStore((s) => s.dockNotice);
+  const bar = useRef<HTMLDivElement>(null);
+  const [slot, setSlot] = useState<{ x: number; bottom: number; h: number } | null>(null);
   const pageName = useStore((s) => (s.projectConfig ? activePage()?.name : null));
+
+  // While this dock is on screen it can show short statuses ("Variant applied · Undo") in place of the composer.
+  useEffect(() => {
+    if (panel) return;
+    setState({ dockMounted: true });
+    return () => { setState({ dockMounted: false }); clearDockNotice(); };
+  }, [panel]);
+  // The status takes the composer's exact spot.
+  useLayoutEffect(() => {
+    if (panel || !notice || !bar.current) return;
+    const r = bar.current.getBoundingClientRect();
+    setSlot({ x: r.left + r.width / 2, bottom: window.innerHeight - r.bottom, h: r.height });
+  }, [panel, notice?.id]);
+  const noticing = !panel && !!notice;
 
   // One conversation, one place: opening it in the dock closes the floating Ask AI box.
   useEffect(() => {
@@ -105,7 +124,7 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
   const wrap = (children: React.ReactNode) => (panel ? <>{children}</> : <DockRow tucked={chatOpen || focused || voice || !showPills}>{children}</DockRow>);
   return wrap(
     <>
-    <div className={`canvas-shapeshift assistant-docker${panel ? ' assistant-docker--panel' : ''}`} onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
+    <div ref={bar} style={panel ? undefined : { opacity: noticing ? 0 : 1, transform: noticing ? 'scale(0.96)' : undefined, filter: noticing ? 'blur(4px)' : undefined, pointerEvents: noticing ? 'none' : undefined, transition: 'opacity 0.18s ease, transform 0.28s cubic-bezier(0.23,1,0.32,1), filter 0.2s ease' }} className={`canvas-shapeshift assistant-docker${panel ? ' assistant-docker--panel' : ''}`} onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
       <Shapeshift
         ref={handle}
         shapes={assistantShapes}
@@ -146,6 +165,41 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
         }}
       />
     </div>
+    {!panel && createPortal(
+      <AnimatePresence>
+        {notice && slot && (
+          <motion.div
+            key={notice.id}
+            data-tw=""
+            role="status"
+            aria-live="polite"
+            className="vb pointer-events-none fixed z-[300] flex items-center justify-center"
+            style={{ left: slot.x, bottom: slot.bottom, height: slot.h, x: '-50%', transformOrigin: 'bottom center' }}
+            initial={{ opacity: 0, scale: 0.9, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, scale: 0.94, filter: 'blur(4px)' }}
+            transition={BLOOM}
+          >
+            <div className="pointer-events-auto inline-flex h-full items-center gap-2.5 whitespace-nowrap rounded-full border border-[color:var(--frost-border)] bg-[var(--frost-bg)] ps-3.5 pe-1 text-sm text-foreground shadow-[var(--shadow-md)]" style={{ WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)', cornerShape: 'round' } as React.CSSProperties}>
+              <HugeiconsIcon icon={Tick02Icon} size={16} strokeWidth={2} aria-hidden />
+              <span>{notice.message}</span>
+              {notice.action && (
+                <button
+                  type="button"
+                  autoFocus
+                  onClick={() => { const run = notice.action!.run; run(); dockNotice('Undone'); }}
+                  className="h-7 cursor-pointer rounded-full border-0 bg-foreground px-3.5 text-sm font-medium text-background outline-none transition-transform active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {notice.action.label}
+                </button>
+              )}
+              {!notice.action && <span className="w-1.5" aria-hidden />}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>,
+      document.body,
+    )}
     {voice && createPortal(
       <div data-tw="" className="fixed inset-x-0 z-[300] flex justify-center" style={{ bottom: 88 }} onPointerDown={(e) => e.stopPropagation()}>
         <div data-bloom-menu="" className="oc-pop rounded-[28px] border border-[color:var(--frost-border)] bg-[var(--frost-bg)] px-10 py-4 shadow-[var(--shadow-md)]" style={{ WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)', transformOrigin: 'bottom center' }}>

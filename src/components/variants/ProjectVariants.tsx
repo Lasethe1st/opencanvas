@@ -62,7 +62,9 @@ const pill = 'inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-sm out
 export function VariantsPopover({ elementId, name, onClose }: { elementId: string; name: string; onClose: () => void }) {
   const items = useProjectBlocks({ elementId });
   const aiReady = useStore((s) => !!s.aiStatus?.ready);
-  const actions = useVariantActions();
+  const base = useVariantActions();
+  // Using a variant closes the popup; the centre dock then offers Undo.
+  const actions = useMemo(() => ({ ...base, apply: async (id: string) => { onClose(); await base.apply?.(id); } }), [base, onClose]);
   const [request, setRequest] = useState('');
   const [count, setCount] = useState<number>(VARIANT_COUNT.default);
   const [again, setAgain] = useState(false);

@@ -18,6 +18,7 @@ import { editSelectedText, INLINE_TAGS } from '../lib/inline-edit';
 import { getState, toast, useStore } from '../lib/store';
 import { sendToAi } from '../lib/ai';
 import { VariantsPopover } from './variants/ProjectVariants';
+import { useProjectBlocks } from '../lib/variant-blocks';
 
 type Bloom = 'chat' | 'comment' | 'export' | 'variants';
 type Item = { label: string; icon: ReactNode; hint?: string; run: () => void; disabled?: boolean; danger?: boolean; more?: boolean; bloom?: Bloom };
@@ -59,7 +60,8 @@ async function exportElement(kind: 'html' | 'text' | 'copy') {
 const MENU_W = 224;
 const COMMENT_W = 300;
 const EXPORT_W = 224;
-const VARIANTS_W = 600;
+/** The popup hugs its blocks: the prompt form, then up to two blocks and a peek of the next. More scroll instead of widening it. */
+const variantsWidth = (blocks: number) => (blocks === 0 ? 380 : blocks < 3 ? 400 : 460);
 const EASE = [0.23, 1, 0.32, 1] as const;
 const SPRING = { type: 'spring', visualDuration: 0.3, bounce: 0.06 } as const;
 const SHADOW = '0 8px 24px rgb(0 0 0 / 0.12)';
@@ -200,6 +202,7 @@ function SidePopover({ open, anchor, items, focus, setFocus, onPick }: { open: b
 export function ElementContextMenu() {
   const at = useElementMenu();
   const selection = useStore((s) => s.selection);
+  const variantBlocks = useProjectBlocks({ elementId: selection?.id ?? null }).length;
   const sourceInfo = useStore((s) => s.sourceInfo);
   const editable = useStore((s) => s.project?.editable ?? false);
   const ask = useAsk();
@@ -428,7 +431,7 @@ export function ElementContextMenu() {
         </BloomPanel>
       )}
       {open && origin && snap && sel && kind === 'variants' && (
-        <BloomPanel key="variants" from={from ?? seed} origin={o} width={VARIANTS_W} label={`Variants of ${sel.name}`}>
+        <BloomPanel key="variants" from={from ?? seed} origin={o} width={variantsWidth(variantBlocks)} label={`Variants of ${sel.name}`}>
           <VariantsPopover elementId={sel.id} name={sel.name} onClose={closeElementMenu} />
         </BloomPanel>
       )}

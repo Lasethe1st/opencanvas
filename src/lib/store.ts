@@ -72,6 +72,12 @@ export interface Toast {
   action?: { label: string; run: () => void };
 }
 
+export interface DockNotice {
+  id: number;
+  message: string;
+  action?: { label: string; run: () => void };
+}
+
 export type Tool = 'select' | 'hand';
 export type LeftTab = 'layers' | 'files' | 'ai' | 'frames' | 'pages';
 export type InsertPanel = 'frame' | 'section' | 'more';
@@ -121,6 +127,10 @@ interface State {
   /** Last autosave failure, cleared on the next successful save. */
   saveError: string | null;
   toasts: Toast[];
+  /** A short status the centre dock shows in place of the composer, e.g. "Variant applied · Undo". */
+  dockNotice: DockNotice | null;
+  /** True while a bottom-centre dock is on screen to show it. */
+  dockMounted: boolean;
   leftTab: LeftTab;
   leftWidth: number;
   rightWidth: number;
@@ -237,6 +247,8 @@ export const initialState: State = {
   saving: false,
   saveError: null,
   toasts: [],
+  dockNotice: null,
+  dockMounted: false,
   leftTab: readLeftTab(),
   leftWidth: 250,
   rightWidth: 250,
@@ -333,8 +345,32 @@ useStore.subscribe((s, prev) => {
   }
 });
 
-/** Shows a toast with Sonner. `<Toasts />` mounts the one Toaster; an action adds a button, e.g. Undo. */
+let noticeId = 0;
+let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Shows a short status in the centre dock for a few seconds. Pass an action to add a button such as Undo. */
+export function dockNotice(message: string, action?: DockNotice['action']) {
+  const id = ++noticeId;
+  clearTimeout(noticeTimer);
+  setState({ dockNotice: { id, message, action } });
+  noticeTimer = setTimeout(() => clearDockNotice(id), action ? 6000 : 2200);
+}
+
+export function clearDockNotice(id?: number) {
+  if (id != null && getState().dockNotice?.id !== id) return;
+  clearTimeout(noticeTimer);
+  setState({ dockNotice: null });
+}
+
+/**
+ * Tells the person something happened. A confirmation with an action (Undo) shows in the centre dock when one is on screen;
+ * everything else, and anything when there's no dock, is a Sonner toast. `<Toasts />` mounts the one Toaster.
+ */
 export function toast(message: string, kind: Toast['kind'] = 'info', action?: Toast['action']) {
+  if (action && kind !== 'error' && getState().dockMounted) {
+    dockNotice(message, action);
+    return;
+  }
   const options = action ? { action: { label: action.label, onClick: () => action.run() }, duration: 6000 } : kind === 'error' ? { duration: 6000 } : undefined;
   if (kind === 'error') sonner.error(message, options);
   else if (kind === 'success') sonner.success(message, options);
