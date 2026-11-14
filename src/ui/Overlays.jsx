@@ -86,6 +86,11 @@ export function Toasts({ toasts }) {
         <div key={t.id} className={`toast toast--${t.kind}`}>
           {TOAST_ICON[t.kind]}
           {t.message}
+          {t.action && (
+            <button type="button" className="toast__action" onClick={() => { t.action.run(); }}>
+              {t.action.label}
+            </button>
+          )}
         </div>
       ))}
     </div>

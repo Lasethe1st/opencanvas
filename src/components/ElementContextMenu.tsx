@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
-  AiMagicIcon, MoreHorizontalIcon, ArrowDown01Icon, PaintBrush01Icon, TextIcon, HelpCircleIcon, Comment01Icon, ViewIcon, ViewOffIcon, ArrowUp01Icon, CodeIcon, Copy01Icon, Copy02Icon, Delete02Icon, Download01Icon, Edit02Icon, FolderTransferIcon, LeftToRightListBulletIcon, PackageIcon, Tick02Icon,
+  AiMagicIcon, MoreHorizontalIcon, ArrowDown01Icon, PaintBrush01Icon, TextIcon, HelpCircleIcon, Comment01Icon, ViewIcon, ViewOffIcon, ArrowUp01Icon, CodeIcon, Copy01Icon, Copy02Icon, Delete02Icon, Download01Icon, Edit02Icon, FolderTransferIcon, LeftToRightListBulletIcon, PackageIcon, Tick02Icon, GridViewIcon,
 } from '@hugeicons/core-free-icons';
 import { duplicateSelected, groupSelected, moveSelected, removeSelected, revealInCode, selectParent, ungroupSelected } from '../lib/actions';
 import { elementHtml } from '../lib/bridge';
@@ -17,8 +17,10 @@ import { getExperienceLevel } from '../lib/experience';
 import { editSelectedText, INLINE_TAGS } from '../lib/inline-edit';
 import { getState, toast, useStore } from '../lib/store';
 import { sendToAi } from '../lib/ai';
+import { VariantsPopover } from './variants/ProjectVariants';
+import { useProjectBlocks } from '../lib/variant-blocks';
 
-type Bloom = 'chat' | 'comment' | 'export';
+type Bloom = 'chat' | 'comment' | 'export' | 'variants';
 type Item = { label: string; icon: ReactNode; hint?: string; run: () => void; disabled?: boolean; danger?: boolean; more?: boolean; bloom?: Bloom };
 
 const icon = (i: Parameters<typeof HugeiconsIcon>[0]['icon']) => <HugeiconsIcon icon={i} size={15} strokeWidth={1.8} />;
@@ -58,6 +60,8 @@ async function exportElement(kind: 'html' | 'text' | 'copy') {
 const MENU_W = 224;
 const COMMENT_W = 300;
 const EXPORT_W = 224;
+/** The popup hugs its blocks: the prompt form, then up to two blocks and a peek of the next. More scroll instead of widening it. */
+const variantsWidth = (blocks: number) => (blocks === 0 ? 360 : blocks < 3 ? 380 : 420);
 const EASE = [0.23, 1, 0.32, 1] as const;
 const SPRING = { type: 'spring', visualDuration: 0.3, bounce: 0.06 } as const;
 const SHADOW = '0 8px 24px rgb(0 0 0 / 0.12)';
@@ -198,6 +202,7 @@ function SidePopover({ open, anchor, items, focus, setFocus, onPick }: { open: b
 export function ElementContextMenu() {
   const at = useElementMenu();
   const selection = useStore((s) => s.selection);
+  const variantBlocks = useProjectBlocks({ elementId: selection?.id ?? null }).length;
   const sourceInfo = useStore((s) => s.sourceInfo);
   const editable = useStore((s) => s.project?.editable ?? false);
   const ask = useAsk();
@@ -206,7 +211,7 @@ export function ElementContextMenu() {
   const [open, setOpen] = useState(false);
   const [snap, setSnap] = useState<Snap | null>(null);
   const [from, setFrom] = useState<Rect | null>(null);
-  const [sub, setSub] = useState<'comment' | 'export' | null>(null);
+  const [sub, setSub] = useState<'comment' | 'export' | 'variants' | null>(null);
   const [more, setMore] = useState(false);
   const [sideFocus, setSideFocus] = useState(-1);
   const [focus, setFocus] = useState(-1);
@@ -301,6 +306,7 @@ export function ElementContextMenu() {
   const ai: Item[] = !sel ? [] : [
     { label: 'Ask AI', icon: icon(AiMagicIcon), bloom: 'chat', run: () => askAbout('') },
     { label: 'Restyle', icon: icon(PaintBrush01Icon), bloom: 'chat', run: () => askAbout(`Restyle ${sel.name} so it sits better with the rest of the page.`) },
+    { label: 'Variants', icon: icon(GridViewIcon), bloom: 'variants', run: () => {} },
     ...(INLINE_TAGS.has(sel.tag) ? [{ label: 'Rewrite text', icon: icon(TextIcon), bloom: 'chat' as const, run: () => askAbout(`Rewrite the text in ${sel.name} so it's clearer and tighter. Keep the meaning.`) }] : []),
   ];
   // Everything else lives in the More… list, so the main list stays short.
@@ -422,6 +428,11 @@ export function ElementContextMenu() {
       {open && origin && snap && sel && kind === 'export' && (
         <BloomPanel key="export" from={from ?? seed} origin={o} width={EXPORT_W} label={`Export ${sel.name}`}>
           <ExportPanel name={sel.name} />
+        </BloomPanel>
+      )}
+      {open && origin && snap && sel && kind === 'variants' && (
+        <BloomPanel key="variants" from={from ?? seed} origin={o} width={variantsWidth(variantBlocks)} label={`Variants of ${sel.name}`}>
+          <VariantsPopover elementId={sel.id} name={sel.name} onClose={closeElementMenu} />
         </BloomPanel>
       )}
     </AnimatePresence>,

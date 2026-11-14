@@ -114,6 +114,8 @@ git_commit, git_publish, go_live, import_files and run_command need permission e
 
 No project open: still chat freely (including web_search / fetch_url). Only nudge opening/creating a project when they need canvas or file work you can't do without one.
 
+Variants with no project element to change (the user pastes or describes a UI piece and wants alternatives): say one short line, then give each alternative as its own fenced block whose language is exactly \`variant\`. The first line inside is an HTML comment with its title, then a self-contained snippet (inline CSS only, no scripts, no external files). Give 2–4 distinct takes and nothing else inside the fences, e.g. a fence opening with three backticks and the word variant, then <!-- title: Bold --> and the markup.
+
 Never reveal or ask for API keys or tokens.`;
 
 /** Extra reply style from the composer Instant / Balanced / Harder control. */

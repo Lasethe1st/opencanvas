@@ -7,6 +7,7 @@
 
 @source '../components/ui';
 @source '../components/home';
+@source '../components/variants';
 @source '../components/Onboarding.tsx';
 @source '../components/shapeshift.tsx';
 @source '../components/shapeshift-shapes.tsx';

@@ -4780,3 +4780,28 @@ body.is-resizing-rows iframe {
 .code-hl .hljs-title,.code-hl .hljs-function,.code-hl .hljs-section,.code-hl .hljs-selector-class,.code-hl .hljs-selector-id{color:var(--hl-title)}
 .code-hl .hljs-attr,.code-hl .hljs-attribute,.code-hl .hljs-property,.code-hl .hljs-params{color:var(--hl-attr)}
 .code-hl .hljs-name,.code-hl .hljs-tag,.code-hl .hljs-deletion{color:var(--hl-tag)}
+
+/* Sonner toasts, in the app's own surfaces. */
+.oc-toast[data-sonner-toast] {
+  --normal-bg: var(--surface);
+  --normal-text: var(--fg);
+  --normal-border: var(--line);
+  border-radius: 18px !important;
+  corner-shape: squircle;
+  box-shadow: var(--shadow-lg);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  padding: 10px 14px;
+  gap: 9px;
+}
+.oc-toast[data-sonner-toast][data-type='error'] { border-color: color-mix(in srgb, var(--destructive) 45%, var(--line)); }
+.oc-toast[data-sonner-toast][data-type='error'] [data-icon] { color: var(--destructive); }
+.oc-toast[data-sonner-toast] [data-button].oc-toast__action {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--fg);
+  color: var(--bg);
+  font-weight: 600;
+}

@@ -86,7 +86,6 @@ import { CommentPopover } from './CommentPopover';
 import { AskBox } from './AskBox';
 import { ElementContextMenu } from './ElementContextMenu';
 import { CanvasRulers } from './CanvasRulers';
-import { variantLetter } from '../../shared/variants';
 import { Button, IconButton, Menu, MenuItem, Notice } from '../ui/primitives.jsx';
 
 const DEVICE_NAME: Record<string, string> = { desktop: 'Desktop', laptop: 'Laptop', tablet: 'Tablet', mobile: 'Mobile', custom: 'Custom' };
@@ -833,7 +832,9 @@ export function Canvas({ hidden }: { hidden: boolean }) {
               const r = rectOf(f);
               const eff = effective(f);
               const page = pageOf(f, { projectConfig });
-              const src = pageUrl(status.url!, page, f.routeValues);
+              const previewing = variants.find((v) => v.id === variantHighlightId && v.status === 'ready');
+              const isSource = !!previewing && frames.find((x) => { const file = pageOf(x, { projectConfig })?.file; return !!file && (file === previewing.source.file || previewing.source.elementId.startsWith(file)); })?.id === f.id;
+              const src = pageUrl(status.url!, page, f.routeValues, isSource ? previewing!.id : null);
               return (
                 <WorldFrame key={f.id} x={r.x} y={r.y} width={r.width} height={r.height} active={f.id === activeFrame?.id} shadow={showShadow}>
                   {src === null ? (
@@ -852,46 +853,6 @@ export function Canvas({ hidden }: { hidden: boolean }) {
                 </WorldFrame>
               );
             })}
-            {variants
-              .filter((v) => v.status === 'ready')
-              .map((v, i) => {
-                const sourceFrame =
-                  frames.find((f) => {
-                    const page = pageOf(f, { projectConfig });
-                    const file = page?.file;
-                    return !!file && (file === v.source.file || v.source.elementId.startsWith(file));
-                  }) || frames[0];
-                if (!sourceFrame || !status.url) return null;
-                const page = pageOf(sourceFrame, { projectConfig });
-                const base = rectOf(sourceFrame);
-                const gap = 48;
-                const y = base.y + base.height + gap + i * (base.height + gap);
-                const src = pageUrl(status.url, page, sourceFrame.routeValues, v.id);
-                if (!src) return null;
-                const fid = `variant:${v.id}`;
-                const highlighted = variantHighlightId === v.id;
-                return (
-                  <div key={fid} className="variant-frame-wrap" style={{ position: 'absolute', left: base.x, top: y - 22, width: base.width, height: base.height + 22, pointerEvents: 'none' }}>
-                    <div className={`variant-frame-label${highlighted ? ' is-active' : ''}`} style={{ position: 'relative', left: 0, top: 0 }}>
-                      Variant {variantLetter(i)}: {v.label || 'Untitled'}
-                    </div>
-                    <div style={{ pointerEvents: 'auto', position: 'relative' }}>
-                      <WorldFrame x={0} y={0} width={base.width} height={base.height} active={highlighted} shadow={showShadow}>
-                        <iframe
-                          ref={(el) => registerFrame(fid, el)}
-                          key={src}
-                          src={src}
-                          title={`Variant ${variantLetter(i)}: ${v.label}`}
-                          data-frame-id={fid}
-                          data-variant={v.id}
-                          style={{ width: sourceFrame.width, height: base.height }}
-                          sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
-                        />
-                      </WorldFrame>
-                    </div>
-                  </div>
-                );
-              })}
             {build.phase !== 'idle' &&
               (() => {
                 const target = frames.find((f) => f.id === (build.frameId || activeFrameId)) || activeFrame;

@@ -14,6 +14,8 @@ import { clearAiTarget, markAiTarget } from './ai-working';
 import { reduceRunningJobs } from './running-work';
 import { broadcastAiEvent, isHost, onGuestMessage } from './collab';
 import type { Sender } from '../../shared/collab';
+import { clampVariantCount } from '../../shared/variants';
+import { variantSetFence } from '../components/variants/ChatVariants';
 
 type SendExtra = Pick<AiTurnContext, 'skills' | 'references' | 'webSearch' | 'images' | 'projectRoot'>;
 
@@ -126,9 +128,37 @@ function turnContext(extra?: SendExtra): AiTurnContext {
 }
 
 /** Sends the request to the in-app AI. Queues while a turn is already running. */
+const VARIANT_INTENT = /\b(variants?|alternatives?|variations?|different (?:versions?|takes?|options?))\b/i;
+const WORD_COUNT: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, a: 3, few: 3, couple: 2 };
+
+/** "Give me 4 variants of @Hero": the element it names and how many to make, or null when it isn't a variants ask. */
+function variantAsk(text: string, extra?: SendExtra): { elementId: string; count: number } | null {
+  const ref = extra?.references?.find((r) => r.kind === 'layer' && r.id);
+  if (!ref || !VARIANT_INTENT.test(text) || !getState().project || !getState().aiStatus?.ready) return null;
+  const m = /\b(\d|one|two|three|four|few|couple)\b(?:\s+\w+){0,2}?\s+(?:variants?|alternatives?|variations?|versions?|takes?|options?)/i.exec(text);
+  const raw = m?.[1]?.toLowerCase();
+  const n = raw ? (/^\d$/.test(raw) ? Number(raw) : WORD_COUNT[raw]) : undefined;
+  return { elementId: ref.id as string, count: clampVariantCount(n) };
+}
+
 export async function sendToAi(request: string, extra?: SendExtra, sender?: Sender): Promise<boolean> {
   const text = request.trim();
   if (!text) return false;
+
+  // Variants of an element come back as a row of blocks in the thread, not as a new frame on the canvas.
+  const ask = getState().aiTurnId || sendLock ? null : variantAsk(text, extra);
+  if (ask) {
+    try {
+      const { setId, turnId } = await api.variants.generate({ elementId: ask.elementId, request: text, count: ask.count });
+      setState((s) => ({ aiChat: [...s.aiChat, { kind: 'assistant', id: `${turnId}:vset`, text: variantSetFence(setId) }], variants: s.variants }));
+      void api.variants.list().then((variants) => setState({ variants }));
+      if (getState().dockDraft.trim() === text) setState({ dockDraft: '' });
+      return true;
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+      return false;
+    }
+  }
 
   // A follow-up in an open project (chat already has turns) completes the “ask for one more change” step.
   const followUp = !!getState().project && getState().aiChat.length > 0;
