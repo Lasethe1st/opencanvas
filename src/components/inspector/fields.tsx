@@ -333,8 +333,8 @@ export function ToggleGroup({
   if (extra?.length) {
     // Too many values for a row of buttons: one dropdown with every value, the way the view picker works.
     const entries = [
-      ...options.map((o) => ({ value: o.value, icon: o.icon, label: o.text ?? o.title.split(/[:(]/)[0].trim() })),
-      ...extra.map((v) => ({ value: v, icon: undefined as ReactNode, label: v })),
+      ...options.map((o) => ({ value: o.value, label: o.text ?? o.title.split(/[:(]/)[0].trim() })),
+      ...extra.map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) })),
     ];
     const current = entries.find((e) => e.value === value.value);
     return (
@@ -348,7 +348,6 @@ export function ToggleGroup({
             <DropdownMenuTrigger asChild disabled={disabled}>
               <button type="button" aria-label={label} className="flex h-7 w-full cursor-pointer items-center justify-between gap-2 border border-foreground/10 bg-transparent ps-2.5 pe-2 text-[13px] capitalize text-foreground outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50 data-[state=open]:bg-accent" style={{ borderRadius: 10, cornerShape: 'squircle' } as React.CSSProperties}>
                 <span className="flex min-w-0 items-center gap-2">
-                  {current?.icon}
                   <span className="truncate">{current?.label ?? value.value}</span>
                 </span>
                 <CaretDown size={12} aria-hidden />
@@ -358,7 +357,6 @@ export function ToggleGroup({
               <DropdownMenuRadioGroup value={value.value} onValueChange={(v) => v !== value.value && void setStyle(prop, v)}>
                 {entries.map((e) => (
                   <DropdownMenuRadioItem key={e.value} value={e.value} className="rounded-[6px] capitalize">
-                    {e.icon ?? <span aria-hidden className="inline-block size-4 shrink-0" />}
                     {e.label}
                   </DropdownMenuRadioItem>
                 ))}
