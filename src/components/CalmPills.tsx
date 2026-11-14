@@ -1,15 +1,14 @@
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Add01Icon, Home04Icon, LayoutAlignLeftIcon, LayoutAlignRightIcon, RulerDimensionLineIcon, RulerIcon, Search02Icon } from '@hugeicons/core-free-icons';
+import { Add01Icon, LayoutAlignLeftIcon, LayoutAlignRightIcon, RulerDimensionLineIcon, RulerIcon, Search02Icon } from '@hugeicons/core-free-icons';
 import { CalmPagePill } from './CalmPagePill';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toggleCalmPanel, useCalmPanels } from '../lib/calm';
 import { useExperienceLevel } from '../lib/experience';
-import { closeProject } from '../lib/actions';
 import { setMeasure, useMeasure } from '../lib/measure';
 import { setRulers, useRulers } from '../lib/rulers';
 import { openInsertMenu } from '../lib/element-menu';
-import { getState, setState } from '../lib/store';
+import { getState, setState, useStore } from '../lib/store';
 import { prepareFrameInsert } from './InsertContextMenu';
 import { USER_AVATAR_SRC } from '../lib/user-avatar';
 
@@ -26,28 +25,24 @@ function openAddMenu(button: HTMLElement) {
 
 /** Corner and centre pills of the calm canvas: the same shapes as the home page's toggles, plus search. */
 export function CalmPills() {
-  const { left, right } = useCalmPanels();
+  const { right } = useCalmPanels();
   const level = useExperienceLevel();
   const showSidePanels = level !== 'beginner';
   const showGuides = level !== 'beginner';
   const measuring = useMeasure();
   const rulers = useRulers();
+  const chatOpen = useStore((s) => s.dockMode === 'input');
   return (
     <TooltipProvider>
       <div data-tw="" className={`calm-pills${rulers && showGuides ? ' calm-pills--rulers' : ''}`}>
         <div className="calm-pill-pair absolute start-3 top-3 z-20 flex items-center gap-1.5">
-          {showSidePanels && (
-            <Button variant="ghost" className="calm-circle calm-pill calm-pill--round relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]" aria-label={left ? 'Close left panel' : 'Open left panel'} aria-expanded={left} onClick={() => toggleCalmPanel('left')}>
-              <HugeiconsIcon icon={left ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
-            </Button>
-          )}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" className="calm-circle calm-pill calm-pill--round relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]" aria-label="Go home" onClick={() => void closeProject()}>
-                <HugeiconsIcon icon={Home04Icon} strokeWidth={2} />
+              <Button variant="ghost" className="calm-circle calm-pill calm-pill--round relative size-9 rounded-full p-0 text-foreground [&_svg]:size-[18px]" aria-label={chatOpen ? 'Close left panel' : 'Open left panel'} aria-expanded={chatOpen} onClick={() => setState({ dockMode: chatOpen ? null : 'input' })}>
+                <HugeiconsIcon icon={chatOpen ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Home</TooltipContent>
+            <TooltipContent side="bottom">{chatOpen ? 'Close left panel' : 'Left panel'}</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>

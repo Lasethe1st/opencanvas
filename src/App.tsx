@@ -9,6 +9,7 @@ import { ShortcutsDialog } from './components/ShortcutsDialog';
 import { CanvasSearch } from './components/canvas/CanvasSearch';
 import { Inspector } from './components/Inspector';
 import { LeftSidebar } from './components/LeftSidebar';
+import { CalmChatPanel } from './components/CalmChatPanel';
 import { Onboarding } from './components/Onboarding';
 import { Toasts } from './components/Toasts';
 import { TerminalPanel } from './components/TerminalPanel';
@@ -44,6 +45,9 @@ export default function App() {
   const auditOpen = useStore((s) => s.auditOpen);
   const gitOpen = useStore((s) => s.gitOpen);
   const insertPanel = useStore((s) => s.insertPanel);
+  const dockMode = useStore((s) => s.dockMode);
+  // In the easy canvas the conversation lives in its own docked panel rather than blooming above the centre bar.
+  const calmChat = calm && mode === 'visual' && dockMode === 'input';
   const showLayers = level !== 'beginner';
   const showInspector = level !== 'beginner';
   const showTerminal = level === 'veteran';
@@ -160,10 +164,11 @@ export default function App() {
   }
 
   return (
-    <div className={`shell${calm ? ' shell--calm' : ''}`} data-calm-left={calm && calmPanels.left ? '' : undefined} data-calm-right={calm && calmPanels.right ? '' : undefined}>
+    <div className={`shell${calm ? ' shell--calm' : ''}`} data-calm-left={calm && (calmPanels.left || calmChat) ? '' : undefined} data-calm-right={calm && calmPanels.right ? '' : undefined}>
       <TopBar />
       <div className={`workspace${mode === 'visual' ? ' workspace--bleed' : ''}${focus ? ' is-focus' : ''}`} ref={workspaceRef}>
         {showToolRail && <ToolRail />}
+        {calm && mode === 'visual' && <CalmChatPanel open={calmChat} />}
         {showLayers && (gitOpen ? <GitPanel /> : insertPanel === 'frame' ? <InsertPanel /> : <LeftSidebar />)}
         <div className="workspace__center">
           <WorkspaceSplit />

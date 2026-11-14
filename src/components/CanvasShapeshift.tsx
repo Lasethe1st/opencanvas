@@ -12,6 +12,7 @@ import { closeElementMenu } from '../lib/element-menu';
 import { selectElement } from '../lib/actions';
 import { sendToAi } from '../lib/ai';
 import { useExperienceLevel } from '../lib/experience';
+import { useCalm } from '../lib/calm';
 import { activePage } from '../lib/pages';
 import { getState, setState, useStore } from '../lib/store';
 import { InputPanel } from './Dock';
@@ -40,6 +41,9 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
   const ready = useStore((s) => !!s.aiStatus?.ready);
   const busy = useStore((s) => !!s.aiTurnId);
   const chatOpen = useStore((s) => s.dockMode === 'input');
+  // In the easy canvas the thread shows in the left panel, so the bar never blooms upward there.
+  const calm = useCalm();
+  const bloomChat = chatOpen && !calm;
   const pageName = useStore((s) => (s.projectConfig ? activePage()?.name : null));
 
   // One conversation, one place: opening it in the dock closes the floating Ask AI box.
@@ -103,9 +107,11 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
   };
 
   const wrap = (children: React.ReactNode) => (panel ? <>{children}</> : <DockRow tucked={chatOpen || focused || voice || !showPills}>{children}</DockRow>);
+  // The calm chat panel has its own composer, so the bar steps aside while it is open.
+  if (calm && !panel && chatOpen) return null;
   return wrap(
     <>
-    <div className={`canvas-shapeshift assistant-docker${panel ? ' assistant-docker--panel' : ''}`} onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
+    <div className={`canvas-shapeshift assistant-docker${panel ? ' assistant-docker--panel' : ''}`} onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={bloomChat || undefined} onPointerDown={(e) => e.stopPropagation()}>
       <Shapeshift
         ref={handle}
         shapes={assistantShapes}
@@ -122,7 +128,7 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
         listAll={false}
         above={
           panel ? undefined : <AnimatePresence initial={false}>
-            {chatOpen && (
+            {bloomChat && (
               <motion.div
                 key="chat"
                 className="assistant-docker__chat"
