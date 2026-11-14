@@ -4,7 +4,7 @@ import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { BlossomCarousel, type BlossomCarouselHandle } from '@blossom-carousel/react';
 import '@blossom-carousel/react/style.css';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Delete02Icon, RefreshIcon } from '@hugeicons/core-free-icons';
+import { Add01Icon, ArrowLeft01Icon, ArrowRight01Icon, Delete02Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 import { rememberSize, sizeOf, type BlockVariant, type PreviewSource } from '../../lib/variant-blocks';
 import { useTheme } from '../../lib/theme';
 
@@ -217,7 +217,7 @@ function Block({ v, index, hidden, onOpen, actions }: { v: BlockVariant; index: 
  * A row of 3:2 blocks on a native-scroll carousel. `per` is how many show at once (a fraction leaves the next one peeking).
  * A soft fade on the right edge says there are more. Click a block to open it in the dialog.
  */
-export function VariantRow({ items, actions = {}, per = 3, itemWidth, className, pad = 0 }: { items: BlockVariant[]; actions?: VariantActions; per?: number; itemWidth?: number; className?: string; pad?: number }) {
+export function VariantRow({ items, actions = {}, per = 3, itemWidth, className, pad = 0, nav = false, onAdd }: { items: BlockVariant[]; actions?: VariantActions; per?: number; itemWidth?: number; className?: string; pad?: number; nav?: boolean; onAdd?: () => void }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const open = items.find((v) => v.id === openId) ?? null;
   const carousel = useRef<BlossomCarouselHandle>(null);
@@ -234,7 +234,13 @@ export function VariantRow({ items, actions = {}, per = 3, itemWidth, className,
     const ro = new ResizeObserver(read);
     ro.observe(el);
     return () => { el.removeEventListener('scroll', read); ro.disconnect(); };
-  }, [items.length]);
+  }, [items.length, !!onAdd]);
+
+  const step = (dir: 1 | -1) => {
+    const el = carousel.current?.element as HTMLElement | undefined;
+    const first = el?.querySelector<HTMLElement>('[data-blossom-slide]');
+    if (el && first) el.scrollBy({ left: dir * (first.offsetWidth + GAP), behavior: 'smooth' });
+  };
 
   const width = itemWidth ? `${itemWidth}px` : `calc((100% - ${GAP * Math.max(0, per - 1)}px) / ${per})`;
   return (
@@ -251,12 +257,47 @@ export function VariantRow({ items, actions = {}, per = 3, itemWidth, className,
           {items.map((v, i) => (
             <Block key={v.id} v={v} index={i} hidden={openId === v.id} onOpen={() => setOpenId(v.id)} actions={actions} />
           ))}
+          {onAdd && (
+            <div role="listitem" data-blossom-slide className="vb-item" style={{ aspectRatio: RATIO, width: 'var(--vb-w)', flex: '0 0 var(--vb-w)', scrollSnapAlign: 'start' }}>
+              <button
+                type="button"
+                onClick={onAdd}
+                aria-label="New request"
+                title="New request"
+                className="vb-add grid size-full cursor-pointer place-items-center border border-dashed border-foreground/20 bg-transparent p-0 text-muted-foreground outline-none transition-[background-color,color,transform] hover:bg-foreground/[0.04] hover:text-foreground active:scale-[0.985] focus-visible:ring-2 focus-visible:ring-foreground/40"
+                style={{ borderRadius: 22, ...SQUIRCLE }}
+              >
+                <HugeiconsIcon icon={Add01Icon} size={22} strokeWidth={1.6} aria-hidden />
+              </button>
+            </div>
+          )}
         </BlossomCarousel>
         <div aria-hidden className="vb-fade vb-fade--end" style={{ opacity: edges.end ? 1 : 0 }} />
         <div aria-hidden className="vb-fade vb-fade--start" style={{ opacity: edges.start ? 1 : 0 }} />
+        {nav && (
+          <>
+            <NavButton side="start" show={edges.start} onClick={() => step(-1)} />
+            <NavButton side="end" show={edges.end} onClick={() => step(1)} />
+          </>
+        )}
       </div>
       <VariantDialog items={items} openId={open ? open.id : null} setOpenId={setOpenId} actions={actions} />
     </LayoutGroup>
+  );
+}
+
+function NavButton({ side, show, onClick }: { side: 'start' | 'end'; show: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      tabIndex={show ? 0 : -1}
+      aria-hidden={!show}
+      aria-label={side === 'start' ? 'Previous variants' : 'Next variants'}
+      className={`absolute top-1/2 z-[2] grid size-8 -translate-y-1/2 cursor-pointer place-items-center rounded-full border border-foreground/10 bg-background/95 p-0 text-foreground shadow-[0_4px_14px_rgb(0_0_0/0.14)] outline-none backdrop-blur transition-[opacity,transform] hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-foreground/40 ${side === 'start' ? 'left-1.5' : 'right-1.5'} ${show ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+    >
+      <HugeiconsIcon icon={side === 'start' ? ArrowLeft01Icon : ArrowRight01Icon} size={16} strokeWidth={2} aria-hidden />
+    </button>
   );
 }
 

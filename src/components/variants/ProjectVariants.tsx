@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { AiMagicIcon, Delete02Icon, StopIcon } from '@hugeicons/core-free-icons';
+import { AiMagicIcon, StopIcon } from '@hugeicons/core-free-icons';
 import { VARIANT_COUNT, clampVariantCount } from '../../../shared/variants';
 import { errorMessage, undo } from '../../lib/actions';
 import { openAiSettings } from '../../lib/ai';
@@ -83,38 +83,15 @@ export function VariantsPopover({ elementId, name, onClose }: { elementId: strin
     }
   };
 
-  const discardAll = async () => {
-    const first = await api.variants.list();
-    const set = first.find((v) => v.source.elementId === elementId)?.setId;
-    if (set) await api.variants.discardSet(set);
-    setState({ variantHighlightId: null });
-    await refresh();
-    setAgain(false);
-  };
-
   return (
-    <div className="flex flex-col gap-3 p-3 pt-3.5" data-tw="">
-      <div className="flex items-center gap-2 px-1">
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium">Variants of {name}</div>
-          <div className="text-xs text-muted-foreground">
-            {generating ? `${items.filter((v) => v.status === 'ready').length} of ${items.length} ready` : items.length ? 'Click a block to open it' : 'Nothing changes in your source until you apply one'}
-          </div>
-        </div>
-        {generating && (
+    <div className="flex flex-col gap-3 p-3" data-tw="">
+      {generating && (
+        <div className="flex justify-end px-1">
           <button type="button" onClick={() => void api.variants.cancel()} className={`${pill} border border-foreground/10 hover:bg-accent`}>
             <HugeiconsIcon icon={StopIcon} size={13} strokeWidth={1.8} aria-hidden /> Stop
           </button>
-        )}
-        {!generating && items.length > 0 && !again && (
-          <>
-            <button type="button" onClick={() => setAgain(true)} className={`${pill} hover:bg-accent`}>New request</button>
-            <button type="button" onClick={() => void discardAll()} className={`${pill} text-[color:var(--destructive)] hover:bg-[color:var(--destructive)]/10`}>
-              <HugeiconsIcon icon={Delete02Icon} size={13} strokeWidth={1.8} aria-hidden /> Discard all
-            </button>
-          </>
-        )}
-      </div>
+        </div>
+      )}
 
       {showForm && !generating && (
         aiReady ? (
@@ -160,7 +137,7 @@ export function VariantsPopover({ elementId, name, onClose }: { elementId: strin
         )
       )}
 
-      {items.length > 0 && <VariantRow items={items} actions={actions} itemWidth={170} />}
+      {items.length > 0 && <VariantRow items={items} actions={actions} itemWidth={170} nav onAdd={!generating && aiReady && !again ? () => setAgain(true) : undefined} />}
     </div>
   );
 }
