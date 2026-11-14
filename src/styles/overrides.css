@@ -2510,12 +2510,13 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 .panel--right .panel__body { padding: 0 0 8px; }
 .panel--right .section { margin-inline: 0; }
 .panel--right .section + .section { margin-top: 2px; }
-.panel--right .section__head { padding: 12px 12px 6px; font-size: 12px; font-weight: 600; }
-.panel--right .section__body { padding: 0 12px 12px; gap: 8px; }
-.panel--right .inspector-head { padding: 12px 12px 10px; }
-.panel--right .state-toggle { padding: 0 12px 10px; }
+.panel--right .section__head { padding: 12px 0 6px; font-size: 12px; font-weight: 600; }
+.panel--right .section__icon { display: none; }
+.panel--right .section__body { padding: 0 0 12px; gap: 8px; }
+.panel--right .inspector-head { padding: 12px 0 10px; }
+.panel--right .state-toggle { padding: 0 0 10px; }
 .panel--right .state-toggle .segmented button { min-height: 24px; }
-.panel--right .inspector-hint { margin-inline: 12px; }
+.panel--right .inspector-hint { margin-inline: 0; }
 .panel--right .field { grid-template-columns: 68px minmax(0, 1fr); gap: 6px; }
 .panel--right .field--stack { grid-template-columns: minmax(0, 1fr); gap: 5px; }
 .panel--right .field__label { font-size: 12px; color: var(--fg-3); }
