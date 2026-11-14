@@ -44,7 +44,11 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
   const chatOpen = useStore((s) => s.dockMode === 'input');
   const notice = useStore((s) => s.dockNotice);
   const bar = useRef<HTMLDivElement>(null);
-  const [slot, setSlot] = useState<{ x: number; bottom: number; h: number } | null>(null);
+  const slot = useRef<HTMLDivElement>(null);
+  const pillRef = useRef<HTMLDivElement>(null);
+  const barWidth = useRef(0);
+  // The width the dock occupies while it shows a status; null means "the composer's own width".
+  const [slotW, setSlotW] = useState<number | null>(null);
   const pageName = useStore((s) => (s.projectConfig ? activePage()?.name : null));
 
   // While this dock is on screen it can show short statuses ("Variant applied · Undo") in place of the composer.
@@ -53,12 +57,26 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
     setState({ dockMounted: true });
     return () => { setState({ dockMounted: false }); clearDockNotice(); };
   }, [panel]);
-  // The status takes the composer's exact spot.
+  // The status takes the composer's place in the row and the dock shrinks to fit it, so the pills beside it slide in
+  // with it instead of staying where the wider composer left them. When it goes, the dock grows back.
   useLayoutEffect(() => {
-    if (panel || !notice || !bar.current) return;
-    const r = bar.current.getBoundingClientRect();
-    setSlot({ x: r.left + r.width / 2, bottom: window.innerHeight - r.bottom, h: r.height });
-  }, [panel, notice?.id]);
+    if (panel) return;
+    if (notice) {
+      if (slotW == null) {
+        barWidth.current = bar.current?.offsetWidth ?? 0;
+        setSlotW(barWidth.current);
+        const f = requestAnimationFrame(() => requestAnimationFrame(() => setSlotW(pillRef.current?.offsetWidth ?? null)));
+        return () => cancelAnimationFrame(f);
+      }
+      setSlotW(pillRef.current?.offsetWidth ?? slotW);
+      return;
+    }
+    if (slotW != null) {
+      setSlotW(barWidth.current || null);
+      const t = window.setTimeout(() => setSlotW(null), 340);
+      return () => window.clearTimeout(t);
+    }
+  }, [panel, notice?.id, !!notice]); // eslint-disable-line react-hooks/exhaustive-deps
   const noticing = !panel && !!notice;
 
   // One conversation, one place: opening it in the dock closes the floating Ask AI box.
@@ -124,6 +142,7 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
   const wrap = (children: React.ReactNode) => (panel ? <>{children}</> : <DockRow tucked={chatOpen || focused || voice || !showPills}>{children}</DockRow>);
   return wrap(
     <>
+    <div ref={panel ? undefined : slot} className="assistant-docker-slot" style={panel ? undefined : { position: 'relative', flex: 'none', width: slotW ?? undefined, transition: 'width 0.3s cubic-bezier(0.23, 1, 0.32, 1)' }}>
     <div ref={bar} style={panel ? undefined : { opacity: noticing ? 0 : 1, transform: noticing ? 'scale(0.96)' : undefined, filter: noticing ? 'blur(4px)' : undefined, pointerEvents: noticing ? 'none' : undefined, transition: 'opacity 0.18s ease, transform 0.28s cubic-bezier(0.23,1,0.32,1), filter 0.2s ease' }} className={`canvas-shapeshift assistant-docker${panel ? ' assistant-docker--panel' : ''}`} onFocus={() => setFocused(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setFocused(false)} data-tw="" data-busy={busy || undefined} data-chat={chatOpen || undefined} onPointerDown={(e) => e.stopPropagation()}>
       <Shapeshift
         ref={handle}
@@ -165,25 +184,25 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
         }}
       />
     </div>
-    {!panel && createPortal(
+    {!panel && (
       <AnimatePresence>
-        {notice && slot && (
+        {notice && (
           <motion.div
             key={notice.id}
             data-tw=""
             role="status"
             aria-live="polite"
-            className="vb pointer-events-none fixed z-[300] flex items-center justify-center"
-            style={{ left: slot.x, bottom: slot.bottom, height: slot.h, x: '-50%', transformOrigin: 'bottom center' }}
-            initial={{ opacity: 0, scale: 0.9, filter: 'blur(6px)' }}
+            className="vb absolute left-1/2 top-0 flex h-full items-center justify-center"
+            style={{ x: '-50%', transformOrigin: 'center' }}
+            initial={{ opacity: 0, scale: 0.92, filter: 'blur(6px)' }}
             animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
             exit={{ opacity: 0, scale: 0.94, filter: 'blur(4px)' }}
             transition={BLOOM}
           >
-            <div className="pointer-events-auto inline-flex h-full items-center gap-2.5 whitespace-nowrap rounded-full border border-[color:var(--frost-border)] bg-[var(--frost-bg)] ps-3.5 pe-1 text-sm text-foreground shadow-[var(--shadow-md)]" style={{ WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)', cornerShape: 'round' } as React.CSSProperties}>
+            <div ref={pillRef} className="inline-flex h-full items-center gap-2.5 whitespace-nowrap rounded-full border border-[color:var(--frost-border)] bg-[var(--frost-bg)] ps-3.5 pe-1 text-sm text-foreground shadow-[var(--shadow-md)]" style={{ WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)' }}>
               <HugeiconsIcon icon={Tick02Icon} size={16} strokeWidth={2} aria-hidden />
               <span>{notice.message}</span>
-              {notice.action && (
+              {notice.action ? (
                 <button
                   type="button"
                   autoFocus
@@ -192,14 +211,15 @@ export function CanvasShapeshift({ variant = 'dock' }: { variant?: 'dock' | 'pan
                 >
                   {notice.action.label}
                 </button>
+              ) : (
+                <span className="w-1.5" aria-hidden />
               )}
-              {!notice.action && <span className="w-1.5" aria-hidden />}
             </div>
           </motion.div>
         )}
-      </AnimatePresence>,
-      document.body,
+      </AnimatePresence>
     )}
+    </div>
     {voice && createPortal(
       <div data-tw="" className="fixed inset-x-0 z-[300] flex justify-center" style={{ bottom: 88 }} onPointerDown={(e) => e.stopPropagation()}>
         <div data-bloom-menu="" className="oc-pop rounded-[28px] border border-[color:var(--frost-border)] bg-[var(--frost-bg)] px-10 py-4 shadow-[var(--shadow-md)]" style={{ WebkitBackdropFilter: 'var(--frost-filter)', backdropFilter: 'var(--frost-filter)', transformOrigin: 'bottom center' }}>
