@@ -1576,14 +1576,6 @@ kbd, .kbd,
 .boxmodel__padding { border-color: color-mix(in srgb, var(--fg) 12%, transparent); border-radius: 12px; }
 .boxmodel__content { border-radius: 8px; border-color: color-mix(in srgb, var(--fg) 12%, transparent); }
 .boxmodel__caption { top: 7px; left: 12px; font-size: 10px; letter-spacing: 0.05em; }
-.boxmodel__action { position: absolute; top: 3px; right: 6px; z-index: 1; display: inline-flex; }
-.boxmodel__padding .boxmodel__action { top: 3px; right: 4px; }
-.box-link {
-  display: inline-grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 7px;
-  background: transparent; color: var(--fg-3); cursor: pointer;
-}
-.box-link:hover { background: var(--hover); color: var(--fg); }
-.box-link.is-on { background: var(--accent-soft); color: var(--fg); }
 .box-slot input { border-radius: 8px; }
 
 /* ---------- Motion v2 ---------- */
@@ -1631,7 +1623,7 @@ kbd, .kbd,
   .panel--left .tree-row, .panel--left .search, .panel--left .segmented, .panel--left .segmented button,
   .panel--left .frame-row, .panel--left .section-label__count, .panel--left .icon-btn,
   .inspector-hint, .legend-lite, .motion-preset, .motion-preset__icon, .motion-note code,
-  .code-chip, .inspector-code__editor, .boxmodel, .boxmodel__padding, .boxmodel__content, .box-slot input, .box-link,
+  .code-chip, .inspector-code__editor, .boxmodel, .boxmodel__padding, .boxmodel__content, .box-slot input,
   .layer-menu, .layer-menu .menu-item, .tree-row__input, .scrub__tip { corner-shape: squircle; }
   /* Fully rounded controls keep true semicircle ends. */
   .panel--left .search, .panel--left .section-label__count, .panel--left .segmented, .panel--left .segmented button,
@@ -1744,7 +1736,9 @@ kbd, .kbd,
   [role='dialog'], [role='dialog'] *, .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu], [data-bloom-menu] *,
   .vb, .vb *,
   .calm-chat, .calm-chat *,
-  .oc-view-menu, .oc-view-menu *
+  .oc-view-menu, .oc-view-menu *,
+  .panel--right .inspector-sticky,
+  .panel--right .boxmodel, .panel--right .boxmodel__padding, .panel--right .boxmodel__content
 )) { border-radius: 0 !important; }
 body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data-tip]::before { border-radius: 0 !important; }
 
@@ -2505,3 +2499,34 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 /* Bots: plain circles. Near-white in light, near-black in dark, with a hairline so they read on the sidebar. */
 .bot-dot { display: inline-block; border-radius: 9999px; background: #f5f5f7; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent); }
 [data-theme='dark'] .bot-dot { background: #1d1d1f; }
+
+/* Inspector density: one level of inset, quieter field labels, tighter rows. */
+.panel--right .panel__body { padding: 0 0 8px; }
+.panel--right .section { margin-inline: 0; }
+.panel--right .section + .section { margin-top: 2px; }
+.panel--right .section__head { padding: 12px 0 6px; font-size: 12px; font-weight: 600; }
+.panel--right .section__icon { display: none; }
+.panel--right .section__body { padding: 0 0 12px; gap: 8px; }
+.panel--right .inspector-sticky { padding: 0 12px; margin-inline: 4px; border-radius: 10px !important; corner-shape: squircle; }
+.panel--right .inspector-head { padding: 12px 0 10px; }
+.panel--right .state-toggle { padding: 0 0 10px; }
+.panel--right .state-toggle .segmented button { min-height: 24px; }
+.panel--right .inspector-hint { margin-inline: 0; }
+.panel--right .field { grid-template-columns: 68px minmax(0, 1fr); gap: 6px; }
+.panel--right .field--stack { grid-template-columns: minmax(0, 1fr); gap: 5px; }
+.panel--right .field__label { font-size: 12px; color: var(--fg-3); }
+.panel--right .field__label .field__value { color: var(--fg-3); }
+
+/* Box model: the two boxes speak for themselves (outer dashed = margin, inner solid = padding; hover names them), so the captions are visually hidden but still read by screen readers. */
+.panel--right .boxmodel__caption {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.panel--right .boxmodel { border-style: dashed; background: color-mix(in srgb, var(--fg) 3%, transparent); }
+.panel--right .boxmodel__padding { background: color-mix(in srgb, var(--fg) 8%, transparent); border-color: var(--line-strong); }
+.panel--right .boxmodel { border-radius: 16px !important; corner-shape: squircle; }
+.panel--right .boxmodel__padding { border-radius: 12px !important; corner-shape: squircle; }
+.panel--right .boxmodel__content { border-radius: 8px !important; corner-shape: squircle; }
+/* With no caption row or link buttons on top, every side of both boxes gets the same room. */
+.panel--right .boxmodel, .panel--right .boxmodel__padding { padding: 24px 34px; }
+.panel--right .boxmodel > .box-slot--top, .panel--right .boxmodel__padding > .box-slot--top { top: 2px; }
+.panel--right .boxmodel > .box-slot--bottom, .panel--right .boxmodel__padding > .box-slot--bottom { bottom: 2px; }

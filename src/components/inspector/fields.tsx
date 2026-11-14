@@ -1,6 +1,7 @@
 import type React from 'react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { CaretRight } from '../../lib/hugeicons';
+import { CaretDown, CaretRight } from '../../lib/hugeicons';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { evaluateExpression, stepSize, stepValue } from '../../../shared/numeric';
 import { setStyle, setStyles } from '../../lib/actions';
 import { Field, InputShell, Section as SectionShell, SelectShell, Swatch, ToggleRow } from '../../ui/primitives.jsx';
@@ -330,29 +331,39 @@ export function ToggleGroup({
 }) {
   const value = useStyleValue(prop);
   if (extra?.length) {
-    const inExtra = extra.includes(value.value);
+    // Too many values for a row of buttons: one dropdown with every value, the way the view picker works.
+    const entries = [
+      ...options.map((o) => ({ value: o.value, label: o.text ?? o.title.split(/[:(]/)[0].trim() })),
+      ...extra.map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) })),
+    ];
+    const current = entries.find((e) => e.value === value.value);
     return (
-      <div className="field field--stack">
+      <div className="field">
         <span className="field__label" title={stateTitle(value)}>
           {value.state !== 'computed' && <span className={`marker marker--${value.state}`} />}
           {label}
-          <span className="field__value">{value.value}</span>
         </span>
-        <fieldset disabled={disabled} className="fieldset-reset toggle-more">
-          <ToggleRow options={options} value={value.value} onChange={(v) => void setStyle(prop, !exclusive && value.state === 'set' && value.value === v ? '' : v)} />
-          <span className={`toggle-more__select${inExtra ? ' is-active' : ''}`}>
-            <select aria-label={`More ${label.toLowerCase()} values`} title="More values" value={inExtra ? value.value : ''} onChange={(e) => e.target.value && void setStyle(prop, e.target.value)}>
-              <option value="" disabled>
-                …
-              </option>
-              {extra.map((o) => (
-                <option key={o} value={o}>
-                  {o}
-                </option>
-              ))}
-            </select>
-          </span>
-        </fieldset>
+        <div data-tw="" className="min-w-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild disabled={disabled}>
+              <button type="button" aria-label={label} className="flex h-7 w-full cursor-pointer items-center justify-between gap-2 border border-foreground/10 bg-transparent ps-2.5 pe-2 text-[13px] capitalize text-foreground outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50 data-[state=open]:bg-accent" style={{ borderRadius: 10, cornerShape: 'squircle' } as React.CSSProperties}>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate">{current?.label ?? value.value}</span>
+                </span>
+                <CaretDown size={12} aria-hidden />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={6} className="oc-view-menu rounded-[10px] p-1" style={{ width: 'var(--radix-dropdown-menu-trigger-width)', minWidth: 0, cornerShape: 'squircle' } as React.CSSProperties}>
+              <DropdownMenuRadioGroup value={value.value} onValueChange={(v) => v !== value.value && void setStyle(prop, v)}>
+                {entries.map((e) => (
+                  <DropdownMenuRadioItem key={e.value} value={e.value} className="rounded-[6px] capitalize">
+                    {e.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     );
   }
@@ -361,7 +372,7 @@ export function ToggleGroup({
       <span className="field__label" title={stateTitle(value)}>
         {value.state !== 'computed' && <span className={`marker marker--${value.state}`} />}
         {label}
-        <span className="field__value">{value.value}</span>
+        {options.some((o) => !o.text) && <span className="field__value">{value.value}</span>}
       </span>
       <fieldset disabled={disabled} className="fieldset-reset">
         <ToggleRow options={options} value={value.value} onChange={(v) => void setStyle(prop, value.state === 'set' && value.value === v ? '' : v)} />
