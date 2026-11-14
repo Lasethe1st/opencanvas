@@ -61,7 +61,7 @@ const MENU_W = 224;
 const COMMENT_W = 300;
 const EXPORT_W = 224;
 /** The popup hugs its blocks: the prompt form, then up to two blocks and a peek of the next. More scroll instead of widening it. */
-const variantsWidth = (blocks: number) => (blocks === 0 ? 380 : blocks < 3 ? 400 : 460);
+const variantsWidth = (blocks: number) => (blocks === 0 ? 360 : blocks < 3 ? 380 : 420);
 const EASE = [0.23, 1, 0.32, 1] as const;
 const SPRING = { type: 'spring', visualDuration: 0.3, bounce: 0.06 } as const;
 const SHADOW = '0 8px 24px rgb(0 0 0 / 0.12)';

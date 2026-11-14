@@ -14,7 +14,7 @@ const EASE = [0.23, 1, 0.32, 1] as const;
 const SPRING = { type: 'spring', visualDuration: 0.38, bounce: 0.08 } as const;
 /** Every block, and the stage in the dialog, is a landscape rectangle: width : height = 1.5 : 1. */
 const RATIO = 1.5;
-const GAP = 12;
+const GAP = 8;
 
 type Nat = { w: number; h: number; x: number; y: number };
 
