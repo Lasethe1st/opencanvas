@@ -34,11 +34,11 @@ export function BreakpointBanner({ icon, children }) {
 
 export function BoxModel({ margin, padding, size, marginAction, paddingAction }) {
   return (
-    <div className="boxmodel">
+    <div className="boxmodel" role="group" aria-label="Margin" title="Margin">
       <span className="boxmodel__caption">Margin</span>
       {marginAction && <span className="boxmodel__action">{marginAction}</span>}
       {margin}
-      <div className="boxmodel__padding">
+      <div className="boxmodel__padding" role="group" aria-label="Padding" title="Padding">
         <span className="boxmodel__caption">Padding</span>
         {paddingAction && <span className="boxmodel__action">{paddingAction}</span>}
         {padding}

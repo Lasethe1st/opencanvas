@@ -2523,3 +2523,10 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 .panel--right .field--stack { grid-template-columns: minmax(0, 1fr); gap: 5px; }
 .panel--right .field__label { font-size: 12px; color: var(--fg-3); }
 .panel--right .field__label .field__value { color: var(--fg-3); }
+
+/* Box model: the two boxes speak for themselves (outer dashed = margin, inner solid = padding; hover names them), so the captions are visually hidden but still read by screen readers. */
+.panel--right .boxmodel__caption {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.panel--right .boxmodel { border-style: dashed; background: color-mix(in srgb, var(--fg) 3%, transparent); }
+.panel--right .boxmodel__padding { background: color-mix(in srgb, var(--fg) 8%, transparent); border-color: var(--line-strong); }
