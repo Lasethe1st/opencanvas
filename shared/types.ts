@@ -92,6 +92,7 @@ export type InsertKind =
   | 'heading'
   | 'paragraph'
   | 'image'
+  | 'video'
   | 'button'
   | 'link'
   | 'header'

@@ -208,6 +208,9 @@ export function buildSnippet(kind: InsertKind, image?: { src: string; alt: strin
   if (kind === 'image' && image) {
     return { key, jsx: `<img ${k} src=${attrValue(image.src)} alt=${attrValue(image.alt)} />`, css: { display: 'block', 'max-width': '100%', height: 'auto' } };
   }
+  if (kind === 'video' && image) {
+    return { key, jsx: `<video ${k} src=${attrValue(image.src)} controls muted loop playsInline />`, css: { display: 'block', 'max-width': '100%', height: 'auto' } };
+  }
   switch (kind) {
     case 'div':
       return { key, jsx: `<div ${k} data-oc-name="Container">\n</div>`, css: { padding: '24px', 'min-height': '80px', border: '1px dashed #c7c7cc', 'border-radius': '8px' } };
@@ -225,6 +228,8 @@ export function buildSnippet(kind: InsertKind, image?: { src: string; alt: strin
       return { key, jsx: `<h2 ${k}>New heading</h2>`, css: { margin: '0 0 12px' } };
     case 'paragraph':
       return { key, jsx: `<p ${k}>Write something here.</p>`, css: { margin: '0 0 12px', 'line-height': '1.6' } };
+    case 'video':
+      return { key, jsx: `<video ${k} controls muted loop playsInline />`, css: { display: 'block', 'max-width': '100%', height: 'auto' } };
     case 'image':
       return { key, jsx: `<img ${k} src="/placeholder.svg" alt="Placeholder image" />`, css: { display: 'block', width: '320px', 'max-width': '100%', height: 'auto', 'border-radius': '8px' }, needsPlaceholder: true };
     case 'button':
