@@ -1744,7 +1744,8 @@ kbd, .kbd,
   [role='dialog'], [role='dialog'] *, .stage__world *, .calm-pill, .calm-pill *, [data-bloom-menu], [data-bloom-menu] *,
   .vb, .vb *,
   .calm-chat, .calm-chat *,
-  .oc-view-menu, .oc-view-menu *
+  .oc-view-menu, .oc-view-menu *,
+  .panel--right .inspector-sticky
 )) { border-radius: 0 !important; }
 body:has(.shell .workspace) [data-tip]::after, body:has(.shell .workspace) [data-tip]::before { border-radius: 0 !important; }
 
@@ -2513,7 +2514,7 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 .panel--right .section__head { padding: 12px 0 6px; font-size: 12px; font-weight: 600; }
 .panel--right .section__icon { display: none; }
 .panel--right .section__body { padding: 0 0 12px; gap: 8px; }
-.panel--right .inspector-sticky { padding: 0 12px; }
+.panel--right .inspector-sticky { padding: 0 12px; margin-inline: 4px; border-radius: 10px !important; corner-shape: squircle; }
 .panel--right .inspector-head { padding: 12px 0 10px; }
 .panel--right .state-toggle { padding: 0 0 10px; }
 .panel--right .state-toggle .segmented button { min-height: 24px; }
