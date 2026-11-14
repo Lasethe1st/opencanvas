@@ -2513,6 +2513,7 @@ body:has(.shell .workspace) .assistant-docker [role='listbox'] button > span:fir
 .panel--right .section__head { padding: 12px 0 6px; font-size: 12px; font-weight: 600; }
 .panel--right .section__icon { display: none; }
 .panel--right .section__body { padding: 0 0 12px; gap: 8px; }
+.panel--right .inspector-sticky { padding: 0 12px; }
 .panel--right .inspector-head { padding: 12px 0 10px; }
 .panel--right .state-toggle { padding: 0 0 10px; }
 .panel--right .state-toggle .segmented button { min-height: 24px; }
