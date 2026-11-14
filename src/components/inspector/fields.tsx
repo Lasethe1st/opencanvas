@@ -336,7 +336,7 @@ export function ToggleGroup({
         <span className="field__label" title={stateTitle(value)}>
           {value.state !== 'computed' && <span className={`marker marker--${value.state}`} />}
           {label}
-          <span className="field__value">{value.value}</span>
+          {options.some((o) => !o.text) && <span className="field__value">{value.value}</span>}
         </span>
         <fieldset disabled={disabled} className="fieldset-reset toggle-more">
           <ToggleRow options={options} value={value.value} onChange={(v) => void setStyle(prop, !exclusive && value.state === 'set' && value.value === v ? '' : v)} />
@@ -361,7 +361,7 @@ export function ToggleGroup({
       <span className="field__label" title={stateTitle(value)}>
         {value.state !== 'computed' && <span className={`marker marker--${value.state}`} />}
         {label}
-        <span className="field__value">{value.value}</span>
+        {options.some((o) => !o.text) && <span className="field__value">{value.value}</span>}
       </span>
       <fieldset disabled={disabled} className="fieldset-reset">
         <ToggleRow options={options} value={value.value} onChange={(v) => void setStyle(prop, value.state === 'set' && value.value === v ? '' : v)} />
