@@ -21,7 +21,7 @@ const loadFavorites = (): string[] => {
 };
 
 /** A project card is a portrait rectangle: a neutral block where a preview image will go (the top THUMB of the card), then the details. */
-const THUMB = '30%';
+const THUMB = '50%';
 
 /** Four cards to a row when there is room; fewer in a narrow pane. */
 const GRID = 'm-0 grid list-none grid-cols-2 gap-4 p-0 @3xl/card:grid-cols-3 @5xl/card:grid-cols-4';
