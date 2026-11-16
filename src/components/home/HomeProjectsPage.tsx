@@ -1,4 +1,4 @@
-import { useCallback, useId, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { GitBranchIcon, PlusSignIcon, Search02Icon, StarIcon } from '@hugeicons/core-free-icons';
 import type { RecentProject } from '../../../shared/types';
@@ -20,48 +20,13 @@ const loadFavorites = (): string[] => {
   }
 };
 
-const hueOf = (s: string) => {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h % 360;
-};
+/** A project card is a portrait rectangle: a neutral block where a preview image will go (the top THUMB of the card), then the details. */
+const THUMB = '50%';
 
-/** Four folders to a row when there is room; fewer in a narrow pane. */
-const GRID = 'm-0 grid list-none grid-cols-2 gap-x-4 gap-y-7 p-0 @3xl/card:grid-cols-3 @5xl/card:grid-cols-4';
+/** Four cards to a row when there is room; fewer in a narrow pane. */
+const GRID = 'm-0 grid list-none grid-cols-2 gap-4 p-0 @3xl/card:grid-cols-3 @5xl/card:grid-cols-4';
 
-/** A minimal, realistic folder: a darker back with its tab, a sheet of paper, and a lit front. Each project keeps one colour,
- *  picked from its name. On hover the front dips and the paper rises, as if the folder were about to open. */
-function Folder({ hue }: { hue: number }) {
-  const id = useId().replace(/:/g, '');
-  return (
-    <div className="relative w-full max-w-[210px] transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] group-hover:-translate-y-1 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">
-      <svg viewBox="0 0 200 160" className="block w-full overflow-visible drop-shadow-[0_10px_14px_rgb(0_0_0/0.16)]" aria-hidden>
-        <defs>
-          <linearGradient id={`f${id}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={`hsl(${hue} 62% 72%)`} />
-            <stop offset="1" stopColor={`hsl(${hue} 52% 60%)`} />
-          </linearGradient>
-          <linearGradient id={`b${id}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={`hsl(${hue} 42% 52%)`} />
-            <stop offset="1" stopColor={`hsl(${hue} 42% 45%)`} />
-          </linearGradient>
-        </defs>
-        <path d="M22 12h46c6 0 9 2 13 7l4 6h93c12 0 22 10 22 22v87c0 12-10 22-22 22H22c-12 0-22-10-22-22V34c0-12 10-22 22-22z" fill={`url(#b${id})`} />
-        <g className="transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] group-hover:-translate-y-2.5 motion-reduce:transition-none">
-          <rect x="14" y="30" width="172" height="80" rx="6" fill="#fff" fillOpacity="0.92" />
-          <rect x="26" y="44" width="70" height="5" rx="2.5" fill="#000" fillOpacity="0.08" />
-          <rect x="26" y="56" width="110" height="5" rx="2.5" fill="#000" fillOpacity="0.06" />
-        </g>
-        <g className="transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] group-hover:translate-y-0.5 motion-reduce:transition-none">
-          <path d="M0 70c0-12 10-22 22-22h156c12 0 22 10 22 22v68c0 12-10 22-22 22H22c-12 0-22-10-22-22z" fill={`url(#f${id})`} />
-          <path d="M22 48.5h156c8 0 14.500 4 18.500 10.500-2.500-4-7-7-13-7H17c-6 0-10.500 3-13 7 4-6.500 10.500-10.500 18-10.500z" fill="#fff" fillOpacity="0.5" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-/** Every project as a folder in the main pane. The left lane stays; this replaces the chat area while it is open. */
+/** Every project as a card in the main pane. The left lane stays; this replaces the chat area while it is open. */
 export function HomeProjectsPage({
   recent,
   busy,
@@ -139,7 +104,7 @@ export function HomeProjectsPage({
         {recent === null ? (
           <div className={GRID}>
             {Array.from({ length: 4 }, (_, i) => (
-              <Skeleton key={i} className="aspect-[5/4] rounded-2xl" />
+              <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
             ))}
           </div>
         ) : shown.length === 0 ? (
@@ -148,28 +113,27 @@ export function HomeProjectsPage({
           <ul className={GRID}>
             {shown.map((p) => {
               const fav = favorites.includes(p.root);
-              const h = hueOf(p.name);
               return (
                 <HomeBloomContextMenu key={p.root} actions={menuFor(p)} className="contents">
-                <li className="group relative isolate flex flex-col items-start gap-3">
-                  <div className="relative w-full max-w-[210px]">
-                    <Folder hue={h} />
-                    <div className="absolute end-1 top-1 z-20 flex items-center gap-1 [&_button]:bg-black/35 [&_button]:text-white [&_button]:backdrop-blur-md [&_button:hover]:bg-black/50">
+                <li className="group relative isolate flex aspect-[3/4] flex-col overflow-hidden rounded-2xl border border-foreground/[0.08] bg-background transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgb(0_0_0/0.10)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+                  <div className="relative shrink-0 bg-foreground/[0.07]" style={{ height: THUMB }}>
+                    <div className="absolute end-2 top-2 z-20 flex items-center gap-1 [&_button]:bg-black/35 [&_button]:text-white [&_button]:backdrop-blur-md [&_button:hover]:bg-black/50">
                       <button
                         type="button"
                         aria-pressed={fav}
                         aria-label={fav ? `Remove ${p.name} from favorites` : `Add ${p.name} to favorites`}
                         onClick={() => toggleFavorite(p.root)}
-                        className={cn('inline-flex size-7 items-center justify-center rounded-full outline-offset-2 transition-[opacity,background-color] duration-150', fav ? 'opacity-100' : 'opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100')}
+                        className={cn('inline-flex size-7 items-center justify-center rounded-full outline-offset-2 transition-[opacity,background-color] duration-150', fav ? 'opacity-100' : 'opacity-0 focus-visible:opacity-100 group-hover:opacity-100')}
                       >
                         <HugeiconsIcon icon={StarIcon} strokeWidth={2} className={cn('size-4 transition-colors duration-150', fav && 'text-amber-300 [&_path]:fill-amber-300')} aria-hidden />
                       </button>
                     </div>
                   </div>
-                  <button type="button" title={p.description ? `${p.name}: ${p.description}` : p.root} aria-label={`Open ${p.name}`} disabled={busy} onClick={() => onOpen(p.root)} className="absolute inset-0 z-10 rounded-2xl outline-offset-4 disabled:cursor-default" />
-                  <div className="pointer-events-none flex w-full min-w-0 max-w-[210px] flex-col items-start px-0.5 text-start">
-                    <strong className="max-w-full truncate text-[14px] font-medium leading-tight text-foreground">{p.name}</strong>
-                    <span className="mt-0.5 flex items-center gap-1 text-[11.5px] text-muted-foreground">
+                  <button type="button" title={p.description ? `${p.name}: ${p.description}` : p.root} aria-label={`Open ${p.name}`} disabled={busy} onClick={() => onOpen(p.root)} className="absolute inset-0 z-10 cursor-pointer rounded-2xl border-0 bg-transparent p-0 outline-offset-2 disabled:cursor-default" />
+                  <div className="pointer-events-none flex min-h-0 flex-1 flex-col gap-1.5 p-3.5 text-start">
+                    <strong className="line-clamp-2 text-[15px] font-medium leading-snug text-foreground">{p.name}</strong>
+                    {p.description && <p className="m-0 line-clamp-3 text-[12.5px] leading-snug text-muted-foreground">{p.description}</p>}
+                    <span className="mt-auto flex items-center gap-1 text-[11.5px] text-muted-foreground">
                       {p.git && <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-3 shrink-0" aria-label="Git project" />}
                       Last modified {timeAgo(p.openedAt)}
                     </span>
