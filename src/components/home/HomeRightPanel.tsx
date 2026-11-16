@@ -12,6 +12,8 @@ export function HomeRightPanel({
   contentKey,
   flush,
   file,
+  fluid,
+  className,
   children,
 }: {
   open: boolean;
@@ -22,9 +24,24 @@ export function HomeRightPanel({
   flush?: boolean;
   /** A file viewer. Appears to the right of the list and widens the panel. */
   file?: ReactNode;
+  /** Fill the grid cell it sits in; a file replaces the list rather than widening the panel. */
+  fluid?: boolean;
+  className?: string;
   children: ReactNode;
 }) {
   const width = HOME_RIGHT_PANEL_WIDTH + (file ? HOME_RIGHT_PANEL_FILE_WIDTH : 0);
+  if (fluid) {
+    return (
+      <aside data-tw="" aria-label={title} className={cn('relative z-0 flex h-full min-w-0 flex-col overflow-hidden', className)}>
+        <div
+          key={contentKey}
+          className={cn('min-h-0 flex-1 overscroll-contain motion-safe:animate-[fade-in_0.18s_ease-out]', flush || file ? 'flex flex-col overflow-hidden' : 'overflow-y-auto py-2 pe-2 ps-0')}
+        >
+          {file ?? children}
+        </div>
+      </aside>
+    );
+  }
   return (
     <aside
       data-tw=""
