@@ -678,7 +678,7 @@ export function Onboarding() {
   return (
     <>
       <TooltipProvider>
-        <div data-tw="" className={cn('h-full bg-[var(--home-bg)] text-foreground', grid ? HOME_GRID.root : 'flex')}>
+        <div data-tw="" className={cn('h-full text-foreground', grid ? cn(HOME_GRID.root, 'bg-[var(--home-card)]') : 'flex bg-[var(--home-bg)]')}>
           <HomeSidebar
             label="Home"
             open={grid || navOpen}
