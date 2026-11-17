@@ -2,6 +2,7 @@ import { Plus } from '../../lib/home-icons';
 import { useId, type ComponentType, type CSSProperties, type ReactNode } from 'react';
 import { LogoMark } from '../LogoMark';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { HomeContextMenu, type HomeMenuAction } from './HomeItemMenu';
 
@@ -50,6 +51,8 @@ export function HomeSidebar({
   sections,
   footer,
   headerEnd,
+  fluid,
+  className,
 }: {
   label: string;
   open: boolean;
@@ -59,6 +62,9 @@ export function HomeSidebar({
   footer: ReactNode;
   /** Top right of the pane, level with the logo. */
   headerEnd?: ReactNode;
+  /** Fill the grid cell it sits in instead of a fixed width. */
+  fluid?: boolean;
+  className?: string;
 }) {
   const regionId = useId();
   const side = document.dir === 'rtl' ? 'left' : 'right';
@@ -78,10 +84,10 @@ export function HomeSidebar({
       aria-label={label}
       aria-hidden={!open}
       inert={!open}
-      className="relative z-0 h-full shrink-0 overflow-hidden motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]"
-      style={{ width: open ? HOME_NAV_WIDTH : 0 }}
+      className={cn('relative z-0 h-full overflow-hidden', fluid ? 'min-w-0' : 'shrink-0 motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', className)}
+      style={fluid ? undefined : { width: open ? HOME_NAV_WIDTH : 0 }}
     >
-      <div className="flex h-full flex-col" style={{ width: HOME_NAV_WIDTH }}>
+      <div className="flex h-full flex-col" style={{ width: fluid ? '100%' : HOME_NAV_WIDTH }}>
         <div className="flex h-14 shrink-0 items-center justify-between ps-4 pe-4">
           <span className="flex h-9 shrink-0 items-center text-foreground">
             <LogoMark size={12} />

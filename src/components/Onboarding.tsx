@@ -33,6 +33,7 @@ import { NewProjectDialog, type StartPath } from './home/NewProjectDialog';
 import { FileViewer, SourcesPanel, useSources, WebFaviconStack, type OpenFile, type Source } from './home/SourcesPanel';
 import { HomePrompt, type Attachment, type MentionOption } from './home/HomePrompt';
 import { HomeRightPanel } from './home/HomeRightPanel';
+import { HOME_GRID, useHomeGrid } from './home/homeGrid';
 import { HomeAccount, HomePlan } from './home/HomeAccount';
 import { MemoryList } from './home/HomeMemory';
 import { HomeOnboardingTasks, useOnboarding, type OnboardingTask } from './home/HomeOnboardingTasks';
@@ -123,6 +124,7 @@ export function Onboarding() {
   const displayName = useDisplayName();
   // One opener per visit to the home screen, so it doesn't change under the user's eyes.
   const [greetingPick] = useState(() => Math.floor(Math.random() * GREETINGS.length));
+  const grid = useHomeGrid();
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
   const onboarding = useOnboarding();
@@ -676,20 +678,22 @@ export function Onboarding() {
   return (
     <>
       <TooltipProvider>
-        <div data-tw="" className="flex h-full bg-[var(--home-bg)] text-foreground">
+        <div data-tw="" className={cn('h-full text-foreground', grid ? cn(HOME_GRID.root, 'bg-[var(--home-card)]') : 'flex bg-[var(--home-bg)]')}>
           <HomeSidebar
             label="Home"
-            open={navOpen}
+            open={grid || navOpen}
+            fluid={grid}
+            className={grid ? HOME_GRID.nav : undefined}
             actions={actions}
             library={library}
             sections={sections}
             headerEnd={<HomePlan />}
             footer={!onboarding.dismissed ? <HomeOnboardingTasks tasks={tasks} onDismiss={onboarding.dismiss} onAutoDone={onboarding.complete} /> : null}
           />
-          <div ref={setCardEl} className={cn('@container/card relative min-w-0 flex-1 overflow-hidden border bg-[var(--home-card)] motion-safe:transition-[margin,border-radius,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', navOpen || sourcesOpen || activeBot ? 'm-2 rounded-[10px] border-foreground/[0.08]' : 'm-0 rounded-none border-transparent')}>
-          <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[var(--r-pill)] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
+          <div ref={setCardEl} className={cn('@container/card relative min-w-0 overflow-hidden border bg-[var(--home-card)] motion-safe:transition-[margin,border-radius,border-color] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.2,0,0,1)]', grid ? HOME_GRID.chat : 'flex-1', grid ? 'm-0 rounded-none border-y-0 border-foreground/[0.08]' : navOpen || sourcesOpen || activeBot ? 'm-2 rounded-[10px] border-foreground/[0.08]' : 'm-0 rounded-none border-transparent')}>
+          {!grid && <Button variant="ghost" data-home-nav-toggle="" className="absolute start-3 top-3 z-20 size-9 rounded-[var(--r-pill)] px-2.5 py-0 text-muted-foreground hover:text-foreground [&_svg]:size-[18px]" aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} onClick={() => setNav(!navOpen)}>
             <HugeiconsIcon icon={navOpen ? LayoutAlignRightIcon : LayoutAlignLeftIcon} strokeWidth={2} />
-          </Button>
+          </Button>}
           {view === 'projects' && (
             <HomeProjectsPage
               recent={recent}
@@ -701,14 +705,14 @@ export function Onboarding() {
           )}
           {view === 'bots' && <HomeBotsList bots={bots} activeId={activeBot?.id} onOpen={openBot} onNew={() => openBot(addBot().id)} />}
           <HomeAccount onSettings={() => setState({ settingsOpen: true })} />
-          <div className="absolute start-14 top-3 z-20 flex max-w-[calc(100%-9rem)] items-center gap-2">
+          <div className={cn('absolute top-3 z-20 flex items-center gap-2', grid ? 'start-3 max-w-[calc(100%-7rem)]' : 'start-14 max-w-[calc(100%-9rem)]')}>
             <span title={chatTitle} className={cn('inline-flex h-9 max-w-[240px] min-w-0 items-center overflow-hidden rounded-[var(--pill)] bg-muted px-3.5 text-xs font-medium text-foreground', view !== 'home' && 'hidden')}>
               <span className="truncate">{chatTitle}</span>
             </span>
             <div ref={setChipHost} className="contents" />
           </div>
-          <HomeCollab className={cn('absolute top-3 z-20', sources.length > 0 || sourcesOpen ? 'end-28' : 'end-3')} />
-          {view === 'home' && (sources.length > 0 || sourcesOpen) && (
+          <HomeCollab className={cn('absolute top-3 z-20', !grid && (sources.length > 0 || sourcesOpen) ? 'end-28' : 'end-3')} />
+          {!grid && view === 'home' && (sources.length > 0 || sourcesOpen) && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -867,7 +871,7 @@ export function Onboarding() {
           </main>
           <HomeTopBlur />
           </div>
-          <HomeRightPanel open={sourcesOpen || !!activeBot} title={activeBot ? 'Bot' : 'Sources'} contentKey={activeBot ? `bot-${activeBot.id}` : `sources-${sources.length}`} flush={!!activeBot} file={!activeBot && openFile ? <FileViewer file={openFile} onClose={() => setOpenFile(null)} /> : undefined}>
+          <HomeRightPanel fluid={grid} className={grid ? HOME_GRID.browser : undefined} open={grid || sourcesOpen || !!activeBot} title={activeBot ? 'Bot' : 'Sources'} contentKey={activeBot ? `bot-${activeBot.id}` : `sources-${sources.length}`} flush={!!activeBot} file={!activeBot && openFile ? <FileViewer file={openFile} onClose={() => setOpenFile(null)} /> : undefined}>
             {activeBot ? (
               <HomeBotPanel
                 bot={activeBot}
